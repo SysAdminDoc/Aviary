@@ -251,10 +251,22 @@ export const controlCenterFeature: FeatureModule = {
         const historySnapshot = history?.snapshot();
         const snapshot = queue?.snapshot();
         const batch = getMediaBatchStatus();
+        const qualityReceipts = (historySnapshot?.entries ?? []).reduce(
+          (counts, entry) => {
+            const label = entry.quality?.label ?? "quality-unknown";
+            if (label === "original") counts.original += 1;
+            else if (label === "fallback") counts.fallback += 1;
+            else if (label === "best-direct") counts.bestDirect += 1;
+            else counts.unknown += 1;
+            return counts;
+          },
+          { original: 0, fallback: 0, bestDirect: 0, unknown: 0 }
+        );
         return {
           historySize: history?.size() ?? 0,
           historyMatches: historySnapshot?.matches ?? { identity: 0, exact: 0, perceptual: 0 },
           lastHistoryMatch: historySnapshot?.lastMatch?.kind ?? null,
+          qualityReceipts,
           completed: snapshot?.completed ?? 0,
           failed: snapshot?.failed ?? 0,
           opened: snapshot?.opened ?? 0,

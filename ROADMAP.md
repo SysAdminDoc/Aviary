@@ -20,14 +20,6 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
   Complexity: XL
   Depends: F277 and F332. Authentic quality proof remains in `Roadmap_Blocked.md`.
 
-- [ ] F284, P2: Store quality receipts and retry original images without premature fallback
-  Why: completion history cannot identify original versus fallback quality, and transient CDN failures should not force a smaller image.
-  Evidence: `src/features/media/history.ts`, `src/features/media/urls.ts:35-38`; https://github.com/mikf/gallery-dl/discussions/5034; https://gdl-org.github.io/docs/configuration.html#extractor-twitter-size
-  Touches: candidate/result types, image URL normalization and retry policy, background completion messages, history schema, Media page, history export, migration and CDN-format fixtures
-  Acceptance: each completed entry records a non-identifying quality label, known dimensions, bitrate, and MIME without retaining its source URL; post state and history show original, fallback, best direct, or quality unknown accurately; bounded retries keep `orig` after transient connection, timeout, or server failures, while permanent absence advances the documented fallback sequence; cancellation never falls back; Retry original later updates the receipt only after a new collision-safe file completes; legacy PNG/JPEG/WebP URLs with and without format queries preserve their validated source format and never silently request JPEG for PNG; historical entries migrate as unknown; fixtures verify requested URLs, actual content types, and the error classes.
-  Complexity: M
-  Depends: F277 and F332. F283 adds adaptive receipts when it lands.
-
 - [ ] F287, P2: Localize extension-native surfaces from the shared catalog
   Why: the app has nine locales, but both manifests and the native media context menu remain English-only, and options duplicates locale-direction data.
   Evidence: `src/extension/manifest.chrome.json`, `src/extension/manifest.firefox.json`, `src/extension/media-context-menu.ts`, `src/entrypoints/extension-options.ts`; https://developer.chrome.com/docs/extensions/develop/ui/i18n

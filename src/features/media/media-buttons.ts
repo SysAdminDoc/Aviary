@@ -25,6 +25,10 @@ import { rememberLastDownload } from "./last-download.ts";
 import { DownloadQueue } from "./queue.ts";
 import { renderFilename } from "./template.ts";
 import { mediaSidecarRequest, saveMediaSidecar } from "./sidecar.ts";
+import {
+  normalizeDownloadQuality,
+  type DownloadQualityReceipt
+} from "../../extension/download-state.ts";
 
 const STYLE_ID = "av-media-buttons";
 const BUTTON_ATTR = "data-av-media-button";
@@ -55,6 +59,8 @@ interface PendingContextTarget {
 interface ResolvedTarget {
   url: string;
   fallbackUrls?: string[];
+  quality: DownloadQualityReceipt;
+  fallbackQualities?: DownloadQualityReceipt[];
   mediaId: string | null;
   ext: string;
 }
@@ -816,7 +822,9 @@ function buildButton(
 
   const target = resolveTarget(media);
   if (target) {
-    setDownloadedMarker(button, wasDownloaded(media.kind, target), ctx);
+    const receipt = downloadReceipt(media.kind, target);
+    setDownloadedMarker(button, receipt !== null, ctx, receipt);
+    updateOriginalRetryState(button, media, target, receipt, ctx);
   }
 
   button.addEventListener("click", (event) => {
@@ -884,16 +892,24 @@ async function handleDownload(
   });
 
   try {
-    const outcome = await performMediaDownload(media, index, tweet, target, ctx, () => {
-      // Distinct from Saved on purpose: the browser has the request and the file is on its way.
-      setButtonFeedback(button, {
-        label: ft(ctx, "Started"),
-        icon: "↓",
-        className: "is-active",
-        disabled: true,
-        busy: true
-      });
-    });
+    const outcome = await performMediaDownload(
+      media,
+      index,
+      tweet,
+      target,
+      ctx,
+      () => {
+        // Distinct from Saved on purpose: the browser has the request and the file is on its way.
+        setButtonFeedback(button, {
+          label: ft(ctx, "Started"),
+          icon: "↓",
+          className: "is-active",
+          disabled: true,
+          busy: true
+        });
+      },
+      button.dataset.retryOriginal === "true"
+    );
     setButtonFeedback(button, {
       label: ft(
         ctx,
@@ -923,7 +939,9 @@ async function handleDownload(
       button.setAttribute("aria-label", duplicateMatchTitle(outcome.matchKind, ctx));
     }
     if (outcome.status === "completed" || outcome.status === "history-duplicate") {
-      setDownloadedMarker(button, true, ctx);
+      const receipt = downloadReceipt(media.kind, target);
+      setDownloadedMarker(button, true, ctx, receipt);
+      updateOriginalRetryState(button, media, target, receipt, ctx);
     }
     if (outcome.degraded) {
       button.setAttribute(
@@ -1047,7 +1065,8 @@ async function performMediaDownload(
   tweet: ExtractedTweet,
   target: ResolvedTarget,
   ctx: FeatureContext,
-  onStarted?: () => void
+  onStarted?: () => void,
+  allowQualityUpgrade = false
 ): Promise<MediaDownloadOutcome> {
   if (!downloader || !queue || !history) {
     throw new Error("Media downloader is not ready.");
@@ -1082,7 +1101,7 @@ async function performMediaDownload(
   };
   let historyMatch: MediaMatchKind | null = null;
   let reservationToken: string | null = null;
-  if (ctx.settings.media.downloadHistory) {
+  if (ctx.settings.media.downloadHistory && !allowQualityUpgrade) {
     historyMatch = history.findMatch(fingerprint, false);
     if (historyMatch) {
       const reservation = await history.reserve(fingerprint, false);
@@ -1110,6 +1129,7 @@ async function performMediaDownload(
     const duplicate = queue.enqueue({
       url: target.url,
       ...(target.fallbackUrls ? { fallbackUrls: target.fallbackUrls } : {}),
+      quality: target.quality,
       filename,
       kind: media.kind,
       mediaId: target.mediaId
@@ -1125,14 +1145,19 @@ async function performMediaDownload(
   const job = queue.enqueue({
     url: target.url,
     ...(target.fallbackUrls ? { fallbackUrls: target.fallbackUrls } : {}),
+    quality: target.quality,
     filename,
     kind: media.kind,
     mediaId: target.mediaId,
     ...(sidecar ? { sidecar } : {})
   });
   queue.mark(job.id, "running");
-  const completeConfirmedSave = async (via: string): Promise<void> => {
+  const completeConfirmedSave = async (
+    via: string,
+    quality: DownloadQualityReceipt = target.quality
+  ): Promise<void> => {
     queue!.mark(job.id, "completed");
+    queue!.setQuality(job.id, quality);
     await rememberLastDownload(ctx.storage, {
       url: target.url,
       filename,
@@ -1140,10 +1165,10 @@ async function performMediaDownload(
     });
     if (ctx.settings.media.downloadHistory) {
       if (reservationToken) {
-        await history!.commit(reservationToken, fingerprint);
+        await history!.commit(reservationToken, fingerprint, quality);
         reservationToken = null;
       } else {
-        await history!.record(fingerprint);
+        await history!.record(fingerprint, quality);
       }
     }
     saveSidecarOrWarn(ctx, sidecar, filename);
@@ -1163,6 +1188,8 @@ async function performMediaDownload(
     const result = await downloader({
       url: target.url,
       ...(target.fallbackUrls ? { fallbackUrls: target.fallbackUrls } : {}),
+      quality: target.quality,
+      ...(target.fallbackQualities ? { fallbackQualities: target.fallbackQualities } : {}),
       filename
     });
     if (result.deduplicated) {
@@ -1200,10 +1227,11 @@ async function performMediaDownload(
     // Reporting Saved there is what let an interrupted transfer both claim success and write the
     // duplicate-history entry that then refused the retry.
     if (result.pending && result.downloadId !== undefined) {
-      queue.trackDownload(job.id, result.downloadId);
+      const downloadId = result.downloadId;
+      queue.trackDownload(job.id, downloadId);
       onStarted?.();
-      const terminalResult = downloadWatcher.terminal(result.downloadId);
-      const terminal = await downloadWatcher.wait(result.downloadId);
+      const terminalResult = downloadWatcher.terminal(downloadId);
+      const terminal = await downloadWatcher.wait(downloadId);
       if (terminal === "interrupted") {
         await failInterruptedSave();
         throw new Error("The browser interrupted this transfer before it finished.");
@@ -1213,7 +1241,7 @@ async function performMediaDownload(
         // stay alive so a large transfer cannot become a permanently running orphan.
         void terminalResult.then(async (eventual) => {
           if (eventual === "complete") {
-            await completeConfirmedSave(result.via);
+            await completeConfirmedSave(result.via, downloadWatcher.receipt(downloadId) ?? target.quality);
           } else if (eventual === "interrupted") {
             await failInterruptedSave();
           }
@@ -1225,7 +1253,7 @@ async function performMediaDownload(
       }
     }
 
-    await completeConfirmedSave(result.via);
+      await completeConfirmedSave(result.via, result.quality ?? target.quality);
     return { status: "completed", degraded: false };
   } catch (error) {
     if (reservationToken) {
@@ -1342,15 +1370,42 @@ function restoreIdleButton(button: HTMLButtonElement): void {
 }
 
 function wasDownloaded(kind: ExtractedMedia["kind"], target: ResolvedTarget): boolean {
-  return history?.wasDownloaded({
+  return downloadReceipt(kind, target) !== null;
+}
+
+function updateOriginalRetryState(
+  button: HTMLButtonElement,
+  media: ExtractedMedia,
+  target: ResolvedTarget,
+  receipt: DownloadQualityReceipt | null,
+  ctx: FeatureContext
+): void {
+  if (media.kind === "photo" && target.quality.label === "original" && receipt?.label === "fallback") {
+    button.dataset.retryOriginal = "true";
+    button.dataset.idleLabel = ft(ctx, "Original");
+    button.dataset.idleAriaLabel = ft(ctx, "Retry original image");
+    const label = button.querySelector<HTMLElement>(".av-media-button-label, .av-media-action-label");
+    if (label && !button.dataset.state) label.textContent = button.dataset.idleLabel;
+    if (!button.dataset.state) button.setAttribute("aria-label", button.dataset.idleAriaLabel);
+    return;
+  }
+  delete button.dataset.retryOriginal;
+}
+
+function downloadReceipt(
+  kind: ExtractedMedia["kind"],
+  target: ResolvedTarget
+): DownloadQualityReceipt | null {
+  return history?.findQuality({
     identityHash: mediaIdentityHash(kind, target.url, target.mediaId)
-  }) === true;
+  }) ?? null;
 }
 
 function setDownloadedMarker(
   button: HTMLButtonElement,
   downloaded: boolean,
-  ctx: FeatureContext
+  ctx: FeatureContext,
+  receipt: DownloadQualityReceipt | null = null
 ): void {
   if (downloaded) {
     button.setAttribute(DOWNLOADED_ATTR, "true");
@@ -1358,14 +1413,22 @@ function setDownloadedMarker(
     button.removeAttribute(DOWNLOADED_ATTR);
   }
   const base = button.dataset.baseIdleAriaLabel ?? button.dataset.idleAriaLabel ?? "";
+  const qualityLabel = receipt ? qualityReceiptLabel(receipt, ctx) : null;
   const accessibleLabel = downloaded
-    ? `${base}. ${ft(ctx, "Previously downloaded")}.`
+    ? `${base}. ${ft(ctx, "Previously downloaded")}${qualityLabel ? `. ${qualityLabel}` : ""}.`
     : base;
   button.dataset.idleAriaLabel = accessibleLabel;
   if (!button.dataset.state) {
     button.setAttribute("aria-label", accessibleLabel);
     button.removeAttribute("title");
   }
+}
+
+function qualityReceiptLabel(receipt: DownloadQualityReceipt, ctx: FeatureContext): string {
+  if (receipt.label === "original") return ft(ctx, "Original quality");
+  if (receipt.label === "fallback") return ft(ctx, "Fallback quality. Click to retry original");
+  if (receipt.label === "best-direct") return ft(ctx, "Best direct quality");
+  return ft(ctx, "Quality unknown");
 }
 
 function saveSidecarOrWarn(
@@ -1383,13 +1446,20 @@ function resolveTarget(media: ExtractedMedia): ResolvedTarget | null {
     if (!isSaveableVariantUrl(url, media.video.preferred.type)) {
       return null;
     }
-    return { url, mediaId: mediaIdFromVideo(url), ext: extensionForVideo(media.video.preferred.type, url) };
+    const variant = media.video.preferred;
+    return {
+      url,
+      quality: qualityForVariant(variant, "best-direct"),
+      mediaId: mediaIdFromVideo(url),
+      ext: extensionForVideo(variant.type, url)
+    };
   }
   if (media.kind === "audio" && media.audio?.preferred) {
     const variant = media.audio.preferred;
     if (!isSaveableVariantUrl(variant.url, variant.type)) return null;
     return {
       url: variant.url,
+      quality: qualityForVariant(variant, "best-direct"),
       mediaId: mediaIdFromVideo(variant.url),
       ext: extensionForAudio(variant.type, variant.url)
     };
@@ -1399,19 +1469,59 @@ function resolveTarget(media: ExtractedMedia): ResolvedTarget | null {
     if (!isSaveableVariantUrl(track.url, track.type)) return null;
     return {
       url: track.url,
+      quality: qualityForMime(track.type, "quality-unknown"),
       mediaId: mediaIdFromVideo(track.url),
       ext: extensionForSubtitle(track.type, track.url)
     };
   }
   if (media.image) {
+    const fallbackQualities = media.image.fallbackUrls.map((url) => qualityForImageUrl(url, "fallback"));
     return {
       url: media.image.url,
       fallbackUrls: media.image.fallbackUrls,
+      quality: qualityForImageUrl(media.image.url, "original"),
+      ...(fallbackQualities.length > 0 ? { fallbackQualities } : {}),
       mediaId: media.image.mediaId,
       ext: media.image.format
     };
   }
   return null;
+}
+
+function qualityForVariant(
+  variant: { width: number | null; height: number | null; bitrate: number | null; type: string },
+  label: "best-direct" | "fallback" | "original" | "quality-unknown"
+): DownloadQualityReceipt {
+  return normalizeDownloadQuality({
+    label,
+    width: variant.width,
+    height: variant.height,
+    bitrate: variant.bitrate,
+    mime: variant.type
+  });
+}
+
+function qualityForMime(
+  mime: string,
+  label: "best-direct" | "fallback" | "original" | "quality-unknown"
+): DownloadQualityReceipt {
+  return normalizeDownloadQuality({ label, mime });
+}
+
+function qualityForImageUrl(
+  url: string,
+  label: "fallback" | "original"
+): DownloadQualityReceipt {
+  const size = /(?:^|[?&])name=(\d{2,5})x(\d{2,5})(?:&|$)/i.exec(url);
+  const format = /(?:^|[?&])format=([a-z0-9]+)/i.exec(url)?.[1]?.toLowerCase() ??
+    (/\.([a-z0-9]+)(?:\?|$)/i.exec(url)?.[1]?.toLowerCase() ?? "jpg");
+  const mime = format === "png" ? "image/png" : format === "webp" ? "image/webp" : "image/jpeg";
+  return normalizeDownloadQuality({
+    label,
+    width: size ? Number(size[1]) : null,
+    height: size ? Number(size[2]) : null,
+    mime
+  });
 }
 
 function mediaIdFromVideo(url: string): string | null {

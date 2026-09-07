@@ -227,13 +227,17 @@ test("an interrupted original-image download resumes from the persisted quality 
     await waitFor(() => calls.length === 2);
     assert.deepEqual(calls.map((call) => call.url), [
       "https://pbs.twimg.com/media/x?format=jpg&name=orig",
-      "https://pbs.twimg.com/media/x?format=jpg&name=4096x4096"
+      "https://pbs.twimg.com/media/x?format=jpg&name=orig"
     ]);
+    onDownloadChanged({ id: 41, state: { current: "interrupted" } });
+    await waitFor(() => calls.length === 3);
+    onDownloadChanged({ id: 42, state: { current: "interrupted" } });
+    await waitFor(() => calls.length === 4);
+    assert.equal(calls[3].url, "https://pbs.twimg.com/media/x?format=jpg&name=4096x4096");
     // The retry is a new download id, and it inherits the id the content script was told about --
     // otherwise the tab waiting on 40 would never hear how the transfer it started ended.
-    assert.deepEqual(stored["aviary.downloadTracking.v2"], {
-      41: { reportId: 40, tabId: null, filename: "x.jpg", fallbackUrls: [] }
-    });
+    assert.equal(stored["aviary.downloadTracking.v2"][43].reportId, 40);
+    assert.equal(stored["aviary.downloadTracking.v2"][43].url, "https://pbs.twimg.com/media/x?format=jpg&name=4096x4096");
   } finally {
     globalThis.chrome = originalChrome;
   }

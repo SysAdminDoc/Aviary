@@ -1730,6 +1730,14 @@ export function buildMediaRows(ctx: PanelContext): HTMLElement[] {
         `${status.historyMatches.exact} exact / ${status.historyMatches.identity} same X asset / ${status.historyMatches.perceptual} visual`
       )
     );
+    if (status.qualityReceipts) {
+      rows.push(
+        ctx.dataRow(
+          "Quality receipts",
+          `${status.qualityReceipts.original} original / ${status.qualityReceipts.bestDirect} best direct / ${status.qualityReceipts.fallback} fallback / ${status.qualityReceipts.unknown} unknown`
+        )
+      );
+    }
     rows.push(
       ctx.dataRow(
         "Last duplicate match",

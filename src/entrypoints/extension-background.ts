@@ -14,6 +14,9 @@ import {
 import {
   DOWNLOAD_STATE_MESSAGE,
   isDownloadQueryMessage,
+  normalizeDownloadQuality,
+  unknownDownloadQuality,
+  type DownloadQualityReceipt,
   type DownloadQueryResponse
 } from "../extension/download-state.ts";
 import {
@@ -84,13 +87,18 @@ interface TrackedDownload {
   reportId: number;
   tabId: number | null;
   filename: string;
+  url: string;
+  quality: DownloadQualityReceipt;
   fallbackUrls: string[];
+  fallbackQualities: DownloadQualityReceipt[];
+  retryCount: number;
 }
 
 interface TerminalDownloadReceipt {
   reportId: number;
   state: "complete" | "interrupted";
   error?: string;
+  quality?: DownloadQualityReceipt;
   updatedAt: number;
 }
 
@@ -103,6 +111,7 @@ const handledTerminalIds = new Set<number>();
 const terminalWork = new Map<number, Promise<void>>();
 /** Keeps a terminal event from racing the storage write that records its tab and fallback list. */
 const trackingWork = new Map<number, Promise<void>>();
+const MAX_TRANSIENT_RETRIES = 2;
 /** Serializes read-modify-write tracking updates for concurrent downloads in one worker. */
 let trackingStoreTail: Promise<void> = Promise.resolve();
 
@@ -402,6 +411,8 @@ function isDownload(message: unknown): message is {
   type: "AVIARY_DOWNLOAD";
   url: string;
   fallbackUrls?: string[];
+  quality?: DownloadQualityReceipt;
+  fallbackQualities?: DownloadQualityReceipt[];
   filename: string;
 } {
   if (typeof message !== "object" || message === null) {
@@ -411,6 +422,8 @@ function isDownload(message: unknown): message is {
     type?: unknown;
     url?: unknown;
     fallbackUrls?: unknown;
+    quality?: unknown;
+    fallbackQualities?: unknown;
     filename?: unknown;
   };
   return (
@@ -420,6 +433,11 @@ function isDownload(message: unknown): message is {
       (Array.isArray(candidate.fallbackUrls) &&
         candidate.fallbackUrls.length <= 3 &&
         candidate.fallbackUrls.every((url) => typeof url === "string"))) &&
+    (candidate.quality === undefined || isQualityReceipt(candidate.quality)) &&
+    (candidate.fallbackQualities === undefined ||
+      (Array.isArray(candidate.fallbackQualities) &&
+        candidate.fallbackQualities.length <= 3 &&
+        candidate.fallbackQualities.every(isQualityReceipt))) &&
     typeof candidate.filename === "string"
   );
 }
@@ -451,6 +469,8 @@ async function handleDownload(
   message: {
     url: string;
     fallbackUrls?: string[];
+    quality?: DownloadQualityReceipt;
+    fallbackQualities?: DownloadQualityReceipt[];
     filename: string;
   },
   tabId: number | null
@@ -466,23 +486,36 @@ async function handleDownload(
   if (!downloads) {
     return { ok: false, code: DOWNLOAD_PERMISSION_CODE, error: "downloads permission not granted" };
   }
-  const candidates = [message.url, ...(message.fallbackUrls ?? [])]
-    .filter((url, index, all) => /^https?:\/\//i.test(url) && all.indexOf(url) === index)
+  const candidates = [
+    { url: message.url, quality: normalizeDownloadQuality(message.quality) },
+    ...(message.fallbackUrls ?? []).map((url, index) => ({
+      url,
+      quality: normalizeDownloadQuality(message.fallbackQualities?.[index])
+    }))
+  ]
+    .filter((candidate, index, all) =>
+      /^https?:\/\//i.test(candidate.url) &&
+      all.findIndex((entry) => entry.url === candidate.url) === index
+    )
     .slice(0, 4);
   let lastError = "download failed";
   for (let index = 0; index < candidates.length; index += 1) {
-    const url = candidates[index]!;
+    const candidate = candidates[index]!;
     try {
       const id = await downloads.download({
-        url,
+        url: candidate.url,
         filename: message.filename,
         conflictAction: "uniquify"
       });
       await trackDownload(id, {
         reportId: id,
         tabId,
-        fallbackUrls: candidates.slice(index + 1),
-        filename: message.filename
+        fallbackUrls: candidates.slice(index + 1).map((item) => item.url),
+        fallbackQualities: candidates.slice(index + 1).map((item) => item.quality),
+        filename: message.filename,
+        url: candidate.url,
+        quality: candidate.quality,
+        retryCount: 0
       });
       // A very fast transfer can reach a terminal state before the handoff response leaves this
       // worker. Reconcile after the durable tracking record exists so that event is not lost.
@@ -518,7 +551,37 @@ async function retryDownloadFallback(downloadId: number, error?: string): Promis
     return;
   }
   await clearTrackedDownload(downloadId);
+  if (isUserCancelledDownload(error)) {
+    await recordTerminalReceipt(downloadId, pending, "interrupted", error);
+    await reportDownloadState(pending, "interrupted", error);
+    return;
+  }
   if (downloads) {
+    if (
+      /^https?:\/\//i.test(pending.url) &&
+      isTransientDownloadError(error) &&
+      pending.retryCount < MAX_TRANSIENT_RETRIES
+    ) {
+      try {
+        const id = await downloads.download({
+          url: pending.url,
+          filename: pending.filename,
+          conflictAction: "uniquify"
+        });
+        await trackDownload(id, {
+          ...pending,
+          retryCount: pending.retryCount + 1
+        });
+        try {
+          await queryDownload(id);
+        } catch {
+          // Keep the same candidate alive while the browser transfer is in progress.
+        }
+        return;
+      } catch {
+        // If the retry cannot be handed to the browser, advance to the documented fallback list.
+      }
+    }
     for (let index = 0; index < pending.fallbackUrls.length; index += 1) {
       const url = pending.fallbackUrls[index]!;
       try {
@@ -531,7 +594,14 @@ async function retryDownloadFallback(downloadId: number, error?: string): Promis
           reportId: pending.reportId,
           tabId: pending.tabId,
           fallbackUrls: pending.fallbackUrls.slice(index + 1),
-          filename: pending.filename
+          fallbackQualities: pending.fallbackQualities.slice(index + 1),
+          filename: pending.filename,
+          url,
+          quality: pending.fallbackQualities[index] ?? unknownDownloadQuality(),
+          // Transient retries belong to the original candidate. Once the bounded original
+          // attempts are exhausted, fallback candidates advance in quality order without
+          // reopening another retry loop for the same lower-quality URL.
+          retryCount: MAX_TRANSIENT_RETRIES
         });
         // The fallback can finish before the original query returns. Reconcile its retained
         // browser record now so the original report id gets a terminal receipt before Resume can
@@ -554,14 +624,33 @@ async function retryDownloadFallback(downloadId: number, error?: string): Promis
 
 async function finishDownload(downloadId: number, state: "complete"): Promise<void> {
   await waitForTracking(downloadId);
-  const tracked = await readTrackedDownload(downloadId);
+  let tracked = await readTrackedDownload(downloadId);
   if (!tracked) {
     rememberTerminalBeforeTracking(downloadId, state);
     return;
   }
+  const mime = await completedDownloadMime(downloadId);
+  if (mime) {
+    tracked = { ...tracked, quality: { ...tracked.quality, mime } };
+    trackedDownloads.set(downloadId, tracked);
+  }
   await recordTerminalReceipt(downloadId, tracked, state);
   await clearTrackedDownload(downloadId);
   await reportDownloadState(tracked, state);
+}
+
+async function completedDownloadMime(downloadId: number): Promise<string | null> {
+  const downloads = globalThis.chrome?.downloads;
+  if (!downloads?.search) return null;
+  try {
+    const records = await downloads.search({ id: downloadId });
+    const mime = (records.find((record) => record.id === downloadId) as { mime?: unknown } | undefined)?.mime;
+    return typeof mime === "string" && /^[a-z][a-z0-9!#$&^_.+-]*\/[a-z0-9!#$&^_.+-]+$/i.test(mime)
+      ? mime.slice(0, 120).toLowerCase()
+      : null;
+  } catch {
+    return null;
+  }
 }
 
 /** Serializes the onChanged path with the post-handoff/search reconciliation path. */
@@ -619,7 +708,8 @@ async function queryDownload(downloadId: number): Promise<DownloadQueryResponse>
       ok: true,
       id: downloadId,
       state: retainedReceipt.state,
-      ...(retainedReceipt.error ? { error: retainedReceipt.error } : {})
+      ...(retainedReceipt.error ? { error: retainedReceipt.error } : {}),
+      ...(hasKnownQuality(retainedReceipt.quality) ? { quality: retainedReceipt.quality } : {})
     };
   }
   const downloads = globalThis.chrome?.downloads;
@@ -636,8 +726,14 @@ async function queryDownload(downloadId: number): Promise<DownloadQueryResponse>
     return { ok: true, id: downloadId, state: "missing" };
   }
   if (record.state === "complete") {
+    const tracked = await readTrackedDownload(downloadId);
     await reconcileDownload(downloadId, "complete");
-    return { ok: true, id: downloadId, state: "complete" };
+    return {
+      ok: true,
+      id: downloadId,
+      state: "complete",
+      ...(hasKnownQuality(tracked?.quality) ? { quality: tracked.quality } : {})
+    };
   }
   if (record.state === "interrupted") {
     await reconcileDownload(downloadId, "interrupted", record.error);
@@ -646,8 +742,9 @@ async function queryDownload(downloadId: number): Promise<DownloadQueryResponse>
       return {
         ok: true,
         id: downloadId,
-        state: terminal.state,
-        ...(terminal.error ? { error: terminal.error } : {})
+      state: terminal.state,
+      ...(terminal.error ? { error: terminal.error } : {}),
+      ...(hasKnownQuality(terminal.quality) ? { quality: terminal.quality } : {})
       };
     }
     // The background fallback keeps reporting the original id. Once it has started, the retained
@@ -702,7 +799,8 @@ async function reportDownloadState(
       type: DOWNLOAD_STATE_MESSAGE,
       id: tracked.reportId,
       state,
-      ...(error ? { error } : {})
+      ...(error ? { error } : {}),
+      ...(hasKnownQuality(tracked.quality) ? { quality: tracked.quality } : {})
     });
   } catch {
     // No receiver in that tab any more.
@@ -718,7 +816,8 @@ async function recordTerminalReceipt(
   downloadId: number,
   tracked: TrackedDownload,
   state: "complete" | "interrupted",
-  error?: string
+  error?: string,
+  quality?: DownloadQualityReceipt
 ): Promise<void> {
   // A direct download's browser record is already queryable by its own id. Receipts are for the
   // logical report id that survives a fallback hop; retaining direct ids would turn a later
@@ -728,6 +827,9 @@ async function recordTerminalReceipt(
     reportId: tracked.reportId,
     state,
     updatedAt: Date.now(),
+    ...(quality ?? (state === "complete" ? tracked.quality : undefined)
+      ? { quality: quality ?? tracked.quality }
+      : {}),
     ...(error ? { error: error.slice(0, 240) } : {})
   };
   terminalReceipts.set(tracked.reportId, receipt);
@@ -792,6 +894,9 @@ async function readStoredTerminalReceipts(): Promise<Record<string, TerminalDown
         reportId: candidate.reportId,
         state: candidate.state,
         updatedAt: candidate.updatedAt,
+        ...(candidate.quality && isQualityReceipt(candidate.quality)
+          ? { quality: candidate.quality }
+          : {}),
         ...(typeof candidate.error === "string" && candidate.error.length > 0
           ? { error: candidate.error.slice(0, 240) }
           : {})
@@ -945,6 +1050,7 @@ async function readStoredDownloadTracking(): Promise<Record<string, TrackedDownl
       typeof candidate.filename === "string" &&
       typeof candidate.reportId === "number" &&
       (candidate.tabId === null || typeof candidate.tabId === "number") &&
+      (candidate.url === undefined || (typeof candidate.url === "string" && /^https?:\/\//i.test(candidate.url))) &&
       Array.isArray(candidate.fallbackUrls) &&
       candidate.fallbackUrls.length <= 3 &&
       candidate.fallbackUrls.every(
@@ -955,11 +1061,45 @@ async function readStoredDownloadTracking(): Promise<Record<string, TrackedDownl
         reportId: candidate.reportId,
         tabId: candidate.tabId ?? null,
         filename: candidate.filename,
-        fallbackUrls: candidate.fallbackUrls
+        url: typeof candidate.url === "string" ? candidate.url : "",
+        quality: isQualityReceipt(candidate.quality) ? candidate.quality : unknownDownloadQuality(),
+        fallbackUrls: candidate.fallbackUrls,
+        fallbackQualities: Array.isArray(candidate.fallbackQualities)
+          ? candidate.fallbackQualities.filter(isQualityReceipt)
+          : candidate.fallbackUrls.map(() => unknownDownloadQuality()),
+        retryCount: typeof candidate.retryCount === "number" && Number.isSafeInteger(candidate.retryCount) && candidate.retryCount >= 0
+          ? Math.min(candidate.retryCount, MAX_TRANSIENT_RETRIES)
+          : 0
       };
     }
   }
   return valid;
+}
+
+function isQualityReceipt(value: unknown): value is DownloadQualityReceipt {
+  if (!value || typeof value !== "object") return false;
+  const normalized = normalizeDownloadQuality(value);
+  return JSON.stringify(normalized) === JSON.stringify(value);
+}
+
+function hasKnownQuality(value: DownloadQualityReceipt | undefined): value is DownloadQualityReceipt {
+  return value !== undefined && (
+    value.label !== "quality-unknown" ||
+    value.width !== null ||
+    value.height !== null ||
+    value.bitrate !== null ||
+    value.mime !== null
+  );
+}
+
+/** Chrome's error strings are stable enough to separate a retryable transport from cancellation. */
+function isTransientDownloadError(error: string | undefined): boolean {
+  if (!error) return true;
+  return /^(?:NETWORK_|SERVER_(?:FAILED|UNREACHABLE|DOWN|TEMPORARY|TIMEOUT|BAD_GATEWAY|SERVICE_UNAVAILABLE)|TEMPORARY)/i.test(error);
+}
+
+function isUserCancelledDownload(error: string | undefined): boolean {
+  return /(?:USER_)?CANCEL(?:LED|ED)|ABORT/i.test(error ?? "");
 }
 
 function errorMessage(error: unknown): string {

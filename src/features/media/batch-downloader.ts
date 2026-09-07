@@ -28,6 +28,10 @@ import {
   saveMediaSidecar,
   type MediaSidecarRequest
 } from "./sidecar.ts";
+import {
+  normalizeDownloadQuality,
+  type DownloadQualityReceipt
+} from "../../extension/download-state.ts";
 
 export interface BatchOptions {
   surface?: string;
@@ -65,6 +69,8 @@ export interface BatchActionResult {
 type ResolvedTarget = {
   url: string;
   fallbackUrls?: string[];
+  quality: DownloadQualityReceipt;
+  fallbackQualities?: DownloadQualityReceipt[];
   mediaId: string | null;
   ext: string;
 };
@@ -271,6 +277,10 @@ async function runTasks(
       const job = queue?.enqueue({
         url: task.target.url,
         ...(task.target.fallbackUrls ? { fallbackUrls: task.target.fallbackUrls } : {}),
+        quality: task.target.quality,
+        ...(task.target.fallbackQualities
+          ? { fallbackQualities: task.target.fallbackQualities }
+          : {}),
         filename,
         kind: task.kind,
         mediaId: task.target.mediaId,
@@ -385,6 +395,8 @@ async function runTasks(
             ...(task.target.fallbackUrls
               ? { fallbackUrls: task.target.fallbackUrls }
               : {}),
+            quality: task.target.quality,
+            ...(task.target.fallbackQualities ? { fallbackQualities: task.target.fallbackQualities } : {}),
             filename
           });
           if (result.deduplicated) {
@@ -428,10 +440,12 @@ async function runTasks(
               .terminal(result.downloadId)
               .then(async (terminal) => {
                 if (terminal === "complete") {
+                  const quality = sharedDownloadWatcher().receipt(result.downloadId!) ?? task.target.quality;
                   if (jobId) queue?.mark(jobId, "completed");
+                  if (jobId) queue?.setQuality(jobId, quality);
                   if (ctx.settings.media.downloadHistory && history) {
-                    if (activeReservation) await history.commit(activeReservation, fingerprint);
-                    else await history.record(fingerprint);
+                    if (activeReservation) await history.commit(activeReservation, fingerprint, quality);
+                    else await history.record(fingerprint, quality);
                   }
                   saveSidecarOrWarn(ctx, task.sidecar, filename);
                   void ctx.auditLog.record("media.download", {
@@ -467,13 +481,15 @@ async function runTasks(
             progress.started += 1;
             continue;
           } else {
+            const quality = result.quality ?? task.target.quality;
             if (job) queue?.mark(job.id, "completed");
+            if (job) queue?.setQuality(job.id, quality);
             if (ctx.settings.media.downloadHistory && history) {
               if (reservationToken) {
-                await history.commit(reservationToken, fingerprint);
+                await history.commit(reservationToken, fingerprint, quality);
                 reservationToken = null;
               } else {
-                await history.record(fingerprint);
+                await history.record(fingerprint, quality);
               }
             }
             saveSidecarOrWarn(ctx, task.sidecar, filename);
@@ -522,7 +538,9 @@ function sameTarget(left: ResolvedTarget, right: ResolvedTarget): boolean {
   return (
     left.url === right.url &&
     left.mediaId === right.mediaId &&
-    JSON.stringify(left.fallbackUrls ?? []) === JSON.stringify(right.fallbackUrls ?? [])
+    JSON.stringify(left.fallbackUrls ?? []) === JSON.stringify(right.fallbackUrls ?? []) &&
+    JSON.stringify(left.quality) === JSON.stringify(right.quality) &&
+    JSON.stringify(left.fallbackQualities ?? []) === JSON.stringify(right.fallbackQualities ?? [])
   );
 }
 
@@ -538,6 +556,10 @@ function refreshTaskTarget(
     queue?.updateTarget(job.id, {
       url: refreshedTarget.url,
       ...(refreshedTarget.fallbackUrls ? { fallbackUrls: refreshedTarget.fallbackUrls } : {}),
+      ...(refreshedTarget.fallbackQualities
+        ? { fallbackQualities: refreshedTarget.fallbackQualities }
+        : {}),
+      quality: refreshedTarget.quality,
       mediaId: refreshedTarget.mediaId
     });
   }
@@ -614,9 +636,11 @@ async function runPersistedJobs(
         }
         if (retained?.state === "complete") {
           queue.mark(job.id, "completed");
+          const quality = retained.quality ?? job.quality ?? unknownQualityReceipt();
+          queue.setQuality(job.id, quality);
           const fingerprint = retainedFingerprint(job);
           if (ctx.settings.media.downloadHistory && history && fingerprint) {
-            await history.record(fingerprint);
+            await history.record(fingerprint, quality);
           }
           saveSidecarOrWarn(ctx, job.sidecar, job.filename);
           progress.downloaded += 1;
@@ -679,6 +703,8 @@ async function runPersistedJobs(
         const result = await downloader({
           url: job.url,
           ...(job.fallbackUrls ? { fallbackUrls: job.fallbackUrls } : {}),
+          ...(job.quality ? { quality: job.quality } : {}),
+          ...(job.fallbackQualities ? { fallbackQualities: job.fallbackQualities } : {}),
           filename: job.filename
         });
         if (result.deduplicated) {
@@ -724,12 +750,14 @@ async function runPersistedJobs(
             .terminal(result.downloadId)
             .then(async (terminal) => {
               if (terminal === "complete") {
+                const quality = sharedDownloadWatcher().receipt(result.downloadId!) ?? job.quality ?? unknownQualityReceipt();
                 queue.mark(jobId, "completed");
+                queue.setQuality(jobId, quality);
                 if (ctx.settings.media.downloadHistory && history && activeFingerprint) {
                   if (activeReservation) {
-                    await history.commit(activeReservation, activeFingerprint);
+                    await history.commit(activeReservation, activeFingerprint, quality);
                   } else {
-                    await history.record(activeFingerprint);
+                    await history.record(activeFingerprint, quality);
                   }
                 }
                 saveSidecarOrWarn(ctx, job.sidecar, job.filename);
@@ -760,13 +788,15 @@ async function runPersistedJobs(
           progress.started += 1;
           continue;
         } else {
+          const quality = result.quality ?? job.quality ?? unknownQualityReceipt();
           queue.mark(job.id, "completed");
+          queue.setQuality(job.id, quality);
           if (ctx.settings.media.downloadHistory && history && fingerprint) {
             if (reservationToken) {
-              await history.commit(reservationToken, fingerprint);
+              await history.commit(reservationToken, fingerprint, quality);
               reservationToken = null;
             } else {
-              await history.record(fingerprint);
+              await history.record(fingerprint, quality);
             }
           }
           saveSidecarOrWarn(ctx, job.sidecar, job.filename);
@@ -826,9 +856,11 @@ function watchRetainedDownload(
     .terminal(downloadId)
     .then(async (terminal) => {
       if (terminal === "complete") {
+        const quality = sharedDownloadWatcher().receipt(downloadId) ?? job.quality ?? unknownQualityReceipt();
         queue?.mark(job.id, "completed");
+        queue?.setQuality(job.id, quality);
         if (ctx.settings.media.downloadHistory && history && fingerprint) {
-          await history.record(fingerprint);
+          await history.record(fingerprint, quality);
         }
         saveSidecarOrWarn(ctx, job.sidecar, job.filename);
         void ctx.auditLog.record("media.download", {
@@ -944,6 +976,10 @@ function resolveCapturedTarget(
       ? {
           url: image.url,
           fallbackUrls: image.fallbackUrls,
+          quality: imageQuality(image.url, "original"),
+          ...(image.fallbackUrls.length > 0
+            ? { fallbackQualities: image.fallbackUrls.map((fallback) => imageQuality(fallback, "fallback")) }
+            : {}),
           mediaId: image.mediaId,
           ext: image.format
         }
@@ -953,6 +989,7 @@ function resolveCapturedTarget(
   if (!isSaveableVariantUrl(url, type)) return null;
   return {
     url,
+    quality: normalizeDownloadQuality({ label: "quality-unknown", mime: type }),
     mediaId: mediaIdFromVideo(url),
     ext:
       media.kind === "audio"
@@ -997,27 +1034,69 @@ export function resolveTarget(media: ExtractedMedia): ResolvedTarget | null {
     if (!isSaveableVariantUrl(url, media.video.preferred.type)) {
       return null;
     }
-    return { url, mediaId: mediaIdFromVideo(url), ext: extensionForVideo(media.video.preferred.type, url) };
+    const variant = media.video.preferred;
+    return {
+      url,
+      quality: normalizeDownloadQuality({
+        label: "best-direct",
+        width: variant.width,
+        height: variant.height,
+        bitrate: variant.bitrate,
+        mime: variant.type
+      }),
+      mediaId: mediaIdFromVideo(url),
+      ext: extensionForVideo(variant.type, url)
+    };
   }
   if (media.kind === "audio" && media.audio?.preferred) {
     const variant = media.audio.preferred;
     if (!isSaveableVariantUrl(variant.url, variant.type)) return null;
-    return { url: variant.url, mediaId: mediaIdFromVideo(variant.url), ext: extensionForAudio(variant.type, variant.url) };
+    return {
+      url: variant.url,
+      quality: normalizeDownloadQuality({
+        label: "best-direct",
+        width: variant.width,
+        height: variant.height,
+        bitrate: variant.bitrate,
+        mime: variant.type
+      }),
+      mediaId: mediaIdFromVideo(variant.url),
+      ext: extensionForAudio(variant.type, variant.url)
+    };
   }
   if (media.kind === "subtitle" && media.subtitle?.track) {
     const track = media.subtitle.track;
     if (!isSaveableVariantUrl(track.url, track.type)) return null;
-    return { url: track.url, mediaId: mediaIdFromVideo(track.url), ext: extensionForSubtitle(track.type, track.url) };
+    return {
+      url: track.url,
+      quality: normalizeDownloadQuality({ label: "quality-unknown", mime: track.type }),
+      mediaId: mediaIdFromVideo(track.url),
+      ext: extensionForSubtitle(track.type, track.url)
+    };
   }
   if (media.image) {
+    const fallbackQualities = media.image.fallbackUrls.map((url) => imageQuality(url, "fallback"));
     return {
       url: media.image.url,
       fallbackUrls: media.image.fallbackUrls,
+      quality: imageQuality(media.image.url, "original"),
+      ...(fallbackQualities.length > 0 ? { fallbackQualities } : {}),
       mediaId: media.image.mediaId,
       ext: media.image.format
     };
   }
   return null;
+}
+
+function imageQuality(url: string, label: "original" | "fallback"): DownloadQualityReceipt {
+  const size = /(?:^|[?&])name=(\d{2,5})x(\d{2,5})(?:&|$)/i.exec(url);
+  const format = /(?:^|[?&])format=([a-z0-9]+)/i.exec(url)?.[1]?.toLowerCase() ?? "jpg";
+  return normalizeDownloadQuality({
+    label,
+    width: size ? Number(size[1]) : null,
+    height: size ? Number(size[2]) : null,
+    mime: format === "png" ? "image/png" : format === "webp" ? "image/webp" : "image/jpeg"
+  });
 }
 
 function mediaIdFromVideo(url: string): string | null {
@@ -1044,4 +1123,8 @@ function extensionForSubtitle(mime: string, url: string): string {
   if (/srt/i.test(mime) || /\.srt(?:[?#]|$)/i.test(url)) return "srt";
   if (/ttml|dfxp/i.test(mime) || /\.(?:ttml|dfxp)(?:[?#]|$)/i.test(url)) return "ttml";
   return "vtt";
+}
+
+function unknownQualityReceipt(): DownloadQualityReceipt {
+  return normalizeDownloadQuality(undefined);
 }

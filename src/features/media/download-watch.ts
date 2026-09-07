@@ -1,5 +1,6 @@
 import {
   isDownloadStateMessage,
+  type DownloadQualityReceipt,
   type DownloadTerminalState
 } from "../../extension/download-state.ts";
 
@@ -31,6 +32,7 @@ interface Waiter {
 export class DownloadWatcher {
   readonly #waiting = new Map<number, Waiter>();
   readonly #settled = new Map<number, DownloadTerminalState>();
+  readonly #quality = new Map<number, DownloadQualityReceipt>();
   #listener: ((message: unknown) => void) | undefined;
 
   start(): void {
@@ -43,7 +45,7 @@ export class DownloadWatcher {
     }
     this.#listener = (message: unknown) => {
       if (isDownloadStateMessage(message)) {
-        this.settle(message.id, message.state);
+        this.settle(message.id, message.state, message.quality);
       }
     };
     runtime.onMessage.addListener(this.#listener);
@@ -61,15 +63,17 @@ export class DownloadWatcher {
     }
     this.#waiting.clear();
     this.#settled.clear();
+    this.#quality.clear();
   }
 
   /** Also the entry point the background's message takes; exposed so tests can drive it. */
-  settle(id: number, state: DownloadTerminalState): void {
+  settle(id: number, state: DownloadTerminalState, quality?: DownloadQualityReceipt): void {
     // Chrome can emit the same terminal transition more than once when a worker wakes around an
     // onChanged event. The first terminal state wins, and every consumer sees that same answer.
     if (this.#settled.has(id)) {
       return;
     }
+    if (quality) this.#quality.set(id, { ...quality });
     const waiter = this.#waiting.get(id);
     if (waiter) {
       this.#waiting.delete(id);
@@ -88,6 +92,13 @@ export class DownloadWatcher {
    */
   forget(id: number): void {
     this.#settled.delete(id);
+    this.#quality.delete(id);
+  }
+
+  /** Quality is available only after a terminal message has proved which candidate completed. */
+  receipt(id: number): DownloadQualityReceipt | undefined {
+    const quality = this.#quality.get(id);
+    return quality ? { ...quality } : undefined;
   }
 
   #rememberSettled(id: number, state: DownloadTerminalState): void {

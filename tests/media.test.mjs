@@ -22,6 +22,19 @@ test("normalizeImageUrl forces name=orig and preserves format", async () => {
   const webp = normalizeImageUrl("https://pbs.twimg.com/media/qqqqq?format=webp");
   assert.equal(webp?.format, "webp");
 
+  const pngPathOnly = normalizeImageUrl("https://pbs.twimg.com/media/path-only.png?name=small");
+  assert.equal(pngPathOnly?.url, "https://pbs.twimg.com/media/path-only.png?name=orig&format=png");
+  assert.deepEqual(pngPathOnly?.fallbackUrls, [
+    "https://pbs.twimg.com/media/path-only.png?name=4096x4096&format=png"
+  ]);
+  assert.equal(pngPathOnly?.format, "png");
+
+  const webpPathOnly = normalizeImageUrl("https://pbs.twimg.com/media/path-only.webp");
+  assert.equal(webpPathOnly?.format, "webp");
+
+  const jpegPathOnly = normalizeImageUrl("https://pbs.twimg.com/media/path-only.jpeg?name=small");
+  assert.equal(jpegPathOnly?.format, "jpg");
+
   const served = normalizeImageUrl(
     "https://pbs.twimg.com/media/served?format=jpg&name=medium",
     { preferOriginal: false }
@@ -147,10 +160,72 @@ test("MediaHistory matches exact bytes, X identities, and opt-in visual similari
   assert.deepEqual(snapshot.matches, { identity: 1, exact: 1, perceptual: 1 });
   assert.equal(snapshot.lastMatch.kind, "perceptual");
   const stored = store.get(MEDIA_HISTORY_KEY);
-  assert.equal(stored.schemaVersion, 3);
+  assert.equal(stored.schemaVersion, 4);
   assert.deepEqual(stored.reservations, []);
   assert.ok(stored.entries.every((entry) => !Object.hasOwn(entry, "key")));
   assert.ok(stored.entries.every((entry) => !JSON.stringify(entry).includes("twimg.com")));
+});
+
+test("MediaHistory records quality receipts, upgrades fallback saves, and migrates old entries", async () => {
+  const { MediaHistory, MEDIA_HISTORY_KEY } = await importSourceModule(
+    "src/features/media/history.ts"
+  );
+  const { mediaIdentityHash } = await importSourceModule("src/features/export/assets.ts");
+  const identityHash = mediaIdentityHash(
+    "photo",
+    "https://pbs.twimg.com/media/Receipt?format=png&name=orig",
+    null
+  );
+  const store = new Map([[MEDIA_HISTORY_KEY, {
+    schemaVersion: 3,
+    entries: [{ identityHash, at: "2026-08-01T00:00:00.000Z" }],
+    reservations: []
+  }]]);
+  const storage = {
+    async get(key, fallback) {
+      return store.has(key) ? structuredClone(store.get(key)) : fallback;
+    },
+    async set(key, value) {
+      store.set(key, structuredClone(value));
+    },
+    async remove(key) {
+      store.delete(key);
+    }
+  };
+  const history = new MediaHistory(storage);
+  await history.load();
+
+  assert.deepEqual(history.findQuality({ identityHash }), {
+    label: "quality-unknown",
+    width: null,
+    height: null,
+    bitrate: null,
+    mime: null
+  });
+  assert.equal(store.get(MEDIA_HISTORY_KEY).schemaVersion, 4);
+
+  assert.equal(await history.record({ identityHash }, {
+    label: "fallback",
+    width: 4096,
+    height: 4096,
+    bitrate: null,
+    mime: "image/png"
+  }), true);
+  assert.equal(await history.record({ identityHash }, {
+    label: "original",
+    width: 12_000,
+    height: 8_000,
+    bitrate: null,
+    mime: "image/png"
+  }), true);
+  assert.deepEqual(history.findQuality({ identityHash }), {
+    label: "original",
+    width: 12_000,
+    height: 8_000,
+    bitrate: null,
+    mime: "image/png"
+  });
+  assert.doesNotMatch(JSON.stringify(store.get(MEDIA_HISTORY_KEY)), /pbs\.twimg|https?:/i);
 });
 
 test("fingerprintMediaDownload hashes the bytes returned by the media host", async () => {
@@ -280,7 +355,7 @@ test("MediaHistory repairs malformed entries and reservations in a current-versi
 
   assert.equal(history.size(), 0);
   assert.deepEqual(store.get(MEDIA_HISTORY_KEY), {
-    schemaVersion: 3,
+    schemaVersion: 4,
     entries: [],
     reservations: [],
     matches: { identity: 0, exact: 0, perceptual: 0 },
@@ -312,9 +387,10 @@ test("media history export filters inclusive date ranges without exposing source
   const payload = JSON.parse(new TextDecoder().decode(artifacts[0].data));
   assert.equal(payload.count, 2);
   assert.deepEqual(payload.entries.map((entry) => entry.identityHash), ["a".repeat(64), "b".repeat(64)]);
+  assert.ok(payload.entries.every((entry) => entry.quality.label === "quality-unknown"));
   assert.doesNotMatch(JSON.stringify(payload), /pbs\.twimg|https?:/i);
   const csv = new TextDecoder().decode(artifacts[1].data);
-  assert.match(csv, /downloaded_at/);
+  assert.match(csv, /quality,width,height,bitrate,mime,downloaded_at/);
   assert.doesNotMatch(csv, /2026-02-01/);
   assert.throws(
     () => buildMediaHistoryExportArtifacts(snapshot, { from: "2026-02-31" }),

@@ -8,16 +8,24 @@ import {
   type MediaFingerprint,
   type MediaFingerprintKind
 } from "../export/assets.ts";
+import {
+  normalizeDownloadQuality,
+  unknownDownloadQuality,
+  type DownloadQualityReceipt
+} from "../../extension/download-state.ts";
 
 export const MEDIA_HISTORY_KEY = "aviary.media.history.v1";
 export const MEDIA_HISTORY_LIMIT = 1500;
 export const MEDIA_HISTORY_RESERVATION_TTL_MS = 10 * 60 * 1000;
 const MEDIA_HISTORY_RESERVATION_LIMIT = 128;
+export const MEDIA_HISTORY_SCHEMA_VERSION = 4;
 
 export interface MediaHistoryEntry {
   identityHash: string;
   exactHash?: string;
   perceptualHash?: string;
+  /** Quality evidence only. Source URLs are deliberately never retained here. */
+  quality: DownloadQualityReceipt;
   at: string;
 }
 
@@ -41,7 +49,7 @@ export interface MediaHistoryLastMatch {
 }
 
 export interface MediaHistorySnapshot {
-  schemaVersion: 3;
+  schemaVersion: typeof MEDIA_HISTORY_SCHEMA_VERSION;
   entries: MediaHistoryEntry[];
   reservations: MediaHistoryReservation[];
   matches: MediaHistoryMatchSummary;
@@ -64,6 +72,8 @@ export interface MediaHistoryExportArtifact {
   data: Uint8Array;
 }
 
+export type MediaQualityReceipt = DownloadQualityReceipt;
+
 /** Builds bounded JSON and CSV history files without retaining or exporting source media URLs. */
 export function buildMediaHistoryExportArtifacts(
   snapshot: Pick<MediaHistorySnapshot, "entries" | "matches" | "lastMatch">,
@@ -84,13 +94,27 @@ export function buildMediaHistoryExportArtifacts(
     count: entries.length,
     matches: { ...snapshot.matches },
     lastMatch: snapshot.lastMatch ? { ...snapshot.lastMatch } : null,
-    entries: entries.map((entry) => ({ ...entry }))
+    entries: entries.map((entry) => ({
+      ...entry,
+      quality: entry.quality ?? unknownDownloadQuality()
+    }))
   };
   const csv = [
-    "identity_hash,exact_hash,perceptual_hash,downloaded_at",
-    ...entries.map((entry) => [entry.identityHash, entry.exactHash ?? "", entry.perceptualHash ?? "", entry.at]
-      .map(csvCell)
-      .join(","))
+    "identity_hash,exact_hash,perceptual_hash,quality,width,height,bitrate,mime,downloaded_at",
+    ...entries.map((entry) => {
+      const quality = entry.quality ?? unknownDownloadQuality();
+      return [
+        entry.identityHash,
+        entry.exactHash ?? "",
+        entry.perceptualHash ?? "",
+        quality.label,
+        quality.width === null ? "" : String(quality.width),
+        quality.height === null ? "" : String(quality.height),
+        quality.bitrate === null ? "" : String(quality.bitrate),
+        quality.mime ?? "",
+        entry.at
+      ].map(csvCell).join(",");
+    })
   ].join("\n") + "\n";
   return [
     {
@@ -164,14 +188,31 @@ export class MediaHistory {
     return findFingerprintMatch(this.#entries, [], candidate, allowPerceptual) !== null;
   }
 
-  async record(fingerprintOrLegacyKey: MediaFingerprint | string): Promise<boolean> {
+  async record(
+    fingerprintOrLegacyKey: MediaFingerprint | string,
+    quality?: MediaQualityReceipt
+  ): Promise<boolean> {
     await this.load();
     const fingerprint =
       typeof fingerprintOrLegacyKey === "string"
         ? { identityHash: legacyIdentityHash(fingerprintOrLegacyKey) }
         : normalizeFingerprint(fingerprintOrLegacyKey);
-    const entry: MediaHistoryEntry = { ...fingerprint, at: new Date().toISOString() };
+    const entry: MediaHistoryEntry = {
+      ...fingerprint,
+      quality: normalizeDownloadQuality(quality),
+      at: new Date().toISOString()
+    };
     return (await this.#persist({ added: [entry] })) > 0;
+  }
+
+  /** Returns the bounded quality receipt for a previously downloaded identity. */
+  findQuality(
+    fingerprint: MediaFingerprint,
+    allowPerceptual = false
+  ): MediaQualityReceipt | null {
+    const candidate = normalizeFingerprint(fingerprint);
+    const entry = findEntry(this.#entries, candidate, allowPerceptual);
+    return entry ? { ...entry.quality } : null;
   }
 
   /** Atomically claims a fingerprint so two tabs cannot start the same transfer. */
@@ -219,11 +260,19 @@ export class MediaHistory {
   }
 
   /** Turns a successful in-flight claim into durable completed history. */
-  async commit(token: string, fingerprint: MediaFingerprint): Promise<boolean> {
+  async commit(
+    token: string,
+    fingerprint: MediaFingerprint,
+    quality?: MediaQualityReceipt
+  ): Promise<boolean> {
     await this.load();
     if (!validToken(token)) return false;
     const candidate = normalizeFingerprint(fingerprint);
-    const entry: MediaHistoryEntry = { ...candidate, at: new Date().toISOString() };
+    const entry: MediaHistoryEntry = {
+      ...candidate,
+      quality: normalizeDownloadQuality(quality),
+      at: new Date().toISOString()
+    };
     let added = false;
     try {
       const merged = await mutateStored<MediaHistorySnapshot | LegacyMediaHistorySnapshot>(
@@ -233,7 +282,12 @@ export class MediaHistory {
         (stored) => {
           const entries = readEntries(stored);
           const reservations = readReservations(stored).filter((item) => item.token !== token);
-          if (!findFingerprintMatch(entries, [], candidate, false)) {
+          const existing = findEntry(entries, candidate, false);
+          if (existing) {
+            const before = JSON.stringify(existing.quality);
+            mergeEntry(entries, entry);
+            added = JSON.stringify(existing.quality) !== before;
+          } else {
             mergeEntry(entries, entry);
             added = true;
           }
@@ -245,11 +299,14 @@ export class MediaHistory {
     } catch (error) {
       this.#onPersistError?.(error);
       this.#reservations = this.#reservations.filter((item) => item.token !== token);
-      if (!findFingerprintMatch(this.#entries, [], candidate, false)) {
+      const existing = findEntry(this.#entries, candidate, false);
+      if (existing) {
+        const before = JSON.stringify(existing.quality);
         mergeEntry(this.#entries, entry);
-        return true;
+        return JSON.stringify(existing.quality) !== before;
       }
-      return false;
+      mergeEntry(this.#entries, entry);
+      return true;
     }
   }
 
@@ -302,7 +359,7 @@ export class MediaHistory {
 
   snapshot(): MediaHistorySnapshot {
     return {
-      schemaVersion: 3,
+      schemaVersion: MEDIA_HISTORY_SCHEMA_VERSION,
       entries: this.#entries.map((entry) => ({ ...entry })),
       reservations: activeReservations(this.#reservations).map((entry) => ({ ...entry })),
       matches: { ...this.#matches },
@@ -348,7 +405,13 @@ export class MediaHistory {
           // Only this call's entry. Folding the whole local list in would undo a
           // "Clear download history" performed in another tab.
           for (const entry of delta.added ?? []) {
-            if (findFingerprintMatch(entries, reservations, entry, false)) continue;
+            const existing = findEntry(entries, entry, false);
+            if (existing) {
+              const before = JSON.stringify(existing.quality);
+              mergeEntry(entries, entry);
+              if (JSON.stringify(existing.quality) !== before) added += 1;
+              continue;
+            }
             mergeEntry(entries, entry);
             added += 1;
           }
@@ -365,7 +428,7 @@ export class MediaHistory {
               ? delta.matched
               : storedLastMatch;
           return {
-            schemaVersion: 3,
+            schemaVersion: MEDIA_HISTORY_SCHEMA_VERSION,
             entries: ordered.slice(-this.#limit),
             reservations: reservations.slice(-MEDIA_HISTORY_RESERVATION_LIMIT),
             matches,
@@ -406,6 +469,7 @@ function readEntries(
         identityHash: candidate.identityHash.toLowerCase(),
         ...(exactHash ? { exactHash } : {}),
         ...(perceptualHash ? { perceptualHash } : {}),
+        quality: normalizeDownloadQuality("quality" in candidate ? candidate.quality : undefined),
         at: candidate.at
       });
       continue;
@@ -413,6 +477,7 @@ function readEntries(
     if ("key" in candidate && typeof candidate.key === "string") {
       mergeEntry(normalized, {
         identityHash: legacyIdentityHash(candidate.key),
+        quality: normalizeDownloadQuality(undefined),
         at: candidate.at
       });
     }
@@ -435,7 +500,7 @@ interface LegacyMediaHistorySnapshot {
 
 function emptySnapshot(): MediaHistorySnapshot {
   return {
-    schemaVersion: 3,
+    schemaVersion: MEDIA_HISTORY_SCHEMA_VERSION,
     entries: [],
     reservations: [],
     matches: emptyMatches(),
@@ -531,7 +596,7 @@ function snapshotFrom(
   limit: number
 ): MediaHistorySnapshot {
   return {
-    schemaVersion: 3,
+    schemaVersion: MEDIA_HISTORY_SCHEMA_VERSION,
     entries: entries
       .sort((left, right) => left.at < right.at ? -1 : left.at > right.at ? 1 : 0)
       .slice(-limit),
@@ -578,6 +643,7 @@ function mergeEntry(entries: MediaHistoryEntry[], incoming: MediaHistoryEntry): 
   if (!existing.perceptualHash && incoming.perceptualHash) {
     existing.perceptualHash = incoming.perceptualHash;
   }
+  existing.quality = mergeQuality(existing.quality, incoming.quality);
   if (existing.at < incoming.at) existing.at = incoming.at;
 }
 
@@ -609,14 +675,62 @@ function legacyIdentityHash(key: string): string {
 
 function isCurrentSnapshot(stored: MediaHistorySnapshot | LegacyMediaHistorySnapshot): boolean {
   const now = Date.now();
-  return stored.schemaVersion === 3 &&
+  return stored.schemaVersion === MEDIA_HISTORY_SCHEMA_VERSION &&
     Array.isArray(stored.entries) &&
     Array.isArray(stored.reservations) &&
     stored.entries.every((entry) =>
       typeof entry === "object" && entry !== null &&
       "identityHash" in entry && validHash(entry.identityHash) && !("key" in entry)
+      && "quality" in entry && isQualityReceipt(entry.quality)
     ) &&
     stored.reservations.every((entry) => isActiveStoredReservation(entry, now));
+}
+
+function findEntry(
+  entries: readonly MediaHistoryEntry[],
+  fingerprint: MediaFingerprint,
+  allowPerceptual: boolean
+): MediaHistoryEntry | null {
+  const exact = fingerprint.exactHash && entries.find((entry) => entry.exactHash === fingerprint.exactHash);
+  if (exact) return exact;
+  const identity = entries.find((entry) => entry.identityHash === fingerprint.identityHash);
+  if (identity) return identity;
+  if (allowPerceptual && fingerprint.perceptualHash) {
+    return entries.find((entry) =>
+      entry.perceptualHash &&
+      hexadecimalHammingDistance(entry.perceptualHash, fingerprint.perceptualHash!) <=
+        PERCEPTUAL_MATCH_DISTANCE
+    ) ?? null;
+  }
+  return null;
+}
+
+function qualityRank(value: DownloadQualityReceipt): number {
+  return value.label === "original" ? 4 : value.label === "best-direct" ? 3 :
+    value.label === "fallback" ? 2 : 1;
+}
+
+function mergeQuality(
+  existing: DownloadQualityReceipt,
+  incoming: DownloadQualityReceipt
+): DownloadQualityReceipt {
+  const existingRank = qualityRank(existing);
+  const incomingRank = qualityRank(incoming);
+  if (incomingRank > existingRank) return { ...incoming };
+  if (incomingRank < existingRank) return { ...existing };
+  return {
+    ...existing,
+    width: incoming.width ?? existing.width,
+    height: incoming.height ?? existing.height,
+    bitrate: incoming.bitrate ?? existing.bitrate,
+    mime: incoming.mime ?? existing.mime
+  };
+}
+
+function isQualityReceipt(value: unknown): value is DownloadQualityReceipt {
+  if (!value || typeof value !== "object") return false;
+  const normalized = normalizeDownloadQuality(value);
+  return JSON.stringify(normalized) === JSON.stringify(value);
 }
 
 function isActiveStoredReservation(value: unknown, now: number): boolean {

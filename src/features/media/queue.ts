@@ -4,6 +4,10 @@ import {
   normalizeMediaSidecarRequest,
   type MediaSidecarRequest
 } from "./sidecar.ts";
+import {
+  normalizeDownloadQuality,
+  type DownloadQualityReceipt
+} from "../../extension/download-state.ts";
 
 export type JobStatus =
   | "queued"
@@ -19,9 +23,12 @@ export interface DownloadJob {
   id: string;
   url: string;
   fallbackUrls?: string[];
+  fallbackQualities?: DownloadQualityReceipt[];
   filename: string;
   kind?: "photo" | "video" | "thumbnail" | "audio" | "subtitle";
   mediaId?: string | null;
+  /** Quality proof retained with the queue item, never a source URL in history. */
+  quality?: DownloadQualityReceipt;
   /** Browser download id retained while a handoff awaits terminal confirmation. */
   downloadId?: number;
   sidecar?: MediaSidecarRequest;
@@ -149,17 +156,23 @@ export class DownloadQueue {
   /** Refreshes a queued target after a late metadata observation improves its direct URL. */
   updateTarget(
     jobId: string,
-    target: Pick<DownloadJob, "url" | "fallbackUrls" | "mediaId">
+    target: Pick<DownloadJob, "url" | "fallbackUrls" | "fallbackQualities" | "mediaId" | "quality">
   ): boolean {
     const job = this.#jobs.find((entry) => entry.id === jobId);
     if (!job || (job.status !== "queued" && job.status !== "paused")) return false;
     job.url = target.url;
     if (target.fallbackUrls === undefined) delete job.fallbackUrls;
     else job.fallbackUrls = [...target.fallbackUrls];
+    if (target.fallbackQualities === undefined) delete job.fallbackQualities;
+    else job.fallbackQualities = target.fallbackQualities.map((quality) => ({ ...quality }));
+    if (target.quality === undefined) delete job.quality;
+    else job.quality = { ...target.quality };
     if (target.mediaId === undefined) delete job.mediaId;
     else job.mediaId = target.mediaId;
     const remove: QueueField[] = [];
     if (target.fallbackUrls === undefined) remove.push("fallbackUrls");
+    if (target.fallbackQualities === undefined) remove.push("fallbackQualities");
+    if (target.quality === undefined) remove.push("quality");
     if (target.mediaId === undefined) remove.push("mediaId");
     this.#persist({
       kind: "update",
@@ -167,6 +180,10 @@ export class DownloadQueue {
       set: {
         url: target.url,
         ...(target.fallbackUrls === undefined ? {} : { fallbackUrls: [...target.fallbackUrls] }),
+        ...(target.fallbackQualities === undefined ? {} : {
+          fallbackQualities: target.fallbackQualities.map((quality) => ({ ...quality }))
+        }),
+        ...(target.quality === undefined ? {} : { quality: { ...target.quality } }),
         ...(target.mediaId === undefined ? {} : { mediaId: target.mediaId })
       },
       ...(remove.length > 0 ? { remove } : {})
@@ -219,6 +236,15 @@ export class DownloadQueue {
     job.downloadId = downloadId;
     this.#persist({ kind: "update", id: jobId, set: { downloadId } });
     this.#notify();
+  }
+
+  setQuality(jobId: string, quality: DownloadQualityReceipt): boolean {
+    const job = this.#jobs.find((entry) => entry.id === jobId);
+    if (!job) return false;
+    job.quality = { ...quality };
+    this.#persist({ kind: "update", id: jobId, set: { quality: { ...quality } } });
+    this.#notify();
+    return true;
   }
 
   /** Clears a retained browser id after reconciliation says the transfer is gone or failed. */
@@ -444,6 +470,9 @@ function normalizeJob(value: DownloadJob): DownloadJob {
             .slice(0, 8)
         }
       : {}),
+    ...(Array.isArray(value.fallbackQualities)
+      ? { fallbackQualities: value.fallbackQualities.map(normalizeQuality) }
+      : {}),
     filename: value.filename,
     ...(value.kind === "photo" || value.kind === "video" || value.kind === "thumbnail" || value.kind === "audio" || value.kind === "subtitle"
       ? { kind: value.kind }
@@ -453,6 +482,7 @@ function normalizeJob(value: DownloadJob): DownloadJob {
       : value.mediaId === null
         ? { mediaId: null }
         : {}),
+    ...(value.quality ? { quality: normalizeQuality(value.quality) } : {}),
     ...(sidecar ? { sidecar } : {}),
     ...(typeof value.downloadId === "number" && Number.isSafeInteger(value.downloadId) && value.downloadId >= 0
       ? { downloadId: value.downloadId }
@@ -480,8 +510,16 @@ function cloneJob(job: DownloadJob): DownloadJob {
   return {
     ...job,
     ...(job.fallbackUrls ? { fallbackUrls: [...job.fallbackUrls] } : {}),
-    ...(job.sidecar ? { sidecar: { ...job.sidecar } } : {})
+    ...(job.fallbackQualities
+      ? { fallbackQualities: job.fallbackQualities.map((quality) => ({ ...quality })) }
+      : {}),
+    ...(job.sidecar ? { sidecar: { ...job.sidecar } } : {}),
+    ...(job.quality ? { quality: { ...job.quality } } : {})
   };
+}
+
+function normalizeQuality(value: DownloadQualityReceipt): DownloadQualityReceipt {
+  return normalizeDownloadQuality(value);
 }
 
 function normalizeQueueState(value: unknown): QueueState {

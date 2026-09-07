@@ -62,6 +62,12 @@ export interface MediaStatus {
     perceptual: number;
   };
   lastHistoryMatch: "identity" | "exact" | "perceptual" | null;
+  qualityReceipts?: {
+    original: number;
+    fallback: number;
+    bestDirect: number;
+    unknown: number;
+  };
   completed: number;
   failed: number;
   opened?: number;

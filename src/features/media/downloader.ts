@@ -15,8 +15,10 @@ import {
 import { NETWORK_TIMEOUTS, withNetworkTimeout } from "../../platform/network.ts";
 import {
   DOWNLOAD_QUERY_MESSAGE,
+  type DownloadQualityReceipt,
   type DownloadQueryResponse,
-  type DownloadQueryState
+  type DownloadQueryState,
+  normalizeDownloadQuality
 } from "../../extension/download-state.ts";
 
 export interface DownloadRequest {
@@ -25,6 +27,8 @@ export interface DownloadRequest {
   fallbackUrls?: string[];
   filename: string;
   estimatedBytes?: number | null;
+  quality?: DownloadQualityReceipt;
+  fallbackQualities?: DownloadQualityReceipt[];
 }
 
 export interface DownloaderResult {
@@ -40,6 +44,7 @@ export interface DownloaderResult {
    */
   pending?: boolean;
   downloadId?: number;
+  quality?: DownloadQualityReceipt;
 }
 
 export interface CapturedMediaBytes {
@@ -273,7 +278,13 @@ export async function queryExtensionDownload(
     const response = (await runtime.sendMessage({
       type: DOWNLOAD_QUERY_MESSAGE,
       id
-    })) as { ok?: unknown; id?: unknown; state?: unknown; error?: unknown } | undefined;
+    })) as {
+      ok?: unknown;
+      id?: unknown;
+      state?: unknown;
+      error?: unknown;
+      quality?: unknown;
+    } | undefined;
     if (
       response?.ok !== true ||
       response.id !== id ||
@@ -285,7 +296,8 @@ export async function queryExtensionDownload(
       ok: true,
       id,
       state: response.state,
-      ...(typeof response.error === "string" ? { error: response.error } : {})
+      ...(typeof response.error === "string" ? { error: response.error } : {}),
+      ...(response.quality ? { quality: normalizeDownloadQuality(response.quality) } : {})
     };
   } catch {
     return undefined;
@@ -340,7 +352,7 @@ export function createDownloader(options: DownloaderOptions = {}): Downloader {
 
     const gmResult = await tryGmDownload(request);
     if (gmResult) {
-      return { ok: true, via: "gm" };
+      return { ok: true, via: "gm", ...(gmResult.quality ? { quality: gmResult.quality } : {}) };
     }
 
     const extResult = await tryExtensionDownload(request);
@@ -409,17 +421,32 @@ async function estimateBytes(url: string): Promise<number | null> {
   }
 }
 
-async function tryGmDownload(request: DownloadRequest): Promise<boolean> {
+async function tryGmDownload(
+  request: DownloadRequest
+): Promise<{ quality?: DownloadQualityReceipt } | undefined> {
   const globals = globalThis as GlobalWithDownload;
   if (typeof globals.GM_download !== "function") {
-    return false;
+    return undefined;
   }
 
-  for (const url of downloadCandidates(request)) {
+  const candidates = [
+    { url: request.url, quality: request.quality },
+    ...(request.fallbackUrls ?? []).map((url, index) => ({
+      url,
+      quality: request.fallbackQualities?.[index]
+    }))
+  ]
+    .filter((candidate, index, all) =>
+      /^https?:\/\//i.test(candidate.url) &&
+      all.findIndex((entry) => entry.url === candidate.url) === index
+    )
+    .slice(0, 4);
+  for (let index = 0; index < candidates.length; index += 1) {
+    const candidate = candidates[index]!;
     const saved = await new Promise<boolean>((resolve) => {
       try {
         globals.GM_download?.({
-          url,
+          url: candidate.url,
           name: request.filename,
           onload: () => resolve(true),
           onerror: () => resolve(false),
@@ -430,10 +457,10 @@ async function tryGmDownload(request: DownloadRequest): Promise<boolean> {
       }
     });
     if (saved) {
-      return true;
+      return candidate.quality ? { quality: candidate.quality } : {};
     }
   }
-  return false;
+  return undefined;
 }
 
 async function tryExtensionDownload(request: DownloadRequest): Promise<ExtensionAttempt> {
@@ -446,7 +473,9 @@ async function tryExtensionDownload(request: DownloadRequest): Promise<Extension
     const response = (await runtime.sendMessage({
       type: "AVIARY_DOWNLOAD",
       url: request.url,
-      fallbackUrls: request.fallbackUrls,
+      ...(request.fallbackUrls ? { fallbackUrls: request.fallbackUrls } : {}),
+      ...(request.quality ? { quality: request.quality } : {}),
+      ...(request.fallbackQualities ? { fallbackQualities: request.fallbackQualities } : {}),
       filename: request.filename
     })) as { ok?: boolean; id?: number; pending?: boolean; code?: string; error?: string } | undefined;
     if (response?.ok === true) {

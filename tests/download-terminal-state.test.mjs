@@ -364,6 +364,50 @@ test("a retained terminal result is reconciled before the handoff response retur
   assert.deepEqual(stored["aviary.downloadTracking.v2"], {});
 });
 
+test("completed browser MIME updates the quality receipt without retaining the source URL", async () => {
+  const stored = {};
+  const background = await loadBackground({
+    stored,
+    downloadStates: { 1: { id: 1, state: "complete", mime: "image/png" } }
+  });
+
+  await background.send(
+    {
+      type: "AVIARY_DOWNLOAD",
+      url: "https://pbs.twimg.com/media/quality?format=png&name=orig",
+      quality: {
+        label: "original",
+        width: 4000,
+        height: 3000,
+        bitrate: null,
+        mime: "image/jpeg"
+      },
+      filename: "quality.png"
+    },
+    { tab: { id: 95 } }
+  );
+  await background.settled();
+
+  assert.deepEqual(background.tabMessages, [
+    {
+      tabId: 95,
+      message: {
+        type: "AVIARY_DOWNLOAD_STATE",
+        id: 1,
+        state: "complete",
+        quality: {
+          label: "original",
+          width: 4000,
+          height: 3000,
+          bitrate: null,
+          mime: "image/png"
+        }
+      }
+    }
+  ]);
+  assert.doesNotMatch(JSON.stringify(stored), /pbs\.twimg|https?:/i);
+});
+
 test("a restarted worker distinguishes in-progress, completed, interrupted, and missing ids", async () => {
   const stored = {};
   const first = await loadBackground({ stored });
@@ -429,13 +473,12 @@ test("an interrupted retained id keeps waiting on the original report id while f
     id: 1,
     state: "in_progress"
   });
-  assert.equal(restarted.downloads.length, 1, "the fallback should be the only new browser request");
-  assert.deepEqual(stored["aviary.downloadTracking.v2"]["2"], {
-    reportId: 1,
-    tabId: 93,
-    filename: "retry.jpg",
-    fallbackUrls: []
-  });
+  assert.equal(restarted.downloads.length, 1, "the original should be retried before falling back");
+  assert.equal(stored["aviary.downloadTracking.v2"]["2"].reportId, 1);
+  assert.equal(stored["aviary.downloadTracking.v2"]["2"].url, "https://pbs.twimg.com/media/retry?name=orig");
+  assert.deepEqual(stored["aviary.downloadTracking.v2"]["2"].fallbackUrls, [
+    "https://pbs.twimg.com/media/retry?name=4096x4096"
+  ]);
 });
 
 test("an immediately completed fallback is replayable for the original id", async () => {
@@ -483,7 +526,7 @@ test("a transfer with no candidates left is reported interrupted, not left waiti
     { tab: { id: 12 } }
   );
 
-  // The first transfer dies: the fallback is tried and nothing is reported to the tab yet.
+  // Transient failures retry the original twice before advancing to the fallback.
   background.onDownloadChanged({
     id: 1,
     state: { current: "interrupted" },
@@ -491,11 +534,29 @@ test("a transfer with no candidates left is reported interrupted, not left waiti
   });
   await background.settled();
   assert.deepEqual(background.tabMessages, [], "a retry that is still running must not report failure");
-  assert.equal(background.downloads.length, 2, "the quality fallback was never attempted");
+  assert.equal(background.downloads.length, 2, "the original should be retried first");
 
-  // The fallback dies too, and there is nothing left to try.
+  // The second original attempt also dies, so the third request is still the original.
   background.onDownloadChanged({
     id: 2,
+    state: { current: "interrupted" },
+    error: { current: "NETWORK_FAILED" }
+  });
+  await background.settled();
+  assert.deepEqual(background.tabMessages, [], "bounded original retries must stay quiet");
+  assert.equal(background.downloads.length, 3);
+
+  // The final original retry dies. The fallback is then attempted.
+  background.onDownloadChanged({
+    id: 3,
+    state: { current: "interrupted" },
+    error: { current: "NETWORK_FAILED" }
+  });
+  await background.settled();
+  assert.equal(background.downloads.length, 4);
+
+  background.onDownloadChanged({
+    id: 4,
     state: { current: "interrupted" },
     error: { current: "NETWORK_FAILED" }
   });
@@ -512,4 +573,78 @@ test("a transfer with no candidates left is reported interrupted, not left waiti
       }
     }
   ]);
+});
+
+test("cancellation reports immediately and never advances to a fallback", async () => {
+  const stored = {};
+  const background = await loadBackground({ stored });
+
+  await background.send(
+    {
+      type: "AVIARY_DOWNLOAD",
+      url: "https://pbs.twimg.com/media/cancel?name=orig",
+      fallbackUrls: ["https://pbs.twimg.com/media/cancel?name=4096x4096"],
+      filename: "cancel.jpg"
+    },
+    { tab: { id: 13 } }
+  );
+
+  background.onDownloadChanged({
+    id: 1,
+    state: { current: "interrupted" },
+    error: { current: "USER_CANCELED" }
+  });
+  await background.settled();
+
+  assert.equal(background.downloads.length, 1, "a cancellation must not start a retry or fallback");
+  assert.deepEqual(background.tabMessages, [
+    {
+      tabId: 13,
+      message: {
+        type: "AVIARY_DOWNLOAD_STATE",
+        id: 1,
+        state: "interrupted",
+        error: "USER_CANCELED"
+      }
+    }
+  ]);
+});
+
+test("server transport failures retry the original before using the fallback", async () => {
+  const stored = {};
+  const background = await loadBackground({ stored });
+
+  await background.send(
+    {
+      type: "AVIARY_DOWNLOAD",
+      url: "https://pbs.twimg.com/media/server?name=orig",
+      fallbackUrls: ["https://pbs.twimg.com/media/server?name=4096x4096"],
+      filename: "server.jpg"
+    },
+    { tab: { id: 14 } }
+  );
+
+  background.onDownloadChanged({
+    id: 1,
+    state: { current: "interrupted" },
+    error: { current: "SERVER_FAILED" }
+  });
+  await background.settled();
+  assert.equal(background.downloads[1].url, "https://pbs.twimg.com/media/server?name=orig");
+
+  background.onDownloadChanged({
+    id: 2,
+    state: { current: "interrupted" },
+    error: { current: "SERVER_TIMEOUT" }
+  });
+  await background.settled();
+  assert.equal(background.downloads[2].url, "https://pbs.twimg.com/media/server?name=orig");
+
+  background.onDownloadChanged({
+    id: 3,
+    state: { current: "interrupted" },
+    error: { current: "SERVER_BAD_CONTENT" }
+  });
+  await background.settled();
+  assert.equal(background.downloads[3].url, "https://pbs.twimg.com/media/server?name=4096x4096");
 });

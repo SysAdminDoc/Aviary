@@ -93,6 +93,12 @@
   and active-profile pointer. Schema 1 and 2 files keep their historical checksum formulas, while
   redacted multi-profile restores preserve destination credentials and profile selection through a
   failed write.
+- **Media quality receipts and safe retries.** Completed downloads now record an original, fallback,
+  best-direct, or unknown label with bounded dimensions, bitrate, and MIME, never the source URL.
+  Transient original-image failures retry `orig` before the fallback ladder, cancellation never
+  falls through, and a completed fallback exposes **Retry original** without changing history until
+  the replacement file finishes. Legacy history entries migrate to unknown quality, and source-format
+  PNG, JPEG, and WebP URLs stay intact when X omits a format query.
 
 ### Fixed
 - Conversation pages no longer show the vertical connector line down a reply's avatar column while an Aviary theme is active. The previous fix removed a line Aviary itself drew; the one readers were seeing is X's own element, found now by its shape and position rather than by a class name X regenerates.

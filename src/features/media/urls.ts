@@ -33,9 +33,13 @@ export function normalizeImageUrl(
 
   const params = parsed.searchParams;
   const requestedFormat = (params.get("format") ?? "").toLowerCase();
+  const pathFormat = /\.([a-z0-9]+)$/i.exec(parsed.pathname)?.[1]?.toLowerCase() ?? "";
+  const validatedPathFormat = pathFormat === "jpeg" ? "jpg" : pathFormat;
   const format = (FORMAT_PRIORITY as readonly string[]).includes(requestedFormat)
     ? (requestedFormat as NormalizedImage["format"])
-    : "jpg";
+    : (FORMAT_PRIORITY as readonly string[]).includes(validatedPathFormat)
+      ? (validatedPathFormat as NormalizedImage["format"])
+      : "jpg";
 
   params.set("format", format);
   const preferOriginal = options.preferOriginal ?? true;

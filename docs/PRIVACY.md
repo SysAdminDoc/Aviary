@@ -92,8 +92,8 @@ restore and journal authority.
 | `aviary.diagnostics.v1` | Stable authored message id, severity, ISO time, and detail-key names only | Let a failure from an earlier page load still be reportable; bounded to 50 entries and 7 days; clearable from Trust. Legacy message and reason values are removed on migration. |
 | `aviary.background.diagnostics.v1` | Bounded background operation code, severity, and ISO time only | Keep worker failures reportable after suspension or restart; bounded to 64 entries and never includes URLs, filenames, provider text, or exception strings. |
 | `aviary.firstRun.v1` | A single flag recording that the first-run notice was dismissed | Stop showing the notice again on this profile. |
-| `aviary.media.history.v1` | Bounded media dedup records and short-lived hashed in-flight claims | Avoid duplicate downloads across tabs; failed claims expire or are removed, and **Clear download history** removes all of them. The date-range JSON and CSV export contains hashes and timestamps only, never source media URLs. |
-| `aviary.media.queue.v1` | Queued, paused, failed, opened, and completed media jobs. A job can include X media URLs, fallback URLs, a filename, media kind/id, a browser download id, and an opted-in sidecar request with bounded post text, account, post id, permalink, and queue time. | Resume/retry media work and create the sidecar only after a confirmed save; completed history is separately clearable. |
+| `aviary.media.history.v1` | Bounded media dedup records, non-identifying quality receipts, and short-lived hashed in-flight claims | Avoid duplicate downloads across tabs; failed claims expire or are removed, and **Clear download history** removes all of them. A receipt keeps only its quality label, known dimensions, bitrate, MIME, and timestamp. The date-range JSON and CSV export contains hashes and receipts, never source media URLs. |
+| `aviary.media.queue.v1` | Queued, paused, failed, opened, and completed media jobs. A job can include X media URLs, fallback URLs, a filename, media kind/id, a browser download id, a bounded quality receipt, and an opted-in sidecar request with bounded post text, account, post id, permalink, and queue time. | Resume/retry media work and create the sidecar only after a confirmed save; completed history is separately clearable. |
 | `aviary.waczSigning.v1` | An opt-in local ECDSA-P384-SHA256 identity, including its private key, public key, fingerprint, and creation time | Create an Aviary-only WACZ proof and export the keypair explicitly. It is never included in routine library backups. |
 | `aviary.media.last-download.v1` | Metadata for the last successful download | Make an explicitly enabled crosspost-media attachment possible. |
 | `aviary.audit.v1` | Capped local action log | Review activity; **Clear audit log** removes it. |
@@ -115,7 +115,7 @@ contains only the browser download id, requested filename, and remaining X media
 for an active media download. The entry is removed when the download completes, when an
 interruption advances to the next candidate, or when no candidate remains. A bounded
 `aviary.downloadTerminal.v1` receipt keeps only the original report id, terminal state, optional
-error, and timestamp for a fallback that finishes under a different browser id. Neither key is
+error, quality receipt, and timestamp for a fallback that finishes under a different browser id. Neither key is
 included in profiles or library backups.
 
 Selector health and other transient DOM diagnostics are in memory unless an action is explicitly

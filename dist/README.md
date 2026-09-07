@@ -66,6 +66,10 @@ observed before handoff is the one persisted and requested. If a tab or service 
 Resume checks the browser's retained transfer before retrying, so an active or completed file is
 not duplicated. Quality fallbacks keep a bounded terminal receipt under the original post id, so a
 fast fallback cannot be mistaken for a failed primary and downloaded again.
+Completed history also records a privacy-safe quality receipt: original, fallback, best direct, or
+unknown, with any known dimensions, bitrate, and MIME. It never stores the source URL. A transient
+failure retries the original image before moving down the quality ladder, while cancellation stops
+without starting another candidate.
 
 That's the whole default surface. Themes, layout cleanup, filters, offscreen video pausing and the
 broader analytics refusal all start off. Outside the download controls, the only thing Aviary adds

@@ -6546,6 +6546,14 @@ ${body}
           `${status.historyMatches.exact} exact / ${status.historyMatches.identity} same X asset / ${status.historyMatches.perceptual} visual`
         )
       );
+      if (status.qualityReceipts) {
+        rows.push(
+          ctx.dataRow(
+            "Quality receipts",
+            `${status.qualityReceipts.original} original / ${status.qualityReceipts.bestDirect} best direct / ${status.qualityReceipts.fallback} fallback / ${status.qualityReceipts.unknown} unknown`
+          )
+        );
+      }
       rows.push(
         ctx.dataRow(
           "Last duplicate match",
@@ -13954,7 +13962,9 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     }
     const params = parsed.searchParams;
     const requestedFormat = (params.get("format") ?? "").toLowerCase();
-    const format = FORMAT_PRIORITY.includes(requestedFormat) ? requestedFormat : "jpg";
+    const pathFormat = /\.([a-z0-9]+)$/i.exec(parsed.pathname)?.[1]?.toLowerCase() ?? "";
+    const validatedPathFormat = pathFormat === "jpeg" ? "jpg" : pathFormat;
+    const format = FORMAT_PRIORITY.includes(requestedFormat) ? requestedFormat : FORMAT_PRIORITY.includes(validatedPathFormat) ? validatedPathFormat : "jpg";
     params.set("format", format);
     const preferOriginal = options.preferOriginal ?? true;
     if (preferOriginal) {
@@ -14886,12 +14896,37 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
   // src/extension/download-state.ts
   var DOWNLOAD_STATE_MESSAGE = "AVIARY_DOWNLOAD_STATE";
   var DOWNLOAD_QUERY_MESSAGE = "AVIARY_DOWNLOAD_QUERY";
+  function unknownDownloadQuality() {
+    return { label: "quality-unknown", width: null, height: null, bitrate: null, mime: null };
+  }
+  function normalizeDownloadQuality(value) {
+    if (!value || typeof value !== "object") {
+      return unknownDownloadQuality();
+    }
+    const candidate = value;
+    const label = candidate.label === "original" || candidate.label === "fallback" || candidate.label === "best-direct" || candidate.label === "quality-unknown" ? candidate.label : "quality-unknown";
+    return {
+      label,
+      width: boundedPositive(candidate.width, 2e4),
+      height: boundedPositive(candidate.height, 2e4),
+      bitrate: boundedPositive(candidate.bitrate, 1e9),
+      mime: typeof candidate.mime === "string" && /^[a-z][a-z0-9!#$&^_.+-]*\/[a-z0-9!#$&^_.+-]+$/i.test(candidate.mime) ? candidate.mime.slice(0, 120).toLowerCase() : null
+    };
+  }
+  function boundedPositive(value, max) {
+    const number = typeof value === "number" ? value : Number(value);
+    return Number.isFinite(number) && number > 0 && number <= max ? Math.round(number) : null;
+  }
   function isDownloadStateMessage(value) {
     if (typeof value !== "object" || value === null) {
       return false;
     }
     const candidate = value;
-    return candidate.type === DOWNLOAD_STATE_MESSAGE && typeof candidate.id === "number" && (candidate.state === "complete" || candidate.state === "interrupted") && (candidate.error === void 0 || typeof candidate.error === "string");
+    return candidate.type === DOWNLOAD_STATE_MESSAGE && typeof candidate.id === "number" && (candidate.state === "complete" || candidate.state === "interrupted") && (candidate.error === void 0 || typeof candidate.error === "string") && (candidate.quality === void 0 || isDownloadQualityReceipt(candidate.quality));
+  }
+  function isDownloadQualityReceipt(value) {
+    const normalized = normalizeDownloadQuality(value);
+    return Boolean(value && typeof value === "object" && JSON.stringify(normalized) === JSON.stringify(value));
   }
 
   // src/features/media/downloader.ts
@@ -15045,7 +15080,8 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
         ok: true,
         id,
         state: response.state,
-        ...typeof response.error === "string" ? { error: response.error } : {}
+        ...typeof response.error === "string" ? { error: response.error } : {},
+        ...response.quality ? { quality: normalizeDownloadQuality(response.quality) } : {}
       };
     } catch {
       return void 0;
@@ -15082,7 +15118,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       }
       const gmResult = await tryGmDownload(request);
       if (gmResult) {
-        return { ok: true, via: "gm" };
+        return { ok: true, via: "gm", ...gmResult.quality ? { quality: gmResult.quality } : {} };
       }
       const extResult = await tryExtensionDownload(request);
       if (extResult.status === "ok") {
@@ -15135,13 +15171,23 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
   async function tryGmDownload(request) {
     const globals = globalThis;
     if (typeof globals.GM_download !== "function") {
-      return false;
+      return void 0;
     }
-    for (const url of downloadCandidates(request)) {
+    const candidates2 = [
+      { url: request.url, quality: request.quality },
+      ...(request.fallbackUrls ?? []).map((url, index) => ({
+        url,
+        quality: request.fallbackQualities?.[index]
+      }))
+    ].filter(
+      (candidate, index, all) => /^https?:\/\//i.test(candidate.url) && all.findIndex((entry) => entry.url === candidate.url) === index
+    ).slice(0, 4);
+    for (let index = 0; index < candidates2.length; index += 1) {
+      const candidate = candidates2[index];
       const saved = await new Promise((resolve) => {
         try {
           globals.GM_download?.({
-            url,
+            url: candidate.url,
             name: request.filename,
             onload: () => resolve(true),
             onerror: () => resolve(false),
@@ -15152,10 +15198,10 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
         }
       });
       if (saved) {
-        return true;
+        return candidate.quality ? { quality: candidate.quality } : {};
       }
     }
-    return false;
+    return void 0;
   }
   async function tryExtensionDownload(request) {
     const runtime = globalThis.chrome?.runtime;
@@ -15166,7 +15212,9 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       const response = await runtime.sendMessage({
         type: "AVIARY_DOWNLOAD",
         url: request.url,
-        fallbackUrls: request.fallbackUrls,
+        ...request.fallbackUrls ? { fallbackUrls: request.fallbackUrls } : {},
+        ...request.quality ? { quality: request.quality } : {},
+        ...request.fallbackQualities ? { fallbackQualities: request.fallbackQualities } : {},
         filename: request.filename
       });
       if (response?.ok === true) {
@@ -15645,6 +15693,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
   var DownloadWatcher = class {
     #waiting = /* @__PURE__ */ new Map();
     #settled = /* @__PURE__ */ new Map();
+    #quality = /* @__PURE__ */ new Map();
     #listener;
     start() {
       if (this.#listener) {
@@ -15656,7 +15705,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       }
       this.#listener = (message) => {
         if (isDownloadStateMessage(message)) {
-          this.settle(message.id, message.state);
+          this.settle(message.id, message.state, message.quality);
         }
       };
       runtime.onMessage.addListener(this.#listener);
@@ -15672,12 +15721,14 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       }
       this.#waiting.clear();
       this.#settled.clear();
+      this.#quality.clear();
     }
     /** Also the entry point the background's message takes; exposed so tests can drive it. */
-    settle(id, state2) {
+    settle(id, state2, quality) {
       if (this.#settled.has(id)) {
         return;
       }
+      if (quality) this.#quality.set(id, { ...quality });
       const waiter = this.#waiting.get(id);
       if (waiter) {
         this.#waiting.delete(id);
@@ -15695,6 +15746,12 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
      */
     forget(id) {
       this.#settled.delete(id);
+      this.#quality.delete(id);
+    }
+    /** Quality is available only after a terminal message has proved which candidate completed. */
+    receipt(id) {
+      const quality = this.#quality.get(id);
+      return quality ? { ...quality } : void 0;
     }
     #rememberSettled(id, state2) {
       if (this.#settled.size >= MAX_BUFFERED) {
@@ -15747,6 +15804,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
   var MEDIA_HISTORY_LIMIT = 1500;
   var MEDIA_HISTORY_RESERVATION_TTL_MS = 10 * 60 * 1e3;
   var MEDIA_HISTORY_RESERVATION_LIMIT = 128;
+  var MEDIA_HISTORY_SCHEMA_VERSION = 4;
   function buildMediaHistoryExportArtifacts(snapshot, options = {}) {
     const range = normalizeHistoryRange(options);
     const entries = snapshot.entries.filter((entry) => {
@@ -15761,11 +15819,27 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       count: entries.length,
       matches: { ...snapshot.matches },
       lastMatch: snapshot.lastMatch ? { ...snapshot.lastMatch } : null,
-      entries: entries.map((entry) => ({ ...entry }))
+      entries: entries.map((entry) => ({
+        ...entry,
+        quality: entry.quality ?? unknownDownloadQuality()
+      }))
     };
     const csv = [
-      "identity_hash,exact_hash,perceptual_hash,downloaded_at",
-      ...entries.map((entry) => [entry.identityHash, entry.exactHash ?? "", entry.perceptualHash ?? "", entry.at].map(csvCell).join(","))
+      "identity_hash,exact_hash,perceptual_hash,quality,width,height,bitrate,mime,downloaded_at",
+      ...entries.map((entry) => {
+        const quality = entry.quality ?? unknownDownloadQuality();
+        return [
+          entry.identityHash,
+          entry.exactHash ?? "",
+          entry.perceptualHash ?? "",
+          quality.label,
+          quality.width === null ? "" : String(quality.width),
+          quality.height === null ? "" : String(quality.height),
+          quality.bitrate === null ? "" : String(quality.bitrate),
+          quality.mime ?? "",
+          entry.at
+        ].map(csvCell).join(",");
+      })
     ].join("\n") + "\n";
     return [
       {
@@ -15822,11 +15896,21 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       const candidate = normalizeFingerprint(fingerprint2);
       return findFingerprintMatch(this.#entries, [], candidate, allowPerceptual) !== null;
     }
-    async record(fingerprintOrLegacyKey) {
+    async record(fingerprintOrLegacyKey, quality) {
       await this.load();
       const fingerprint2 = typeof fingerprintOrLegacyKey === "string" ? { identityHash: legacyIdentityHash(fingerprintOrLegacyKey) } : normalizeFingerprint(fingerprintOrLegacyKey);
-      const entry = { ...fingerprint2, at: (/* @__PURE__ */ new Date()).toISOString() };
+      const entry = {
+        ...fingerprint2,
+        quality: normalizeDownloadQuality(quality),
+        at: (/* @__PURE__ */ new Date()).toISOString()
+      };
       return await this.#persist({ added: [entry] }) > 0;
+    }
+    /** Returns the bounded quality receipt for a previously downloaded identity. */
+    findQuality(fingerprint2, allowPerceptual = false) {
+      const candidate = normalizeFingerprint(fingerprint2);
+      const entry = findEntry(this.#entries, candidate, allowPerceptual);
+      return entry ? { ...entry.quality } : null;
     }
     /** Atomically claims a fingerprint so two tabs cannot start the same transfer. */
     async reserve(fingerprint2, allowPerceptual = false) {
@@ -15869,11 +15953,15 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       }
     }
     /** Turns a successful in-flight claim into durable completed history. */
-    async commit(token, fingerprint2) {
+    async commit(token, fingerprint2, quality) {
       await this.load();
       if (!validToken(token)) return false;
       const candidate = normalizeFingerprint(fingerprint2);
-      const entry = { ...candidate, at: (/* @__PURE__ */ new Date()).toISOString() };
+      const entry = {
+        ...candidate,
+        quality: normalizeDownloadQuality(quality),
+        at: (/* @__PURE__ */ new Date()).toISOString()
+      };
       let added = false;
       try {
         const merged = await mutateStored(
@@ -15883,7 +15971,12 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
           (stored) => {
             const entries = readEntries(stored);
             const reservations = readReservations(stored).filter((item) => item.token !== token);
-            if (!findFingerprintMatch(entries, [], candidate, false)) {
+            const existing = findEntry(entries, candidate, false);
+            if (existing) {
+              const before = JSON.stringify(existing.quality);
+              mergeEntry(entries, entry);
+              added = JSON.stringify(existing.quality) !== before;
+            } else {
               mergeEntry(entries, entry);
               added = true;
             }
@@ -15895,11 +15988,14 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       } catch (error) {
         this.#onPersistError?.(error);
         this.#reservations = this.#reservations.filter((item) => item.token !== token);
-        if (!findFingerprintMatch(this.#entries, [], candidate, false)) {
+        const existing = findEntry(this.#entries, candidate, false);
+        if (existing) {
+          const before = JSON.stringify(existing.quality);
           mergeEntry(this.#entries, entry);
-          return true;
+          return JSON.stringify(existing.quality) !== before;
         }
-        return false;
+        mergeEntry(this.#entries, entry);
+        return true;
       }
     }
     /** Releases a failed transfer claim so a retry can start immediately. */
@@ -15946,7 +16042,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     }
     snapshot() {
       return {
-        schemaVersion: 3,
+        schemaVersion: MEDIA_HISTORY_SCHEMA_VERSION,
         entries: this.#entries.map((entry) => ({ ...entry })),
         reservations: activeReservations(this.#reservations).map((entry) => ({ ...entry })),
         matches: { ...this.#matches },
@@ -15985,7 +16081,13 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
             const entries = readEntries(stored);
             const reservations = readReservations(stored);
             for (const entry of delta.added ?? []) {
-              if (findFingerprintMatch(entries, reservations, entry, false)) continue;
+              const existing = findEntry(entries, entry, false);
+              if (existing) {
+                const before = JSON.stringify(existing.quality);
+                mergeEntry(entries, entry);
+                if (JSON.stringify(existing.quality) !== before) added += 1;
+                continue;
+              }
               mergeEntry(entries, entry);
               added += 1;
             }
@@ -15999,7 +16101,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
             const storedLastMatch = readLastMatch(stored);
             const lastMatch = delta.matched && (!storedLastMatch || storedLastMatch.at <= delta.matched.at) ? delta.matched : storedLastMatch;
             return {
-              schemaVersion: 3,
+              schemaVersion: MEDIA_HISTORY_SCHEMA_VERSION,
               entries: ordered.slice(-this.#limit),
               reservations: reservations.slice(-MEDIA_HISTORY_RESERVATION_LIMIT),
               matches: matches2,
@@ -16032,6 +16134,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
           identityHash: candidate.identityHash.toLowerCase(),
           ...exactHash ? { exactHash } : {},
           ...perceptualHash ? { perceptualHash } : {},
+          quality: normalizeDownloadQuality("quality" in candidate ? candidate.quality : void 0),
           at: candidate.at
         });
         continue;
@@ -16039,6 +16142,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       if ("key" in candidate && typeof candidate.key === "string") {
         mergeEntry(normalized, {
           identityHash: legacyIdentityHash(candidate.key),
+          quality: normalizeDownloadQuality(void 0),
           at: candidate.at
         });
       }
@@ -16047,7 +16151,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
   }
   function emptySnapshot2() {
     return {
-      schemaVersion: 3,
+      schemaVersion: MEDIA_HISTORY_SCHEMA_VERSION,
       entries: [],
       reservations: [],
       matches: emptyMatches(),
@@ -16108,7 +16212,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
   }
   function snapshotFrom(stored, entries, reservations, limit) {
     return {
-      schemaVersion: 3,
+      schemaVersion: MEDIA_HISTORY_SCHEMA_VERSION,
       entries: entries.sort((left, right) => left.at < right.at ? -1 : left.at > right.at ? 1 : 0).slice(-limit),
       reservations: activeReservations(reservations).slice(-MEDIA_HISTORY_RESERVATION_LIMIT),
       matches: readMatches(stored),
@@ -16142,6 +16246,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     if (!existing.perceptualHash && incoming.perceptualHash) {
       existing.perceptualHash = incoming.perceptualHash;
     }
+    existing.quality = mergeQuality(existing.quality, incoming.quality);
     if (existing.at < incoming.at) existing.at = incoming.at;
   }
   function normalizeFingerprint(fingerprint2) {
@@ -16166,9 +16271,42 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
   }
   function isCurrentSnapshot(stored) {
     const now2 = Date.now();
-    return stored.schemaVersion === 3 && Array.isArray(stored.entries) && Array.isArray(stored.reservations) && stored.entries.every(
-      (entry) => typeof entry === "object" && entry !== null && "identityHash" in entry && validHash(entry.identityHash) && !("key" in entry)
+    return stored.schemaVersion === MEDIA_HISTORY_SCHEMA_VERSION && Array.isArray(stored.entries) && Array.isArray(stored.reservations) && stored.entries.every(
+      (entry) => typeof entry === "object" && entry !== null && "identityHash" in entry && validHash(entry.identityHash) && !("key" in entry) && "quality" in entry && isQualityReceipt(entry.quality)
     ) && stored.reservations.every((entry) => isActiveStoredReservation(entry, now2));
+  }
+  function findEntry(entries, fingerprint2, allowPerceptual) {
+    const exact = fingerprint2.exactHash && entries.find((entry) => entry.exactHash === fingerprint2.exactHash);
+    if (exact) return exact;
+    const identity = entries.find((entry) => entry.identityHash === fingerprint2.identityHash);
+    if (identity) return identity;
+    if (allowPerceptual && fingerprint2.perceptualHash) {
+      return entries.find(
+        (entry) => entry.perceptualHash && hexadecimalHammingDistance(entry.perceptualHash, fingerprint2.perceptualHash) <= PERCEPTUAL_MATCH_DISTANCE
+      ) ?? null;
+    }
+    return null;
+  }
+  function qualityRank(value) {
+    return value.label === "original" ? 4 : value.label === "best-direct" ? 3 : value.label === "fallback" ? 2 : 1;
+  }
+  function mergeQuality(existing, incoming) {
+    const existingRank = qualityRank(existing);
+    const incomingRank = qualityRank(incoming);
+    if (incomingRank > existingRank) return { ...incoming };
+    if (incomingRank < existingRank) return { ...existing };
+    return {
+      ...existing,
+      width: incoming.width ?? existing.width,
+      height: incoming.height ?? existing.height,
+      bitrate: incoming.bitrate ?? existing.bitrate,
+      mime: incoming.mime ?? existing.mime
+    };
+  }
+  function isQualityReceipt(value) {
+    if (!value || typeof value !== "object") return false;
+    const normalized = normalizeDownloadQuality(value);
+    return JSON.stringify(normalized) === JSON.stringify(value);
   }
   function isActiveStoredReservation(value, now2) {
     if (!value || typeof value !== "object") return false;
@@ -16468,10 +16606,16 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       job.url = target.url;
       if (target.fallbackUrls === void 0) delete job.fallbackUrls;
       else job.fallbackUrls = [...target.fallbackUrls];
+      if (target.fallbackQualities === void 0) delete job.fallbackQualities;
+      else job.fallbackQualities = target.fallbackQualities.map((quality) => ({ ...quality }));
+      if (target.quality === void 0) delete job.quality;
+      else job.quality = { ...target.quality };
       if (target.mediaId === void 0) delete job.mediaId;
       else job.mediaId = target.mediaId;
       const remove = [];
       if (target.fallbackUrls === void 0) remove.push("fallbackUrls");
+      if (target.fallbackQualities === void 0) remove.push("fallbackQualities");
+      if (target.quality === void 0) remove.push("quality");
       if (target.mediaId === void 0) remove.push("mediaId");
       this.#persist({
         kind: "update",
@@ -16479,6 +16623,10 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
         set: {
           url: target.url,
           ...target.fallbackUrls === void 0 ? {} : { fallbackUrls: [...target.fallbackUrls] },
+          ...target.fallbackQualities === void 0 ? {} : {
+            fallbackQualities: target.fallbackQualities.map((quality) => ({ ...quality }))
+          },
+          ...target.quality === void 0 ? {} : { quality: { ...target.quality } },
           ...target.mediaId === void 0 ? {} : { mediaId: target.mediaId }
         },
         ...remove.length > 0 ? { remove } : {}
@@ -16529,6 +16677,14 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       job.downloadId = downloadId;
       this.#persist({ kind: "update", id: jobId, set: { downloadId } });
       this.#notify();
+    }
+    setQuality(jobId, quality) {
+      const job = this.#jobs.find((entry) => entry.id === jobId);
+      if (!job) return false;
+      job.quality = { ...quality };
+      this.#persist({ kind: "update", id: jobId, set: { quality: { ...quality } } });
+      this.#notify();
+      return true;
     }
     /** Clears a retained browser id after reconciliation says the transfer is gone or failed. */
     forgetDownload(jobId) {
@@ -16724,9 +16880,11 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       ...Array.isArray(value.fallbackUrls) ? {
         fallbackUrls: value.fallbackUrls.filter((url) => typeof url === "string" && /^https?:\/\//i.test(url)).slice(0, 8)
       } : {},
+      ...Array.isArray(value.fallbackQualities) ? { fallbackQualities: value.fallbackQualities.map(normalizeQuality) } : {},
       filename: value.filename,
       ...value.kind === "photo" || value.kind === "video" || value.kind === "thumbnail" || value.kind === "audio" || value.kind === "subtitle" ? { kind: value.kind } : {},
       ...typeof value.mediaId === "string" ? { mediaId: value.mediaId.slice(0, 160) } : value.mediaId === null ? { mediaId: null } : {},
+      ...value.quality ? { quality: normalizeQuality(value.quality) } : {},
       ...sidecar ? { sidecar } : {},
       ...typeof value.downloadId === "number" && Number.isSafeInteger(value.downloadId) && value.downloadId >= 0 ? { downloadId: value.downloadId } : {},
       status: valid ? value.status : "failed",
@@ -16749,8 +16907,13 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     return {
       ...job,
       ...job.fallbackUrls ? { fallbackUrls: [...job.fallbackUrls] } : {},
-      ...job.sidecar ? { sidecar: { ...job.sidecar } } : {}
+      ...job.fallbackQualities ? { fallbackQualities: job.fallbackQualities.map((quality) => ({ ...quality })) } : {},
+      ...job.sidecar ? { sidecar: { ...job.sidecar } } : {},
+      ...job.quality ? { quality: { ...job.quality } } : {}
     };
+  }
+  function normalizeQuality(value) {
+    return normalizeDownloadQuality(value);
   }
   function normalizeQueueState(value) {
     if (!value || typeof value !== "object") return { sequence: 0, jobs: [] };
@@ -17387,7 +17550,9 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     button3.replaceChildren(icon, label);
     const target = resolveTarget(media);
     if (target) {
-      setDownloadedMarker(button3, wasDownloaded(media.kind, target), ctx);
+      const receipt = downloadReceipt(media.kind, target);
+      setDownloadedMarker(button3, receipt !== null, ctx, receipt);
+      updateOriginalRetryState(button3, media, target, receipt, ctx);
     }
     button3.addEventListener("click", (event) => {
       event.stopPropagation();
@@ -17441,15 +17606,23 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       busy: true
     });
     try {
-      const outcome = await performMediaDownload(media, index, tweet, target, ctx, () => {
-        setButtonFeedback(button3, {
-          label: ft(ctx, "Started"),
-          icon: "\u2193",
-          className: "is-active",
-          disabled: true,
-          busy: true
-        });
-      });
+      const outcome = await performMediaDownload(
+        media,
+        index,
+        tweet,
+        target,
+        ctx,
+        () => {
+          setButtonFeedback(button3, {
+            label: ft(ctx, "Started"),
+            icon: "\u2193",
+            className: "is-active",
+            disabled: true,
+            busy: true
+          });
+        },
+        button3.dataset.retryOriginal === "true"
+      );
       setButtonFeedback(button3, {
         label: ft(
           ctx,
@@ -17468,7 +17641,9 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
         button3.setAttribute("aria-label", duplicateMatchTitle(outcome.matchKind, ctx));
       }
       if (outcome.status === "completed" || outcome.status === "history-duplicate") {
-        setDownloadedMarker(button3, true, ctx);
+        const receipt = downloadReceipt(media.kind, target);
+        setDownloadedMarker(button3, true, ctx, receipt);
+        updateOriginalRetryState(button3, media, target, receipt, ctx);
       }
       if (outcome.degraded) {
         button3.setAttribute(
@@ -17558,7 +17733,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
   function primaryAssetKey(asset) {
     return `${asset.index}:${asset.media.kind}:${asset.target.mediaId ?? asset.target.url}`;
   }
-  async function performMediaDownload(media, index, tweet, target, ctx, onStarted) {
+  async function performMediaDownload(media, index, tweet, target, ctx, onStarted, allowQualityUpgrade = false) {
     if (!downloader || !queue || !history) {
       throw new Error("Media downloader is not ready.");
     }
@@ -17587,7 +17762,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     };
     let historyMatch = null;
     let reservationToken2 = null;
-    if (ctx.settings.media.downloadHistory) {
+    if (ctx.settings.media.downloadHistory && !allowQualityUpgrade) {
       historyMatch = history.findMatch(fingerprint2, false);
       if (historyMatch) {
         const reservation = await history.reserve(fingerprint2, false);
@@ -17614,6 +17789,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       const duplicate = queue.enqueue({
         url: target.url,
         ...target.fallbackUrls ? { fallbackUrls: target.fallbackUrls } : {},
+        quality: target.quality,
         filename,
         kind: media.kind,
         mediaId: target.mediaId
@@ -17628,14 +17804,16 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     const job = queue.enqueue({
       url: target.url,
       ...target.fallbackUrls ? { fallbackUrls: target.fallbackUrls } : {},
+      quality: target.quality,
       filename,
       kind: media.kind,
       mediaId: target.mediaId,
       ...sidecar ? { sidecar } : {}
     });
     queue.mark(job.id, "running");
-    const completeConfirmedSave = async (via) => {
+    const completeConfirmedSave = async (via, quality = target.quality) => {
       queue.mark(job.id, "completed");
+      queue.setQuality(job.id, quality);
       await rememberLastDownload(ctx.storage, {
         url: target.url,
         filename,
@@ -17643,10 +17821,10 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       });
       if (ctx.settings.media.downloadHistory) {
         if (reservationToken2) {
-          await history.commit(reservationToken2, fingerprint2);
+          await history.commit(reservationToken2, fingerprint2, quality);
           reservationToken2 = null;
         } else {
-          await history.record(fingerprint2);
+          await history.record(fingerprint2, quality);
         }
       }
       saveSidecarOrWarn(ctx, sidecar, filename);
@@ -17666,6 +17844,8 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       const result = await downloader({
         url: target.url,
         ...target.fallbackUrls ? { fallbackUrls: target.fallbackUrls } : {},
+        quality: target.quality,
+        ...target.fallbackQualities ? { fallbackQualities: target.fallbackQualities } : {},
         filename
       });
       if (result.deduplicated) {
@@ -17698,10 +17878,11 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
         return { status: "opened", degraded: true };
       }
       if (result.pending && result.downloadId !== void 0) {
-        queue.trackDownload(job.id, result.downloadId);
+        const downloadId = result.downloadId;
+        queue.trackDownload(job.id, downloadId);
         onStarted?.();
-        const terminalResult = downloadWatcher.terminal(result.downloadId);
-        const terminal = await downloadWatcher.wait(result.downloadId);
+        const terminalResult = downloadWatcher.terminal(downloadId);
+        const terminal = await downloadWatcher.wait(downloadId);
         if (terminal === "interrupted") {
           await failInterruptedSave();
           throw new Error("The browser interrupted this transfer before it finished.");
@@ -17709,7 +17890,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
         if (terminal === "pending") {
           void terminalResult.then(async (eventual) => {
             if (eventual === "complete") {
-              await completeConfirmedSave(result.via);
+              await completeConfirmedSave(result.via, downloadWatcher.receipt(downloadId) ?? target.quality);
             } else if (eventual === "interrupted") {
               await failInterruptedSave();
             }
@@ -17720,7 +17901,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
           return { status: "started", degraded: false };
         }
       }
-      await completeConfirmedSave(result.via);
+      await completeConfirmedSave(result.via, result.quality ?? target.quality);
       return { status: "completed", degraded: false };
     } catch (error) {
       if (reservationToken2) {
@@ -17818,23 +17999,45 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     button3.removeAttribute("title");
   }
   function wasDownloaded(kind, target) {
-    return history?.wasDownloaded({
-      identityHash: mediaIdentityHash(kind, target.url, target.mediaId)
-    }) === true;
+    return downloadReceipt(kind, target) !== null;
   }
-  function setDownloadedMarker(button3, downloaded, ctx) {
+  function updateOriginalRetryState(button3, media, target, receipt, ctx) {
+    if (media.kind === "photo" && target.quality.label === "original" && receipt?.label === "fallback") {
+      button3.dataset.retryOriginal = "true";
+      button3.dataset.idleLabel = ft(ctx, "Original");
+      button3.dataset.idleAriaLabel = ft(ctx, "Retry original image");
+      const label = button3.querySelector(".av-media-button-label, .av-media-action-label");
+      if (label && !button3.dataset.state) label.textContent = button3.dataset.idleLabel;
+      if (!button3.dataset.state) button3.setAttribute("aria-label", button3.dataset.idleAriaLabel);
+      return;
+    }
+    delete button3.dataset.retryOriginal;
+  }
+  function downloadReceipt(kind, target) {
+    return history?.findQuality({
+      identityHash: mediaIdentityHash(kind, target.url, target.mediaId)
+    }) ?? null;
+  }
+  function setDownloadedMarker(button3, downloaded, ctx, receipt = null) {
     if (downloaded) {
       button3.setAttribute(DOWNLOADED_ATTR, "true");
     } else {
       button3.removeAttribute(DOWNLOADED_ATTR);
     }
     const base = button3.dataset.baseIdleAriaLabel ?? button3.dataset.idleAriaLabel ?? "";
-    const accessibleLabel = downloaded ? `${base}. ${ft(ctx, "Previously downloaded")}.` : base;
+    const qualityLabel = receipt ? qualityReceiptLabel(receipt, ctx) : null;
+    const accessibleLabel = downloaded ? `${base}. ${ft(ctx, "Previously downloaded")}${qualityLabel ? `. ${qualityLabel}` : ""}.` : base;
     button3.dataset.idleAriaLabel = accessibleLabel;
     if (!button3.dataset.state) {
       button3.setAttribute("aria-label", accessibleLabel);
       button3.removeAttribute("title");
     }
+  }
+  function qualityReceiptLabel(receipt, ctx) {
+    if (receipt.label === "original") return ft(ctx, "Original quality");
+    if (receipt.label === "fallback") return ft(ctx, "Fallback quality. Click to retry original");
+    if (receipt.label === "best-direct") return ft(ctx, "Best direct quality");
+    return ft(ctx, "Quality unknown");
   }
   function saveSidecarOrWarn(ctx, request, mediaFilename) {
     if (!request || saveMediaSidecar(request)) return;
@@ -17846,13 +18049,20 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       if (!isSaveableVariantUrl(url, media.video.preferred.type)) {
         return null;
       }
-      return { url, mediaId: mediaIdFromVideo(url), ext: extensionForVideo(media.video.preferred.type, url) };
+      const variant = media.video.preferred;
+      return {
+        url,
+        quality: qualityForVariant(variant, "best-direct"),
+        mediaId: mediaIdFromVideo(url),
+        ext: extensionForVideo(variant.type, url)
+      };
     }
     if (media.kind === "audio" && media.audio?.preferred) {
       const variant = media.audio.preferred;
       if (!isSaveableVariantUrl(variant.url, variant.type)) return null;
       return {
         url: variant.url,
+        quality: qualityForVariant(variant, "best-direct"),
         mediaId: mediaIdFromVideo(variant.url),
         ext: extensionForAudio(variant.type, variant.url)
       };
@@ -17862,19 +18072,46 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       if (!isSaveableVariantUrl(track.url, track.type)) return null;
       return {
         url: track.url,
+        quality: qualityForMime(track.type, "quality-unknown"),
         mediaId: mediaIdFromVideo(track.url),
         ext: extensionForSubtitle(track.type, track.url)
       };
     }
     if (media.image) {
+      const fallbackQualities = media.image.fallbackUrls.map((url) => qualityForImageUrl(url, "fallback"));
       return {
         url: media.image.url,
         fallbackUrls: media.image.fallbackUrls,
+        quality: qualityForImageUrl(media.image.url, "original"),
+        ...fallbackQualities.length > 0 ? { fallbackQualities } : {},
         mediaId: media.image.mediaId,
         ext: media.image.format
       };
     }
     return null;
+  }
+  function qualityForVariant(variant, label) {
+    return normalizeDownloadQuality({
+      label,
+      width: variant.width,
+      height: variant.height,
+      bitrate: variant.bitrate,
+      mime: variant.type
+    });
+  }
+  function qualityForMime(mime, label) {
+    return normalizeDownloadQuality({ label, mime });
+  }
+  function qualityForImageUrl(url, label) {
+    const size = /(?:^|[?&])name=(\d{2,5})x(\d{2,5})(?:&|$)/i.exec(url);
+    const format = /(?:^|[?&])format=([a-z0-9]+)/i.exec(url)?.[1]?.toLowerCase() ?? (/\.([a-z0-9]+)(?:\?|$)/i.exec(url)?.[1]?.toLowerCase() ?? "jpg");
+    const mime = format === "png" ? "image/png" : format === "webp" ? "image/webp" : "image/jpeg";
+    return normalizeDownloadQuality({
+      label,
+      width: size ? Number(size[1]) : null,
+      height: size ? Number(size[2]) : null,
+      mime
+    });
   }
   function mediaIdFromVideo(url) {
     const match = /\/([A-Za-z0-9_-]{6,})\.(mp4|m4s|m3u8|webm|mov|m4a|mp3|ogg|opus|wav|vtt|srt|ttml|dfxp)(?:[?#]|$)/i.exec(url);
@@ -26974,6 +27211,8 @@ a.av-link-clean {
         const job = queue2?.enqueue({
           url: task.target.url,
           ...task.target.fallbackUrls ? { fallbackUrls: task.target.fallbackUrls } : {},
+          quality: task.target.quality,
+          ...task.target.fallbackQualities ? { fallbackQualities: task.target.fallbackQualities } : {},
           filename,
           kind: task.kind,
           mediaId: task.target.mediaId,
@@ -27067,6 +27306,8 @@ a.av-link-clean {
             const result = await downloader2({
               url: task.target.url,
               ...task.target.fallbackUrls ? { fallbackUrls: task.target.fallbackUrls } : {},
+              quality: task.target.quality,
+              ...task.target.fallbackQualities ? { fallbackQualities: task.target.fallbackQualities } : {},
               filename
             });
             if (result.deduplicated) {
@@ -27106,10 +27347,12 @@ a.av-link-clean {
               if (jobId) queue2?.trackDownload(jobId, result.downloadId);
               void sharedDownloadWatcher().terminal(result.downloadId).then(async (terminal) => {
                 if (terminal === "complete") {
+                  const quality = sharedDownloadWatcher().receipt(result.downloadId) ?? task.target.quality;
                   if (jobId) queue2?.mark(jobId, "completed");
+                  if (jobId) queue2?.setQuality(jobId, quality);
                   if (ctx.settings.media.downloadHistory && history2) {
-                    if (activeReservation) await history2.commit(activeReservation, fingerprint2);
-                    else await history2.record(fingerprint2);
+                    if (activeReservation) await history2.commit(activeReservation, fingerprint2, quality);
+                    else await history2.record(fingerprint2, quality);
                   }
                   saveSidecarOrWarn2(ctx, task.sidecar, filename);
                   void ctx.auditLog.record("media.download", {
@@ -27144,13 +27387,15 @@ a.av-link-clean {
               progress.started += 1;
               continue;
             } else {
+              const quality = result.quality ?? task.target.quality;
               if (job) queue2?.mark(job.id, "completed");
+              if (job) queue2?.setQuality(job.id, quality);
               if (ctx.settings.media.downloadHistory && history2) {
                 if (reservationToken2) {
-                  await history2.commit(reservationToken2, fingerprint2);
+                  await history2.commit(reservationToken2, fingerprint2, quality);
                   reservationToken2 = null;
                 } else {
-                  await history2.record(fingerprint2);
+                  await history2.record(fingerprint2, quality);
                 }
               }
               saveSidecarOrWarn2(ctx, task.sidecar, filename);
@@ -27193,7 +27438,7 @@ a.av-link-clean {
     }
   }
   function sameTarget(left, right) {
-    return left.url === right.url && left.mediaId === right.mediaId && JSON.stringify(left.fallbackUrls ?? []) === JSON.stringify(right.fallbackUrls ?? []);
+    return left.url === right.url && left.mediaId === right.mediaId && JSON.stringify(left.fallbackUrls ?? []) === JSON.stringify(right.fallbackUrls ?? []) && JSON.stringify(left.quality) === JSON.stringify(right.quality) && JSON.stringify(left.fallbackQualities ?? []) === JSON.stringify(right.fallbackQualities ?? []);
   }
   function refreshTaskTarget(task, job, queue2) {
     const refreshedTarget = task.refreshTarget?.();
@@ -27203,6 +27448,8 @@ a.av-link-clean {
       queue2?.updateTarget(job.id, {
         url: refreshedTarget.url,
         ...refreshedTarget.fallbackUrls ? { fallbackUrls: refreshedTarget.fallbackUrls } : {},
+        ...refreshedTarget.fallbackQualities ? { fallbackQualities: refreshedTarget.fallbackQualities } : {},
+        quality: refreshedTarget.quality,
         mediaId: refreshedTarget.mediaId
       });
     }
@@ -27264,9 +27511,11 @@ a.av-link-clean {
           }
           if (retained?.state === "complete") {
             queue2.mark(job.id, "completed");
+            const quality = retained.quality ?? job.quality ?? unknownQualityReceipt();
+            queue2.setQuality(job.id, quality);
             const fingerprint3 = retainedFingerprint(job);
             if (ctx.settings.media.downloadHistory && history2 && fingerprint3) {
-              await history2.record(fingerprint3);
+              await history2.record(fingerprint3, quality);
             }
             saveSidecarOrWarn2(ctx, job.sidecar, job.filename);
             progress.downloaded += 1;
@@ -27325,6 +27574,8 @@ a.av-link-clean {
           const result = await downloader2({
             url: job.url,
             ...job.fallbackUrls ? { fallbackUrls: job.fallbackUrls } : {},
+            ...job.quality ? { quality: job.quality } : {},
+            ...job.fallbackQualities ? { fallbackQualities: job.fallbackQualities } : {},
             filename: job.filename
           });
           if (result.deduplicated) {
@@ -27365,12 +27616,14 @@ a.av-link-clean {
             queue2.trackDownload(jobId, result.downloadId);
             void sharedDownloadWatcher().terminal(result.downloadId).then(async (terminal) => {
               if (terminal === "complete") {
+                const quality = sharedDownloadWatcher().receipt(result.downloadId) ?? job.quality ?? unknownQualityReceipt();
                 queue2.mark(jobId, "completed");
+                queue2.setQuality(jobId, quality);
                 if (ctx.settings.media.downloadHistory && history2 && activeFingerprint) {
                   if (activeReservation) {
-                    await history2.commit(activeReservation, activeFingerprint);
+                    await history2.commit(activeReservation, activeFingerprint, quality);
                   } else {
-                    await history2.record(activeFingerprint);
+                    await history2.record(activeFingerprint, quality);
                   }
                 }
                 saveSidecarOrWarn2(ctx, job.sidecar, job.filename);
@@ -27400,13 +27653,15 @@ a.av-link-clean {
             progress.started += 1;
             continue;
           } else {
+            const quality = result.quality ?? job.quality ?? unknownQualityReceipt();
             queue2.mark(job.id, "completed");
+            queue2.setQuality(job.id, quality);
             if (ctx.settings.media.downloadHistory && history2 && fingerprint2) {
               if (reservationToken2) {
-                await history2.commit(reservationToken2, fingerprint2);
+                await history2.commit(reservationToken2, fingerprint2, quality);
                 reservationToken2 = null;
               } else {
-                await history2.record(fingerprint2);
+                await history2.record(fingerprint2, quality);
               }
             }
             saveSidecarOrWarn2(ctx, job.sidecar, job.filename);
@@ -27454,9 +27709,11 @@ a.av-link-clean {
     const fingerprint2 = retainedFingerprint(job);
     void sharedDownloadWatcher().terminal(downloadId).then(async (terminal) => {
       if (terminal === "complete") {
+        const quality = sharedDownloadWatcher().receipt(downloadId) ?? job.quality ?? unknownQualityReceipt();
         queue2?.mark(job.id, "completed");
+        queue2?.setQuality(job.id, quality);
         if (ctx.settings.media.downloadHistory && history2 && fingerprint2) {
-          await history2.record(fingerprint2);
+          await history2.record(fingerprint2, quality);
         }
         saveSidecarOrWarn2(ctx, job.sidecar, job.filename);
         void ctx.auditLog.record("media.download", {
@@ -27552,6 +27809,8 @@ a.av-link-clean {
       return image ? {
         url: image.url,
         fallbackUrls: image.fallbackUrls,
+        quality: imageQuality(image.url, "original"),
+        ...image.fallbackUrls.length > 0 ? { fallbackQualities: image.fallbackUrls.map((fallback) => imageQuality(fallback, "fallback")) } : {},
         mediaId: image.mediaId,
         ext: image.format
       } : null;
@@ -27560,6 +27819,7 @@ a.av-link-clean {
     if (!isSaveableVariantUrl(url, type)) return null;
     return {
       url,
+      quality: normalizeDownloadQuality({ label: "quality-unknown", mime: type }),
       mediaId: mediaIdFromVideo2(url),
       ext: media.kind === "audio" ? extensionForAudio2(type, url) : media.kind === "subtitle" ? extensionForSubtitle2(type, url) : extensionForVideo2(type, url)
     };
@@ -27587,27 +27847,68 @@ a.av-link-clean {
       if (!isSaveableVariantUrl(url, media.video.preferred.type)) {
         return null;
       }
-      return { url, mediaId: mediaIdFromVideo2(url), ext: extensionForVideo2(media.video.preferred.type, url) };
+      const variant = media.video.preferred;
+      return {
+        url,
+        quality: normalizeDownloadQuality({
+          label: "best-direct",
+          width: variant.width,
+          height: variant.height,
+          bitrate: variant.bitrate,
+          mime: variant.type
+        }),
+        mediaId: mediaIdFromVideo2(url),
+        ext: extensionForVideo2(variant.type, url)
+      };
     }
     if (media.kind === "audio" && media.audio?.preferred) {
       const variant = media.audio.preferred;
       if (!isSaveableVariantUrl(variant.url, variant.type)) return null;
-      return { url: variant.url, mediaId: mediaIdFromVideo2(variant.url), ext: extensionForAudio2(variant.type, variant.url) };
+      return {
+        url: variant.url,
+        quality: normalizeDownloadQuality({
+          label: "best-direct",
+          width: variant.width,
+          height: variant.height,
+          bitrate: variant.bitrate,
+          mime: variant.type
+        }),
+        mediaId: mediaIdFromVideo2(variant.url),
+        ext: extensionForAudio2(variant.type, variant.url)
+      };
     }
     if (media.kind === "subtitle" && media.subtitle?.track) {
       const track = media.subtitle.track;
       if (!isSaveableVariantUrl(track.url, track.type)) return null;
-      return { url: track.url, mediaId: mediaIdFromVideo2(track.url), ext: extensionForSubtitle2(track.type, track.url) };
+      return {
+        url: track.url,
+        quality: normalizeDownloadQuality({ label: "quality-unknown", mime: track.type }),
+        mediaId: mediaIdFromVideo2(track.url),
+        ext: extensionForSubtitle2(track.type, track.url)
+      };
     }
     if (media.image) {
+      const fallbackQualities = media.image.fallbackUrls.map((url) => imageQuality(url, "fallback"));
       return {
         url: media.image.url,
         fallbackUrls: media.image.fallbackUrls,
+        quality: imageQuality(media.image.url, "original"),
+        ...fallbackQualities.length > 0 ? { fallbackQualities } : {},
         mediaId: media.image.mediaId,
         ext: media.image.format
       };
     }
     return null;
+  }
+  function imageQuality(url, label) {
+    const size = /(?:^|[?&])name=(\d{2,5})x(\d{2,5})(?:&|$)/i.exec(url);
+    const format = /(?:^|[?&])format=([a-z0-9]+)/i.exec(url)?.[1]?.toLowerCase() ?? "jpg";
+    return normalizeDownloadQuality({
+      label,
+      width: size ? Number(size[1]) : null,
+      height: size ? Number(size[2]) : null,
+      mime: format === "png" ? "image/png" : format === "webp" ? "image/webp" : "image/jpeg"
+    });
   }
   function mediaIdFromVideo2(url) {
     const match = /\/([A-Za-z0-9_-]{6,})\.(mp4|m4s|m3u8|webm|mov|m4a|mp3|ogg|opus|wav|vtt|srt|ttml|dfxp)(?:[?#]|$)/i.exec(url);
@@ -27630,6 +27931,9 @@ a.av-link-clean {
     if (/srt/i.test(mime) || /\.srt(?:[?#]|$)/i.test(url)) return "srt";
     if (/ttml|dfxp/i.test(mime) || /\.(?:ttml|dfxp)(?:[?#]|$)/i.test(url)) return "ttml";
     return "vtt";
+  }
+  function unknownQualityReceipt() {
+    return normalizeDownloadQuality(void 0);
   }
 
   // src/features/library/query-model.ts
@@ -31411,10 +31715,22 @@ ${COLOR_CSS}`;
           const historySnapshot = history2?.snapshot();
           const snapshot = queue2?.snapshot();
           const batch = getMediaBatchStatus();
+          const qualityReceipts = (historySnapshot?.entries ?? []).reduce(
+            (counts, entry) => {
+              const label = entry.quality?.label ?? "quality-unknown";
+              if (label === "original") counts.original += 1;
+              else if (label === "fallback") counts.fallback += 1;
+              else if (label === "best-direct") counts.bestDirect += 1;
+              else counts.unknown += 1;
+              return counts;
+            },
+            { original: 0, fallback: 0, bestDirect: 0, unknown: 0 }
+          );
           return {
             historySize: history2?.size() ?? 0,
             historyMatches: historySnapshot?.matches ?? { identity: 0, exact: 0, perceptual: 0 },
             lastHistoryMatch: historySnapshot?.lastMatch?.kind ?? null,
+            qualityReceipts,
             completed: snapshot?.completed ?? 0,
             failed: snapshot?.failed ?? 0,
             opened: snapshot?.opened ?? 0,

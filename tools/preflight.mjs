@@ -47,7 +47,10 @@ const DELIVERY_BUDGETS = [
   // the measured bundle rather than letting a localized status silently trip the release gate.
   // The readable userscript remains a single file. Its small F298 loader shim keeps the existing
   // cap close to the measured artifact without inheriting the extension's split-chunk budget.
-  { file: "aviary.user.js", maxBytes: 2_450_000 },
+  // F284 adds the shared quality-receipt protocol, original-image retry state, and receipt-aware
+  // history UI to the readable userscript. Keep the increase narrow and leave room for future
+  // changes to make another explicit size decision.
+  { file: "aviary.user.js", maxBytes: 2_480_000 },
   { file: "aviary.meta.js", maxBytes: 4_000 },
   // F298 keeps the document-start bootstrap below half of the previous 2.42 MB ceiling. The
   // panel, archive, WACZ worker, viewer, and translated catalog live in the separately budgeted

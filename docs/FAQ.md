@@ -103,7 +103,9 @@ after you click them.
 The Media section adds one **Download** action to every media post, plus **Save**, **Thumb**, and
 eligible **Video/GIF** controls for individual assets. The post action saves all attached photos,
 direct videos/GIFs, audio tracks, and caption files, never the video thumbnail. Images request their source format at
-`name=orig` first and fall back to `4096x4096` only when that transfer fails. Videos use the
+`name=orig` first and fall back to `4096x4096` only when that transfer fails. A transient network,
+timeout, or server failure retries `orig`; cancellation stops without a fallback. PNG, JPEG, and
+WebP paths keep their validated format even when X leaves out `format=`. Videos use the
 highest-bitrate complete progressive MP4 Aviary captured; a `blob:` handle or streaming manifest
 is not presented as a video file. In an extension,
 grant `downloads` from the options page for deterministic browser-managed saves. Without it, the
@@ -122,6 +124,8 @@ failed or interrupted save releases the claim so Retry works immediately.
 
 A small marker identifies media that already has a completed history entry. It never treats a
 queued or interrupted transfer as saved, and clearing download history removes the visible marker.
+The marker names the recorded quality when it is known. A fallback result keeps **Retry original**
+available, and the receipt changes only after the replacement file finishes.
 **Metadata sidecar** can add a local `.txt` or `.json` file after each completed save. It contains
 the saved filename, media kind, post id, account, permalink, time, and up to 10,000 characters of
 post text. Duplicate, refused, and interrupted transfers do not create one.

@@ -168,6 +168,8 @@ The Control Center "Media" section exposes:
 
 - Default-on master toggle for one persistent post-level Download action plus per-asset Save / Thumb / eligible Video and GIF buttons.
 - Original-quality preference (`name=orig` first, then `4096x4096` only if the original transfer fails).
+  Transient network, timeout, and server errors retry `orig` first. A cancellation never starts a
+  fallback, and PNG, JPEG, and WebP source formats stay intact when the URL has no `format=` query.
 - Filename template with `{handle}`, `{account}`, `{tweetId}`, `{mediaId}`, `{index}`, `{total}`, `{date}`, `{text}`, `{ext}` fields.
   `{handle}`, `{text}` and `{tweetId}` follow the media's owner, so a photo saved out of a quoted
   post carries the quoted account's handle and text. `{account}` is an alias for `{handle}` and is
@@ -179,6 +181,12 @@ The Control Center "Media" section exposes:
 - Live status readout (running / completed / duplicate / failed) and the size of the dedup index.
 
 Downloads prefer `GM_download` in userscript managers, fall back to the extension service worker (`chrome.downloads` with `conflictAction: uniquify`), and finally use an anchor tag when no privileged downloader is available. Image candidates stay in quality order; the extension persists the bounded fallback while a download is active so an interrupted `orig` transfer can resume at `4096x4096` after its service worker wakes again.
+
+Every completed job carries a bounded quality receipt in queue state and download history. The label
+is `original`, `fallback`, `best-direct`, or `quality-unknown`, with known dimensions, bitrate,
+and MIME when available. The receipt contains no media URL. If a fallback finishes, the post action
+offers **Retry original** later. The history upgrades to original only after that new collision-safe
+file completes.
 
 The post action sits beside X's native controls and downloads every attached photo, direct video/GIF,
 audio track, and caption file in one click, excluding video thumbnails and anything that is not the
@@ -225,7 +233,8 @@ the page or a captured response already contains a saveable URL. Aviary does not
 through a background request just to populate those controls.
 
 The Media section also offers **Export download history**, with optional start and end dates. The
-JSON and CSV files contain hashes, timestamps, and match counters, never the original media URLs.
+JSON and CSV files contain hashes, quality receipts, timestamps, and match counters, never the
+original media URLs.
 
 ## Media layout
 
