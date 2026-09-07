@@ -22,6 +22,11 @@ import type {
   RowCommitMode
 } from "./control-center/panel-context.ts";
 import { hasTranslation, localeDirection, translateText } from "../platform/i18n.ts";
+import {
+  CONTROL_CENTER_SECTION_MANIFEST,
+  type ControlCenterSectionId,
+  type SectionIcon
+} from "./control-center/section-manifest.ts";
 import type { RetentionPolicy } from "../features/export/jobs.ts";
 import type { WaczSigningStatus } from "../features/export/wacz-signing.ts";
 import type { BookmarkInput, BookmarkRecord } from "../features/library/bookmarks.ts";
@@ -437,7 +442,7 @@ export interface BookmarkStatus {
 
 /** One entry in the settings rail: a heading group, a title, and the rows it owns. */
 interface PanelSection {
-  id: string;
+  id: ControlCenterSectionId;
   title: string;
   group: string;
   summary: string;
@@ -445,22 +450,6 @@ interface PanelSection {
   accent: string;
   build: () => HTMLElement[];
 }
-
-type SectionIcon =
-  | "presets"
-  | "appearance"
-  | "layout"
-  | "filtering"
-  | "catchup"
-  | "hidden"
-  | "performance"
-  | "media"
-  | "export"
-  | "library"
-  | "snapshots"
-  | "integrations"
-  | "backup"
-  | "trust";
 
 type DraftControl = HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
 
@@ -1259,133 +1248,27 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
    * `group` is the heading a section sits under in the rail. Everyday reading controls come
    * first; the things most people touch once, if ever, sit under Advanced.
    */
+  const panelSection = (id: ControlCenterSectionId, build: () => HTMLElement[]): PanelSection => {
+    const metadata = CONTROL_CENTER_SECTION_MANIFEST.find((entry) => entry.id === id);
+    if (!metadata) throw new Error(`Missing Control Center section metadata: ${id}`);
+    return { ...metadata, accent: "rgb(72, 211, 193)", build };
+  };
+
   const sectionRegistry = (): PanelSection[] => [
-    {
-      id: "presets",
-      title: "Presets",
-      group: "Start",
-      summary: "Local controls for a quieter X.",
-      icon: "presets",
-      accent: "rgb(72, 211, 193)",
-      build: () => buildPresetRows(panelContext)
-    },
-    {
-      id: "appearance",
-      title: "Appearance",
-      group: "Reading",
-      summary: "Use stronger borders and text contrast.",
-      icon: "appearance",
-      accent: "rgb(72, 211, 193)",
-      build: () => buildAppearanceRows(panelContext)
-    },
-    {
-      id: "layout",
-      title: "Layout",
-      group: "Reading",
-      summary: "Reduce trends, recommendations, and footer noise.",
-      icon: "layout",
-      accent: "rgb(72, 211, 193)",
-      build: () => buildLayoutRows(panelContext)
-    },
-    {
-      id: "filtering",
-      title: "Filtering",
-      group: "Reading",
-      summary: "Master switch for keyword, regex, premium, and media filters.",
-      icon: "filtering",
-      accent: "rgb(72, 211, 193)",
-      build: () => buildFilterRows(panelContext)
-    },
-    {
-      id: "catchup",
-      title: "Catch-up",
-      group: "Reading",
-      summary: "Review posts Aviary has already rendered, with no new requests.",
-      icon: "catchup",
-      accent: "rgb(72, 211, 193)",
-      build: () => buildCatchUpRows(panelContext)
-    },
-    {
-      id: "hidden",
-      title: "Hidden posts",
-      group: "Reading",
-      summary: "Keep posts you hid collapsed so the next post rises to the top.",
-      icon: "hidden",
-      accent: "rgb(72, 211, 193)",
-      build: () => buildHiddenPostRows(panelContext)
-    },
-    {
-      id: "performance",
-      title: "Performance",
-      group: "Reading",
-      summary: "Stops decoding timeline video once it leaves the screen, and resumes it when it comes back. A video you paused yourself stays paused.",
-      icon: "performance",
-      accent: "rgb(72, 211, 193)",
-      build: () => buildPerformanceRows(panelContext)
-    },
-    {
-      id: "media",
-      title: "Media",
-      group: "Data",
-      summary: "Adds Download and Thumb buttons to post photos and video thumbnails.",
-      icon: "media",
-      accent: "rgb(72, 211, 193)",
-      build: () => buildMediaRows(panelContext)
-    },
-    {
-      id: "export",
-      title: "Export",
-      group: "Data",
-      summary: "Accumulate posts visible on the active page for the next export run.",
-      icon: "export",
-      accent: "rgb(72, 211, 193)",
-      build: () => buildExportRows(panelContext)
-    },
-    {
-      id: "library",
-      title: "Library",
-      group: "Data",
-      summary: "Save, search, organize, and revisit posts in a local bookmark library.",
-      icon: "library",
-      accent: "rgb(72, 211, 193)",
-      build: () => buildLibraryRows(panelContext)
-    },
-    {
-      id: "snapshots",
-      title: "Snapshots & Archive",
-      group: "Data",
-      summary: "Walks UserCell rows on the current page. Open a /handle/followers view first.",
-      icon: "snapshots",
-      accent: "rgb(72, 211, 193)",
-      build: () => buildSnapshotRows(panelContext)
-    },
-    {
-      id: "integrations",
-      title: "Integrations",
-      group: "Advanced",
-      summary: "Send large media downloads to a self-hosted Aria2 JSON-RPC endpoint.",
-      icon: "integrations",
-      accent: "rgb(72, 211, 193)",
-      build: () => buildIntegrationRows(panelContext)
-    },
-    {
-      id: "backup",
-      title: "Backup & Audit",
-      group: "Advanced",
-      summary: "Downloads your preferences as JSON. API keys and passwords are replaced with a placeholder, so the file is safe to share; importing it here keeps the credentials already saved on this machine.",
-      icon: "backup",
-      accent: "rgb(72, 211, 193)",
-      build: () => buildBackupRows(panelContext)
-    },
-    {
-      id: "trust",
-      title: "Trust",
-      group: "Advanced",
-      summary: "Settings stay in this browser.",
-      icon: "trust",
-      accent: "rgb(72, 211, 193)",
-      build: () => buildTrustRows(panelContext)
-    }
+    panelSection("presets", () => buildPresetRows(panelContext)),
+    panelSection("appearance", () => buildAppearanceRows(panelContext)),
+    panelSection("layout", () => buildLayoutRows(panelContext)),
+    panelSection("filtering", () => buildFilterRows(panelContext)),
+    panelSection("catchup", () => buildCatchUpRows(panelContext)),
+    panelSection("hidden", () => buildHiddenPostRows(panelContext)),
+    panelSection("performance", () => buildPerformanceRows(panelContext)),
+    panelSection("media", () => buildMediaRows(panelContext)),
+    panelSection("export", () => buildExportRows(panelContext)),
+    panelSection("library", () => buildLibraryRows(panelContext)),
+    panelSection("snapshots", () => buildSnapshotRows(panelContext)),
+    panelSection("integrations", () => buildIntegrationRows(panelContext)),
+    panelSection("backup", () => buildBackupRows(panelContext)),
+    panelSection("trust", () => buildTrustRows(panelContext))
   ];
 
   const buildNav = (registry: PanelSection[]): HTMLElement => {

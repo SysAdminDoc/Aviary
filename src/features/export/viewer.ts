@@ -483,7 +483,7 @@ h2 { font-size: 1rem; margin: 0; }
 .status-missing { border-inline-start: 3px solid #f15c6d; }
 a { color: var(--accent); }
 @media (prefers-color-scheme: light) {
-  :root { --bg: #edf3f6; --surface: #fafcfd; --raised: #e5edf1; --border: #c2cfd6; --text: #0f181f; --muted: #4e5e69; --accent: #007e84; color-scheme: light; }
+  :root { --bg: #edf3f6; --surface: #fafcfd; --raised: #e5edf1; --border: #c2cfd6; --text: #0f181f; --muted: #4e5e69; --accent: #00656a; color-scheme: light; }
 }
 @media (max-width: 620px) {
   main { padding: 12px; }

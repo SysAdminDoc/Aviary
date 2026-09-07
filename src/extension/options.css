@@ -495,6 +495,35 @@ button.ghost:hover:not(:disabled),
   }
 }
 
+@media (forced-colors: active) {
+  :root {
+    --av-bg: Canvas;
+    --av-surface: Canvas;
+    --av-surface-raised: Canvas;
+    --av-border: ButtonText;
+    --av-text: CanvasText;
+    --av-muted: GrayText;
+    --av-accent: Highlight;
+    --av-ok: Highlight;
+    --av-danger: Mark;
+    --av-on-accent: HighlightText;
+    color-scheme: light;
+  }
+
+  button,
+  button.ghost,
+  #media-grant,
+  .open-x {
+    border-color: ButtonText;
+    background: ButtonFace;
+    color: ButtonText;
+  }
+
+  button:focus-visible {
+    outline-color: Highlight;
+  }
+}
+
 @media (max-width: 900px) {
   .topbar {
     padding-inline: 22px;

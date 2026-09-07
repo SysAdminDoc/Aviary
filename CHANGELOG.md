@@ -7,6 +7,10 @@
   mutation corpora. CSS output is checked for network hooks and selector escape in the fallback
   scoper, while accepted regexes run a long sentinel corpus in a time-bounded worker. Reduced cases
   remain permanent fixtures so later parser changes cannot reopen a bypass.
+- **Accessibility coverage now follows the shipped surfaces.** A canonical 14-section manifest
+  drives the Control Center axe sweep across dark, light, narrow, and forced-colors fixtures. The
+  extension options page, media download terminal states, and standalone archive viewer are in the
+  same serious-violation gate.
 - Diagnostic persistence now keeps only stable authored message ids, severity, ISO timestamps, and
   detail-key names. Legacy message and reason values migrate out, AI provider failures no longer
   attach provider text, and the Options page can copy a merged redacted report with the bounded

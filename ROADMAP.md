@@ -28,15 +28,6 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
   Complexity: M
   Depends: F277 and F332. F283 adds adaptive receipts when it lands.
 
-- [ ] F286, P2: Derive accessibility coverage from every shipped surface
-  Why: the axe test hard-codes 13 destinations and omits Catch-up, while options, injected media controls, dialogs, toasts, and the archive viewer are not scanned.
-  Evidence: `tests/a11y-axe.test.mjs:32-46`, `src/ui/control-center.ts:449-491`; https://www.w3.org/TR/WCAG22/; https://github.com/dequelabs/axe-core-npm/tree/develop/packages/playwright
-  Touches: canonical Control Center section export, axe test, surface fixtures, options, media states, viewer, accessibility behavior tests
-  Acceptance: the canonical 14-section manifest drives the test; dark, light, narrow, and forced-colors fixtures cover every destination plus options, post/media actions in all terminal states, dialogs, toasts, and viewer; zero serious or critical axe violations ship; focus entry, return, containment, announcements, and disabled-state semantics remain behavior-driven tests.
-  Complexity: M
-  Depends: None.
-  Research update 2026-09-06: Use actual persisted-state fixtures for status semantics; visual normalization must not substitute for state assertions. Cover all 14 destinations, including Catch-up, through the same canonical manifest. Remove the settings harness's 1000-pixel minimum in this item so F302 can reuse its narrow tests.
-
 - [ ] F287, P2: Localize extension-native surfaces from the shared catalog
   Why: the app has nine locales, but both manifests and the native media context menu remain English-only, and options duplicates locale-direction data.
   Evidence: `src/extension/manifest.chrome.json`, `src/extension/manifest.firefox.json`, `src/extension/media-context-menu.ts`, `src/entrypoints/extension-options.ts`; https://developer.chrome.com/docs/extensions/develop/ui/i18n
