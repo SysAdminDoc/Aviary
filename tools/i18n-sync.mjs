@@ -20,7 +20,11 @@ import path from "node:path";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const LOCALES = ["es", "pt", "fr", "de", "ja", "ko", "ar", "he"];
-const additionFiles = process.argv.slice(2).filter((a) => !a.startsWith("--"));
+const builtInAdditions = path.join(root, "tools/i18n-native-additions.json");
+const additionFiles = [
+  ...(existsSync(builtInAdditions) ? [builtInAdditions] : []),
+  ...process.argv.slice(2).filter((a) => !a.startsWith("--"))
+];
 const allowIncomplete = process.argv.includes("--allow-incomplete");
 
 const manifestPath = path.join(root, "tools/i18n-manifest.json");

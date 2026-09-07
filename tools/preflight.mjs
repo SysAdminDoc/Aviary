@@ -100,6 +100,8 @@ if (warnings.length > 0) {
 
 async function checkManifests() {
   const floors = await readBrowserFloors();
+  const nativeMessages = await readNativeMessageDefinition();
+  const nativeLocales = ["en", "es", "pt", "fr", "de", "ja", "ko", "ar", "he"];
   for (const target of ["extension-chrome", "extension-firefox"]) {
     const manifestPath = path.join(root, "dist", target, "manifest.json");
     let manifest;
@@ -114,6 +116,19 @@ async function checkManifests() {
     }
     if (manifest.version !== pkg.version) {
       failures.push(`${target}: manifest.version (${manifest.version}) != package.json (${pkg.version})`);
+    }
+    if (manifest.default_locale !== "en") {
+      failures.push(`${target}: default_locale must be en for the shared browser message catalog`);
+    }
+    for (const [field, key] of [
+      ["name", "extensionName"],
+      ["description", "extensionDescription"],
+      ["action.default_title", "actionTitle"]
+    ]) {
+      const value = field === "action.default_title" ? manifest.action?.default_title : manifest[field];
+      if (value !== `__MSG_${key}__`) {
+        failures.push(`${target}: ${field} must use __MSG_${key}__`);
+      }
     }
     // The floor decides whether a platform feature needs a detection branch, so it cannot be
     // changed by editing one manifest. src/extension/browser-floors.ts is the declaration.
@@ -207,6 +222,55 @@ async function checkManifests() {
     }
     if (resources.some((resource) => resource.resources?.some((entry) => entry.includes("*")))) {
       failures.push(`${target}: web-accessible resources must name exact chunks, not a wildcard`);
+    }
+    await checkNativeMessageBundles(target, nativeMessages, nativeLocales);
+  }
+}
+
+async function readNativeMessageDefinition() {
+  const source = await readFile(path.join(root, "src/extension/native-i18n.ts"), "utf8");
+  const start = source.indexOf("export const NATIVE_I18N_COPY = {");
+  const end = source.indexOf("} as const;", start);
+  if (start < 0 || end < 0) {
+    failures.push("native extension i18n source is missing NATIVE_I18N_COPY");
+    return {};
+  }
+  const definition = {};
+  for (const match of source.slice(start, end).matchAll(/^\s+(\w+):\s*"((?:[^"\\]|\\.)*)"/gm)) {
+    definition[match[1]] = JSON.parse(`"${match[2]}"`);
+  }
+  if (Object.keys(definition).length === 0) {
+    failures.push("native extension i18n source contains no messages");
+  }
+  return definition;
+}
+
+async function checkNativeMessageBundles(target, definition, locales) {
+  const expectedKeys = Object.keys(definition).sort();
+  for (const locale of locales) {
+    const filePath = path.join(root, "dist", target, "_locales", locale, "messages.json");
+    let messages;
+    try {
+      messages = JSON.parse(await readFile(filePath, "utf8"));
+    } catch (error) {
+      failures.push(`${target}: _locales/${locale}/messages.json missing or invalid (${error.message})`);
+      continue;
+    }
+    const actualKeys = Object.keys(messages).sort();
+    if (JSON.stringify(actualKeys) !== JSON.stringify(expectedKeys)) {
+      failures.push(
+        `${target}: _locales/${locale}/messages.json keys are stale (expected ${expectedKeys.join(", ")})`
+      );
+      continue;
+    }
+    for (const key of expectedKeys) {
+      const message = messages[key]?.message;
+      if (typeof message !== "string" || message.trim().length === 0) {
+        failures.push(`${target}: _locales/${locale}/messages.json has an empty ${key} message`);
+      }
+      if (locale !== "en" && key !== "actionTitle" && message === definition[key]) {
+        failures.push(`${target}: _locales/${locale}/${key} fell back to English`);
+      }
     }
   }
 }

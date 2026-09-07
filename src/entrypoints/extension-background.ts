@@ -22,9 +22,9 @@ import {
 import {
   MEDIA_CONTEXT_DOWNLOAD_MESSAGE,
   MEDIA_CONTEXT_MENU_ID,
-  MEDIA_CONTEXT_MENU_TITLE,
   MEDIA_CONTEXT_PERMISSION_DENIED_MESSAGE,
   X_DOCUMENT_PATTERNS,
+  getMediaContextMenuTitle,
   isSupportedXDocumentUrl
 } from "../extension/media-context-menu.ts";
 import {
@@ -387,7 +387,7 @@ async function installMediaContextMenu(): Promise<void> {
   contextMenus.create(
     {
       id: MEDIA_CONTEXT_MENU_ID,
-      title: MEDIA_CONTEXT_MENU_TITLE,
+      title: getMediaContextMenuTitle(),
       contexts: ["all"],
       documentUrlPatterns: [...X_DOCUMENT_PATTERNS]
     },

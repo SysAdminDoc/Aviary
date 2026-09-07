@@ -139,6 +139,9 @@ declare global {
         addListener(listener: () => void): void;
       };
     };
+    i18n?: {
+      getMessage(messageName: string): string;
+    };
     contextMenus?: {
       create(
         properties: {

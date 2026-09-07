@@ -59,6 +59,37 @@ const extensionI18nRuntimePlugin = {
  * `data-i18n` attributes in options.html plus the runtime status strings, so adding a string to
  * the page is enough to carry its translations across.
  */
+async function loadPanelCatalog() {
+  const catalogSource = await readFile(path.join(root, "src/platform/i18n-catalog.ts"), "utf8");
+  const outfile = path.join(dist, ".panel-catalog.mjs");
+  await esbuild.build({
+    entryPoints: [path.join(root, "src/platform/i18n-catalog.ts")],
+    outfile,
+    bundle: true,
+    format: "esm",
+    platform: "neutral",
+    logLevel: "silent"
+  });
+  const module = await import(`${pathToFileURL(outfile).href}?v=${catalogSource.length}`);
+  await rm(outfile, { force: true });
+  return module.panelCatalog();
+}
+
+async function loadNativeI18nCopy() {
+  const outfile = path.join(dist, ".native-i18n.mjs");
+  await esbuild.build({
+    entryPoints: [path.join(root, "src/extension/native-i18n.ts")],
+    outfile,
+    bundle: true,
+    format: "esm",
+    platform: "neutral",
+    logLevel: "silent"
+  });
+  const module = await import(`${pathToFileURL(outfile).href}?v=${Date.now()}`);
+  await rm(outfile, { force: true });
+  return module.NATIVE_I18N_COPY;
+}
+
 async function optionsCatalogSubset() {
   const html = await readFile(path.join(root, "src/extension/options.html"), "utf8");
   const controller = await readFile(path.join(root, "src/entrypoints/extension-options.ts"), "utf8");
@@ -74,22 +105,11 @@ async function optionsCatalogSubset() {
     keys.add(JSON.parse(`"${match[1]}"`));
   }
 
-  const catalogSource = await readFile(path.join(root, "src/platform/i18n-catalog.ts"), "utf8");
-  const outfile = path.join(dist, ".options-catalog.mjs");
-  await esbuild.build({
-    entryPoints: [path.join(root, "src/platform/i18n-catalog.ts")],
-    outfile,
-    bundle: true,
-    format: "esm",
-    platform: "neutral",
-    logLevel: "silent"
-  });
-  const { panelCatalog } = await import(`${pathToFileURL(outfile).href}?v=${catalogSource.length}`);
-  await rm(outfile, { force: true });
+  const catalog = await loadPanelCatalog();
 
   const subset = {};
   const missing = [];
-  for (const [locale, entries] of Object.entries(panelCatalog())) {
+  for (const [locale, entries] of Object.entries(catalog)) {
     subset[locale] = {};
     for (const key of keys) {
       const translated = entries[key];
@@ -107,6 +127,28 @@ async function optionsCatalogSubset() {
   return subset;
 }
 
+function nativeLocaleMessages(copy, catalog, locale) {
+  const entries = {};
+  for (const [key, english] of Object.entries(copy)) {
+    entries[key] = {
+      message: locale === "en" ? english : catalog[locale]?.[english] ?? english
+    };
+  }
+  return entries;
+}
+
+async function writeNativeLocaleBundles(targetDir, copy, catalog) {
+  const locales = ["en", "es", "pt", "fr", "de", "ja", "ko", "ar", "he"];
+  for (const locale of locales) {
+    const localeDir = path.join(targetDir, "_locales", locale);
+    await mkdir(localeDir, { recursive: true });
+    await writeFile(
+      path.join(localeDir, "messages.json"),
+      `${JSON.stringify(nativeLocaleMessages(copy, catalog, locale), null, 2)}\n`
+    );
+  }
+}
+
 function decodeHtmlEntities(value) {
   return value
     .replace(/&amp;/g, "&")
@@ -118,6 +160,8 @@ function decodeHtmlEntities(value) {
 
 await rm(dist, { force: true, recursive: true });
 await mkdir(dist, { recursive: true });
+const nativeI18nCopy = await loadNativeI18nCopy();
+const panelCatalog = await loadPanelCatalog();
 
 // WACZ assembly hashes and copies every captured byte. Inline a dedicated worker into both
 // delivery targets so the export never needs a hosted script and never runs that work on X's UI
@@ -233,6 +277,7 @@ for (const target of ["extension-chrome", "extension-firefox"]) {
   for (const asset of ["options.html", "options.css"]) {
     await copyFile(path.join(root, "src/extension", asset), path.join(targetDir, asset));
   }
+  await writeNativeLocaleBundles(targetDir, nativeI18nCopy, panelCatalog);
   const targetIcons = path.join(targetDir, "icons");
   await mkdir(targetIcons, { recursive: true });
   for (const size of extensionIconSizes) {

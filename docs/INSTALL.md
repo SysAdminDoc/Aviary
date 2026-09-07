@@ -81,6 +81,10 @@ To manage permissions later, open the extension's **Options** page from the exte
 the Aviary options link). The page reports live grant state and never writes settings or makes a
 network request.
 
+The extension package includes browser-native message bundles for English, Spanish, Portuguese,
+French, German, Japanese, Korean, Arabic, and Hebrew. The manifest, toolbar title, native media
+context menu, and Options page follow the browser or Aviary locale without adding network access.
+
 ## Browser floors
 
 Both floors are declared once, in `src/extension/browser-floors.ts`, and preflight fails the build

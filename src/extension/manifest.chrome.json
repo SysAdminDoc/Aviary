@@ -1,7 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Aviary for X",
-  "description": "Local-first X/Twitter enhancer with reversible controls and privacy-first defaults.",
+  "name": "__MSG_extensionName__",
+  "description": "__MSG_extensionDescription__",
+  "default_locale": "en",
   "version": "1.47.2",
   "incognito": "not_allowed",
   "icons": {
@@ -12,7 +13,7 @@
   },
   "minimum_chrome_version": "102",
   "action": {
-    "default_title": "Aviary",
+    "default_title": "__MSG_actionTitle__",
     "default_icon": {
       "16": "icons/icon-16.png",
       "32": "icons/icon-32.png",

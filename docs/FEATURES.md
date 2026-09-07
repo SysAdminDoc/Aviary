@@ -349,7 +349,10 @@ manifest still carries a placeholder add-on id, so an AMO submission needs a rea
 ## Presets, i18n, desktop interaction, cleanup, bookmarks, snippets, capture
 
 - **Presets**, Quiet Reader, Media Archivist, Creator, Researcher, Classic, Minimal. The Control Center "Presets" section applies any preset in one click and reports the exact deltas in the status line.
-- **i18n + RTL**, 9-locale translation table with English fallback, `av-rtl`/`av-ltr` HTML classes, and Arabic/Hebrew bidi-safe tweet text.
+- **i18n + RTL**, 9-locale translation table with English fallback, browser-native `_locales`
+  bundles for Chrome and Firefox, localized manifest and media context-menu copy, shared direction
+  metadata on the Options page, `av-rtl`/`av-ltr` HTML classes, and Arabic/Hebrew bidi-safe tweet
+  text.
 - **Desktop interaction**, visible focus states, modal focus containment, reduced-motion support,
   and mouse/keyboard-friendly controls are verified at the supported desktop widths.
 - **Hide row borders**, drops the 1px divider under each timeline post and the primary column's side rules. The rule anchors on `[data-testid="cellInnerDiv"] > div`, not on X's generated `r-*` class names, so a rename does not silently disable it.

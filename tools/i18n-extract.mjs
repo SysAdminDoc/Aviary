@@ -292,6 +292,8 @@ const featureLiterals = [...new Set(featureSources.flatMap(harvestFeatureLiteral
 const optionsHtml = await readFile(path.join(root, "src/extension/options.html"), "utf8");
 const optionsController = await readFile(path.join(root, "src/entrypoints/extension-options.ts"), "utf8");
 const optionsLiterals = harvestOptionsLiterals(optionsHtml, optionsController);
+const nativeSource = await readFile(path.join(root, "src/extension/native-i18n.ts"), "utf8");
+const nativeLiterals = harvestNativeLiterals(nativeSource);
 
 // The standalone export viewer inlines its own copy into a generated HTML file, so its strings
 // never pass through a panel render or an ft() call. They are declared in one English map and
@@ -400,6 +402,22 @@ function harvestOptionsLiterals(html, controller) {
     }
   }
   return [...found];
+}
+
+function harvestNativeLiterals(source) {
+  const start = source.indexOf("export const NATIVE_I18N_COPY = {");
+  const end = source.indexOf("} as const;", start);
+  if (start === -1 || end === -1) {
+    throw new Error("NATIVE_I18N_COPY was not found; native extension i18n harvest is broken");
+  }
+  const values = [];
+  for (const match of source.slice(start, end).matchAll(/:\s*"((?:[^"\\]|\\.)*)"/g)) {
+    values.push(JSON.parse(`"${match[1]}"`));
+  }
+  if (values.length === 0) {
+    throw new Error("NATIVE_I18N_COPY harvested no strings; native extension i18n harvest is broken");
+  }
+  return values;
 }
 
 function harvestStatusLiterals(source) {
@@ -511,7 +529,7 @@ const { PANEL_STRINGS: previous } = await import(pathToFileURL(prevOut).href);
 // Matched as a whole quoted literal, not as a substring. "Snapshots cleared" occurs inside
 // "Snapshots cleared." -- which is exactly the rename that made this filter necessary -- so a
 // substring test keeps every string it was meant to retire.
-const sourceCorpus = [src, ...featureSources, optionsController, viewerSource].join("\n");
+const sourceCorpus = [src, ...featureSources, optionsController, viewerSource, nativeSource].join("\n");
 const escaped = (value) => JSON.stringify(value).slice(1, -1);
 const stillInSource = (value) => {
   const body = escaped(value);
@@ -537,6 +555,7 @@ for (const s of [
   ...panelLiterals,
   ...featureLiterals,
   ...optionsLiterals,
+  ...nativeLiterals,
   ...viewerLiterals,
   ...carried
 ]) {

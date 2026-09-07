@@ -52,6 +52,50 @@ async function main() {
   const extensionClient = driver;
   const extensionContext = null;
   const messageClient = driver;
+  const activeBeforeLocale = await extensionClient.evaluate(extensionContext, async () =>
+    chrome.runtime.sendMessage({
+      type: "AVIARY_DURABLE_STORAGE",
+      operation: "get",
+      key: "aviary.profile.active.v1"
+    })
+  );
+  const profileId = activeBeforeLocale?.result?.value ?? "offline-default";
+  const localeWrite = await extensionClient.evaluate(extensionContext, ({ profileId }) =>
+    chrome.runtime.sendMessage({
+      type: "AVIARY_DURABLE_STORAGE",
+      operation: "put",
+      key: `aviary.profile.${profileId}.settings.v1`,
+      value: { schemaVersion: 8, i18n: { locale: "ar" } }
+    }), { profileId });
+  if (!localeWrite?.ok) {
+    throw new Error(`Firefox smoke could not seed Arabic options locale: ${JSON.stringify(localeWrite)}`);
+  }
+  const localeReadback = await extensionClient.evaluate(extensionContext, ({ profileId }) =>
+    chrome.runtime.sendMessage({
+      type: "AVIARY_DURABLE_STORAGE",
+      operation: "get",
+      key: `aviary.profile.${profileId}.settings.v1`
+    }), { profileId });
+  if (!localeReadback?.ok || localeReadback?.result?.value?.i18n?.locale !== "ar") {
+    throw new Error(`Firefox smoke locale readback drifted: ${JSON.stringify({ profileId, localeWrite, localeReadback })}`);
+  }
+  await driver.openExtensionPage(`${extensionOrigin}/options.html`);
+  try {
+    await waitFor(
+      extensionClient,
+      extensionContext,
+      () => document.documentElement.lang === "ar" && document.documentElement.dir === "rtl",
+      "Firefox options page did not apply the packaged Arabic RTL locale"
+    );
+  } catch (error) {
+    const localeState = await extensionClient.evaluate(extensionContext, () => ({
+      lang: document.documentElement.lang,
+      dir: document.documentElement.dir,
+      ready: document.readyState,
+      title: document.title
+    }));
+    throw new Error(`${error.message}: ${JSON.stringify(localeState)}`);
+  }
   const extensionTabId = await extensionClient.evaluate(extensionContext, async () => {
     const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
     const tab = tabs[0];
@@ -238,7 +282,7 @@ async function main() {
   );
 
   console.log(
-    `[dnr-firefox] Firefox ${driver.browserVersion}: atomic storage reconciliation, event page, DNR controls, persistence, and loopback blocking passed.`
+    `[dnr-firefox] Firefox ${driver.browserVersion}: Arabic RTL options, atomic storage reconciliation, event page, DNR controls, persistence, and loopback blocking passed.`
   );
   } catch (error) {
     runError = error;

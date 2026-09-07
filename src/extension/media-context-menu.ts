@@ -1,5 +1,16 @@
+import { NATIVE_I18N_COPY } from "./native-i18n.ts";
+
 export const MEDIA_CONTEXT_MENU_ID = "aviary-download-media";
-export const MEDIA_CONTEXT_MENU_TITLE = "Download media with Aviary";
+export const MEDIA_CONTEXT_MENU_TITLE = NATIVE_I18N_COPY.contextDownloadMedia;
+
+export function getMediaContextMenuTitle(): string {
+  try {
+    const translated = globalThis.chrome?.i18n?.getMessage?.("contextDownloadMedia");
+    return translated || MEDIA_CONTEXT_MENU_TITLE;
+  } catch {
+    return MEDIA_CONTEXT_MENU_TITLE;
+  }
+}
 
 export const MEDIA_CONTEXT_DOWNLOAD_MESSAGE = "AVIARY_DOWNLOAD_CONTEXT_MEDIA";
 export const MEDIA_CONTEXT_PERMISSION_DENIED_MESSAGE =

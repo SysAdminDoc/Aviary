@@ -30,6 +30,9 @@ read end to end. Full steps for all three paths, plus how to uninstall, are in
 - **Firefox.** Build, then load `dist/extension-firefox/manifest.json` as a temporary add-on from
   `about:debugging`.
 
+Both extension packages ship browser-native copy for all nine Aviary locales, including the
+manifest, toolbar title, media context menu, and Options page direction.
+
 The build also writes `dist/extension-chrome-v<version>.zip` and its Firefox twin. They're packaged
 for upload, but nothing has been submitted anywhere. The Firefox manifest still carries a
 placeholder add-on id, so an AMO submission would need a real one first.

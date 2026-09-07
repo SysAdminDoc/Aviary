@@ -99,6 +99,10 @@
   falls through, and a completed fallback exposes **Retry original** without changing history until
   the replacement file finishes. Legacy history entries migrate to unknown quality, and source-format
   PNG, JPEG, and WebP URLs stay intact when X omits a format query.
+- **Localized extension surfaces.** Chrome and Firefox now use browser-native `__MSG_*` manifest
+  copy, generated nine-locale `_locales` bundles, and a localized native media context menu. The
+  Options page reads shared locale direction metadata, and packaging rejects missing or stale
+  message files before a browser smoke run.
 
 ### Fixed
 - Conversation pages no longer show the vertical connector line down a reply's avatar column while an Aviary theme is active. The previous fix removed a line Aviary itself drew; the one readers were seeing is X's own element, found now by its shape and position rather than by a class name X regenerates.

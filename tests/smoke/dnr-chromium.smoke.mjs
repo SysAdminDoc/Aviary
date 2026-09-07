@@ -70,7 +70,9 @@ try {
 
   const storagePage = await context.newPage();
   await storagePage.goto(`chrome-extension://${extensionId}/options.html`);
-  await storagePage.waitForFunction(() => document.documentElement.lang === "ja");
+  await storagePage.waitForFunction(
+    () => document.documentElement.lang === "ja" && document.documentElement.dir === "ltr"
+  );
   const activeProfile = await storagePage.evaluate(async () =>
     chrome.runtime.sendMessage({
       type: "AVIARY_DURABLE_STORAGE",
@@ -357,7 +359,7 @@ try {
   );
 
   console.log(
-    "[dnr-chromium] atomic storage reconciliation/restart, migration, tab-scoped DNR controls, persistence, and request matching passed."
+    "[dnr-chromium] Japanese LTR options, atomic storage reconciliation/restart, migration, tab-scoped DNR controls, persistence, and request matching passed."
   );
 } finally {
   await seedContext?.close().catch(() => {});

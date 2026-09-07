@@ -17,6 +17,7 @@ import { createDurableStorageGateway } from "../platform/durable-storage.ts";
 import { ACTIVE_PROFILE_KEY, DEFAULT_PROFILE_ID, createProfileStorageGateway } from "../platform/profile.ts";
 import { SETTINGS_KEY } from "../platform/settings.ts";
 import { createExtensionDurableStorageBackend } from "../extension/durable-storage-api.ts";
+import { localeDirection, supportedLocales } from "../platform/i18n-runtime.ts";
 
 export const MEDIA_ORIGINS = ["https://pbs.twimg.com/*", "https://video.twimg.com/*"];
 
@@ -34,12 +35,11 @@ const CATALOG: Record<string, Record<string, string>> =
   typeof __AVIARY_OPTIONS_I18N__ === "undefined" ? {} : __AVIARY_OPTIONS_I18N__;
 
 let locale = "en";
+const SUPPORTED_LOCALE_CODES = new Set<string>(supportedLocales().map((entry) => entry.code));
 
 function translate(english: string): string {
   return CATALOG[locale]?.[english] ?? english;
 }
-
-const RTL_LOCALES = new Set(["ar", "he"]);
 
 /**
  * Reads the locale the Control Center saved, through the storage stack that actually wrote it.
@@ -55,7 +55,7 @@ async function readLocale(): Promise<string> {
     const scoped = await activeProfileStorage();
     const settings = await scoped.get<{ i18n?: { locale?: unknown } } | null>(SETTINGS_KEY, null);
     const code = settings?.i18n?.locale;
-    return typeof code === "string" && code.length > 0 ? code : "en";
+    return typeof code === "string" && SUPPORTED_LOCALE_CODES.has(code) ? code : "en";
   } catch {
     return "en";
   }
@@ -121,7 +121,7 @@ function applyTranslations(): void {
     }
   }
   document.documentElement.lang = locale;
-  document.documentElement.dir = RTL_LOCALES.has(locale) ? "rtl" : "ltr";
+  document.documentElement.dir = localeDirection(locale);
 }
 
 interface PermissionRequest {

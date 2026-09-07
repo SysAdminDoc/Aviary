@@ -20,14 +20,6 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
   Complexity: XL
   Depends: F277 and F332. Authentic quality proof remains in `Roadmap_Blocked.md`.
 
-- [ ] F287, P2: Localize extension-native surfaces from the shared catalog
-  Why: the app has nine locales, but both manifests and the native media context menu remain English-only, and options duplicates locale-direction data.
-  Evidence: `src/extension/manifest.chrome.json`, `src/extension/manifest.firefox.json`, `src/extension/media-context-menu.ts`, `src/entrypoints/extension-options.ts`; https://developer.chrome.com/docs/extensions/develop/ui/i18n
-  Touches: build tooling, `_locales/<locale>/messages.json`, manifests, context menu, options locale bootstrap, packaging tests
-  Acceptance: build generates complete message bundles for all nine locales; manifests use `__MSG_*` for name, description, and action title; context menu uses `i18n.getMessage()`; options reads shared direction metadata; packaging fails on a missing or stale message; Chrome and Firefox smoke tests prove one LTR and one RTL locale.
-  Complexity: M
-  Depends: None.
-
 - [ ] F288, P2: Add a large-library and restart fault matrix
   Why: competitor failures cluster around tombstones, unknown media, large in-memory ZIPs, malformed rows, and service-worker restarts. Aviary has focused tests but no one release gate that combines these stresses.
   Evidence: `src/features/export/zip-store.ts`, `src/features/export/wacz-worker-client.ts`, `src/features/library/archive-import-jobs.ts`; https://github.com/prinsss/twitter-web-exporter/issues/124; https://github.com/gildas-lormeau/SingleFile/issues/1190
