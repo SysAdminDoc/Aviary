@@ -60,16 +60,6 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
   Complexity: L
   Depends: F273 and F277.
 
-- [ ] F289, P2: Replace the TypeScript 7 nightly with the stable compiler
-  Why: the repository pins `@typescript/native-preview` even though stable TypeScript 7.0.2 now owns the CLI and Microsoft publishes a side-by-side TypeScript 6 API package for typescript-eslint.
-  Evidence: `package.json:35-42`, `tests/native-typecheck.test.mjs`; https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/
-  Touches: `package.json`, lockfile, typecheck script, parity test, `CLAUDE.md`, README build instructions
-  Acceptance: remove `@typescript/native-preview` and its platform packages; pin TypeScript 7.0.2 under a CLI alias and `@typescript/typescript6` under the `typescript` alias; `npm run typecheck` invokes stable `tsc --noEmit`; typescript-eslint still loads the TypeScript 6 API; compiler-parity, lint, build, and the full verify gate pass.
-  Complexity: S
-  Depends: None.
-  Research update 2026-09-05: evaluate the update as one controlled set with typescript-eslint 8.69.0, ESLint 10.10.0, and globals 17.12.0; pin every accepted version and keep each current version if its upgrade breaks the compiler split. Evidence: https://github.com/microsoft/TypeScript/releases/tag/v7.0.2, https://github.com/typescript-eslint/typescript-eslint/releases/tag/v8.69.0, https://github.com/eslint/eslint/releases/tag/v10.10.0, https://github.com/sindresorhus/globals/releases/tag/v17.12.0
-  Research update 2026-09-06: Pin the compatibility alias to published `@typescript/typescript6@6.0.2`, not the existing `typescript@6.0.3` version number. Verify the resolved API package satisfies typescript-eslint's `>=4.8.4 <6.1.0` peer range; do not install the native compiler as its API dependency. Evidence: https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/ and https://github.com/typescript-eslint/typescript-eslint/releases/tag/v8.69.0
-
 - [ ] F290, P2: Make local releases atomic and reconcile the missing release ledger
   Why: GitHub has no releases for 1.38.0 through 1.44.1 or 1.46.0 despite exact version commits, and the current release steps can leave commit, tag, artifacts, and release metadata out of sync.
   Evidence: `package.json`, `tools/build.mjs`, `tools/preflight.mjs`, local git history; https://github.com/SysAdminDoc/Aviary/releases

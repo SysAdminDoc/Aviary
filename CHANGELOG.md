@@ -50,6 +50,9 @@
   `npm run verify:release` adds visual, reflow, and every browser smoke lane before publication.
   Builds carry source fingerprints and per-file digests, stale or modified bundles are rejected, and
   failed release runs remove `dist/` instead of leaving an installable partial build behind.
+- **Stable compiler split.** Typechecking now runs the stable TypeScript 7.0.2 `tsc` package, while
+  typescript-eslint keeps the published `@typescript/typescript6` 6.0.2 API alias. The nightly
+  native preview compiler is no longer installed.
 - **Lazy extension delivery.** Chromium and Firefox now ship a roughly 0.60 MB document-start
   bundle containing protection, media controls, selector health, and the launcher. The Control
   Center, archive tools, viewer, and catalog load from a named, retryable panel chunk only after

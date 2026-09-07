@@ -211,8 +211,9 @@ installing from a committed lockfile.
 Node 22.23.2 or newer is required. The `engines` range names supported lines explicitly rather than
 using an open `>=`, which would admit Node 25.x after its end of life.
 
-Development tests import the TypeScript sources directly through Node's native type stripping. The
-release build still bundles the userscript and extension artifacts.
+Development tests import the TypeScript sources directly through Node's native type stripping.
+Typechecking uses stable TypeScript 7, while ESLint keeps the published TypeScript 6 API alias for
+its parser. The release build still bundles the userscript and extension artifacts.
 
 The repository pins Node 24.18.1 in `.node-version`. On Linux ARM64, select that runtime before
 installing and building so the result stays inside the package engine range:

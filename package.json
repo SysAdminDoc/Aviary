@@ -26,7 +26,7 @@
     "test:matrix": "node --test tests/release-matrix.test.mjs",
     "test:visual": "npm run build && node --test tests/visual/settings-visual-regression.test.mjs tests/visual/injected-visual-regression.test.mjs tests/visual/reflow-visual-regression.test.mjs",
     "test:visual:update": "npm run build && node tools/update-settings-visuals.mjs",
-    "typecheck": "tsgo --noEmit",
+    "typecheck": "tsc --noEmit",
     "smoke": "node tests/smoke/dnr-chromium.smoke.mjs && node tests/smoke/dnr-firefox.smoke.mjs && node tests/smoke/aviary.smoke.mjs && node tests/smoke/incognito-chromium.smoke.mjs && node tests/smoke/externally-gated.smoke.mjs",
     "verify:fast": "node tools/verify-fast.mjs",
     "verify:release": "node tools/release-gate.mjs",
@@ -36,11 +36,11 @@
     "@axe-core/playwright": "4.13.0",
     "@typescript-eslint/eslint-plugin": "8.67.0",
     "@typescript-eslint/parser": "8.67.0",
-    "@typescript/native-preview": "7.0.0-dev.20260707.2",
     "esbuild": "0.28.2",
     "eslint": "10.8.1",
     "globals": "17.11.0",
     "playwright": "1.62.1",
-    "typescript": "6.0.3"
+    "tsgo": "npm:typescript@7.0.2",
+    "typescript": "npm:@typescript/typescript6@6.0.2"
   }
 }

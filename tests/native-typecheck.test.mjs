@@ -23,14 +23,15 @@ const compilerArgs = [
   "--isolatedModules"
 ];
 
-test("typecheck uses the native compiler while lint keeps the TypeScript 6 parser", async () => {
+test("typecheck uses stable TypeScript 7 while lint keeps the TypeScript 6 parser", async () => {
   const packageJson = JSON.parse(await readFile(path.join(root, "package.json"), "utf8"));
-  assert.match(packageJson.scripts.typecheck, /\btsgo\b/);
-  assert.equal(packageJson.devDependencies.typescript, "6.0.3");
-  assert.match(packageJson.devDependencies["@typescript/native-preview"], /^7\./);
+  assert.match(packageJson.scripts.typecheck, /\btsc\b/);
+  assert.equal(packageJson.devDependencies.tsgo, "npm:typescript@7.0.2");
+  assert.equal(packageJson.devDependencies.typescript, "npm:@typescript/typescript6@6.0.2");
+  assert.equal(packageJson.devDependencies["@typescript/native-preview"], undefined);
 });
 
-test("native and TypeScript 6 compilers report the same deliberate diagnostic", async () => {
+test("TypeScript 7 and TypeScript 6 compilers report the same deliberate diagnostic", async () => {
   const temp = await mkdtemp(path.join(tmpdir(), "aviary-native-typecheck-"));
   const source = path.join(temp, "broken.ts");
   try {
@@ -40,15 +41,15 @@ test("native and TypeScript 6 compilers report the same deliberate diagnostic", 
       encoding: "utf8",
       windowsHide: true
     });
-    const native = run("tsgo");
-    const legacy = run("tsc");
-    assert.notEqual(native.status, 0, "native compiler must reject the broken fixture");
-    assert.notEqual(legacy.status, 0, "TypeScript 6 must reject the broken fixture");
+    const stable = run("tsc");
+    const compatibility = run("tsc6");
+    assert.notEqual(stable.status, 0, "TypeScript 7 must reject the broken fixture");
+    assert.notEqual(compatibility.status, 0, "TypeScript 6 must reject the broken fixture");
     const normalize = (result) => `${result.stdout}\n${result.stderr}`
       .replaceAll("\r", "")
       .replaceAll(source, "<broken.ts>")
       .trim();
-    assert.equal(normalize(native), normalize(legacy));
+    assert.equal(normalize(stable), normalize(compatibility));
   } finally {
     await rm(temp, { recursive: true, force: true });
   }
