@@ -48,6 +48,7 @@ const AVIARY_VERSION = typeof __AVIARY_VERSION__ === "undefined" ? "dev" : __AVI
 
 
 import type { DiagnosticEvent } from "../platform/diagnostics.ts";
+import type { PerformanceMetricsSnapshot } from "../platform/performance-diagnostics.ts";
 import type { StorageStatus } from "../platform/storage.ts";
 import type { LegacyAdoptionResult, ProfileStatus } from "../platform/profile.ts";
 import type { LibraryBackupPreview, LibraryBackupRestoreResult } from "../features/core/library-backup.ts";
@@ -177,6 +178,8 @@ export interface SelectorHealthStatus {
 export interface ControlCenterOptions {
   settings: AviarySettings;
   diagnostics: () => DiagnosticEvent[];
+  getPerformanceMetrics?: () => PerformanceMetricsSnapshot;
+  resetPerformanceMetrics?: () => void;
   getStorageStatus?: () => StorageStatus;
   onChange: () => Promise<void>;
   onError: (message: string, error: unknown) => void;

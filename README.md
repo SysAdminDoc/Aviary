@@ -96,6 +96,11 @@ anchor, the launcher shows a small warning, opens the affected list, and lets yo
 only the build, route surface, missing anchors and owning feature ids. The warning clears as soon as
 the surface returns.
 
+Trust also keeps a bounded, local **Mutation performance** view. It names the features taking time
+in full and incremental apply passes, shows the slowest recorded run, and correlates Long Animation
+Frames where the browser supports them. The ring stores no selectors, routes, post text, handles, or
+DOM values, and **Reset performance metrics** clears it immediately.
+
 Changed your mind about all of it? **Trust → Reset everything to plain X** returns preferences to
 the ad-free baseline. Saved posts, notes, bookmarks and download history are kept.
 

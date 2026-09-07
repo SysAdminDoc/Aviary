@@ -130,7 +130,9 @@ ISO time, and detail-key names. The background ring contains only operation code
 time. **Copy diagnostics** in the Control Center or Options page merges those redacted records and
 never copies URLs, filenames, provider text, exception strings, or credentials. A selector-break
 report is narrower still: it contains only build, route surface, missing selector names and feature
-ids. Imported media
+ids. The transient Mutation performance ring is never persisted. If you copy diagnostics, it carries
+only bounded feature ids, pass types, invocation counts, and durations. It never carries selectors,
+route URLs, post text, handles, or DOM values. Imported media
 bytes are not retained after a completed archive import; resumable import state may retain the
 local source while the job is unfinished.
 

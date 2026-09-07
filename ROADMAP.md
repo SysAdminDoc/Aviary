@@ -146,14 +146,6 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
 
 ### P2, Later
 
-- [ ] F324, P2: Attribute mutation work and long frames to individual features
-  Why: every active `apply()` runs serially after each mutation batch, but diagnostics cannot identify which feature makes scrolling or navigation stall.
-  Evidence: `src/features/registry.ts` (`#runApply`), `src/platform/observer.ts` (`FLUSH_DELAY_MS = 120`, `MAX_BATCH_NODES = 400`); https://w3c.github.io/long-animation-frames/, https://developer.mozilla.org/en-US/docs/Web/API/Performance_API/Long_animation_frame_timing, https://web.dev/articles/optimize-long-tasks
-  Touches: feature registry, observer diagnostics, redacted diagnostic store, Advanced performance view, deterministic registry and large-DOM tests
-  Acceptance: each apply pass records feature ID, invocation count, total duration, maximum duration, and whether the pass was incremental or full in a bounded local ring; no selector, route URL, post text, handle, or DOM value is stored; Long Animation Frame data is correlated when supported and reported as unavailable otherwise; a reset control clears the aggregate immediately; a synthetic slow feature and a 400-node overflow identify the correct feature and pass type; a 20-run fixed registry benchmark reports enabled and disabled medians, and instrumentation adds no more than 5 percent or 0.25 ms per pass, whichever allowance is larger.
-  Complexity: M
-  Depends: None. Uses the shipped redacted diagnostic schema.
-
 - [ ] F325, P2: Hide For You independently from opening Following
   Why: users may want the algorithmic tab gone, not merely bypassed once on arrival, and current `forceFollowing` deliberately leaves a manual switch back available.
   Evidence: `src/features/layout/force-following.ts`; https://github.com/yusukesaitoh/calm-twitter/issues/70 and https://github.com/alterebro/bye-for-you

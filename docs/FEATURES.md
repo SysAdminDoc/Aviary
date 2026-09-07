@@ -113,6 +113,10 @@ click and pause. That broader privacy control is off by default. Ad protection i
   opens Trust when a required anchor is missing, names the affected feature, and clears the warning
   when the surface returns. **Copy diagnostics** on that row writes only the build, route surface,
   missing anchors and feature ids.
+- **Mutation performance** keeps a bounded local ring of feature apply timings. Trust shows full and
+  incremental counts, total and maximum duration, and Long Animation Frame correlations when the
+  browser exposes them. The reset action clears the aggregate; the copied report includes only safe
+  feature ids and durations, never selectors, routes, post text, handles, or DOM values.
 - Does not block HomeTimeline. X delivers native sponsored records in the same essential
   first-party response as ordinary posts, so those bytes are inseparable and only their rendering
   can be suppressed safely.

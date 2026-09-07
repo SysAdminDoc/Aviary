@@ -136,6 +136,7 @@ import {
 import { getLastDownload } from "../media/last-download.ts";
 import { buildMediaHistoryExportArtifacts } from "../media/history.ts";
 import type { FeatureContext, FeatureModule } from "../registry.ts";
+import type { PerformanceMetricsSnapshot } from "../../platform/performance-diagnostics.ts";
 import {
   buildSettingsExport,
   parseSettingsImport,
@@ -197,6 +198,8 @@ export const controlCenterFeature: FeatureModule = {
     controlCenter = mountControlCenter({
       settings: ctx.settings,
       diagnostics: () => ctx.diagnostics.snapshot(),
+      getPerformanceMetrics: () => ctx.registry?.performanceMetrics() ?? emptyPerformanceMetrics(),
+      resetPerformanceMetrics: () => ctx.registry?.resetPerformanceMetrics(),
       getStorageStatus: () => ctx.storage.getStatus?.() ?? {
         backend: "legacy",
         schemaVersion: 0,
@@ -407,7 +410,10 @@ export const controlCenterFeature: FeatureModule = {
         };
       },
       async copyDiagnostics() {
-        const payload = buildDiagnosticsPayload(ctx);
+        const payload = buildDiagnosticsPayload({
+          ...ctx,
+          performance: ctx.registry?.performanceMetrics() ?? null
+        });
         await writeClipboard(payload);
         void ctx.auditLog.record("diagnostics.copy");
       },
@@ -1693,6 +1699,7 @@ interface DiagnosticsContext {
   diagnosticsStore?: { snapshot(): unknown[] };
   route: { surface: string; href: string };
   settings: { i18n: { locale: string } };
+  performance?: PerformanceMetricsSnapshot | null;
 }
 
 function buildDiagnosticsPayload(ctx: DiagnosticsContext): string {
@@ -1708,9 +1715,28 @@ function buildDiagnosticsPayload(ctx: DiagnosticsContext): string {
     featureBisect: describeBisectResult(bisect.status()),
     events,
     // Warnings and errors from earlier page loads, which the in-memory ring above cannot hold.
-    persisted: ctx.diagnosticsStore?.snapshot() ?? []
+    persisted: ctx.diagnosticsStore?.snapshot() ?? [],
+    // Timing contains only bounded feature IDs and durations. It is never persisted by the
+    // diagnostics store, and it deliberately excludes selectors, routes, post text, and DOM data.
+    performance: ctx.performance ?? null
   };
   return JSON.stringify(payload, null, 2);
+}
+
+function emptyPerformanceMetrics(): PerformanceMetricsSnapshot {
+  return {
+    version: 1,
+    features: [],
+    recentPasses: [],
+    longFrames: {
+      supported: false,
+      observed: 0,
+      totalDurationMs: 0,
+      maxDurationMs: 0,
+      correlatedPasses: 0,
+      reason: "Long Animation Frame timing is unavailable in this browser."
+    }
+  };
 }
 
 function buildSelectorBreakReport(

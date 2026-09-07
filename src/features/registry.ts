@@ -9,6 +9,10 @@ import type { TokenBucket } from "../platform/rate-limit.ts";
 import type { AuditLog } from "./core/audit-log.ts";
 import type { IntegrationUsageLedger } from "./integrations/usage.ts";
 import type { SelectorHealthSnapshot } from "./core/selector-health.ts";
+import {
+  FeaturePerformanceDiagnostics,
+  type PerformanceMetricsSnapshot
+} from "../platform/performance-diagnostics.ts";
 
 export interface FeatureContext {
   route: RouteState;
@@ -79,6 +83,7 @@ export interface FeatureModule {
 export class FeatureRegistry {
   readonly #features = new Map<string, FeatureModule>();
   readonly #active = new Set<string>();
+  readonly #performance = new FeaturePerformanceDiagnostics();
   /**
    * Features the bisect flow turned off, in the order they were registered.
    *
@@ -151,6 +156,16 @@ export class FeatureRegistry {
   /** Features currently held off by `suspend`, in registration order. */
   suspendedIds(): string[] {
     return this.ids().filter((id) => this.#suspended.has(id));
+  }
+
+  /** A bounded, content-free view of feature apply cost for the current page. */
+  performanceMetrics(): PerformanceMetricsSnapshot {
+    return this.#performance.snapshot();
+  }
+
+  /** Clears the local apply timing aggregate without changing feature state. */
+  resetPerformanceMetrics(): void {
+    this.#performance.reset();
   }
 
   /**
@@ -270,6 +285,7 @@ export class FeatureRegistry {
   }
 
   async #runApply(ctx: FeatureContext, root: ParentNode, addedNodes?: Element[]): Promise<void> {
+    const passType = addedNodes === undefined || addedNodes.length === 0 ? "full" : "incremental";
     // Registration order, not init order. They are the same until a feature is suspended and
     // resumed, after which init order would put the resumed feature last -- and ad protection is
     // registered first precisely so it runs before anything that reads the timeline.
@@ -277,10 +293,14 @@ export class FeatureRegistry {
       if (!this.#active.has(id)) continue;
       const feature = this.#features.get(id);
       if (feature?.apply) {
+        const started = performanceNow();
         try {
           await feature.apply(ctx, root, addedNodes);
         } catch (error) {
           ctx.diagnostics.error(`Feature failed to apply: ${id}`, errorDetails(error));
+        } finally {
+          const ended = performanceNow();
+          this.#performance.record(id, passType, Math.max(0, ended - started), started, ended);
         }
       }
     }
@@ -319,6 +339,11 @@ export class FeatureRegistry {
       }
     });
   }
+}
+
+function performanceNow(): number {
+  const clock = globalThis.performance;
+  return typeof clock?.now === "function" ? clock.now() : Date.now();
 }
 
 function errorDetails(error: unknown): Record<string, unknown> {

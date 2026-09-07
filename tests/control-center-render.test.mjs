@@ -356,6 +356,80 @@ test("Trust reports a failed write rather than letting it vanish", async () => {
   assert.match(broken, /\(1\)/, "only the write failures count — the warning is not one");
 });
 
+test("Trust shows bounded mutation timing and resets it immediately", async () => {
+  await page.evaluate(() => {
+    window.__panel?.destroy?.();
+    const settings = AviaryCC.cloneSettings(AviaryCC.DEFAULT_SETTINGS);
+    settings.i18n.locale = "en";
+    window.__performance = {
+      version: 1,
+      features: [
+        {
+          featureId: "media.buttons",
+          invocationCount: 4,
+          totalDurationMs: 12.4,
+          maxDurationMs: 5.6,
+          fullPasses: 1,
+          incrementalPasses: 3,
+          longFrameCount: 1
+        }
+      ],
+      recentPasses: [],
+      longFrames: {
+        supported: true,
+        observed: 2,
+        totalDurationMs: 80,
+        maxDurationMs: 50,
+        correlatedPasses: 1
+      }
+    };
+    window.__panel = AviaryCC.mountControlCenter({
+      settings,
+      diagnostics: () => [],
+      onChange: async () => {},
+      onError: () => {},
+      getPerformanceMetrics: () => window.__performance,
+      resetPerformanceMetrics: () => {
+        window.__performance = {
+          version: 1,
+          features: [],
+          recentPasses: [],
+          longFrames: {
+            supported: true,
+            observed: 0,
+            totalDurationMs: 0,
+            maxDurationMs: 0,
+            correlatedPasses: 0
+          }
+        };
+      }
+    });
+    document.getElementById("av-control-center").shadowRoot.querySelector(".av-launcher").click();
+  });
+  await page.waitForTimeout(20);
+  await openSection("trust");
+
+  const result = await page.evaluate(async () => {
+    const shadow = document.getElementById("av-control-center").shadowRoot;
+    const before = [...shadow.querySelectorAll(".av-row")]
+      .find((row) => row.dataset.avLabel === "Mutation performance")
+      ?.textContent;
+    const button = [...shadow.querySelectorAll("button")]
+      .find((candidate) => candidate.textContent === "Reset performance metrics");
+    button?.click();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    const after = [...shadow.querySelectorAll(".av-row")]
+      .find((row) => row.dataset.avLabel === "Mutation performance")
+      ?.textContent;
+    return { before, after, status: shadow.querySelector(".av-status")?.textContent };
+  });
+
+  assert.match(result.before, /media\.buttons/);
+  assert.match(result.before, /4 runs/);
+  assert.match(result.after, /No apply samples yet/);
+  assert.equal(result.status, "Performance metrics reset.");
+});
+
 test("a section that cannot be drawn says so and leaves the rest of the panel usable", async () => {
   // FeatureRegistry has always isolated per-feature failures; the panel did not isolate
   // per-section ones. A builder that threw took the whole render with it, so the rail item

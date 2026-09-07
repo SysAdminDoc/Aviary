@@ -35,6 +35,10 @@
   than blocking Aviary startup or deleting them.
 
 ### Fixed
+- Trust now attributes serialized mutation apply work to each feature with bounded local timing
+  samples, full or incremental pass counts, and maximum duration. Long Animation Frame timing is
+  correlated when the browser exposes it, and unsupported browsers say so. The reset action clears
+  the aggregate immediately; copied diagnostics include only safe feature ids and durations.
 - Export records now keep canonical BCP 47 post language from DOM, GraphQL, and archive inputs.
   JSON and CSV carry the value, Markdown writes it in frontmatter, and HTML, replay pages, and the
   offline viewer isolate each post with its own language and automatic direction. Invalid tags and

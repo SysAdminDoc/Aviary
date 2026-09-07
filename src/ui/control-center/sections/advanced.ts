@@ -40,6 +40,46 @@ export function buildTrustRows(ctx: PanelContext): HTMLElement[] {
       ctx.coverageRow(),
         ...ctx.selectorHealthRows()
   ];
+  const performance = ctx.options.getPerformanceMetrics?.();
+  if (performance) {
+    const ranked = [...performance.features].sort(
+      (left, right) => right.totalDurationMs - left.totalDurationMs
+    );
+    const featureSummary = ranked
+      .slice(0, 3)
+      .map(
+        (feature) =>
+          `${feature.featureId}: ${feature.invocationCount} runs · ${feature.totalDurationMs.toFixed(1)} ms total · ${feature.maxDurationMs.toFixed(1)} ms max · ${feature.fullPasses} full / ${feature.incrementalPasses} incremental`
+      )
+      .join(" | ");
+    const longFrameSummary = performance.longFrames.supported
+      ? `${performance.longFrames.observed} long frames · ${performance.longFrames.correlatedPasses} correlated`
+      : "Long Animation Frame unavailable";
+    rows.push(
+      ctx.dataRow(
+        "Mutation performance",
+        `${performance.features.length} features · ${longFrameSummary} · ${featureSummary || "No apply samples yet"}`
+      )
+    );
+    if (ctx.options.resetPerformanceMetrics) {
+      rows.push(
+        ctx.actionRow(
+          "Reset performance metrics",
+          "Mutation timing stays local and stores only feature ids and bounded durations.",
+          async () => {
+            try {
+              ctx.options.resetPerformanceMetrics!();
+              ctx.render();
+              ctx.setStatus("Performance metrics reset.");
+            } catch (error) {
+              ctx.options.onError("Could not reset performance metrics", error);
+              ctx.setStatus("Could not reset performance metrics.");
+            }
+          }
+        )
+      );
+    }
+  }
   const adLanguage = ctx.options.getAdLabelLanguage?.();
   if (adLanguage && !adLanguage.supported) {
     rows.push(
