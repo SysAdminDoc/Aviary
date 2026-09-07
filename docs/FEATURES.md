@@ -109,6 +109,10 @@ click and pause. That broader privacy control is off by default. Ad protection i
   entry contains only a route category, timestamp, and native/trend/house-promo/video counts. If a
   marker previously seen on that route disappears, selector health reports the contract drift;
   **Reset ad observations** clears the ring and warning.
+- Selector health marks route-required surfaces as degraded without blocking the page. The launcher
+  opens Trust when a required anchor is missing, names the affected feature, and clears the warning
+  when the surface returns. **Copy diagnostics** on that row writes only the build, route surface,
+  missing anchors and feature ids.
 - Does not block HomeTimeline. X delivers native sponsored records in the same essential
   first-party response as ordinary posts, so those bytes are inseparable and only their rendering
   can be suppressed safely.

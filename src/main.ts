@@ -77,7 +77,7 @@ interface ExtensionPanelModule {
   optionalFeatureModules: typeof optionalFeatureModules;
   startControlCenter(ctx: FeatureContext): Promise<void>;
   stopControlCenter(ctx: FeatureContext): Promise<void>;
-  openControlCenter(): void;
+  openControlCenter(options?: { focusSelectorHealth?: boolean }): void;
 }
 
 async function importExtensionPanel(): Promise<ExtensionPanelModule> {
@@ -380,7 +380,10 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
     return panelModule;
   };
 
-  const openControlCenter = async (ctx: FeatureContext): Promise<void> => {
+  const openControlCenter = async (
+    ctx: FeatureContext,
+    options: { focusSelectorHealth?: boolean } = {}
+  ): Promise<void> => {
     const panel = await loadPanelFeatures(ctx);
     if (!panelStarted) {
       await registry.suspend(ctx, [controlCenterLauncherFeature.id]);
@@ -388,7 +391,7 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
       await panel.startControlCenter(ctx);
       panelStarted = true;
     }
-    panel.openControlCenter();
+    panel.openControlCenter(options);
   };
 
   const policy = createTrustedHtmlPolicy();
@@ -514,7 +517,7 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
   };
 
   if (EXTENSION_LAZY) {
-    context.loadControlCenter = () => openControlCenter(context);
+    context.loadControlCenter = (options) => openControlCenter(context, options);
   }
   context.getPageHookCounters = pageHookCounters;
   context.getAdProtectionCounters = adProtectionCounters;

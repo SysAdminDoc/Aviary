@@ -1,5 +1,7 @@
 import type { FeatureModule } from "../features/registry.ts";
 import { AVIARY_VERSION } from "../platform/build-version.ts";
+import { ft } from "../features/core/feature-i18n.ts";
+import { selectorHealthHasBreak } from "../features/core/selector-health.ts";
 
 const HOST_ID = "av-control-center";
 const NAV_SELECTOR = '[data-testid^="AppTabBar_"]';
@@ -46,6 +48,18 @@ export const controlCenterLauncherFeature: FeatureModule = {
       button:focus-visible { outline: 2px solid #1d9bf0; outline-offset: 3px; }
       button[aria-busy="true"] { cursor: progress; opacity: 0.72; }
       button[data-state="error"] { border-color: #f4212e; color: #ff8e96; }
+      button[data-av-selector-health="degraded"] {
+        border-color: #f4212e;
+        box-shadow: 0 0 0 3px rgba(244, 33, 46, 0.14);
+      }
+      button[data-av-selector-health="degraded"]::after {
+        content: "";
+        width: 7px;
+        height: 7px;
+        margin-inline-start: 8px;
+        border-radius: 50%;
+        background: #f4212e;
+      }
     `;
     const button = document.createElement("button");
     button.type = "button";
@@ -54,6 +68,21 @@ export const controlCenterLauncherFeature: FeatureModule = {
     button.setAttribute("aria-label", "Open Aviary controls");
     button.setAttribute("aria-haspopup", "dialog");
     button.setAttribute("aria-expanded", "false");
+
+    const syncSelectorHealth = (): void => {
+      const degraded = selectorHealthHasBreak(ctx.getSelectorHealth?.() ?? {
+        enabled: false,
+        missingRequired: []
+      });
+      const state = degraded ? "degraded" : "healthy";
+      host.dataset.avSelectorHealth = state;
+      button.dataset.avSelectorHealth = state;
+      const baseLabel = ft(ctx, "Aviary settings");
+      button.setAttribute(
+        "aria-label",
+        degraded ? `${baseLabel}: ${ft(ctx, "Selector health")}` : ft(ctx, "Aviary settings")
+      );
+    };
 
     let loading: Promise<void> | undefined;
     const setError = (error: unknown): void => {
@@ -77,7 +106,10 @@ export const controlCenterLauncherFeature: FeatureModule = {
       button.textContent = "Loading Aviary…";
       button.setAttribute("aria-label", "Loading Aviary controls");
       host.dataset.avLoadState = "loading";
-      loading = Promise.resolve(ctx.loadControlCenter?.()).then(
+      loading = Promise.resolve(ctx.loadControlCenter?.({ focusSelectorHealth: selectorHealthHasBreak(ctx.getSelectorHealth?.() ?? {
+        enabled: false,
+        missingRequired: []
+      }) })).then(
         () => undefined,
         (error: unknown) => {
           setError(error);
@@ -103,7 +135,26 @@ export const controlCenterLauncherFeature: FeatureModule = {
     state.observer = observer;
     observer.observe(document.documentElement, { childList: true, subtree: true });
     mount();
+    syncSelectorHealth();
     launcherState.set(host, state);
+  },
+
+  apply(ctx) {
+    const host = document.getElementById(HOST_ID);
+    const button = host?.shadowRoot?.querySelector<HTMLButtonElement>(".av-launcher");
+    if (!host || !button) return;
+    const degraded = selectorHealthHasBreak(ctx.getSelectorHealth?.() ?? {
+      enabled: false,
+      missingRequired: []
+    });
+    const state = degraded ? "degraded" : "healthy";
+    host.dataset.avSelectorHealth = state;
+    button.dataset.avSelectorHealth = state;
+    const baseLabel = ft(ctx, "Aviary settings");
+    button.setAttribute(
+      "aria-label",
+      degraded ? `${baseLabel}: ${ft(ctx, "Selector health")}` : baseLabel
+    );
   },
 
   destroy() {

@@ -7,6 +7,6 @@ import { optionalFeatureModules } from "../features/core/optional-features.ts";
 
 export { optionalFeatureModules, startControlCenter, stopControlCenter };
 
-export function openControlCenter(): void {
-  openMountedControlCenter();
+export function openControlCenter(options?: { focusSelectorHealth?: boolean }): void {
+  openMountedControlCenter(options);
 }

@@ -57,9 +57,11 @@ hosts. Review the generated userscript metadata before installing it.
 ## A button stopped working after an X update, what should I do?
 
 1. Open the Control Center and check **Selector health**.
-2. If App root or Primary column is degraded, X may have changed a surface selector. Aviary uses
-   stable test ids first and fallbacks second, so most regressions are visual rather than fatal.
-3. Use **Copy diagnostics** and attach the JSON to a bug report. It contains stable event ids,
+2. If the launcher is marked degraded, Trust opens the missing required surfaces and the feature
+   each one affects. This includes a renamed post action bar, not just the app shell.
+3. Use **Copy diagnostics** from the selector row and attach the report to a bug report. It contains
+   the build, route surface, missing anchors and feature ids, not post content, handles or URLs.
+   The general report still contains stable event ids,
    severity, timestamps, operation codes, and detail-key names, not URLs, filenames, provider or
    exception text, cookies, auth headers, or API keys.
 

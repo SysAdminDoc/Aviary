@@ -43,7 +43,7 @@ export interface FeatureContext {
   /** Request a serialized apply pass. Live boot contexts return its completion promise. */
   requestApply(): void | Promise<void>;
   /** Extension-only hook used by the document-start launcher to fetch the panel chunk. */
-  loadControlCenter?: () => Promise<void>;
+  loadControlCenter?: (options?: { focusSelectorHealth?: boolean }) => Promise<void>;
   /** Live state readers stay in the document-start chunk when the panel is lazy-loaded. */
   getPageHookCounters?: () => {
     blockedBeacons: number;
@@ -55,6 +55,8 @@ export interface FeatureContext {
     suppressedVideoAds: number;
   };
   getSelectorHealth?: () => SelectorHealthSnapshot;
+  /** Repaints the mounted Control Center when a first-chunk health sample changes. */
+  refreshControlCenter?: () => void;
   clearSelectorAdObservations?: () => Promise<void>;
 }
 

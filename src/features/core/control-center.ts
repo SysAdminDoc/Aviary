@@ -25,8 +25,10 @@ import {
 } from "../privacy/ad-protection.ts";
 import {
   clearAdObservations as clearSelectorAdObservations,
-  getSelectorHealthSnapshot
+  getSelectorHealthSnapshot,
+  selectorHealthHasBreak
 } from "./selector-health.ts";
+import { getSelectorFeatureIds } from "../../platform/selectors.ts";
 import { applyPreset, describePresetDelta, getPreset, listPresets } from "./presets.ts";
 import { describeBisectResult, FeatureBisect, type BisectVerdict } from "./feature-bisect.ts";
 import {
@@ -390,6 +392,14 @@ export const controlCenterFeature: FeatureModule = {
         const payload = buildDiagnosticsPayload(ctx);
         await writeClipboard(payload);
         void ctx.auditLog.record("diagnostics.copy");
+      },
+      async copySelectorBreakReport() {
+        const health = ctx.getSelectorHealth?.() ?? getSelectorHealthSnapshot();
+        if (!selectorHealthHasBreak(health)) {
+          throw new Error("No selector break is active");
+        }
+        await writeClipboard(buildSelectorBreakReport(ctx, health));
+        void ctx.auditLog.record("diagnostics.selectorBreak.copy");
       },
       async resetSettings() {
         // Replace in place: every feature holds a reference to this same object, and swapping it
@@ -1252,6 +1262,7 @@ export const controlCenterFeature: FeatureModule = {
         downloadBlob(bytes, reportFilename(), "text/markdown");
       }
     });
+    ctx.refreshControlCenter = () => controlCenter?.refresh();
     ctx.diagnostics.info("Control Center mounted");
   },
 
@@ -1269,6 +1280,7 @@ export const controlCenterFeature: FeatureModule = {
     closeCatchUpDigest();
     controlCenter?.destroy();
     controlCenter = undefined;
+    delete ctx.refreshControlCenter;
     cleanupQueue = undefined;
     semanticIndex = undefined;
     retentionPolicy = undefined;
@@ -1290,9 +1302,14 @@ export async function stopControlCenter(ctx: FeatureContext): Promise<void> {
 }
 
 /** Opens the mounted panel from the lightweight extension launcher. */
-export function openMountedControlCenter(): void {
+export function openMountedControlCenter(options: { focusSelectorHealth?: boolean } = {}): void {
   const host = document.getElementById("av-control-center");
   const shadow = host?.shadowRoot;
+  const handle = controlCenter;
+  if (options.focusSelectorHealth && handle) {
+    handle.openSelectorHealth();
+    return;
+  }
   const launcher = shadow?.querySelector<HTMLButtonElement>(".av-nav-launcher, .av-launcher");
   launcher?.click();
 }
@@ -1656,6 +1673,25 @@ function buildDiagnosticsPayload(ctx: DiagnosticsContext): string {
     persisted: ctx.diagnosticsStore?.snapshot() ?? []
   };
   return JSON.stringify(payload, null, 2);
+}
+
+function buildSelectorBreakReport(
+  ctx: FeatureContext,
+  health: ReturnType<typeof getSelectorHealthSnapshot>
+): string {
+  const missing = health.surfaces.filter(
+    (surface) => surface.relevance === "required" && !surface.healthy
+  );
+  const featureIds = [...new Set(missing.flatMap((surface) => getSelectorFeatureIds(surface.feature)))];
+  return [
+    "Aviary selector break report",
+    `Build: ${AVIARY_VERSION}`,
+    `Route: ${ctx.route.surface}`,
+    "Missing surfaces:",
+    ...missing.map((surface) => `- ${surface.surface} (${surface.feature})`),
+    "Feature IDs:",
+    ...featureIds.map((featureId) => `- ${featureId}`)
+  ].join("\n");
 }
 
 async function writeClipboard(payload: string): Promise<void> {

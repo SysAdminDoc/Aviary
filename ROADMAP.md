@@ -2,7 +2,7 @@
 
 Version: `1.47.2`
 
-Date: 2026-09-06
+Date: 2026-09-07
 
 Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tasks that require a fresh authenticated X capture, distribution identity, or another external environment.
 
@@ -117,14 +117,6 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
 ## Research-Driven Additions (2026-09-04)
 
 ### P1, Next
-
-- [ ] F299, P1: Report a selector break on the page, not only inside Advanced
-  Why: selector health reacts only when "App root" or "Primary column" goes missing, and its only reaction is a diagnostics warning. Twenty-one surfaces are tracked, twelve marked high churn, and every one already names the feature it owns, so the data to say "Download is unavailable because X renamed the post action bar" exists and is discarded. With the update channel answering 404 (F183), a user on a broken build has no other way to find out.
-  Evidence: `src/features/core/selector-health.ts:15` (`CRITICAL_SURFACES`), `:74-99` (warn-only), `src/ui/control-center/sections/advanced.ts:41` (the only UI consumer), `src/platform/selectors.ts:12-22` (every surface names its owning feature), `:125` and the twelve `churnRisk: "High"` entries; `Roadmap_Blocked.md` F183
-  Touches: `src/features/core/selector-health.ts`, `src/features/core/feature-toast.ts`, the launcher in `src/features/core/control-center.ts`, `src/platform/selectors.ts`, `tests/selector-health-dashboard.test.mjs`, a new degraded-state test, `.github/ISSUE_TEMPLATE/bug_report.yml`
-  Acceptance: a required surface missing on the current route marks the launcher with a non-blocking degraded state and opens to a list naming each missing surface and the feature it disables, in the user's locale; the signal appears once per distinct degradation rather than per mutation batch, and clears itself when the surface returns without a reload; a healthy route, a route where the surface is `inapplicable`, and a feature the user turned off never produce a signal; the panel offers a copy action producing a report with route, surface names, feature ids, and build version and no post content, handles, or URLs; a fixture with a renamed post action bar drives the whole path in a test.
-  Complexity: M
-  Depends: None.
 
 - [ ] F301, P1: Cover the two untested modules that sit on privileged paths
   Why: `trusted-types.ts` is the only file exempted from preflight's repository-wide `innerHTML` ban and silently degrades to a string passthrough when `trustedTypes` is absent. `media-context-menu.ts` carries the message-shape validator for a cross-context download trigger, and `contextMenus` is a declared permission in both manifests. Neither is referenced by any test.
@@ -326,7 +318,7 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
   Touches: `src/features/layout/force-following.ts`, `src/platform/settings.ts`, Minimal preset, Reading controls, i18n catalog, route and teardown tests
   Acceptance: a separate `Hide For You tab` setting is enabled by the Minimal preset and can be changed without changing `forceFollowing`; on Home it selects Following before collapsing only the first tab to 0 by 0, using the known home tablist and position rather than translated text; profile, search, notifications, and custom-list tablists are untouched; if the strip has fewer than two tabs the feature does nothing and reports degraded selector health; disabling it restores the tab without navigation or reload; LTR, RTL, narrow, and touch fixtures pass.
   Complexity: S
-  Depends: F299 for visible degraded-selector reporting.
+  Depends: None. Selector-break reporting is available in the current build.
 
 - [ ] F326, P2: Stop reading unrelated storage on every lock poll
   Why: sharedLockRegisterStore().entries uses chrome.storage.local.get(null) at a 12 ms poll interval, deserializing the whole storage area to find a small register.

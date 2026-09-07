@@ -142,6 +142,131 @@ test("Trust shows current selector matches and clears a required-surface warning
   assert.equal(result.restored.snapshot.lastTransition.to, "healthy");
 });
 
+test("a renamed post action bar signals once, opens Trust, and copies a content-free report", async () => {
+  const result = await page.evaluate(async () => {
+    document.body.replaceChildren();
+    const app = document.createElement("div");
+    app.id = "react-root";
+    const primary = document.createElement("main");
+    primary.setAttribute("data-testid", "primaryColumn");
+    const article = document.createElement("article");
+    article.setAttribute("data-testid", "tweet");
+    const actions = document.createElement("div");
+    actions.setAttribute("data-testid", "toolBar");
+    actions.setAttribute("role", "group");
+    article.append(actions);
+    primary.append(article);
+    const nav = document.createElement("a");
+    nav.setAttribute("data-testid", "AppTabBar_Home");
+    app.append(primary, nav);
+    document.body.append(app);
+
+    const settings = AviarySelectorHealth.cloneSettings(AviarySelectorHealth.DEFAULT_SETTINGS);
+    settings.i18n.locale = "en";
+    const context = {
+      route: { surface: "home" },
+      settings,
+      storage: {
+        async get(_key, fallback) { return fallback; },
+        async set() {},
+        async remove() {}
+      },
+      diagnostics: { info() {}, warn() {}, error() {} }
+    };
+    await AviarySelectorHealth.selectorHealthFeature.init(context);
+    await AviarySelectorHealth.selectorHealthFeature.apply(context, document);
+    const reports = [];
+    const panel = AviarySelectorHealth.mountControlCenter({
+      settings,
+      diagnostics: () => [],
+      onChange: async () => {},
+      onError: () => {},
+      getSelectorHealth: () => AviarySelectorHealth.getSelectorHealthSnapshot(),
+      copySelectorBreakReport: async () => {
+        reports.push("Aviary selector break report\nBuild: 1.47.2\nRoute: home\nMissing surfaces:\n- Post actions (Media buttons, AI menu, composer snippets)\nFeature IDs:\n- media.buttons\n- ai.commandMenu\n- composer.snippets");
+      }
+    });
+    context.refreshControlCenter = () => panel.refresh();
+    const host = document.getElementById("av-control-center");
+    const shadow = host.shadowRoot;
+    shadow.querySelector(".av-launcher").click();
+    shadow.querySelector('[data-av-section="trust"]').click();
+    const read = (label) =>
+      [...shadow.querySelectorAll(".av-row")]
+        .find((row) => row.querySelector(".av-row-label")?.textContent === label)
+        ?.querySelector(".av-row-description")?.textContent ?? null;
+
+    actions.removeAttribute("data-testid");
+    actions.removeAttribute("role");
+    actions.setAttribute("data-testid", "renamedToolBar");
+    await AviarySelectorHealth.selectorHealthFeature.apply(context, document);
+    const firstDegraded = {
+      snapshot: AviarySelectorHealth.getSelectorHealthSnapshot(),
+      launcherState: host.dataset.avSelectorHealth,
+      toast: document.querySelector("#av-feature-toast")?.shadowRoot?.textContent ?? ""
+    };
+    await AviarySelectorHealth.selectorHealthFeature.apply(context, document);
+    const secondDegraded = {
+      toastHosts: document.querySelectorAll("#av-feature-toast").length,
+      missing: read("Missing required surfaces"),
+      affected: read("Affected features"),
+      copyButtons: [...shadow.querySelectorAll(".av-row")]
+        .filter((row) => row.querySelector(".av-row-label")?.textContent === "Copy diagnostics")
+        .length
+    };
+    shadow.querySelector(".av-panel").focus();
+    panel.refresh();
+    const copyRow = [...shadow.querySelectorAll(".av-row")]
+      .find((row) => row.querySelector(".av-row-label")?.textContent === "Copy diagnostics");
+    copyRow?.querySelector("button")?.click();
+    await new Promise((resolve) => setTimeout(resolve));
+
+    actions.setAttribute("data-testid", "toolBar");
+    actions.setAttribute("role", "group");
+    await AviarySelectorHealth.selectorHealthFeature.apply(context, document);
+    shadow.querySelector(".av-panel").focus();
+    panel.refresh();
+    const restored = {
+      state: AviarySelectorHealth.getSelectorHealthSnapshot().state,
+      launcherState: host.dataset.avSelectorHealth,
+      missing: read("Missing required surfaces")
+    };
+
+    settings.media.buttons = false;
+    settings.ai.commandMenu = false;
+    settings.composer.snippets = [];
+    actions.removeAttribute("data-testid");
+    actions.removeAttribute("role");
+    await AviarySelectorHealth.selectorHealthFeature.apply(context, document);
+    const off = {
+      state: AviarySelectorHealth.getSelectorHealthSnapshot().state,
+      missing: AviarySelectorHealth.getSelectorHealthSnapshot().missingRequired
+    };
+    panel.destroy();
+    AviarySelectorHealth.selectorHealthFeature.destroy(context);
+    return { firstDegraded, secondDegraded, restored, off, report: reports[0] ?? "" };
+  });
+
+  assert.equal(result.firstDegraded.snapshot.state, "degraded");
+  assert.deepEqual(result.firstDegraded.snapshot.missingRequired, ["Post actions"]);
+  assert.equal(result.firstDegraded.launcherState, "degraded");
+  assert.match(result.firstDegraded.toast, /Selector health/);
+  assert.equal(result.secondDegraded.toastHosts, 1);
+  assert.equal(result.secondDegraded.missing, "Post actions");
+  assert.match(result.secondDegraded.affected, /Media buttons, AI menu, composer snippets/);
+  assert.equal(result.secondDegraded.copyButtons, 1);
+  assert.match(result.report, /Build: 1\.47\.2/);
+  assert.match(result.report, /Route: home/);
+  assert.match(result.report, /media\.buttons/);
+  assert.doesNotMatch(result.report, /https?:\/\//);
+  assert.doesNotMatch(result.report, /@/);
+  assert.equal(result.restored.state, "healthy");
+  assert.equal(result.restored.launcherState, "healthy");
+  assert.equal(result.restored.missing, "None");
+  assert.equal(result.off.state, "healthy");
+  assert.deepEqual(result.off.missing, []);
+});
+
 test("Trust surfaces content-free ad-contract drift and resets its bounded history", async () => {
   const result = await page.evaluate(async () => {
     document.body.replaceChildren();
@@ -150,7 +275,7 @@ test("Trust surfaces content-free ad-contract drift and resets its bounded histo
     app.innerHTML = `
       <main data-testid="primaryColumn">
         <div data-testid="cellInnerDiv" data-ad-fixture="native">
-          <article data-testid="tweet"><div data-testid="placementTracking"></div><span>Ad</span></article>
+          <article data-testid="tweet"><div data-testid="placementTracking"></div><div data-testid="toolBar" role="group"></div><span>Ad</span></article>
         </div>
         <div data-testid="videoPlayer" data-ad-fixture="video"><span>Video will play after ad</span></div>
       </main>

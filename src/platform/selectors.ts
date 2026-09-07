@@ -234,7 +234,7 @@ export function getSelectorHealthForRoute(
       fallbackCount,
       churnRisk: entry.churnRisk,
       healthy: stableCount > 0 || fallbackCount > 0,
-      relevance: selectorRelevance(entry.surface, route),
+      relevance: selectorRelevance(entry.surface, route, root),
       matched,
       matchedSelector: matched === "stable" ? entry.stable : matched === "fallback" ? entry.fallback : null,
       feature: entry.feature
@@ -250,7 +250,7 @@ const CONTENT_SURFACES = new Set<RouteSurface>([
   "search"
 ]);
 
-function selectorRelevance(surface: string, route: RouteSurface): SelectorRelevance {
+function selectorRelevance(surface: string, route: RouteSurface, root: ParentNode): SelectorRelevance {
   const entry = SURFACE_SELECTORS.find((item) => item.surface === surface);
   if (entry?.requiredOn) {
     if (entry.requiredOn.includes(route)) return "required";
@@ -267,6 +267,14 @@ function selectorRelevance(surface: string, route: RouteSurface): SelectorReleva
   if (surface === "Grok") {
     return route === "grok" ? "required" : "optional";
   }
+  // A post action bar is only applicable when the route actually contains a post. Treating an
+  // empty feed as broken would make a freshly mounted home shell look degraded before X has
+  // rendered its first article.
+  if (surface === "Post actions") {
+    return CONTENT_SURFACES.has(route) && countMatches(root, 'article[data-testid="tweet"]') > 0
+      ? "required"
+      : "inapplicable";
+  }
   if (["Tweet", "Tweet text", "Composer", "Media photo", "Video"].includes(surface)) {
     return CONTENT_SURFACES.has(route) ? "optional" : "inapplicable";
   }
@@ -274,6 +282,41 @@ function selectorRelevance(surface: string, route: RouteSurface): SelectorReleva
     return route === "settings" ? "inapplicable" : "optional";
   }
   return "optional";
+}
+
+/** Stable registry ids used in content-free selector break reports. */
+const SELECTOR_FEATURE_IDS: Record<string, readonly string[]> = {
+  "Boot and timeline scope": ["core.boot"],
+  "Layout declutter": ["layout.declutter"],
+  "Filtering and export": ["filtering.engine", "export.core"],
+  "Composer and crosspost": ["composer.snippets", "integrations.crosspost"],
+  "Media controls": ["media.buttons", "media.presentation"],
+  "Grok declutter": ["layout.declutter"],
+  "Filtering, hidden posts, thread recommendations": [
+    "filtering.engine",
+    "filtering.hiddenPosts",
+    "layout.threadRecommendations"
+  ],
+  "Media buttons, AI menu, composer snippets": [
+    "media.buttons",
+    "ai.commandMenu",
+    "composer.snippets"
+  ],
+  "Hide engagement counts": ["appearance.theme"],
+  "Account notes, colours, handle rules": ["library.userNotes", "filtering.engine"],
+  "Video playback preferences": ["performance.videoPlayback", "performance.pauseOffscreenVideo"],
+  "Hide trends": ["layout.declutter"],
+  "Sidebar declutter": ["layout.declutter"],
+  "Hide follow suggestions": ["layout.declutter"],
+  "Navigation declutter, open Following first": ["layout.declutter", "layout.forceFollowing"],
+  "Ad contract observations": ["privacy.adProtection", "core.selectorHealth"]
+};
+
+export function getSelectorFeatureIds(feature: string): readonly string[] {
+  const known = SELECTOR_FEATURE_IDS[feature];
+  if (known) return known;
+  const slug = feature.toLowerCase().replace(/[^a-z0-9]+/g, ".").replace(/^\.|\.$/g, "");
+  return [`selector.${slug || "unknown"}`];
 }
 
 

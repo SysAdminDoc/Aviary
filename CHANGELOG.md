@@ -27,6 +27,9 @@
   than blocking Aviary startup or deleting them.
 
 ### Fixed
+- Selector health now reports required surface breaks beside the page. A missing post action bar
+  marks the launcher without blocking X, opens Trust to the affected surface and owning feature,
+  clears when the surface returns, and offers a content-free build and route report for issues.
 - The local library is no longer treated as disposable browser cache. Both extension packages
   declare `unlimitedStorage`, and the background asks the browser once per session not to evict
   Aviary's database. Trust now says whether the library is kept or best effort, beside the usage

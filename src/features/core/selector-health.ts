@@ -5,6 +5,8 @@ import {
 } from "../../platform/selectors.ts";
 import type { StorageGateway } from "../../platform/storage.ts";
 import { observeAdMarkers } from "../privacy/ad-protection.ts";
+import { ft } from "./feature-i18n.ts";
+import { removeFeatureToast, showFeatureToast } from "./feature-toast.ts";
 import {
   AD_OBSERVATIONS_KEY,
   AdObservationStore,
@@ -18,6 +20,7 @@ const MIN_LOG_INTERVAL_MS = 5000;
 let lastLogAt = 0;
 let lastHealthSignature = "";
 let lastCriticalSignature = "";
+let lastNoticeSignature = "";
 let previousState: "healthy" | "degraded" | null = null;
 let currentSnapshot: SelectorHealthSnapshot = emptySnapshot();
 let adObservations: AdObservationStore | undefined;
@@ -69,6 +72,20 @@ export const selectorHealthFeature: FeatureModule = {
     }
 
     await updateSnapshot(ctx);
+    ctx.refreshControlCenter?.();
+    const missingRequired = currentSnapshot.missingRequired;
+    const noticeSignature = missingRequired.length > 0
+      ? [ctx.route.surface, ...missingRequired, ...currentSnapshot.affectedFeatures].join(":")
+      : "";
+    if (noticeSignature !== lastNoticeSignature) {
+      lastNoticeSignature = noticeSignature;
+      if (noticeSignature) {
+        showFeatureToast(
+          `${ft(ctx, "Selector health")}: ${ft(ctx, "Missing required surfaces")}`,
+          { tone: "error", ctx }
+        );
+      }
+    }
     const missingCritical = currentSnapshot.surfaces.filter(
       (item) => item.relevance === "required" && !item.healthy && CRITICAL_SURFACES.has(item.surface)
     );
@@ -101,6 +118,7 @@ export const selectorHealthFeature: FeatureModule = {
 
   destroy(ctx) {
     resetState();
+    removeFeatureToast();
     ctx.diagnostics.info("Selector health destroyed");
   },
 
@@ -164,7 +182,11 @@ export async function clearAdObservations(storage?: StorageGateway): Promise<voi
 }
 
 async function updateSnapshot(ctx: FeatureContext): Promise<void> {
-  const surfaces = getSelectorHealthForRoute(document, ctx.route.surface);
+  const surfaces = getSelectorHealthForRoute(document, ctx.route.surface).map((item) =>
+    item.relevance === "required" && !selectorEnabledForContext(ctx, item)
+      ? { ...item, relevance: "inapplicable" as const }
+      : item
+  );
   const required = surfaces.filter((item) => item.relevance === "required");
   const optional = surfaces.filter((item) => item.relevance === "optional");
   const missingRequired = required.filter((item) => !item.healthy).map((item) => item.surface);
@@ -236,9 +258,30 @@ function resetState(): void {
   lastLogAt = 0;
   lastHealthSignature = "";
   lastCriticalSignature = "";
+  lastNoticeSignature = "";
   previousState = null;
   adObservations = undefined;
   currentSnapshot = emptySnapshot();
+}
+
+export function selectorHealthHasBreak(
+  snapshot: Pick<SelectorHealthSnapshot, "enabled" | "missingRequired">
+): boolean {
+  return snapshot.enabled && snapshot.missingRequired.length > 0;
+}
+
+function selectorEnabledForContext(ctx: FeatureContext, selector: SelectorHealth): boolean {
+  if (selector.surface === "Grok") {
+    return ctx.settings.layout.hideGrok;
+  }
+  if (selector.surface === "Post actions") {
+    return Boolean(
+      ctx.settings.media.buttons ||
+      ctx.settings.ai.commandMenu ||
+      (Array.isArray(ctx.settings.composer.snippets) && ctx.settings.composer.snippets.length > 0)
+    );
+  }
+  return true;
 }
 
 function emptySnapshot(): SelectorHealthSnapshot {

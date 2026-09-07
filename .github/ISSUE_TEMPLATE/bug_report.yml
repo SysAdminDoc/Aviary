@@ -6,7 +6,7 @@ body:
     attributes:
       value: |
         X changes its markup frequently, so a broken feature is usually a selector that no longer
-        matches. The Control Center's **Trust** section reports selector health and saved warnings —
+        matches. The Control Center's **Trust** section reports selector health and saved warnings.
         **Copy diagnostics** there gathers everything below except the description.
 
         If you do not know which feature is at fault, run **Trust → Find the feature breaking this
@@ -62,6 +62,12 @@ body:
       label: Diagnostics
       description: Output of Trust → Copy diagnostics. Content-free by design; check before pasting.
       render: json
+  - type: textarea
+    id: selector-report
+    attributes:
+      label: Selector break report
+      description: If Trust shows a degraded selector, paste Trust → Copy diagnostics from that row. It contains only the build, route surface, missing surfaces, and feature IDs.
+      render: text
   - type: checkboxes
     id: isolated
     attributes:

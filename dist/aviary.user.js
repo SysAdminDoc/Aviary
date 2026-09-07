@@ -8002,6 +8002,26 @@ ${body}
     });
     launcherObserver.observe(document.documentElement, { childList: true, subtree: true });
     const launcherForFocus = () => navLauncherHost.isConnected ? navLauncher : launcher;
+    const selectorHealthDegraded = () => {
+      try {
+        const health = options.getSelectorHealth?.();
+        return Boolean(health?.enabled && health.missingRequired.length > 0);
+      } catch {
+        return false;
+      }
+    };
+    const syncSelectorHealthIndicator = () => {
+      const degraded = selectorHealthDegraded();
+      const state2 = degraded ? "degraded" : "healthy";
+      host.dataset.avSelectorHealth = state2;
+      navLauncherHost.dataset.avSelectorHealth = state2;
+      launcher.dataset.avSelectorHealth = state2;
+      navLauncher.dataset.avSelectorHealth = state2;
+      const baseLabel = t("Aviary settings");
+      const label = degraded ? `${baseLabel}: ${t("Selector health")}` : baseLabel;
+      launcher.setAttribute("aria-label", label);
+      navLauncher.setAttribute("aria-label", label);
+    };
     const modalFocusables = () => Array.from(panel.querySelectorAll(FOCUSABLE_SELECTOR)).filter((node) => {
       if (node.hasAttribute("disabled") || node.getAttribute("aria-hidden") === "true") {
         return false;
@@ -8042,6 +8062,9 @@ ${body}
         return;
       }
       open = value;
+      if (open && selectorHealthDegraded()) {
+        activeSectionId = "trust";
+      }
       launcher.setAttribute("aria-expanded", String(open));
       navLauncher.setAttribute("aria-expanded", String(open));
       overlay.setAttribute("aria-hidden", String(!open));
@@ -8064,6 +8087,10 @@ ${body}
         focusTrapAttached = true;
         if (dirtyWhileBusy && !transactionDirty() && !transactionSaving) {
           dirtyWhileBusy = false;
+          render();
+        }
+        if (selectorHealthDegraded() && !transactionDirty() && !transactionSaving) {
+          activeSectionId = "trust";
           render();
         }
         panel.focus({ preventScroll: true });
@@ -8264,6 +8291,7 @@ ${body}
       host.dataset.avMotion = prefersReducedMotion(draftSettings) ? "reduce" : "full";
       navLauncherHost.dataset.avMotion = host.dataset.avMotion;
       host.dataset.avColorMode = controlCenterColorMode(draftSettings);
+      syncSelectorHealthIndicator();
       reconcileLauncherMount();
       const registry = sectionRegistry();
       if (!registry.some((entry) => entry.id === activeSectionId)) {
@@ -8778,6 +8806,19 @@ ${body}
           health.missingRequired.length > 0 ? health.missingRequired.join(", ") : "None"
         )
       ];
+      if (health.missingRequired.length > 0 && options.copySelectorBreakReport) {
+        rows.push(
+          actionRow(
+            "Copy diagnostics",
+            "Copy support diagnostics (version, route, recent log).",
+            async () => {
+              await options.copySelectorBreakReport();
+              setStatus("Diagnostics copied to clipboard.");
+            },
+            "Could not copy diagnostics."
+          )
+        );
+      }
       if (health.optionalMissing.length > 0) {
         rows.push(dataRow("Optional surfaces missing", health.optionalMissing.join(", ")));
       }
@@ -8861,11 +8902,20 @@ ${body}
       },
       refresh() {
         reconcileLauncherMount();
+        syncSelectorHealthIndicator();
         if (!open || isBusy()) {
           dirtyWhileBusy = true;
           return;
         }
         render();
+      },
+      openSelectorHealth() {
+        activeSectionId = "trust";
+        if (!open) {
+          setOpen(true);
+          return;
+        }
+        if (!isBusy()) render();
       }
     };
   }
@@ -9476,6 +9526,19 @@ ${body}
   outline-offset: 2px;
 }
 
+:host([data-av-selector-health="degraded"]) .av-nav-launcher-pill {
+  color: var(--av-danger, #f4212e);
+}
+
+:host([data-av-selector-health="degraded"]) .av-nav-launcher-pill::after {
+  content: "";
+  width: 7px;
+  height: 7px;
+  margin-inline-start: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
 :host([data-av-compact="true"]) .av-nav-launcher {
   justify-content: center;
 }
@@ -9574,6 +9637,11 @@ ${body}
   transform: translateY(-1px);
   border-color: var(--av-accent, rgb(29, 155, 240));
   background: rgb(24, 42, 54);
+}
+
+.av-launcher[data-av-selector-health="degraded"] {
+  border-color: var(--av-danger, #f4212e);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--av-danger, #f4212e) 18%, transparent), 0 12px 34px rgba(0, 0, 0, 0.42);
 }
 
 /* The forced-colors block below already lists .av-nav-item and textarea; leaving them out here
@@ -11454,7 +11522,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
         fallbackCount,
         churnRisk: entry.churnRisk,
         healthy: stableCount > 0 || fallbackCount > 0,
-        relevance: selectorRelevance(entry.surface, route),
+        relevance: selectorRelevance(entry.surface, route, root),
         matched,
         matchedSelector: matched === "stable" ? entry.stable : matched === "fallback" ? entry.fallback : null,
         feature: entry.feature
@@ -11468,7 +11536,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     "notifications",
     "search"
   ]);
-  function selectorRelevance(surface, route) {
+  function selectorRelevance(surface, route, root) {
     const entry = SURFACE_SELECTORS.find((item) => item.surface === surface);
     if (entry?.requiredOn) {
       if (entry.requiredOn.includes(route)) return "required";
@@ -11483,6 +11551,9 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     if (surface === "Grok") {
       return route === "grok" ? "required" : "optional";
     }
+    if (surface === "Post actions") {
+      return CONTENT_SURFACES.has(route) && countMatches(root, 'article[data-testid="tweet"]') > 0 ? "required" : "inapplicable";
+    }
     if (["Tweet", "Tweet text", "Composer", "Media photo", "Video"].includes(surface)) {
       return CONTENT_SURFACES.has(route) ? "optional" : "inapplicable";
     }
@@ -11490,6 +11561,38 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       return route === "settings" ? "inapplicable" : "optional";
     }
     return "optional";
+  }
+  var SELECTOR_FEATURE_IDS = {
+    "Boot and timeline scope": ["core.boot"],
+    "Layout declutter": ["layout.declutter"],
+    "Filtering and export": ["filtering.engine", "export.core"],
+    "Composer and crosspost": ["composer.snippets", "integrations.crosspost"],
+    "Media controls": ["media.buttons", "media.presentation"],
+    "Grok declutter": ["layout.declutter"],
+    "Filtering, hidden posts, thread recommendations": [
+      "filtering.engine",
+      "filtering.hiddenPosts",
+      "layout.threadRecommendations"
+    ],
+    "Media buttons, AI menu, composer snippets": [
+      "media.buttons",
+      "ai.commandMenu",
+      "composer.snippets"
+    ],
+    "Hide engagement counts": ["appearance.theme"],
+    "Account notes, colours, handle rules": ["library.userNotes", "filtering.engine"],
+    "Video playback preferences": ["performance.videoPlayback", "performance.pauseOffscreenVideo"],
+    "Hide trends": ["layout.declutter"],
+    "Sidebar declutter": ["layout.declutter"],
+    "Hide follow suggestions": ["layout.declutter"],
+    "Navigation declutter, open Following first": ["layout.declutter", "layout.forceFollowing"],
+    "Ad contract observations": ["privacy.adProtection", "core.selectorHealth"]
+  };
+  function getSelectorFeatureIds(feature) {
+    const known = SELECTOR_FEATURE_IDS[feature];
+    if (known) return known;
+    const slug = feature.toLowerCase().replace(/[^a-z0-9]+/g, ".").replace(/^\.|\.$/g, "");
+    return [`selector.${slug || "unknown"}`];
   }
   function countMatches(root, selector) {
     try {
@@ -11499,6 +11602,154 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       return 0;
     }
   }
+
+  // src/features/core/feature-i18n.ts
+  function ft(ctx, english) {
+    return translateText(ctx.settings.i18n.locale, english);
+  }
+
+  // src/features/core/feature-toast.ts
+  var TOAST_HOST_ID = "av-feature-toast";
+  var DEFAULT_TIMEOUT_MS = 4e3;
+  var dismissTimer;
+  function showFeatureToast(message, options = {}) {
+    if (typeof document === "undefined") {
+      return;
+    }
+    const shadow = ensureHost();
+    const host = document.getElementById(TOAST_HOST_ID);
+    if (host && options.ctx) {
+      host.dataset.avMotion = prefersReducedMotion2(options.ctx) ? "reduce" : "full";
+    }
+    const card = shadow.querySelector(".av-ftoast");
+    const text = shadow.querySelector(".av-ftoast-text");
+    if (!(card instanceof HTMLElement) || !(text instanceof HTMLElement)) {
+      return;
+    }
+    text.textContent = message;
+    card.dataset.tone = options.tone ?? "info";
+    card.classList.add("is-open");
+    try {
+      const nativeCard = card;
+      if (!card.matches(":popover-open")) {
+        nativeCard.showPopover?.();
+      }
+    } catch {
+    }
+    if (dismissTimer !== void 0) {
+      clearTimeout(dismissTimer);
+    }
+    dismissTimer = setTimeout(() => {
+      card.classList.remove("is-open");
+      try {
+        card.hidePopover?.();
+      } catch {
+      }
+      dismissTimer = void 0;
+    }, options.timeoutMs ?? DEFAULT_TIMEOUT_MS);
+  }
+  function removeFeatureToast() {
+    if (dismissTimer !== void 0) {
+      clearTimeout(dismissTimer);
+      dismissTimer = void 0;
+    }
+    const host = document.getElementById(TOAST_HOST_ID);
+    const card = host?.shadowRoot?.querySelector(".av-ftoast");
+    if (card) {
+      card.classList.remove("is-open");
+      try {
+        card.hidePopover?.();
+      } catch {
+      }
+    }
+    host?.remove();
+  }
+  function prefersReducedMotion2(ctx) {
+    if (ctx.settings.accessibility.reduceMotion === "always") return true;
+    if (ctx.settings.accessibility.reduceMotion === "never") return false;
+    return globalThis.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+  }
+  function ensureHost() {
+    const existing = document.getElementById(TOAST_HOST_ID);
+    if (existing?.shadowRoot) {
+      existing.dir = document.documentElement.dir || "ltr";
+      return existing.shadowRoot;
+    }
+    const host = document.createElement("div");
+    host.id = TOAST_HOST_ID;
+    host.dataset.avOwned = "true";
+    host.dir = document.documentElement.dir || "ltr";
+    document.documentElement.append(host);
+    const shadow = host.attachShadow({ mode: "open" });
+    const style = document.createElement("style");
+    style.textContent = TOAST_CSS;
+    const card = document.createElement("div");
+    card.className = "av-ftoast";
+    card.setAttribute("popover", "manual");
+    card.setAttribute("role", "status");
+    card.setAttribute("aria-live", "polite");
+    const text = document.createElement("span");
+    text.className = "av-ftoast-text";
+    card.append(text);
+    shadow.append(style, card);
+    return shadow;
+  }
+  var TOAST_CSS = `
+.av-ftoast {
+  position: fixed;
+  inset: auto;
+  inset-inline-end: 16px;
+  bottom: 132px;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  max-width: 340px;
+  padding: 10px 12px;
+  border: 1px solid var(--av-border, rgb(47, 51, 54));
+  border-inline-start: 3px solid var(--av-accent, rgb(29, 155, 240));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--av-surface-raised, rgb(22, 24, 28)) 97%, black);
+  color: var(--av-text, rgb(239, 243, 244));
+  font-weight: 500;
+  font-size: 13px;
+  line-height: 1.35;
+  font-family: TwitterChirp, Inter, ui-sans-serif, system-ui, sans-serif;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(8px);
+  transition: opacity 140ms ease, transform 140ms ease;
+}
+
+/* Tone is carried by the accent rule AND the wording, never by colour alone. */
+.av-ftoast[data-tone="error"] {
+  border-inline-start-color: rgb(220, 110, 110);
+}
+
+.av-ftoast.is-open {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.av-ftoast:popover-open {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .av-ftoast {
+    transition: none;
+    transform: none;
+  }
+}
+
+:host([data-av-motion="reduce"]) .av-ftoast {
+  transition: none;
+  transform: none;
+}
+`;
 
   // src/features/core/ad-observations.ts
   var AD_OBSERVATIONS_KEY = "aviary.adObservations.v1";
@@ -11654,6 +11905,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
   var lastLogAt = 0;
   var lastHealthSignature = "";
   var lastCriticalSignature = "";
+  var lastNoticeSignature = "";
   var previousState = null;
   var currentSnapshot = emptySnapshot();
   var adObservations;
@@ -11677,6 +11929,18 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
         return;
       }
       await updateSnapshot(ctx);
+      ctx.refreshControlCenter?.();
+      const missingRequired = currentSnapshot.missingRequired;
+      const noticeSignature = missingRequired.length > 0 ? [ctx.route.surface, ...missingRequired, ...currentSnapshot.affectedFeatures].join(":") : "";
+      if (noticeSignature !== lastNoticeSignature) {
+        lastNoticeSignature = noticeSignature;
+        if (noticeSignature) {
+          showFeatureToast(
+            `${ft(ctx, "Selector health")}: ${ft(ctx, "Missing required surfaces")}`,
+            { tone: "error", ctx }
+          );
+        }
+      }
       const missingCritical = currentSnapshot.surfaces.filter(
         (item) => item.relevance === "required" && !item.healthy && CRITICAL_SURFACES.has(item.surface)
       );
@@ -11707,6 +11971,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     },
     destroy(ctx) {
       resetState();
+      removeFeatureToast();
       ctx.diagnostics.info("Selector health destroyed");
     },
     getStatus() {
@@ -11759,7 +12024,9 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     };
   }
   async function updateSnapshot(ctx) {
-    const surfaces = getSelectorHealthForRoute(document, ctx.route.surface);
+    const surfaces = getSelectorHealthForRoute(document, ctx.route.surface).map(
+      (item) => item.relevance === "required" && !selectorEnabledForContext(ctx, item) ? { ...item, relevance: "inapplicable" } : item
+    );
     const required = surfaces.filter((item) => item.relevance === "required");
     const optional = surfaces.filter((item) => item.relevance === "optional");
     const missingRequired = required.filter((item) => !item.healthy).map((item) => item.surface);
@@ -11824,9 +12091,24 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     lastLogAt = 0;
     lastHealthSignature = "";
     lastCriticalSignature = "";
+    lastNoticeSignature = "";
     previousState = null;
     adObservations = void 0;
     currentSnapshot = emptySnapshot();
+  }
+  function selectorHealthHasBreak(snapshot) {
+    return snapshot.enabled && snapshot.missingRequired.length > 0;
+  }
+  function selectorEnabledForContext(ctx, selector) {
+    if (selector.surface === "Grok") {
+      return ctx.settings.layout.hideGrok;
+    }
+    if (selector.surface === "Post actions") {
+      return Boolean(
+        ctx.settings.media.buttons || ctx.settings.ai.commandMenu || Array.isArray(ctx.settings.composer.snippets) && ctx.settings.composer.snippets.length > 0
+      );
+    }
+    return true;
   }
   function emptySnapshot() {
     return {
@@ -14944,154 +15226,6 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     anchor.click();
     anchor.remove();
   }
-
-  // src/features/core/feature-i18n.ts
-  function ft(ctx, english) {
-    return translateText(ctx.settings.i18n.locale, english);
-  }
-
-  // src/features/core/feature-toast.ts
-  var TOAST_HOST_ID = "av-feature-toast";
-  var DEFAULT_TIMEOUT_MS = 4e3;
-  var dismissTimer;
-  function showFeatureToast(message, options = {}) {
-    if (typeof document === "undefined") {
-      return;
-    }
-    const shadow = ensureHost();
-    const host = document.getElementById(TOAST_HOST_ID);
-    if (host && options.ctx) {
-      host.dataset.avMotion = prefersReducedMotion2(options.ctx) ? "reduce" : "full";
-    }
-    const card = shadow.querySelector(".av-ftoast");
-    const text = shadow.querySelector(".av-ftoast-text");
-    if (!(card instanceof HTMLElement) || !(text instanceof HTMLElement)) {
-      return;
-    }
-    text.textContent = message;
-    card.dataset.tone = options.tone ?? "info";
-    card.classList.add("is-open");
-    try {
-      const nativeCard = card;
-      if (!card.matches(":popover-open")) {
-        nativeCard.showPopover?.();
-      }
-    } catch {
-    }
-    if (dismissTimer !== void 0) {
-      clearTimeout(dismissTimer);
-    }
-    dismissTimer = setTimeout(() => {
-      card.classList.remove("is-open");
-      try {
-        card.hidePopover?.();
-      } catch {
-      }
-      dismissTimer = void 0;
-    }, options.timeoutMs ?? DEFAULT_TIMEOUT_MS);
-  }
-  function removeFeatureToast() {
-    if (dismissTimer !== void 0) {
-      clearTimeout(dismissTimer);
-      dismissTimer = void 0;
-    }
-    const host = document.getElementById(TOAST_HOST_ID);
-    const card = host?.shadowRoot?.querySelector(".av-ftoast");
-    if (card) {
-      card.classList.remove("is-open");
-      try {
-        card.hidePopover?.();
-      } catch {
-      }
-    }
-    host?.remove();
-  }
-  function prefersReducedMotion2(ctx) {
-    if (ctx.settings.accessibility.reduceMotion === "always") return true;
-    if (ctx.settings.accessibility.reduceMotion === "never") return false;
-    return globalThis.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
-  }
-  function ensureHost() {
-    const existing = document.getElementById(TOAST_HOST_ID);
-    if (existing?.shadowRoot) {
-      existing.dir = document.documentElement.dir || "ltr";
-      return existing.shadowRoot;
-    }
-    const host = document.createElement("div");
-    host.id = TOAST_HOST_ID;
-    host.dataset.avOwned = "true";
-    host.dir = document.documentElement.dir || "ltr";
-    document.documentElement.append(host);
-    const shadow = host.attachShadow({ mode: "open" });
-    const style = document.createElement("style");
-    style.textContent = TOAST_CSS;
-    const card = document.createElement("div");
-    card.className = "av-ftoast";
-    card.setAttribute("popover", "manual");
-    card.setAttribute("role", "status");
-    card.setAttribute("aria-live", "polite");
-    const text = document.createElement("span");
-    text.className = "av-ftoast-text";
-    card.append(text);
-    shadow.append(style, card);
-    return shadow;
-  }
-  var TOAST_CSS = `
-.av-ftoast {
-  position: fixed;
-  inset: auto;
-  inset-inline-end: 16px;
-  bottom: 132px;
-  margin: 0;
-  display: flex;
-  align-items: center;
-  max-width: 340px;
-  padding: 10px 12px;
-  border: 1px solid var(--av-border, rgb(47, 51, 54));
-  border-inline-start: 3px solid var(--av-accent, rgb(29, 155, 240));
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--av-surface-raised, rgb(22, 24, 28)) 97%, black);
-  color: var(--av-text, rgb(239, 243, 244));
-  font-weight: 500;
-  font-size: 13px;
-  line-height: 1.35;
-  font-family: TwitterChirp, Inter, ui-sans-serif, system-ui, sans-serif;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
-  opacity: 0;
-  pointer-events: none;
-  transform: translateY(8px);
-  transition: opacity 140ms ease, transform 140ms ease;
-}
-
-/* Tone is carried by the accent rule AND the wording, never by colour alone. */
-.av-ftoast[data-tone="error"] {
-  border-inline-start-color: rgb(220, 110, 110);
-}
-
-.av-ftoast.is-open {
-  opacity: 1;
-  pointer-events: auto;
-  transform: translateY(0);
-}
-
-.av-ftoast:popover-open {
-  opacity: 1;
-  pointer-events: auto;
-  transform: translateY(0);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .av-ftoast {
-    transition: none;
-    transform: none;
-  }
-}
-
-:host([data-av-motion="reduce"]) .av-ftoast {
-  transition: none;
-  transform: none;
-}
-`;
 
   // src/extension/media-context-menu.ts
   var MEDIA_CONTEXT_DOWNLOAD_MESSAGE = "AVIARY_DOWNLOAD_CONTEXT_MEDIA";
@@ -31406,6 +31540,14 @@ ${COLOR_CSS}`;
           await writeClipboard(payload);
           void ctx.auditLog.record("diagnostics.copy");
         },
+        async copySelectorBreakReport() {
+          const health = ctx.getSelectorHealth?.() ?? getSelectorHealthSnapshot();
+          if (!selectorHealthHasBreak(health)) {
+            throw new Error("No selector break is active");
+          }
+          await writeClipboard(buildSelectorBreakReport(ctx, health));
+          void ctx.auditLog.record("diagnostics.selectorBreak.copy");
+        },
         async resetSettings() {
           const live = ctx.settings;
           for (const key of Object.keys(live)) {
@@ -32239,6 +32381,7 @@ ${COLOR_CSS}`;
           downloadBlob(bytes, reportFilename(), "text/markdown");
         }
       });
+      ctx.refreshControlCenter = () => controlCenter?.refresh();
       ctx.diagnostics.info("Control Center mounted");
     },
     apply() {
@@ -32249,6 +32392,7 @@ ${COLOR_CSS}`;
       closeCatchUpDigest();
       controlCenter?.destroy();
       controlCenter = void 0;
+      delete ctx.refreshControlCenter;
       cleanupQueue = void 0;
       semanticIndex = void 0;
       retentionPolicy = void 0;
@@ -32534,6 +32678,21 @@ ${COLOR_CSS}`;
     };
     return JSON.stringify(payload, null, 2);
   }
+  function buildSelectorBreakReport(ctx, health) {
+    const missing = health.surfaces.filter(
+      (surface) => surface.relevance === "required" && !surface.healthy
+    );
+    const featureIds = [...new Set(missing.flatMap((surface) => getSelectorFeatureIds(surface.feature)))];
+    return [
+      "Aviary selector break report",
+      `Build: ${AVIARY_VERSION}`,
+      `Route: ${ctx.route.surface}`,
+      "Missing surfaces:",
+      ...missing.map((surface) => `- ${surface.surface} (${surface.feature})`),
+      "Feature IDs:",
+      ...featureIds.map((featureId) => `- ${featureId}`)
+    ].join("\n");
+  }
   async function writeClipboard(payload) {
     const clipboard = globalThis.navigator?.clipboard;
     if (clipboard?.writeText) {
@@ -32580,6 +32739,18 @@ ${COLOR_CSS}`;
       button:focus-visible { outline: 2px solid #1d9bf0; outline-offset: 3px; }
       button[aria-busy="true"] { cursor: progress; opacity: 0.72; }
       button[data-state="error"] { border-color: #f4212e; color: #ff8e96; }
+      button[data-av-selector-health="degraded"] {
+        border-color: #f4212e;
+        box-shadow: 0 0 0 3px rgba(244, 33, 46, 0.14);
+      }
+      button[data-av-selector-health="degraded"]::after {
+        content: "";
+        width: 7px;
+        height: 7px;
+        margin-inline-start: 8px;
+        border-radius: 50%;
+        background: #f4212e;
+      }
     `;
       const button3 = document.createElement("button");
       button3.type = "button";
@@ -32588,6 +32759,20 @@ ${COLOR_CSS}`;
       button3.setAttribute("aria-label", "Open Aviary controls");
       button3.setAttribute("aria-haspopup", "dialog");
       button3.setAttribute("aria-expanded", "false");
+      const syncSelectorHealth = () => {
+        const degraded = selectorHealthHasBreak(ctx.getSelectorHealth?.() ?? {
+          enabled: false,
+          missingRequired: []
+        });
+        const state3 = degraded ? "degraded" : "healthy";
+        host.dataset.avSelectorHealth = state3;
+        button3.dataset.avSelectorHealth = state3;
+        const baseLabel = ft(ctx, "Aviary settings");
+        button3.setAttribute(
+          "aria-label",
+          degraded ? `${baseLabel}: ${ft(ctx, "Selector health")}` : ft(ctx, "Aviary settings")
+        );
+      };
       let loading;
       const setError = (error) => {
         button3.dataset.state = "error";
@@ -32610,7 +32795,10 @@ ${COLOR_CSS}`;
         button3.textContent = "Loading Aviary\u2026";
         button3.setAttribute("aria-label", "Loading Aviary controls");
         host.dataset.avLoadState = "loading";
-        loading = Promise.resolve(ctx.loadControlCenter?.()).then(
+        loading = Promise.resolve(ctx.loadControlCenter?.({ focusSelectorHealth: selectorHealthHasBreak(ctx.getSelectorHealth?.() ?? {
+          enabled: false,
+          missingRequired: []
+        }) })).then(
           () => void 0,
           (error) => {
             setError(error);
@@ -32635,7 +32823,25 @@ ${COLOR_CSS}`;
       state2.observer = observer3;
       observer3.observe(document.documentElement, { childList: true, subtree: true });
       mount();
+      syncSelectorHealth();
       launcherState.set(host, state2);
+    },
+    apply(ctx) {
+      const host = document.getElementById(HOST_ID);
+      const button3 = host?.shadowRoot?.querySelector(".av-launcher");
+      if (!host || !button3) return;
+      const degraded = selectorHealthHasBreak(ctx.getSelectorHealth?.() ?? {
+        enabled: false,
+        missingRequired: []
+      });
+      const state2 = degraded ? "degraded" : "healthy";
+      host.dataset.avSelectorHealth = state2;
+      button3.dataset.avSelectorHealth = state2;
+      const baseLabel = ft(ctx, "Aviary settings");
+      button3.setAttribute(
+        "aria-label",
+        degraded ? `${baseLabel}: ${ft(ctx, "Selector health")}` : baseLabel
+      );
     },
     destroy() {
       const host = document.getElementById(HOST_ID);
@@ -39304,7 +39510,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       }
       return panelModule;
     };
-    const openControlCenter = async (ctx) => {
+    const openControlCenter = async (ctx, options2 = {}) => {
       const panel = await loadPanelFeatures(ctx);
       if (!panelStarted) {
         await registry.suspend(ctx, [controlCenterLauncherFeature.id]);
@@ -39312,7 +39518,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
         await panel.startControlCenter(ctx);
         panelStarted = true;
       }
-      panel.openControlCenter();
+      panel.openControlCenter(options2);
     };
     const policy = createTrustedHtmlPolicy();
     const auditLog = new AuditLog(
@@ -39409,7 +39615,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       }
     };
     if (EXTENSION_LAZY) {
-      context.loadControlCenter = () => openControlCenter(context);
+      context.loadControlCenter = (options2) => openControlCenter(context, options2);
     }
     context.getPageHookCounters = pageHookCounters;
     context.getAdProtectionCounters = adProtectionCounters;

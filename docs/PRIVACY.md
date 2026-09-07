@@ -122,7 +122,9 @@ Selector health and other transient DOM diagnostics are in memory unless an acti
 written to the audit log. Persisted page diagnostics contain only stable message ids, severity,
 ISO time, and detail-key names. The background ring contains only operation codes, severity, and
 time. **Copy diagnostics** in the Control Center or Options page merges those redacted records and
-never copies URLs, filenames, provider text, exception strings, or credentials. Imported media
+never copies URLs, filenames, provider text, exception strings, or credentials. A selector-break
+report is narrower still: it contains only build, route surface, missing selector names and feature
+ids. Imported media
 bytes are not retained after a completed archive import; resumable import state may retain the
 local source while the job is unfinished.
 

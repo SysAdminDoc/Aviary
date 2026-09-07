@@ -133,7 +133,9 @@ export interface SelectorHealthStatus {
   affectedFeatures: string[];
   surfaces: Array<{
     surface: string;
+    feature: string;
     relevance: "required" | "optional" | "inapplicable";
+    healthy: boolean;
     matched: "stable" | "fallback" | "missing";
     matchedSelector: string | null;
   }>;
@@ -182,6 +184,7 @@ export interface ControlCenterOptions {
   runExport?: () => Promise<ExportResultSummary>;
   rebuildThreads?: () => Promise<CapturedThreadResultSummary>;
   copyDiagnostics?: () => Promise<void>;
+  copySelectorBreakReport?: () => Promise<void>;
   exportSettings?: () => Promise<void>;
   exportLibraryBackup?: (
     options?: { includeCredentials?: boolean }
@@ -545,6 +548,7 @@ const SECTION_GROUP_BREAKS: Record<string, Array<{ before: string; title: string
 export interface ControlCenterHandle {
   destroy(): void;
   refresh(): void;
+  openSelectorHealth(): void;
 }
 
 export function mountControlCenter(options: ControlCenterOptions): ControlCenterHandle {
@@ -763,6 +767,28 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
   const launcherForFocus = (): HTMLButtonElement =>
     navLauncherHost.isConnected ? navLauncher : launcher;
 
+  const selectorHealthDegraded = (): boolean => {
+    try {
+      const health = options.getSelectorHealth?.();
+      return Boolean(health?.enabled && health.missingRequired.length > 0);
+    } catch {
+      return false;
+    }
+  };
+
+  const syncSelectorHealthIndicator = (): void => {
+    const degraded = selectorHealthDegraded();
+    const state = degraded ? "degraded" : "healthy";
+    host.dataset.avSelectorHealth = state;
+    navLauncherHost.dataset.avSelectorHealth = state;
+    launcher.dataset.avSelectorHealth = state;
+    navLauncher.dataset.avSelectorHealth = state;
+    const baseLabel = t("Aviary settings");
+    const label = degraded ? `${baseLabel}: ${t("Selector health")}` : baseLabel;
+    launcher.setAttribute("aria-label", label);
+    navLauncher.setAttribute("aria-label", label);
+  };
+
   const modalFocusables = (): HTMLElement[] =>
     Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter((node) => {
       if (node.hasAttribute("disabled") || node.getAttribute("aria-hidden") === "true") {
@@ -815,6 +841,9 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       return;
     }
     open = value;
+    if (open && selectorHealthDegraded()) {
+      activeSectionId = "trust";
+    }
     launcher.setAttribute("aria-expanded", String(open));
     navLauncher.setAttribute("aria-expanded", String(open));
     overlay.setAttribute("aria-hidden", String(!open));
@@ -846,6 +875,10 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       // Repaint anything that went stale while the panel was closed.
       if (dirtyWhileBusy && !transactionDirty() && !transactionSaving) {
         dirtyWhileBusy = false;
+        render();
+      }
+      if (selectorHealthDegraded() && !transactionDirty() && !transactionSaving) {
+        activeSectionId = "trust";
         render();
       }
       panel.focus({ preventScroll: true });
@@ -1120,6 +1153,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     host.dataset.avMotion = prefersReducedMotion(draftSettings) ? "reduce" : "full";
     navLauncherHost.dataset.avMotion = host.dataset.avMotion;
     host.dataset.avColorMode = controlCenterColorMode(draftSettings);
+    syncSelectorHealthIndicator();
     reconcileLauncherMount();
     const registry = sectionRegistry();
     if (!registry.some((entry) => entry.id === activeSectionId)) {
@@ -1791,6 +1825,19 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
         health.missingRequired.length > 0 ? health.missingRequired.join(", ") : "None"
       )
     ];
+    if (health.missingRequired.length > 0 && options.copySelectorBreakReport) {
+      rows.push(
+        actionRow(
+          "Copy diagnostics",
+          "Copy support diagnostics (version, route, recent log).",
+          async () => {
+            await options.copySelectorBreakReport!();
+            setStatus("Diagnostics copied to clipboard.");
+          },
+          "Could not copy diagnostics."
+        )
+      );
+    }
     if (health.optionalMissing.length > 0) {
       rows.push(dataRow("Optional surfaces missing", health.optionalMissing.join(", ")));
     }
@@ -1880,11 +1927,20 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     },
     refresh() {
       reconcileLauncherMount();
+      syncSelectorHealthIndicator();
       if (!open || isBusy()) {
         dirtyWhileBusy = true;
         return;
       }
       render();
+    },
+    openSelectorHealth() {
+      activeSectionId = "trust";
+      if (!open) {
+        setOpen(true);
+        return;
+      }
+      if (!isBusy()) render();
     }
   };
 }
@@ -2679,6 +2735,19 @@ const NAV_LAUNCHER_CSS = `
   outline-offset: 2px;
 }
 
+:host([data-av-selector-health="degraded"]) .av-nav-launcher-pill {
+  color: var(--av-danger, #f4212e);
+}
+
+:host([data-av-selector-health="degraded"]) .av-nav-launcher-pill::after {
+  content: "";
+  width: 7px;
+  height: 7px;
+  margin-inline-start: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
 :host([data-av-compact="true"]) .av-nav-launcher {
   justify-content: center;
 }
@@ -2778,6 +2847,11 @@ const CONTROL_CENTER_CSS = `
   transform: translateY(-1px);
   border-color: var(--av-accent, rgb(29, 155, 240));
   background: rgb(24, 42, 54);
+}
+
+.av-launcher[data-av-selector-health="degraded"] {
+  border-color: var(--av-danger, #f4212e);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--av-danger, #f4212e) 18%, transparent), 0 12px 34px rgba(0, 0, 0, 0.42);
 }
 
 /* The forced-colors block below already lists .av-nav-item and textarea; leaving them out here

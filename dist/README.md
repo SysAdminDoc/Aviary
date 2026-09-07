@@ -82,6 +82,11 @@ dependencies between controls. Changes sit in a page draft until you hit Save, s
 page never reaches the timeline. Revert puts the saved values back, and navigating away while a
 draft is open is guarded. It's verified at 1440x900 with a 1920x1080 wide check.
 
+Trust watches the surfaces each route needs. If X renames a post action bar or another required
+anchor, the launcher shows a small warning, opens the affected list, and lets you copy a report with
+only the build, route surface, missing anchors and owning feature ids. The warning clears as soon as
+the surface returns.
+
 Changed your mind about all of it? **Trust → Reset everything to plain X** returns preferences to
 the ad-free baseline. Saved posts, notes, bookmarks and download history are kept.
 

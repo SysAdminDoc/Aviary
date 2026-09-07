@@ -39,6 +39,7 @@ export type AuditAction =
   | "semantic.index"
   | "snippet.insert"
   | "diagnostics.copy"
+  | "diagnostics.selectorBreak.copy"
   | "diagnostics.clear"
   | "bisect.start"
   | "bisect.result"
