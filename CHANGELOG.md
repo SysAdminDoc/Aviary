@@ -553,7 +553,7 @@
   resources, and an exact page list. The panel shows the estimated uncompressed storage cost and
   links directly to replayweb.page.
 
-- **WACZ packages can carry a local proof of continuity.** The opt-in Signed WACZ action creates an
+- **WACZ packages can carry a local proof of continuity.** The opt-in Aviary-only WACZ proof action creates an
   anonymous ECDSA P-384 identity on first use, signs the exact SHA-256 datapackage hash, and embeds
   the public key, signature, creation time, and Aviary version in `datapackage-digest.json`. The
   keypair can be exported separately, while ordinary unsigned WACZ downloads remain unchanged.
