@@ -219,6 +219,13 @@
 - Export records now carry a video's poster URL, which the export used to drop entirely.
 
 ### Fixed
+- **The docs stated permissions the extension does not ask for, and omitted three it does.** The
+  privacy and install pages listed two required permissions while both manifests declared five;
+  `contextMenus`, `scripting` and `unlimitedStorage` were missing, and neither page said that
+  removing the extension deletes what it stored. Those figures, the destination and module counts,
+  and the baseline count are generated from the manifests and the panel's own metadata now, and a
+  contract test fails when any of them drifts. The logo briefs still asked for a mark for "Twitter
+  Userscript", and the Backup control still claimed it covered only the profile you have open.
 - A capture with no re-encode kept the response's `Content-Type` over the type the page observed,
   so a host that omits the header put `application/octet-stream` into the ZIP entry and the WARC
   record. A poster capture is now recorded as a still rather than as the video it replaced, says

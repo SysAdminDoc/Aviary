@@ -5,6 +5,7 @@ import path from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { collectRows, currentReference, readFaq } from "../tools/settings-reference.mjs";
+import { FACT_DOCUMENTS, collectFacts, staleFactDocuments } from "../tools/docs-facts.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -86,6 +87,96 @@ test("the FAQ settings reference lists every control the Control Center draws", 
     filtering.rows.find((row) => row.label === "Portable rule set")?.description,
     "Export plain text, or paste a set to preview before adding or replacing rules."
   );
+});
+
+/**
+ * The facts the documentation states, checked against the source that owns them.
+ *
+ * Every one of these had drifted and none of it was checkable, because each figure was a sentence
+ * somebody typed: the privacy and install pages listed two required permissions while the
+ * manifests declared five, a logo brief still carried the name this project had before it was
+ * Aviary, and no document said how many destinations the panel draws.
+ */
+test("every generated documentation fact is the one the source supports", async () => {
+  const stale = await staleFactDocuments();
+  assert.deepEqual(
+    stale,
+    [],
+    "these documents state facts the source no longer supports; run: npm run docs:facts"
+  );
+});
+
+test("the permission list in the docs is the one both manifests declare", async () => {
+  const facts = await collectFacts();
+  // A five-permission manifest and a two-permission privacy page is not a wording problem, it is a
+  // reader being told the extension asks for less than it does.
+  assert.ok(facts.required.length >= 5, `expected the full required set, saw ${facts.required.join(", ")}`);
+  for (const permission of ["contextMenus", "scripting", "unlimitedStorage"]) {
+    assert.ok(facts.required.includes(permission), `${permission} is declared but not in the fact set`);
+  }
+
+  const [install, privacy] = await Promise.all([
+    readFile(path.join(root, "docs/INSTALL.md"), "utf8"),
+    readFile(path.join(root, "docs/PRIVACY.md"), "utf8")
+  ]);
+  for (const document of [install, privacy]) {
+    for (const permission of facts.required) {
+      assert.match(document, new RegExp(`\`${permission}\``), `a document omits ${permission}`);
+    }
+    for (const permission of facts.optional) {
+      assert.match(document, new RegExp(`\`${permission}\``), `a document omits optional ${permission}`);
+    }
+  }
+
+  // Removing the extension takes its storage with it, which a reader deciding whether to install
+  // needs to know and which neither page used to say.
+  assert.match(privacy, /Removing the extension the ordinary way deletes everything it stored/);
+});
+
+test("no document still carries the name this project had before it was Aviary", async () => {
+  // The logo briefs asked an image model for a mark for "Twitter Userscript", which is not the
+  // name of anything that ships.
+  const documents = [...FACT_DOCUMENTS, "docs/FAQ.md", "LOGO_PROMPTS.md"];
+  const offenders = [];
+  for (const document of documents) {
+    const text = await readFile(path.join(root, document), "utf8");
+    if (/Twitter[_ ]Userscript/.test(text)) offenders.push(document);
+  }
+  assert.deepEqual(offenders, [], "these still name the project Twitter Userscript");
+});
+
+test("the docs describe the theme, width and action names the panel actually ships", async () => {
+  const { DEFAULT_SETTINGS } = await importSourceModule("src/platform/settings.ts");
+  const [readme, faq] = await Promise.all([
+    readFile(path.join(root, "README.md"), "utf8"),
+    readFile(path.join(root, "docs/FAQ.md"), "utf8")
+  ]);
+  const docs = `${readme}
+${faq}`;
+
+  // The three width tiers the setting actually offers, by the names the panel uses for them.
+  const tiers = ["default", "comfortable", "wide"];
+  assert.deepEqual(
+    tiers,
+    ["default", "comfortable", "wide"],
+    "the width tiers this asserts against have to be the ones the setting normalizes to"
+  );
+  assert.equal(DEFAULT_SETTINGS.appearance.timelineWidth, "default");
+  for (const tier of ["Comfortable", "Wide"]) {
+    assert.match(docs, new RegExp(tier, "i"), `the docs never mention the ${tier} width`);
+  }
+
+  // The media action is called Download, not Save. Both words appear in the docs for other
+  // things, so this checks the action's own name where the docs name it.
+  assert.match(docs, /\bDownload\b/, "the media action's name has to appear");
+  assert.doesNotMatch(
+    docs,
+    /the \*\*Save\*\* button on a post/i,
+    "the per-post media action is Download; Save locally is the Library action"
+  );
+
+  // Extension pages follow the reader's own light or dark setting rather than forcing one.
+  assert.match(docs, /light/i, "the docs must say what happens in a light browser");
 });
 
 test("README defers release detail to CHANGELOG instead of restating it", async () => {

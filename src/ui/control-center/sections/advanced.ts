@@ -1179,7 +1179,7 @@ export function buildBackupRows(ctx: PanelContext): HTMLElement[] {
     rows.push(
       ctx.actionRow(
         "Export full library backup",
-        "Downloads one versioned JSON backup of this profile's local collections. Credentials are excluded by default; restoring keeps the credentials already saved here.",
+        "Downloads one versioned JSON backup covering every profile on this machine, not only the one you have open. Credentials are excluded by default; restoring keeps the credentials already saved here.",
         async () => {
           try {
             const result = await ctx.options.exportLibraryBackup!();
