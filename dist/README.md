@@ -269,13 +269,14 @@ sha256sum dist/aviary-source-v1.47.2.zip
 fixed timestamps and sorted entries. It excludes generated output, dependencies, and image captures.
 
 ```powershell
-npm run smoke   # packaged-extension request-rule probes in Chromium and Firefox
+npm run smoke   # packaged-extension probes, including worker restart and stale-owner recovery
 npm run test:matrix  # route/locale matrix plus the 50,000-record release fault matrix
 ```
 
 Smoke needs a Chromium runner and a normal Firefox install. Every lane uses a throwaway profile,
-every provider call goes to a local stub, and each run cleans up after itself. Without those
-browsers the scripts exit with a setup message rather than a failure.
+every provider call goes to a local stub, and each run cleans up after itself. The packaged
+extension lifecycle lane fails explicitly when a browser or lifecycle control is unavailable,
+so it cannot silently fall back to a simulated store.
 
 ## Selector captures
 

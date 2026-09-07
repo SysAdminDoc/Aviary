@@ -3,9 +3,9 @@
   "product": "Aviary",
   "target": "userscript",
   "version": "1.47.2",
-  "sourceFingerprint": "sha256:3393983a66e9a0c1ba49b716d2fc3db79cb0e0b4c99a8d44cd92d8f39eada40d",
+  "sourceFingerprint": "sha256:396a8363e28937aae87707c73314a769b83a00ba4603c00c6fa88333dc2e374e",
   "artifacts": {
-    "README.md": "sha256:9bad6ca7b3e8f476efc9c5dc8073ae996ac9b0e593692ef57abaa89a0bffacf6",
+    "README.md": "sha256:4e5f0ab78c7d4e19886171840d6a72315131d33da52505a5c6fae9b9f545559f",
     "aviary.meta.js": "sha256:04ff0cd53e77f20b427f0c667556e77a42929c521302873a6aeae3c50741114d",
     "aviary.user.js": "sha256:f77638636dad1fb8c4764773374389d276393517fe2a1c071b7ebcca2cef100e"
   }

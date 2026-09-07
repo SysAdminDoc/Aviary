@@ -35,6 +35,10 @@
   than blocking Aviary startup or deleting them.
 
 ### Fixed
+- Packaged Chrome and Firefox smoke now exercise the built extension's real storage across a
+  background restart. Chrome also freezes a page holder past lease expiry and proves a newer
+  fenced write survives the stale owner's resume; missing browsers or lifecycle controls fail the
+  lane instead of falling back to a simulated store.
 - Trust now attributes serialized mutation apply work to each feature with bounded local timing
   samples, full or incremental pass counts, and maximum duration. Long Animation Frame timing is
   correlated when the browser exposes it, and unsupported browsers say so. The reset action clears

@@ -312,7 +312,7 @@ async function main() {
   if (cleanupErrors.length > 0) throw cleanupErrors[0];
 }
 
-function findFirefoxBinary() {
+export function findFirefoxBinary() {
   const candidates = [
     process.env.AVIARY_FIREFOX_BINARY,
     process.env.FIREFOX_BINARY,
@@ -392,7 +392,7 @@ function findGeckodriverBinary() {
   return null;
 }
 
-class WebDriverClient {
+export class WebDriverClient {
   constructor(baseUrl, process, sessionId, capabilities) {
     this.baseUrl = baseUrl;
     this.process = process;
@@ -402,7 +402,7 @@ class WebDriverClient {
     this.browserVersion = capabilities.browserVersion;
   }
 
-  static async start(firefoxBinary, profileRoot, proxyPort) {
+  static async start(firefoxBinary, profileRoot, proxyPort, options = {}) {
     const geckodriver = findGeckodriverBinary();
     if (!geckodriver) {
       throw new Error("geckodriver is unavailable. Install Mozilla geckodriver or set GECKODRIVER_BINARY.");
@@ -456,7 +456,7 @@ class WebDriverClient {
                 sslProxy: `127.0.0.1:${proxyPort}`
               },
               "moz:firefoxOptions": {
-                args: ["-headless"],
+                args: ["-headless", ...(options.profileDir ? ["-profile", options.profileDir] : [])],
                 prefs: firefoxPreferences()
               }
             }
@@ -590,7 +590,7 @@ export async function webdriverJson(
   }
 }
 
-async function waitForExtensionOrigin(profileDir, expectedId, timeoutMs = 15_000) {
+export async function waitForExtensionOrigin(profileDir, expectedId, timeoutMs = 15_000) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     const uuid = readExtensionUuid(profileDir, expectedId);

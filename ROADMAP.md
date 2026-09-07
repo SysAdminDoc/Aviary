@@ -148,14 +148,6 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
 
 ### P1, Next
 
-- [ ] F327, P1: Exercise real extension storage across worker termination and page freezing
-  Why: the existing browser lanes replace extension storage with a Node binding and do not exercise an installed MV3 worker or a surviving stale page owner.
-  Evidence: `tests/cross-tab-stores.test.mjs`, `tests/storage-authority-browser.test.mjs:216`; https://developer.chrome.com/docs/extensions/develop/concepts/service-workers/lifecycle; https://developer.chrome.com/docs/web-platform/page-lifecycle-api
-  Touches: packaged-extension headless harness, actual background storage messages, lock recovery tests, source-fingerprint checks
-  Acceptance: a disposable persistent Chromium profile loads the built Chrome extension and verifies its worker and actual extension-owned values; prove worker termination without a debugger keeping it alive, then resume or safely retry the interrupted transaction once; separately freeze a page holder past expiry, accept a newer owner's mutation, resume the old holder, and prove its stale commit cannot erase the new one; replay, rollback, and reacquisition are checked at acquire/renew/commit boundaries; the Firefox package gets equivalent real-storage restart tests with its actual background model, not a simulated MV3 worker; absent installation or unsupported lifecycle control is an explicit failure, never a passing model fallback.
-  Complexity: L
-  Depends: F328. Reuse the harness for F277; F335 owns userscript-manager installation.
-
 ## Research-Driven Additions (2026-09-06)
 
 ### P1, Next
