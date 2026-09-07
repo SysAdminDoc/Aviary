@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 
 import { captureAgeReport, readCaptureManifest } from "./capture-manifest.mjs";
 import { browserFloorFailures, readBrowserFloors } from "./browser-floors.mjs";
+import { fileDigest, sourceFingerprint } from "./build-fingerprint.mjs";
 import { repositoryUrl, userscriptUrls } from "./userscript-meta.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -70,6 +71,7 @@ await checkSourcePolicy();
 await checkDependencyPolicy();
 await checkReleaseMetadata();
 await checkDeliverySize();
+await checkArtifactManifests();
 
 if (failures.length > 0) {
   console.error("Preflight failed:");
@@ -616,6 +618,46 @@ async function checkDeliverySize() {
   }
   if (sizes.length > 0) {
     console.log(`Delivery size: ${sizes.join(" · ")}`);
+  }
+}
+
+async function checkArtifactManifests() {
+  const expectedSource = await sourceFingerprint(root);
+  const targets = [
+    ["extension-chrome", path.join(root, "dist", "extension-chrome")],
+    ["extension-firefox", path.join(root, "dist", "extension-firefox")],
+    ["userscript", path.join(root, "dist")]
+  ];
+
+  for (const [target, directory] of targets) {
+    const infoPath = path.join(directory, "build-info.json");
+    let info;
+    try {
+      info = JSON.parse(await readFile(infoPath, "utf8"));
+    } catch (error) {
+      failures.push(`${target}: build-info.json is missing or unreadable (${error.message})`);
+      continue;
+    }
+    if (info.format !== 1 || info.product !== "Aviary" || info.target !== target) {
+      failures.push(`${target}: build-info.json identity does not match the shipped target`);
+    }
+    if (info.version !== pkg.version) {
+      failures.push(`${target}: build-info.json version (${info.version}) != package.json (${pkg.version})`);
+    }
+    if (info.sourceFingerprint !== expectedSource) {
+      failures.push(`${target}: build-info.json source fingerprint is stale`);
+    }
+    const actual = {};
+    for (const relative of Object.keys(info.artifacts ?? {}).sort()) {
+      try {
+        actual[relative] = await fileDigest(path.join(directory, relative));
+      } catch (error) {
+        failures.push(`${target}: build artifact missing: ${relative} (${error.message})`);
+      }
+    }
+    if (JSON.stringify(actual) !== JSON.stringify(info.artifacts ?? {})) {
+      failures.push(`${target}: build artifact digest does not match build-info.json`);
+    }
   }
 }
 

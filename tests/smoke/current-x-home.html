@@ -40,6 +40,20 @@
       [data-testid="GrokDrawer"], [data-testid="grokImgGen"] { position: fixed; right: 24px; z-index: 2; width: 220px; padding: 12px; border: 1px solid #7856ff; border-radius: 12px; background: #101419; }
       [data-testid="GrokDrawer"] { bottom: 24px; }
       [data-testid="grokImgGen"] { bottom: 84px; }
+      @media (max-width: 900px) {
+        [data-testid="sidebarColumn"] { display: none; }
+        [data-testid="primaryColumn"] { flex: 1 1 auto; width: auto; max-width: none; border-left: 0; }
+      }
+      @media (max-width: 760px) {
+        nav { flex-basis: 60px; width: 60px; padding: 8px 6px; }
+        nav a { overflow: hidden; padding: 12px 8px; font-size: 0; text-align: center; }
+        nav a::before { content: "•"; font-size: 22px; line-height: 1; }
+        nav button[data-testid="SideNav_NewTweet_Button"] { width: 46px; padding: 11px 4px; font-size: 0; }
+        nav button[data-testid="SideNav_NewTweet_Button"]::before { content: "+"; font-size: 20px; }
+        [data-testid="cellInnerDiv"] > div { padding: 12px; }
+        [data-testid="toolBar"] { padding: 12px; }
+        [data-testid="tweetPhoto"], [data-testid="videoPlayer"] { height: 220px; }
+      }
     </style>
   </head>
   <body>

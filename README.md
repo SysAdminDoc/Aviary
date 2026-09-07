@@ -185,11 +185,18 @@ so instead of blaming whichever feature the halving happened to land on.
 
 ```powershell
 npm ci --ignore-scripts
-npm run verify
+npm run verify:fast       # local feedback
+npm run verify:release    # publication gate
 ```
 
-`verify` chains a TypeScript check, pinned ESLint, the full test suite, an esbuild bundle and a
-preflight gate. That gate is where the project's rules are actually enforced: manifest version has
+`verify:fast` runs the TypeScript check, pinned ESLint, full test suite, esbuild bundle, and
+preflight. `verify:release` adds the reviewed settings and injected visual suites, six-lane reflow
+coverage at 320, 768, 1280, and 1920 CSS pixels with 200 and 400 percent zoom, plus every packaged
+browser smoke lane. The release gate removes `dist/` when any step fails, so an incomplete build
+cannot be loaded or published. Each extension directory carries a source fingerprint and per-file
+digests; visual captures and smoke tests refuse a same-version bundle that does not match them.
+
+The preflight gate is where the project's rules are actually enforced: manifest version has
 to match `package.json`, `host_permissions` can't be `<all_urls>`, no bundle may contain `eval` or
 `new Function`, devDependencies must be exact-pinned, and `innerHTML` is banned outside the
 TrustedTypes helper.

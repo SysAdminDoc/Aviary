@@ -14,6 +14,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { assertCurrentExtensionBuild } from "../../tools/settings-visual-harness.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const builtExtension = path.join(root, "dist", "extension-firefox");
@@ -28,6 +29,7 @@ async function main() {
   const cleanupErrors = [];
 
   try {
+  await assertCurrentExtensionBuild(builtExtension);
   await cp(builtExtension, extensionDir, { recursive: true });
   const manifestPath = path.join(extensionDir, "manifest.json");
   const manifest = JSON.parse(await readFile(manifestPath, "utf8"));

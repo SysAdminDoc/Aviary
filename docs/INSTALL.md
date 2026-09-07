@@ -49,7 +49,7 @@ request another X endpoint.
 
 ## Chrome, Edge, or Brave (developer load)
 
-1. Run `npm run verify` (or `npm run build`). **This step is required on a fresh clone**: neither
+1. Run `npm run verify:release` (or `npm run verify:fast` while developing). **This step is required on a fresh clone**: neither
    `dist/extension-chrome/` nor the ZIP is carried in git. The document-start `content.js` is about
    0.60 MB per target; the Control Center and archive code lives in a separate panel chunk fetched
    only after its launcher is clicked. Build them, or take them from a release.
@@ -134,7 +134,7 @@ the exact X-matched panel chunk is web-accessible only where the manifest declar
 
 Build the extension, then:
 
-1. Run `npm run verify` (or `npm run build`) first, `dist/extension-firefox/` is not carried in
+1. Run `npm run verify:release` (or `npm run verify:fast` while developing) first, `dist/extension-firefox/` is not carried in
    git either.
 2. Open `about:debugging#/runtime/this-firefox`.
 3. Select **Load Temporary Add-on…**.
@@ -156,7 +156,7 @@ Temporary add-ons disappear when Firefox restarts.
   only reaches either one once that repository is publicly readable; while the repository is private
   both raw URLs answer 404 and the manager silently reports no update. Until then, reopen the newer
   `dist/aviary.user.js` to upgrade in place.
-- Extension: run `npm run verify`, then use the extension manager's reload button or reload the
+- Extension: run `npm run verify:release`, then use the extension manager's reload button or reload the
   temporary add-on. Refresh open X tabs after updating the content script.
 
 The version is visible in the userscript metadata, extension manifests, build artifacts, and the

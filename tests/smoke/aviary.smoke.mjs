@@ -10,6 +10,7 @@ import { fileURLToPath } from "node:url";
 import { existsSync } from "node:fs";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
+import { assertCurrentExtensionBuild } from "../../tools/settings-visual-harness.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const extensionDir = path.join(root, "dist", "extension-chrome");
@@ -19,6 +20,8 @@ if (!existsSync(extensionDir)) {
   console.error("Build the extension first: `npm run build`.");
   process.exit(2);
 }
+
+await assertCurrentExtensionBuild(extensionDir);
 
 let chromium;
 try {

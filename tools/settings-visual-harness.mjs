@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
+import { fileDigest, sourceFingerprint } from "./build-fingerprint.mjs";
 
 export const SETTINGS_SECTIONS = [
   "presets",
@@ -26,6 +27,15 @@ export const SETTINGS_VIEWPORTS = [
   { width: 1440, height: 900 },
   { width: 1920, height: 1080 }
 ];
+
+export const REFLOW_VIEWPORTS = [
+  { width: 320, height: 900 },
+  { width: 768, height: 900 },
+  { width: 1280, height: 900 },
+  { width: 1920, height: 1080 }
+];
+
+export const REFLOW_ZOOMS = [1, 2, 4];
 
 export const SETTINGS_HOST_THEMES = ["dark", "light"];
 
@@ -53,20 +63,39 @@ export async function assertCurrentExtensionBuild(dir = extensionDir) {
   if (!existsSync(dir)) {
     throw new Error("Build the extension first: `npm run build`.");
   }
-  const [pkg, builtManifest] = await Promise.all([
+  const [pkg, builtManifest, buildInfo] = await Promise.all([
     readFile(path.join(root, "package.json"), "utf8").then(JSON.parse),
-    readFile(path.join(dir, "manifest.json"), "utf8").then(JSON.parse)
+    readFile(path.join(dir, "manifest.json"), "utf8").then(JSON.parse),
+    readFile(path.join(dir, "build-info.json"), "utf8").then(JSON.parse).catch(() => null)
   ]);
   if (builtManifest.version !== pkg.version) {
     throw new Error(
       `The built extension is stale (${builtManifest.version ?? "unknown"}; expected ${pkg.version}). Run \`npm run build\` first.`
     );
   }
+  if (!buildInfo || buildInfo.version !== pkg.version || buildInfo.target !== path.basename(dir)) {
+    throw new Error("The built extension has no matching artifact manifest. Run `npm run build` first.");
+  }
+  const expectedSource = await sourceFingerprint(root);
+  if (buildInfo.sourceFingerprint !== expectedSource) {
+    throw new Error("The built extension source fingerprint is stale. Run `npm run build` first.");
+  }
+  for (const [relative, expectedDigest] of Object.entries(buildInfo.artifacts ?? {})) {
+    let actualDigest;
+    try {
+      actualDigest = await fileDigest(path.join(dir, relative));
+    } catch {
+      throw new Error(`The built extension artifact is missing: ${relative}. Run \`npm run build\` first.`);
+    }
+    if (actualDigest !== expectedDigest) {
+      throw new Error(`The built extension artifact is modified: ${relative}. Run \`npm run build\` first.`);
+    }
+  }
 }
 
 export async function launchSettingsVisualHarness(viewport, hostTheme = "dark") {
   await assertCurrentExtensionBuild();
-  assertDesktopViewport(viewport);
+  assertVisualViewport(viewport);
   if (!SETTINGS_HOST_THEMES.includes(hostTheme)) {
     throw new Error(`Unknown host theme: ${hostTheme}`);
   }
@@ -150,6 +179,17 @@ export async function selectSettingsSection(page, section) {
   if (!SETTINGS_SECTIONS.includes(section)) {
     throw new Error(`Unknown Control Center destination: ${section}`);
   }
+  // Opening the panel and a page-world mount can overlap on a fresh persistent profile. Wait for
+  // the rail to finish its first render before clicking so a transient empty shadow tree cannot
+  // turn a healthy screenshot lane into a flaky "section missing" failure.
+  await page.waitForFunction(
+    (id) =>
+      document.querySelector("#av-control-center")?.shadowRoot?.querySelector(
+        `[data-av-section="${id}"]`
+      ) instanceof HTMLButtonElement,
+    section,
+    { timeout: 15_000 }
+  );
   await page.evaluate((id) => {
     const button = document
       .querySelector("#av-control-center")
@@ -184,11 +224,17 @@ export async function assertControlCenterLayout(page, section, viewport) {
     }
 
     const panelRect = panel.getBoundingClientRect();
+    const navStyles = getComputedStyle(nav);
+    const contentStyles = getComputedStyle(content);
+    const scrollbarAllowance = contentStyles.scrollbarGutter.includes("stable") ? 8 : 0;
     const clippedControls = Array.from(
       shadow.querySelectorAll("button, input, select, textarea, [role='button']")
     )
       .filter((node) => node instanceof HTMLElement && node.offsetParent !== null)
       .filter((node) => {
+        if (navStyles.overflowX === "auto" || navStyles.overflowX === "scroll") {
+          if (nav.contains(node)) return false;
+        }
         const rect = node.getBoundingClientRect();
         return rect.left < panelRect.left - 1 || rect.right > panelRect.right + 1;
       })
@@ -200,8 +246,9 @@ export async function assertControlCenterLayout(page, section, viewport) {
         panelRect.top >= 0 &&
         panelRect.right <= innerWidth + 1 &&
         panelRect.bottom <= innerHeight + 1,
-      contentOverflow: content.scrollWidth - content.clientWidth,
+      contentOverflow: Math.max(0, content.scrollWidth - content.clientWidth - scrollbarAllowance),
       navOverflow: nav.scrollWidth - nav.clientWidth,
+      navScrollsHorizontally: navStyles.overflowX === "auto" || navStyles.overflowX === "scroll",
       clippedControls
     };
   });
@@ -210,7 +257,11 @@ export async function assertControlCenterLayout(page, section, viewport) {
   if (!metrics.panelInsideViewport) {
     throw new Error(`Control Center panel leaves the ${viewportLabel} viewport on ${section}`);
   }
-  if (metrics.contentOverflow > 1 || metrics.navOverflow > 1 || metrics.clippedControls.length > 0) {
+  if (
+    metrics.contentOverflow > 1
+    || (metrics.navOverflow > 1 && !metrics.navScrollsHorizontally)
+    || metrics.clippedControls.length > 0
+  ) {
     throw new Error(`Control Center horizontal clipping on ${section}: ${JSON.stringify(metrics)}`);
   }
 }
@@ -219,6 +270,52 @@ export async function assertOptionsLayout(page, viewport) {
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
   if (overflow > 1) {
     throw new Error(`Options page overflows ${viewport.width}x${viewport.height} horizontally by ${overflow}px`);
+  }
+}
+
+export async function setVisualZoom(page, zoom) {
+  if (!REFLOW_ZOOMS.includes(zoom)) {
+    throw new Error(`Unknown visual zoom: ${zoom}`);
+  }
+  const viewport = page.viewportSize();
+  if (!viewport) throw new Error("Visual zoom requires a viewport");
+  const client = await page.context().newCDPSession(page);
+  await client.send("Emulation.setDeviceMetricsOverride", {
+    width: Math.max(1, Math.floor(viewport.width / zoom)),
+    height: Math.max(1, Math.floor(viewport.height / zoom)),
+    deviceScaleFactor: 1,
+    mobile: false
+  });
+  await page.evaluate((value) => {
+    document.documentElement.dataset.avVisualZoom = String(value);
+  }, zoom);
+  await settleVisuals(page);
+}
+
+export async function assertFocusedControlVisible(page, label = "focused control") {
+  const result = await page.evaluate(() => {
+    const host = document.querySelector("#av-control-center");
+    const shadow = host?.shadowRoot;
+    const control = Array.from(
+      shadow?.querySelectorAll("button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled])") ?? []
+    ).find((candidate) => {
+      if (!(candidate instanceof HTMLElement)) return false;
+      const rect = candidate.getBoundingClientRect();
+      const style = getComputedStyle(candidate);
+      return style.display !== "none" && style.visibility !== "hidden" && rect.width > 0 && rect.height > 0;
+    });
+    if (!(control instanceof HTMLElement)) return { ok: false, reason: "no enabled control" };
+    control.focus();
+    const rect = control.getBoundingClientRect();
+    return {
+      ok: document.activeElement === host && shadow?.activeElement === control &&
+        rect.left >= 0 && rect.top >= 0 && rect.right <= innerWidth + 1 && rect.bottom <= innerHeight + 1,
+      rect: { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom },
+      viewport: { width: innerWidth, height: innerHeight }
+    };
+  });
+  if (!result.ok) {
+    throw new Error(`${label} is not visible and focusable: ${JSON.stringify(result)}`);
   }
 }
 
@@ -444,12 +541,12 @@ async function installFixtureRoutes(page, fixtureHtml) {
   );
   await page.route("https://x.com/**", async (route) => {
     const url = new URL(route.request().url());
-    if (url.pathname === "/home") {
-      await route.fulfill({ status: 200, contentType: "text/html", body: fixtureHtml });
-      return;
-    }
     if (url.pathname === "/favicon.ico") {
       await route.fulfill({ status: 204, contentType: "image/x-icon", body: "" });
+      return;
+    }
+    if (url.pathname.startsWith("/")) {
+      await route.fulfill({ status: 200, contentType: "text/html", body: fixtureHtml });
       return;
     }
     await route.fulfill({ status: 404, contentType: "text/plain", body: "fixture route unavailable" });
@@ -510,14 +607,14 @@ nav a, [data-testid="User-Name"] a { color: #0f1419 !important; }
 `;
 }
 
-function assertDesktopViewport(viewport) {
+function assertVisualViewport(viewport) {
   if (
     !Number.isInteger(viewport?.width)
     || !Number.isInteger(viewport?.height)
-    || viewport.width < 1000
-    || viewport.height < 700
+    || viewport.width < 320
+    || viewport.height < 480
   ) {
-    throw new Error("Settings visual coverage is desktop-only and requires at least 1000x700.");
+    throw new Error("Visual coverage requires at least 320x480 CSS pixels.");
   }
 }
 

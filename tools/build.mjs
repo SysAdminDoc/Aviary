@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import esbuild from "esbuild";
 
+import { artifactDigests, sourceFingerprint } from "./build-fingerprint.mjs";
 import { repositoryUrl, userscriptUrls } from "./userscript-meta.mjs";
 
 const CRC32_TABLE = (() => {
@@ -257,11 +258,37 @@ for (const target of ["extension-chrome", "extension-firefox"]) {
 
 await copyFile(path.join(root, "README.md"), path.join(dist, "README.md"));
 
+const builtSourceFingerprint = await sourceFingerprint(root);
 for (const target of ["extension-chrome", "extension-firefox"]) {
   const targetDir = path.join(dist, target);
+  const artifactFiles = [];
+  for await (const filePath of walk(targetDir)) {
+    artifactFiles.push(path.relative(targetDir, filePath).replace(/\\/g, "/"));
+  }
+  const buildInfo = {
+    format: 1,
+    product: "Aviary",
+    target,
+    version: pkg.version,
+    sourceFingerprint: builtSourceFingerprint,
+    artifacts: await artifactDigests(targetDir, artifactFiles)
+  };
+  await writeFile(path.join(targetDir, "build-info.json"), `${JSON.stringify(buildInfo, null, 2)}\n`);
   const zipPath = path.join(dist, `${target}-v${pkg.version}.zip`);
   await packDirectoryAsStoreZip(targetDir, zipPath);
 }
+
+await writeFile(
+  path.join(dist, "build-info.json"),
+  `${JSON.stringify({
+    format: 1,
+    product: "Aviary",
+    target: "userscript",
+    version: pkg.version,
+    sourceFingerprint: builtSourceFingerprint,
+    artifacts: await artifactDigests(dist, ["aviary.user.js", "aviary.meta.js", "README.md"])
+  }, null, 2)}\n`
+);
 
 // Keep a small, deterministic source artifact beside the installable packages. It contains the
 // checkout inputs needed to reproduce the build, never generated dist/ output or dependencies.

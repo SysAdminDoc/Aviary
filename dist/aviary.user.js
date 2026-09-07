@@ -10810,6 +10810,29 @@ input[type="checkbox"] {
   }
 }
 
+@media (max-width: 900px) {
+  /* Keep form rows usable before the compact rail breakpoint. The old three-column minimums
+     were wider than the content pane once the browser reserved space for its scrollbar. */
+  .av-row-stack:has(> .av-text-input),
+  .av-row-stack:has(> .av-textarea),
+  .av-row-stack:has(> .av-file-input) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .av-row-stack:has(> .av-textarea) > .av-rule-set-actions,
+  .av-row-stack:has(> .av-textarea) > .av-rule-set-preview {
+    grid-column: 1 / -1;
+  }
+
+  .av-rule-set-actions {
+    justify-content: flex-start;
+  }
+
+  .av-section[data-av-section="library"] .av-row-stack:has(> .av-library-media-actions) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 @media (max-width: 760px) {
   .av-launcher {
     inset-inline-end: 12px;
@@ -10953,6 +10976,49 @@ input[type="checkbox"] {
   .av-row,
   .av-preset-card {
     min-height: 76px;
+  }
+}
+
+@media (max-width: 420px) {
+  .av-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .av-row > .av-button,
+  .av-row > .av-select,
+  .av-row > .av-text-input,
+  .av-row > .av-toggle-control {
+    align-self: flex-start;
+    max-width: 100%;
+  }
+
+  .av-row > .av-select {
+    width: 100%;
+  }
+
+  .av-inline-controls {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .av-inline-controls .av-text-input {
+    flex: 1 1 120px;
+    min-width: 0;
+  }
+
+  .av-inline-controls .av-button {
+    flex: 1 1 100%;
+  }
+
+  .av-transaction-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .av-transaction-actions {
+    justify-content: flex-end;
   }
 }
 

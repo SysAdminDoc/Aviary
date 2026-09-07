@@ -118,14 +118,6 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
 
 ### P1, Next
 
-- [ ] F302, P1: Gate releases on artifact-matched visual, reflow, and browser smoke tests
-  Why: verify omits separate visual/smoke scripts, settings captures accept a same-version stale bundle, and their harness refuses widths below 1000 pixels.
-  Evidence: `package.json`, `tools/build.mjs`, `tools/preflight.mjs`, `tools/settings-visual-harness.mjs`; https://www.w3.org/WAI/WCAG22/Understanding/reflow.html; https://github.com/typefully/minimal-twitter/issues/257; https://playwright.dev/docs/release-notes
-  Touches: release command, build/preflight ordering, capture harness, baseline manifests, smoke tests, install and development docs
-  Acceptance: one release command runs typecheck, lint, tests, build, preflight, visual checks, and all smoke lanes, failing before publication on any failure; a fast development command names omitted lanes; rejected artifacts never remain as installable output; source fingerprints prove screenshots and smoke tests used the exact built source, not just a matching version; shifted baselines, stale same-version bundles, and over-budget output fail the gate; Home, search, profile, bookmarks, Status, Messages, compose, settings, and media overlays run at 320/768/1280/1920 CSS pixels plus 200 and 400 percent zoom; actual download controls work, focused controls remain visible, and Messages actions reserve usable width including scrollbar space; narrow captures cannot be skipped by a harness minimum.
-  Complexity: M
-  Depends: F286 for the canonical surface matrix. Evaluate Playwright 1.63.0's structured JSON ARIA and trace additions, but basic ARIA and forced-colors checks need no upgrade; its test-runner lock is not a Node test-runner lock.
-
 ### P2, Later
 
 - [ ] F303, P2: Target the published WACZ specification and settle the signature interop story

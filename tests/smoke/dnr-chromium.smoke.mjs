@@ -10,6 +10,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
+import { assertCurrentExtensionBuild } from "../../tools/settings-visual-harness.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const builtExtension = path.join(root, "dist", "extension-chrome");
@@ -20,6 +21,7 @@ let context;
 let seedContext;
 
 try {
+  await assertCurrentExtensionBuild(builtExtension);
   seedContext = await seedLegacyHostDatabase(profileDir);
   await seedContext.close();
   seedContext = undefined;

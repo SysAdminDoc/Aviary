@@ -22,8 +22,10 @@ test("install + FAQ docs exist and reference the right primitives", async () => 
 test("preflight script and build script are wired into package.json", async () => {
   const pkg = JSON.parse(await readFile(path.join(root, "package.json"), "utf8"));
   assert.equal(typeof pkg.scripts.lint, "string");
-  assert.ok(pkg.scripts.verify.includes("lint"));
+  const fastGate = await readFile(path.join(root, "tools/verify-fast.mjs"), "utf8");
+  assert.equal(pkg.scripts["verify:fast"], "node tools/verify-fast.mjs");
+  assert.match(fastGate, /"lint"/);
   assert.equal(typeof pkg.scripts.preflight, "string");
-  assert.ok(pkg.scripts.verify.includes("preflight"));
+  assert.match(fastGate, /"preflight"/);
   assert.ok((await stat(path.join(root, "tools/preflight.mjs"))).isFile());
 });

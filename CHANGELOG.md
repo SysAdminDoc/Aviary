@@ -46,6 +46,10 @@
   live for integrations loaded from the separate panel chunk.
 
 ### Added
+- **Artifact-matched release gate.** `npm run verify:fast` gives quick local feedback, while
+  `npm run verify:release` adds visual, reflow, and every browser smoke lane before publication.
+  Builds carry source fingerprints and per-file digests, stale or modified bundles are rejected, and
+  failed release runs remove `dist/` instead of leaving an installable partial build behind.
 - **Lazy extension delivery.** Chromium and Firefox now ship a roughly 0.60 MB document-start
   bundle containing protection, media controls, selector health, and the launcher. The Control
   Center, archive tools, viewer, and catalog load from a named, retryable panel chunk only after

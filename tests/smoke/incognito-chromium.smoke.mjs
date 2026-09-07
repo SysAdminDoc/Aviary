@@ -5,6 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
 import { chromium } from "playwright";
+import { assertCurrentExtensionBuild } from "../../tools/settings-visual-harness.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const extensionDir = path.join(root, "dist", "extension-chrome");
@@ -13,6 +14,8 @@ if (!existsSync(extensionDir)) {
   console.error("Build the extension first: `npm run build`.");
   process.exit(2);
 }
+
+await assertCurrentExtensionBuild(extensionDir);
 
 let commandId = 0;
 

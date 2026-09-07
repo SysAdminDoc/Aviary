@@ -1,6 +1,6 @@
 import { importSourceModule } from "./helpers/source-import.mjs";
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
@@ -31,10 +31,62 @@ test("the visual harness refuses to capture against a stale extension build", as
     );
 
     await writeFile(path.join(dir, "manifest.json"), JSON.stringify({ version: pkg.version }), "utf8");
-    await assert.doesNotReject(() => assertCurrentExtensionBuild(dir), "a current build must pass the gate");
+    await assert.rejects(
+      () => assertCurrentExtensionBuild(dir),
+      /no matching artifact manifest/,
+      "a version-only directory must not pass the gate"
+    );
+
+    const currentBuild = path.join(dir, "extension-chrome");
+    await mkdir(currentBuild, { recursive: true });
+    const { fileDigest, sourceFingerprint } = await import(
+      pathToFileURL(path.join(root, "tools", "build-fingerprint.mjs")).href
+    );
+    const contentPath = path.join(currentBuild, "content.js");
+    await writeFile(path.join(currentBuild, "manifest.json"), JSON.stringify({ version: pkg.version }), "utf8");
+    await writeFile(contentPath, "fixture artifact\n", "utf8");
+    const buildInfoPath = path.join(currentBuild, "build-info.json");
+    const buildInfo = {
+      format: 1,
+      product: "Aviary",
+      target: "extension-chrome",
+      version: pkg.version,
+      sourceFingerprint: await sourceFingerprint(root),
+      artifacts: { "content.js": await fileDigest(contentPath) }
+    };
+    await writeFile(buildInfoPath, JSON.stringify(buildInfo), "utf8");
+    await assert.doesNotReject(
+      () => assertCurrentExtensionBuild(currentBuild),
+      "a current artifact-matched build must pass the gate"
+    );
+
+    await writeFile(buildInfoPath, JSON.stringify({ ...buildInfo, sourceFingerprint: "sha256:stale" }), "utf8");
+    await assert.rejects(
+      () => assertCurrentExtensionBuild(currentBuild),
+      /source fingerprint is stale/,
+      "a same-version bundle from older source must not pass the gate"
+    );
+    await writeFile(buildInfoPath, JSON.stringify(buildInfo), "utf8");
+
+    await writeFile(path.join(currentBuild, "content.js"), "\n", { flag: "a" });
+    await assert.rejects(
+      () => assertCurrentExtensionBuild(currentBuild),
+      /artifact is modified: content\.js/,
+      "a modified artifact must not pass the gate"
+    );
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
+});
+
+test("release verification keeps the fast and publication lanes explicit", async () => {
+  const packageJson = JSON.parse(await readFile(path.join(root, "package.json"), "utf8"));
+  const gate = await readFile(path.join(root, "tools", "release-gate.mjs"), "utf8");
+  assert.equal(packageJson.scripts["verify:fast"], "node tools/verify-fast.mjs");
+  assert.equal(packageJson.scripts["verify:release"], "node tools/release-gate.mjs");
+  assert.match(gate, /rejected artifacts were removed/);
+  assert.match(gate, /tests\/visual\/reflow-visual-regression\.test\.mjs/);
+  assert.match(gate, /"run", "smoke"/);
 });
 
 test("credential fields are masked and offer an explicit reveal", async () => {
