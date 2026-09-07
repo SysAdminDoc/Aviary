@@ -73,6 +73,63 @@ test("the runtime estimate keeps true, false, and unavailable persistence across
   }
 });
 
+test("a measured breakdown crosses the background bridge, and a malformed reply is refused", async () => {
+  const api = await importSourceModule("src/extension/durable-storage-api.ts");
+
+  const backend = new MemoryBackend();
+  backend.measure = async () => ({
+    totalBytes: 1_500_000,
+    collections: [
+      { key: "aviary.library.bookmarks.v1", bytes: 1_200_000, records: 42 },
+      { key: "aviary.media.history.v1", bytes: 300_000, records: 7 }
+    ],
+    usageDetails: { indexedDB: 1_800_000 }
+  });
+  const client = new api.ExtensionDurableStorageBackend((message) =>
+    api.handleDurableStorageRequest(message, backend)
+  );
+
+  const measured = await client.measure();
+  assert.equal(measured.totalBytes, 1_500_000);
+  assert.deepEqual(measured.collections.map((entry) => entry.key), [
+    "aviary.library.bookmarks.v1",
+    "aviary.media.history.v1"
+  ]);
+  assert.deepEqual(measured.usageDetails, { indexedDB: 1_800_000 });
+
+  // A background that cannot weigh itself answers an empty breakdown rather than failing the call.
+  const plain = new api.ExtensionDurableStorageBackend((message) =>
+    api.handleDurableStorageRequest(message, new MemoryBackend())
+  );
+  assert.deepEqual(await plain.measure(), { totalBytes: 0, collections: [], usageDetails: null });
+
+  // Every field is re-validated on arrival. A reply with a NaN byte count must not become a page
+  // that tells the reader their library occupies NaN bytes.
+  const malformed = new api.ExtensionDurableStorageBackend(async () => ({
+    ok: true,
+    result: {
+      totalBytes: Number.NaN,
+      collections: [
+        { key: "aviary.good.v1", bytes: 10, records: 1 },
+        { key: "aviary.bad.v1", bytes: Number.NaN, records: 1 },
+        { bytes: 5, records: 1 }
+      ],
+      usageDetails: { indexedDB: "lots" }
+    }
+  }));
+  const cleaned = await malformed.measure();
+  assert.deepEqual(cleaned.collections.map((entry) => entry.key), ["aviary.good.v1"]);
+  assert.equal(cleaned.totalBytes, 10, "the total is recomputed from what survived validation");
+  assert.equal(cleaned.usageDetails, null, "a non-numeric split is not a split");
+
+  // Chromium answers `{}` when nothing is stored, and that is an absent split, not an empty one.
+  const empty = new api.ExtensionDurableStorageBackend(async () => ({
+    ok: true,
+    result: { totalBytes: 0, collections: [], usageDetails: {} }
+  }));
+  assert.equal((await empty.measure()).usageDetails, null);
+});
+
 test("the background protocol stages and atomically commits fallback values and tombstones", async () => {
   const api = await importSourceModule("src/extension/durable-storage-api.ts");
   const backend = new MemoryBackend();

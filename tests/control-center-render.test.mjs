@@ -64,22 +64,34 @@ after(async () => {
  * Mounts a panel, opens it, and leaves the handle on `window.__panel`. `diagnostics` is the list
  * the Trust section reads, so a test can hand it the events it wants rendered.
  */
-async function mount(diagnostics = []) {
-  await page.evaluate((events) => {
+async function mount(diagnostics = [], options = {}) {
+  await page.evaluate(({ events, libraryStorage }) => {
     window.__panel?.destroy?.();
     const settings = AviaryCC.cloneSettings(AviaryCC.DEFAULT_SETTINGS);
     settings.i18n.locale = "en";
     window.__panel = AviaryCC.mountControlCenter({
       settings,
       diagnostics: () => events,
+      // `undefined` is "not measured yet" and `null` is "this backend cannot weigh itself". The
+      // two render differently, so the harness has to be able to say either.
+      ...(libraryStorage === undefined ? {} : { getLibraryStorage: () => libraryStorage }),
       onChange: async () => {},
       onError: () => {}
     });
     const shadow = document.getElementById("av-control-center").shadowRoot;
     shadow.querySelector(".av-launcher").click();
-  }, diagnostics);
+  }, { events: diagnostics, libraryStorage: options.libraryStorage });
   await page.waitForTimeout(20);
 }
+
+/** The description text of a row, found by its label. */
+const rowValue = (label) =>
+  page.evaluate((wanted) => {
+    const shadow = document.getElementById("av-control-center").shadowRoot;
+    return [...shadow.querySelectorAll(".av-row")]
+      .find((row) => row.querySelector(".av-row-label")?.textContent === wanted)
+      ?.querySelector(".av-row-description")?.textContent ?? null;
+  }, label);
 
 const openSection = (name) =>
   page.evaluate((section) => {
@@ -322,6 +334,61 @@ test("choosing a section clears an active search instead of appearing to do noth
   assert.equal(after.value, "", "the field must be cleared, not left showing a filter that no longer applies");
   assert.equal(after.sections, 1, "the chosen section must be what renders");
   assert.deepEqual(after.current, ["performance"]);
+});
+
+test("Library storage reports what was measured, and says so when nothing was", async () => {
+  // The whole first clause of this feature -- a total, a per-collection breakdown, the browser's
+  // split where it exists and a plain statement where it does not -- reached no test at all.
+
+  // Not measured yet.
+  await mount([]);
+  await openSection("library");
+  assert.match(await rowValue("Library storage"), /Measuring/, "an unmeasured library says so");
+
+  // A backend that cannot enumerate itself. This is a different answer from zero and has to read
+  // as one: a userscript manager stores values behind an API with no cursor.
+  await mount([], { libraryStorage: null });
+  await openSection("library");
+  const unweighable = await rowValue("Library storage");
+  assert.match(unweighable, /cannot be weighed/, "an unmeasurable store must not be reported as empty");
+  assert.doesNotMatch(unweighable, /\b0\b/, "and must not print a zero");
+
+  // Measured, with the browser's own split available.
+  await mount([], {
+    libraryStorage: {
+      totalBytes: 1_500_000,
+      collections: [
+        { key: "aviary.library.bookmarks.v1", bytes: 1_200_000, records: 42 },
+        { key: "aviary.media.history.v1", bytes: 300_000, records: 7 }
+      ],
+      usageDetails: { indexedDB: 1_800_000 }
+    }
+  });
+  await openSection("library");
+  const total = await rowValue("Library storage");
+  assert.match(total, /1\.4 MiB/, "the measured total, formatted by the panel's own byte formatter");
+  assert.match(total, /2 collections/);
+  const largest = await rowValue("Largest collections");
+  assert.match(largest, /aviary\.library\.bookmarks\.v1/, "the heaviest store is named");
+  assert.ok(
+    largest.indexOf("aviary.library.bookmarks.v1") < largest.indexOf("aviary.media.history.v1"),
+    "and named first, or the list does not help anyone decide"
+  );
+  const browserSplit = await rowValue("Browser storage report");
+  assert.match(browserSplit, /indexedDB/, "the browser's own split is shown where it exists");
+
+  // Measured, with no split from the browser. Firefox and Safari do not publish one.
+  await mount([], {
+    libraryStorage: {
+      totalBytes: 900_000,
+      collections: [{ key: "aviary.library.bookmarks.v1", bytes: 900_000, records: 3 }],
+      usageDetails: null
+    }
+  });
+  await openSection("library");
+  const absent = await rowValue("Browser storage report");
+  assert.match(absent, /does not break its storage report down by type/);
+  assert.doesNotMatch(absent, /indexedDB/);
 });
 
 test("Trust reports a failed write rather than letting it vanish", async () => {
