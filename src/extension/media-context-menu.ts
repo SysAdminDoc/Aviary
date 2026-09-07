@@ -11,22 +11,71 @@ export const X_DOCUMENT_PATTERNS = [
   "https://pro.x.com/*",
 ] as const;
 
+export type MediaContextDownloadMessage = {
+  type: typeof MEDIA_CONTEXT_DOWNLOAD_MESSAGE;
+  documentUrl: string;
+};
+
+export type MediaContextPermissionDeniedMessage = {
+  type: typeof MEDIA_CONTEXT_PERMISSION_DENIED_MESSAGE;
+  documentUrl: string;
+};
+
 export function isMediaContextDownloadMessage(
-  message: unknown
-): message is { type: typeof MEDIA_CONTEXT_DOWNLOAD_MESSAGE } {
-  return isType(message, MEDIA_CONTEXT_DOWNLOAD_MESSAGE);
+  message: unknown,
+  sender: unknown
+): message is MediaContextDownloadMessage {
+  return isContextMessage(message, MEDIA_CONTEXT_DOWNLOAD_MESSAGE, sender);
 }
 
 export function isMediaContextPermissionDeniedMessage(
-  message: unknown
-): message is { type: typeof MEDIA_CONTEXT_PERMISSION_DENIED_MESSAGE } {
-  return isType(message, MEDIA_CONTEXT_PERMISSION_DENIED_MESSAGE);
+  message: unknown,
+  sender: unknown
+): message is MediaContextPermissionDeniedMessage {
+  return isContextMessage(message, MEDIA_CONTEXT_PERMISSION_DENIED_MESSAGE, sender);
 }
 
-function isType<T extends string>(message: unknown, type: T): message is { type: T } {
+export function isSupportedXDocumentUrl(value: unknown): value is string {
+  if (typeof value !== "string" || value.length === 0 || value.length > 4096) {
+    return false;
+  }
+  try {
+    const url = new URL(value);
+    return (
+      url.protocol === "https:" &&
+      !url.username &&
+      !url.password &&
+      ["x.com", "www.x.com", "twitter.com", "www.twitter.com", "pro.x.com"].includes(url.hostname)
+    );
+  } catch {
+    return false;
+  }
+}
+
+function isContextMessage<T extends string>(
+  message: unknown,
+  type: T,
+  sender: unknown
+): message is { type: T; documentUrl: string } {
   return (
     typeof message === "object" &&
     message !== null &&
-    (message as { type?: unknown }).type === type
+    Object.keys(message).length === 2 &&
+    Object.prototype.hasOwnProperty.call(message, "type") &&
+    Object.prototype.hasOwnProperty.call(message, "documentUrl") &&
+    (message as { type?: unknown }).type === type &&
+    isSupportedXDocumentUrl((message as { documentUrl?: unknown }).documentUrl) &&
+    isTrustedExtensionSender(sender)
+  );
+}
+
+function isTrustedExtensionSender(sender: unknown): boolean {
+  const extensionId = globalThis.chrome?.runtime?.id;
+  return (
+    typeof extensionId === "string" &&
+    extensionId.length > 0 &&
+    typeof sender === "object" &&
+    sender !== null &&
+    (sender as { id?: unknown }).id === extensionId
   );
 }

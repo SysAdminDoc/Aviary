@@ -153,8 +153,14 @@ declare global {
       onClicked?: {
         addListener(
           listener: (
-            info: { menuItemId: string | number; mediaType?: string; srcUrl?: string },
-            tab?: { id?: number }
+            info: {
+              menuItemId: string | number;
+              mediaType?: string;
+              srcUrl?: string;
+              pageUrl?: string;
+              frameUrl?: string;
+            },
+            tab?: { id?: number; url?: string }
           ) => void
         ): void;
       };

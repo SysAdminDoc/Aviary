@@ -145,12 +145,12 @@ test("native media context clicks request download access before messaging the s
     assert.equal(typeof clicked, "function", "background did not register the context-menu action");
 
     insideGesture = true;
-    clicked({ menuItemId: "aviary-download-media" }, { id: 91 });
+    clicked({ menuItemId: "aviary-download-media", pageUrl: "https://x.com/home" }, { id: 91 });
     insideGesture = false;
     await waitFor(() => sent.length === 1);
 
     insideGesture = true;
-    clicked({ menuItemId: "aviary-download-media" }, { id: 92 });
+    clicked({ menuItemId: "aviary-download-media", pageUrl: "https://x.com/home" }, { id: 92 });
     insideGesture = false;
     await waitFor(() => sent.length === 2);
 
@@ -159,8 +159,17 @@ test("native media context clicks request download access before messaging the s
       { permissions: ["downloads"] }
     ]);
     assert.deepEqual(sent, [
-      { tabId: 91, message: { type: "AVIARY_DOWNLOAD_CONTEXT_MEDIA" } },
-      { tabId: 92, message: { type: "AVIARY_CONTEXT_DOWNLOAD_PERMISSION_DENIED" } }
+      {
+        tabId: 91,
+        message: { type: "AVIARY_DOWNLOAD_CONTEXT_MEDIA", documentUrl: "https://x.com/home" }
+      },
+      {
+        tabId: 92,
+        message: {
+          type: "AVIARY_CONTEXT_DOWNLOAD_PERMISSION_DENIED",
+          documentUrl: "https://x.com/home"
+        }
+      }
     ]);
   } finally {
     globalThis.chrome = originalChrome;

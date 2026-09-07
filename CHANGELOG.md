@@ -27,6 +27,9 @@
   than blocking Aviary startup or deleting them.
 
 ### Fixed
+- Native media context-menu messages now carry and validate the X document URL, exact message
+  fields, and the extension sender before the page starts a download. The background refuses to
+  forward a non-X page, and Trusted Types policy and fallback behavior are covered explicitly.
 - Selector health now reports required surface breaks beside the page. A missing post action bar
   marks the launcher without blocking X, opens Trust to the affected surface and owning feature,
   clears when the surface returns or its owning feature is turned off, and offers a content-free

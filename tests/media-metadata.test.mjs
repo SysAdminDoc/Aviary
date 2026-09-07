@@ -996,8 +996,8 @@ test("default media controls transfer both image and direct video bytes", async 
           if (runtimeListeners.size === 0) throw new Error("Context download listener missing");
           const response = await new Promise((resolve) => {
             const keptOpen = extensionMessageListener(
-              { type: "AVIARY_DOWNLOAD_CONTEXT_MEDIA" },
-              {},
+              { type: "AVIARY_DOWNLOAD_CONTEXT_MEDIA", documentUrl: "https://x.com/home" },
+              { id: "fixture-extension" },
               resolve
             );
             if (keptOpen !== true) throw new Error("Context download response channel closed");

@@ -21,7 +21,8 @@ import {
   MEDIA_CONTEXT_MENU_ID,
   MEDIA_CONTEXT_MENU_TITLE,
   MEDIA_CONTEXT_PERMISSION_DENIED_MESSAGE,
-  X_DOCUMENT_PATTERNS
+  X_DOCUMENT_PATTERNS,
+  isSupportedXDocumentUrl
 } from "../extension/media-context-menu.ts";
 import {
   handleDurableStorageRequest,
@@ -156,6 +157,10 @@ contextMenus?.onClicked?.addListener((info, tab) => {
     return;
   }
   const tabId = tab.id;
+  const documentUrl = typeof info.pageUrl === "string" ? info.pageUrl : tab.url;
+  if (!isSupportedXDocumentUrl(documentUrl)) {
+    return;
+  }
 
   // `permissions.request()` has to begin inside a user gesture. Calling it synchronously from
   // the native context-menu click preserves that gesture; checking first with an awaited
@@ -173,7 +178,8 @@ contextMenus?.onClicked?.addListener((info, tab) => {
     permissionRequest.then((granted) =>
       sendContextDownloadMessage(
         tabId,
-        granted ? MEDIA_CONTEXT_DOWNLOAD_MESSAGE : MEDIA_CONTEXT_PERMISSION_DENIED_MESSAGE
+        granted ? MEDIA_CONTEXT_DOWNLOAD_MESSAGE : MEDIA_CONTEXT_PERMISSION_DENIED_MESSAGE,
+        documentUrl
       )
     ),
     "context-menu-download"
@@ -384,12 +390,12 @@ async function installMediaContextMenu(): Promise<void> {
   );
 }
 
-async function sendContextDownloadMessage(tabId: number, type: string): Promise<void> {
+async function sendContextDownloadMessage(tabId: number, type: string, documentUrl: string): Promise<void> {
   const tabs = globalThis.chrome?.tabs;
   if (!tabs?.sendMessage) {
     return;
   }
-  await tabs.sendMessage(tabId, { type });
+  await tabs.sendMessage(tabId, { type, documentUrl });
 }
 
 function isDownload(message: unknown): message is {

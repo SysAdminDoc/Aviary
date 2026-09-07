@@ -333,8 +333,8 @@ function installContextDownload(ctx: FeatureContext): void {
   };
   document.addEventListener("contextmenu", contextMenuListener, true);
 
-  extensionMessageListener = (message, _sender, sendResponse) => {
-    if (isMediaContextPermissionDeniedMessage(message)) {
+  extensionMessageListener = (message, sender, sendResponse) => {
+    if (isMediaContextPermissionDeniedMessage(message, sender)) {
       showFeatureToast(
         ft(ctx, "Download access was not granted. Open Aviary Options to enable browser downloads."),
         { tone: "error", ctx }
@@ -342,7 +342,7 @@ function installContextDownload(ctx: FeatureContext): void {
       sendResponse({ ok: false, reason: "permission-denied" });
       return false;
     }
-    if (!isMediaContextDownloadMessage(message)) {
+    if (!isMediaContextDownloadMessage(message, sender)) {
       return false;
     }
 

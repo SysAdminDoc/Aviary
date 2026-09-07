@@ -118,14 +118,6 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
 
 ### P1, Next
 
-- [ ] F301, P1: Cover the two untested modules that sit on privileged paths
-  Why: `trusted-types.ts` is the only file exempted from preflight's repository-wide `innerHTML` ban and silently degrades to a string passthrough when `trustedTypes` is absent. `media-context-menu.ts` carries the message-shape validator for a cross-context download trigger, and `contextMenus` is a declared permission in both manifests. Neither is referenced by any test.
-  Evidence: `src/platform/trusted-types.ts`, `tools/preflight.mjs` (the `platform/trusted-types.ts` exemption in the `innerHTML` scan), `src/extension/media-context-menu.ts` (`isMediaContextDownloadMessage`, `X_DOCUMENT_PATTERNS`), both manifests' `permissions` arrays; no match for either path across `tests/**/*.mjs`
-  Touches: two new test files, `src/platform/trusted-types.ts`, `src/extension/media-context-menu.ts`, `tests/extension-background-api.test.mjs`
-  Acceptance: a policy created where `trustedTypes` exists returns a `TrustedHTML` and refuses input the policy rejects; the fallback path is exercised explicitly and the test states that it is a passthrough, so the degradation is a recorded decision rather than an accident; `isMediaContextDownloadMessage` rejects a wrong type, a missing field, an extra field, a non-string URL, a non-X document URL, a `javascript:` and a `data:` URL, and a message from an unexpected sender, and each rejection is proved by mutating the validator and watching the test go red; a valid message still reaches the download path.
-  Complexity: S
-  Depends: None.
-
 - [ ] F302, P1: Gate releases on artifact-matched visual, reflow, and browser smoke tests
   Why: verify omits separate visual/smoke scripts, settings captures accept a same-version stale bundle, and their harness refuses widths below 1000 pixels.
   Evidence: `package.json`, `tools/build.mjs`, `tools/preflight.mjs`, `tools/settings-visual-harness.mjs`; https://www.w3.org/WAI/WCAG22/Understanding/reflow.html; https://github.com/typefully/minimal-twitter/issues/257; https://playwright.dev/docs/release-notes

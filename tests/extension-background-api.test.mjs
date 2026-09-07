@@ -127,6 +127,34 @@ test("the content script can open the options page, and the toolbar button does 
   assert.equal(background.calls.openOptions, 2);
 });
 
+test("the native media menu forwards only an X document URL to the selected tab", async () => {
+  const sent = [];
+  const background = await loadBackground({
+    tabs: {
+      async sendMessage(tabId, message) {
+        sent.push({ tabId, message });
+      }
+    }
+  });
+
+  background.registered.contextMenu(
+    { menuItemId: "aviary-download-media", pageUrl: "https://x.com/home" },
+    { id: 41 }
+  );
+  background.registered.contextMenu(
+    { menuItemId: "aviary-download-media", pageUrl: "https://example.com/" },
+    { id: 42 }
+  );
+  await new Promise((resolve) => setTimeout(resolve, 20));
+
+  assert.deepEqual(sent, [
+    {
+      tabId: 41,
+      message: { type: "AVIARY_DOWNLOAD_CONTEXT_MEDIA", documentUrl: "https://x.com/home" }
+    }
+  ]);
+});
+
 test("a download without the permission reports the shared code the content script reacts to", async () => {
   const background = await loadBackground({ granted: false });
 

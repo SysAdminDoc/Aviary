@@ -15234,14 +15234,29 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
   // src/extension/media-context-menu.ts
   var MEDIA_CONTEXT_DOWNLOAD_MESSAGE = "AVIARY_DOWNLOAD_CONTEXT_MEDIA";
   var MEDIA_CONTEXT_PERMISSION_DENIED_MESSAGE = "AVIARY_CONTEXT_DOWNLOAD_PERMISSION_DENIED";
-  function isMediaContextDownloadMessage(message) {
-    return isType(message, MEDIA_CONTEXT_DOWNLOAD_MESSAGE);
+  function isMediaContextDownloadMessage(message, sender) {
+    return isContextMessage(message, MEDIA_CONTEXT_DOWNLOAD_MESSAGE, sender);
   }
-  function isMediaContextPermissionDeniedMessage(message) {
-    return isType(message, MEDIA_CONTEXT_PERMISSION_DENIED_MESSAGE);
+  function isMediaContextPermissionDeniedMessage(message, sender) {
+    return isContextMessage(message, MEDIA_CONTEXT_PERMISSION_DENIED_MESSAGE, sender);
   }
-  function isType(message, type) {
-    return typeof message === "object" && message !== null && message.type === type;
+  function isSupportedXDocumentUrl(value) {
+    if (typeof value !== "string" || value.length === 0 || value.length > 4096) {
+      return false;
+    }
+    try {
+      const url = new URL(value);
+      return url.protocol === "https:" && !url.username && !url.password && ["x.com", "www.x.com", "twitter.com", "www.twitter.com", "pro.x.com"].includes(url.hostname);
+    } catch {
+      return false;
+    }
+  }
+  function isContextMessage(message, type, sender) {
+    return typeof message === "object" && message !== null && Object.keys(message).length === 2 && Object.prototype.hasOwnProperty.call(message, "type") && Object.prototype.hasOwnProperty.call(message, "documentUrl") && message.type === type && isSupportedXDocumentUrl(message.documentUrl) && isTrustedExtensionSender(sender);
+  }
+  function isTrustedExtensionSender(sender) {
+    const extensionId = globalThis.chrome?.runtime?.id;
+    return typeof extensionId === "string" && extensionId.length > 0 && typeof sender === "object" && sender !== null && sender.id === extensionId;
   }
 
   // src/features/media/media-metadata.ts
@@ -17035,8 +17050,8 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       pendingContextTarget = ctx.settings.media.buttons ? contextTarget(event.target) : void 0;
     };
     document.addEventListener("contextmenu", contextMenuListener, true);
-    extensionMessageListener = (message, _sender, sendResponse) => {
-      if (isMediaContextPermissionDeniedMessage(message)) {
+    extensionMessageListener = (message, sender, sendResponse) => {
+      if (isMediaContextPermissionDeniedMessage(message, sender)) {
         showFeatureToast(
           ft(ctx, "Download access was not granted. Open Aviary Options to enable browser downloads."),
           { tone: "error", ctx }
@@ -17044,7 +17059,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
         sendResponse({ ok: false, reason: "permission-denied" });
         return false;
       }
-      if (!isMediaContextDownloadMessage(message)) {
+      if (!isMediaContextDownloadMessage(message, sender)) {
         return false;
       }
       void downloadContextTarget(ctx).then(
