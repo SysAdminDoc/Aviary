@@ -238,6 +238,7 @@ fixed timestamps and sorted entries. It excludes generated output, dependencies,
 
 ```powershell
 npm run smoke   # packaged-extension request-rule probes in Chromium and Firefox
+npm run test:matrix  # route/locale matrix plus the 50,000-record release fault matrix
 ```
 
 Smoke needs a Chromium runner and a normal Firefox install. Every lane uses a throwaway profile,

@@ -103,6 +103,11 @@
   copy, generated nine-locale `_locales` bundles, and a localized native media context menu. The
   Options page reads shared locale direction metadata, and packaging rejects missing or stale
   message files before a browser smoke run.
+- **Large-library release matrix.** A deterministic 50,000-row corpus now covers tombstones,
+  malformed rows, duplicate ids, unknown media, and missing bytes through search, backup/restore,
+  ZIP, WARC/WACZ, media selection, and both checkpoint restart paths. Chromium measures the fixture
+  under a documented 128 MiB heap budget, and WACZ estimates account for retained byte metadata so
+  an oversized export refuses before worker allocation.
 
 ### Fixed
 - Conversation pages no longer show the vertical connector line down a reply's avatar column while an Aviary theme is active. The previous fix removed a line Aviary itself drew; the one readers were seeing is X's own element, found now by its shape and position rather than by a class name X regenerates.

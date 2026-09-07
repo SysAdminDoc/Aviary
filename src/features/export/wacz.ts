@@ -120,7 +120,12 @@ export function estimateWaczBytes(records: readonly ExportRecord[]): WaczEstimat
   for (const record of records) {
     contentBytes += ENCODER.encode(JSON.stringify(serializeExportRecord(record))).length + 1_500;
     for (const media of Array.isArray(record.media) ? record.media : []) {
-      contentBytes += media.bytes instanceof Uint8Array ? media.bytes.length + 900 : 700;
+      const retainedBytes = media.bytes instanceof Uint8Array
+        ? media.bytes.length
+        : Number.isFinite(media.byteLength) && (media.byteLength ?? 0) > 0
+          ? Math.trunc(media.byteLength!)
+          : 0;
+      contentBytes += retainedBytes > 0 ? retainedBytes + 900 : 700;
     }
   }
   return {

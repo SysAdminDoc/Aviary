@@ -85,6 +85,11 @@ The extension package includes browser-native message bundles for English, Spani
 French, German, Japanese, Korean, Arabic, and Hebrew. The manifest, toolbar title, native media
 context menu, and Options page follow the browser or Aviary locale without adding network access.
 
+The release matrix also runs a deterministic 50,000-record library fixture. It measures a 128 MiB
+Chromium heap budget, exercises backup/restore and ZIP/WARC/WACZ packaging, and forces content and
+service-worker restart recovery. WACZ size estimates refuse an oversized export before allocating
+a worker.
+
 ## Browser floors
 
 Both floors are declared once, in `src/extension/browser-floors.ts`, and preflight fails the build

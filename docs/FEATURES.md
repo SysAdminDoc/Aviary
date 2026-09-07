@@ -353,6 +353,11 @@ manifest still carries a placeholder add-on id, so an AMO submission needs a rea
   bundles for Chrome and Firefox, localized manifest and media context-menu copy, shared direction
   metadata on the Options page, `av-rtl`/`av-ltr` HTML classes, and Arabic/Hebrew bidi-safe tweet
   text.
+- **Large-library matrix**, a deterministic 50,000-row release fixture with tombstones, malformed
+  rows, duplicate ids, unknown media, and missing bytes. Search, backup/restore, ZIP, WARC/WACZ,
+  media selection, and content or service-worker restart recovery either complete or return a
+  row-level partial. Chromium keeps the fixture below a 128 MiB heap budget, and oversized WACZ
+  estimates refuse before a worker is allocated.
 - **Desktop interaction**, visible focus states, modal focus containment, reduced-motion support,
   and mouse/keyboard-friendly controls are verified at the supported desktop widths.
 - **Hide row borders**, drops the 1px divider under each timeline post and the primary column's side rules. The rule anchors on `[data-testid="cellInnerDiv"] > div`, not on X's generated `r-*` class names, so a rename does not silently disable it.
