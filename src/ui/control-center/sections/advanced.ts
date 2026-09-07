@@ -49,16 +49,29 @@ export function buildTrustRows(ctx: PanelContext): HTMLElement[] {
       .slice(0, 3)
       .map(
         (feature) =>
-          `${feature.featureId}: ${feature.invocationCount} runs · ${feature.totalDurationMs.toFixed(1)} ms total · ${feature.maxDurationMs.toFixed(1)} ms max · ${feature.fullPasses} full / ${feature.incrementalPasses} incremental`
+          ctx.localizedCopy(
+            "{feature}: {count} runs · {total} ms total · {max} ms max · {full} full / {incremental} incremental",
+            {
+              feature: feature.featureId,
+              count: feature.invocationCount,
+              total: feature.totalDurationMs.toFixed(1),
+              max: feature.maxDurationMs.toFixed(1),
+              full: feature.fullPasses,
+              incremental: feature.incrementalPasses
+            }
+          )
       )
       .join(" | ");
     const longFrameSummary = performance.longFrames.supported
-      ? `${performance.longFrames.observed} long frames · ${performance.longFrames.correlatedPasses} correlated`
-      : "Long Animation Frame unavailable";
+      ? ctx.localizedCopy("{observed} long frames · {correlated} correlated", {
+        observed: performance.longFrames.observed,
+        correlated: performance.longFrames.correlatedPasses
+      })
+      : ctx.t("Long Animation Frame unavailable");
     rows.push(
       ctx.dataRow(
         "Mutation performance",
-        `${performance.features.length} features · ${longFrameSummary} · ${featureSummary || "No apply samples yet"}`
+        `${ctx.localizedCopy("{count} features", { count: performance.features.length })} · ${longFrameSummary} · ${featureSummary || ctx.t("No apply samples yet")}`
       )
     );
     if (ctx.options.resetPerformanceMetrics) {

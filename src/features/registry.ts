@@ -80,10 +80,16 @@ export interface FeatureModule {
   getStatus?(): FeatureStatus;
 }
 
+export interface FeatureRegistryOptions {
+  /** Test-only switch used to measure registry work without timing instrumentation. */
+  instrumentation?: boolean;
+}
+
 export class FeatureRegistry {
   readonly #features = new Map<string, FeatureModule>();
   readonly #active = new Set<string>();
   readonly #performance = new FeaturePerformanceDiagnostics();
+  readonly #instrumentationEnabled: boolean;
   /**
    * Features the bisect flow turned off, in the order they were registered.
    *
@@ -91,6 +97,10 @@ export class FeatureRegistry {
    * nothing else -- a feature that was already off because its own setting is off must stay off.
    */
   readonly #suspended = new Set<string>();
+
+  constructor(options: FeatureRegistryOptions = {}) {
+    this.#instrumentationEnabled = options.instrumentation !== false;
+  }
 
   register(feature: FeatureModule): void {
     if (this.#features.has(feature.id)) {
@@ -293,14 +303,16 @@ export class FeatureRegistry {
       if (!this.#active.has(id)) continue;
       const feature = this.#features.get(id);
       if (feature?.apply) {
-        const started = performanceNow();
+        const started = this.#instrumentationEnabled ? performanceNow() : 0;
         try {
           await feature.apply(ctx, root, addedNodes);
         } catch (error) {
           ctx.diagnostics.error(`Feature failed to apply: ${id}`, errorDetails(error));
         } finally {
-          const ended = performanceNow();
-          this.#performance.record(id, passType, Math.max(0, ended - started), started, ended);
+          if (this.#instrumentationEnabled) {
+            const ended = performanceNow();
+            this.#performance.record(id, passType, Math.max(0, ended - started), started, ended);
+          }
         }
       }
     }

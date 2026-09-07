@@ -25,7 +25,12 @@
     "Mutation performance": "Rendimiento de mutaciones",
     "Reset performance metrics": "Restablecer métricas de rendimiento",
     "Audience coverage": "Cobertura de audiencia",
-    "Mutation timing stays local and stores only feature ids and bounded durations.": "El tiempo de mutación permanece local y solo guarda identificadores de funciones y duraciones acotadas."
+    "Mutation timing stays local and stores only feature ids and bounded durations.": "El tiempo de mutación permanece local y solo guarda identificadores de funciones y duraciones acotadas.",
+    "{feature}: {count} runs · {total} ms total · {max} ms max · {full} full / {incremental} incremental": "{feature}: {count} ejecuciones · {total} ms total · {max} ms máximo · {full} completas / {incremental} incrementales",
+    "{observed} long frames · {correlated} correlated": "{observed} fotogramas largos · {correlated} correlacionados",
+    "{count} features": "{count} funciones",
+    "Long Animation Frame unavailable": "Long Animation Frame no disponible",
+    "No apply samples yet": "Aún no hay muestras de aplicación"
   },
   "pt": {
     "Quality receipts": "Comprovantes de qualidade",
@@ -53,7 +58,12 @@
     "Mutation performance": "Desempenho das mutações",
     "Reset performance metrics": "Redefinir métricas de desempenho",
     "Audience coverage": "Cobertura de audiência",
-    "Mutation timing stays local and stores only feature ids and bounded durations.": "O tempo das mutações permanece local e armazena apenas IDs de recursos e durações limitadas."
+    "Mutation timing stays local and stores only feature ids and bounded durations.": "O tempo das mutações permanece local e armazena apenas IDs de recursos e durações limitadas.",
+    "{feature}: {count} runs · {total} ms total · {max} ms max · {full} full / {incremental} incremental": "{feature}: {count} execuções · {total} ms no total · {max} ms no máximo · {full} completas / {incremental} incrementais",
+    "{observed} long frames · {correlated} correlated": "{observed} frames longos · {correlated} correlacionados",
+    "{count} features": "{count} recursos",
+    "Long Animation Frame unavailable": "Long Animation Frame indisponível",
+    "No apply samples yet": "Nenhuma amostra de aplicação ainda"
   },
   "fr": {
     "Quality receipts": "Reçus de qualité",
@@ -81,7 +91,12 @@
     "Mutation performance": "Performance des mutations",
     "Reset performance metrics": "Réinitialiser les métriques de performance",
     "Audience coverage": "Couverture d’audience",
-    "Mutation timing stays local and stores only feature ids and bounded durations.": "Le minutage des mutations reste local et ne conserve que les identifiants de fonctions et des durées limitées."
+    "Mutation timing stays local and stores only feature ids and bounded durations.": "Le minutage des mutations reste local et ne conserve que les identifiants de fonctions et des durées limitées.",
+    "{feature}: {count} runs · {total} ms total · {max} ms max · {full} full / {incremental} incremental": "{feature} : {count} exécutions · {total} ms au total · {max} ms au maximum · {full} complètes / {incremental} incrémentales",
+    "{observed} long frames · {correlated} correlated": "{observed} longues animations · {correlated} corrélées",
+    "{count} features": "{count} fonctions",
+    "Long Animation Frame unavailable": "Long Animation Frame indisponible",
+    "No apply samples yet": "Aucun échantillon d’application"
   },
   "de": {
     "Quality receipts": "Qualitätsnachweise",
@@ -109,7 +124,12 @@
     "Mutation performance": "Mutationsleistung",
     "Reset performance metrics": "Leistungsmetriken zurücksetzen",
     "Audience coverage": "Zielgruppenabdeckung",
-    "Mutation timing stays local and stores only feature ids and bounded durations.": "Die Mutationszeit bleibt lokal und speichert nur Funktions-IDs und begrenzte Dauern."
+    "Mutation timing stays local and stores only feature ids and bounded durations.": "Die Mutationszeit bleibt lokal und speichert nur Funktions-IDs und begrenzte Dauern.",
+    "{feature}: {count} runs · {total} ms total · {max} ms max · {full} full / {incremental} incremental": "{feature}: {count} Aufrufe · {total} ms insgesamt · {max} ms maximal · {full} vollständig / {incremental} inkrementell",
+    "{observed} long frames · {correlated} correlated": "{observed} lange Frames · {correlated} korreliert",
+    "{count} features": "{count} Funktionen",
+    "Long Animation Frame unavailable": "Long Animation Frame nicht verfügbar",
+    "No apply samples yet": "Noch keine Apply-Messungen"
   },
   "ja": {
     "Quality receipts": "品質レシート",
@@ -137,7 +157,12 @@
     "Mutation performance": "ミューテーションの性能",
     "Reset performance metrics": "パフォーマンス指標をリセット",
     "Audience coverage": "オーディエンスの対象範囲",
-    "Mutation timing stays local and stores only feature ids and bounded durations.": "ミューテーションの計測はローカルに留まり、機能 ID と上限付きの時間だけを保存します。"
+    "Mutation timing stays local and stores only feature ids and bounded durations.": "ミューテーションの計測はローカルに留まり、機能 ID と上限付きの時間だけを保存します。",
+    "{feature}: {count} runs · {total} ms total · {max} ms max · {full} full / {incremental} incremental": "{feature}: {count} 回 · 合計 {total} ms · 最大 {max} ms · 完全 {full} / 増分 {incremental}",
+    "{observed} long frames · {correlated} correlated": "{observed} 件の長いフレーム · 相関 {correlated} 件",
+    "{count} features": "{count} 件の機能",
+    "Long Animation Frame unavailable": "Long Animation Frame は利用できません",
+    "No apply samples yet": "適用サンプルはまだありません"
   },
   "ko": {
     "Quality receipts": "품질 영수증",
@@ -165,7 +190,12 @@
     "Mutation performance": "변경 성능",
     "Reset performance metrics": "성능 지표 초기화",
     "Audience coverage": "대상 범위",
-    "Mutation timing stays local and stores only feature ids and bounded durations.": "변경 측정은 로컬에 머물며 기능 ID와 제한된 시간만 저장합니다."
+    "Mutation timing stays local and stores only feature ids and bounded durations.": "변경 측정은 로컬에 머물며 기능 ID와 제한된 시간만 저장합니다.",
+    "{feature}: {count} runs · {total} ms total · {max} ms max · {full} full / {incremental} incremental": "{feature}: {count}회 · 총 {total}ms · 최대 {max}ms · 전체 {full} / 증분 {incremental}",
+    "{observed} long frames · {correlated} correlated": "{observed}개의 긴 프레임 · 상관됨 {correlated}개",
+    "{count} features": "기능 {count}개",
+    "Long Animation Frame unavailable": "Long Animation Frame을 사용할 수 없음",
+    "No apply samples yet": "아직 적용 샘플 없음"
   },
   "ar": {
     "Quality receipts": "إيصالات الجودة",
@@ -193,7 +223,12 @@
     "Mutation performance": "أداء التغييرات",
     "Reset performance metrics": "إعادة ضبط مقاييس الأداء",
     "Audience coverage": "تغطية الجمهور",
-    "Mutation timing stays local and stores only feature ids and bounded durations.": "يبقى توقيت التغييرات محليًا ولا يخزن إلا معرّفات الميزات ومددًا محدودة."
+    "Mutation timing stays local and stores only feature ids and bounded durations.": "يبقى توقيت التغييرات محليًا ولا يخزن إلا معرّفات الميزات ومددًا محدودة.",
+    "{feature}: {count} runs · {total} ms total · {max} ms max · {full} full / {incremental} incremental": "{feature}: ‏{count} تشغيلات · إجمالي {total} مللي ثانية · الحد الأقصى {max} مللي ثانية · كاملة {full} / تزايدية {incremental}",
+    "{observed} long frames · {correlated} correlated": "{observed} إطارات طويلة · مترابطة {correlated}",
+    "{count} features": "{count} ميزات",
+    "Long Animation Frame unavailable": "Long Animation Frame غير متاح",
+    "No apply samples yet": "لا توجد عينات تطبيق بعد"
   },
   "he": {
     "Quality receipts": "אישורי איכות",
@@ -221,6 +256,11 @@
     "Mutation performance": "ביצועי שינויים",
     "Reset performance metrics": "איפוס מדדי ביצועים",
     "Audience coverage": "כיסוי קהל",
-    "Mutation timing stays local and stores only feature ids and bounded durations.": "מדידת השינויים נשארת מקומית ושומרת רק מזהי תכונות ומשך מוגבל."
+    "Mutation timing stays local and stores only feature ids and bounded durations.": "מדידת השינויים נשארת מקומית ושומרת רק מזהי תכונות ומשך מוגבל.",
+    "{feature}: {count} runs · {total} ms total · {max} ms max · {full} full / {incremental} incremental": "{feature}: ‏{count} הרצות · סה״כ {total} מ״ש · מקסימום {max} מ״ש · מלאות {full} / מצטברות {incremental}",
+    "{observed} long frames · {correlated} correlated": "{observed} פריימים ארוכים · במתאם {correlated}",
+    "{count} features": "{count} תכונות",
+    "Long Animation Frame unavailable": "Long Animation Frame אינו זמין",
+    "No apply samples yet": "עדיין אין דגימות החלה"
   }
 }

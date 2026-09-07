@@ -130,7 +130,7 @@ test("timing rings remain bounded and reset immediately", async () => {
 });
 
 test("20-run fixed registry benchmark stays within the instrumentation allowance", async () => {
-  const { FeatureRegistry } = await importSourceModule("src/features/registry.ts");
+  const { FeatureRegistry } = await importSourceModule("src/features/registry.ts", { fresh: true });
   const feature = {
     id: "test.benchmark",
     title: "Benchmark",
@@ -144,27 +144,26 @@ test("20-run fixed registry benchmark stays within the instrumentation allowance
     }
   };
   const ctx = context();
-  const baseline = [];
-  for (let run = 0; run < 20; run += 1) {
-    const started = performance.now();
-    await feature.apply(ctx, {});
-    baseline.push(performance.now() - started);
-  }
-  const registry = new FeatureRegistry();
-  registry.register(feature);
-  await registry.initAll(ctx);
-  const enabled = [];
-  for (let run = 0; run < 20; run += 1) {
-    const started = performance.now();
-    await registry.applyAll(ctx, {});
-    enabled.push(performance.now() - started);
-  }
+  const runRegistry = async (instrumentation) => {
+    const registry = new FeatureRegistry({ instrumentation });
+    registry.register(feature);
+    await registry.initAll(ctx);
+    const samples = [];
+    for (let run = 0; run < 20; run += 1) {
+      const started = performance.now();
+      await registry.applyAll(ctx, {});
+      samples.push(performance.now() - started);
+    }
+    return samples;
+  };
+  const disabled = await runRegistry(false);
+  const enabled = await runRegistry(true);
   const median = (values) => [...values].sort((left, right) => left - right)[Math.floor(values.length / 2)];
-  const baselineMedian = median(baseline);
+  const disabledMedian = median(disabled);
   const enabledMedian = median(enabled);
-  const allowance = Math.max(baselineMedian * 0.05, 0.25);
+  const allowance = Math.max(disabledMedian * 0.05, 0.25);
   assert.ok(
-    enabledMedian - baselineMedian <= allowance,
-    `enabled median ${enabledMedian.toFixed(3)} ms vs disabled ${baselineMedian.toFixed(3)} ms exceeds ${allowance.toFixed(3)} ms allowance`
+    enabledMedian - disabledMedian <= allowance,
+    `enabled median ${enabledMedian.toFixed(3)} ms vs disabled ${disabledMedian.toFixed(3)} ms exceeds ${allowance.toFixed(3)} ms allowance`
   );
 });
