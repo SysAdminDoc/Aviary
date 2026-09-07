@@ -7,6 +7,11 @@ import {
   type ExtensionAdRuleApi
 } from "../extension/ad-rule.ts";
 import {
+  isBackgroundDiagnosticsRequest,
+  readBackgroundDiagnostics,
+  recordBackgroundDiagnostic
+} from "../extension/background-diagnostics.ts";
+import {
   DOWNLOAD_STATE_MESSAGE,
   isDownloadQueryMessage,
   type DownloadQueryResponse
@@ -44,6 +49,15 @@ const DOWNLOAD_TRACKING_LIMIT = 64;
 const DOWNLOAD_TERMINAL_LIMIT = 64;
 /** One reconciliation per worker lifetime is enough; a failed pass may be retried by a lifecycle event. */
 let sessionReconciliation: Promise<void> | null = null;
+type BackgroundTaskCode =
+  | "session-reconcile"
+  | "context-menu-install"
+  | "context-menu-startup"
+  | "tab-close"
+  | "tab-navigation"
+  | "context-menu-download"
+  | "download-completion"
+  | "download-fallback";
 
 /**
  * A download the browser accepted but has not finished.
@@ -85,25 +99,25 @@ let trackingStoreTail: Promise<void> = Promise.resolve();
 /** Returned to the content script when `downloads` has not been granted yet. */
 export const DOWNLOAD_PERMISSION_CODE = "downloads-permission-missing";
 
-runtime?.onInstalled?.addListener((details) => {
+runtime?.onInstalled?.addListener(() => {
   // The old build owned one extension-global dynamic rule. Remove it on both install and update;
   // the first content script in each X tab installs its own session rule after resolving profile
   // settings. Session rules cannot be restored from a global preference without recreating the
   // very cross-tab race this migration fixes.
-  scheduleSessionReconciliation(`install/update (${details?.reason ?? "unknown"})`);
-  settleBackgroundTask(installMediaContextMenu(), "context-menu install/update");
+  scheduleSessionReconciliation("session-reconcile");
+  settleBackgroundTask(installMediaContextMenu(), "context-menu-install");
 });
 
 runtime?.onStartup?.addListener(() => {
   // Session rules are not carried across browser sessions. Pruning still matters for a worker
   // restart, where session rules survive while a tab may have closed before the worker woke.
-  scheduleSessionReconciliation("startup");
-  settleBackgroundTask(installMediaContextMenu(), "context-menu startup");
+  scheduleSessionReconciliation("session-reconcile");
+  settleBackgroundTask(installMediaContextMenu(), "context-menu-startup");
 });
 
 tabs?.onRemoved?.addListener((tabId) => {
   if (extensionApi) {
-    settleBackgroundTask(clearSessionAdRule(extensionApi, tabId), "tab close");
+    settleBackgroundTask(clearSessionAdRule(extensionApi, tabId), "tab-close");
   }
 });
 
@@ -117,12 +131,12 @@ tabs?.onUpdated?.addListener((tabId, changeInfo) => {
   ) {
     return;
   }
-  settleBackgroundTask(clearSessionAdRule(extensionApi, tabId), "tab navigation");
+  settleBackgroundTask(clearSessionAdRule(extensionApi, tabId), "tab-navigation");
 });
 
 // No popup: the toolbar button opens the durable permission-management surface. The native media
 // context-menu action can also request download access from its own explicit user gesture.
-scheduleSessionReconciliation("worker start");
+scheduleSessionReconciliation("session-reconcile");
 
 globalThis.chrome?.action?.onClicked?.addListener(() => {
   void openOptions();
@@ -153,7 +167,7 @@ contextMenus?.onClicked?.addListener((info, tab) => {
         granted ? MEDIA_CONTEXT_DOWNLOAD_MESSAGE : MEDIA_CONTEXT_PERMISSION_DENIED_MESSAGE
       )
     ),
-    "context-menu download"
+    "context-menu-download"
   );
 });
 
@@ -161,12 +175,12 @@ globalThis.chrome?.downloads?.onChanged?.addListener((delta) => {
   if (delta.state?.current === "complete") {
     settleBackgroundTask(
       settleDownloadOnce(delta.id, () => finishDownload(delta.id, "complete")),
-      "download completion"
+      "download-completion"
     );
   } else if (delta.state?.current === "interrupted") {
     settleBackgroundTask(
       settleDownloadOnce(delta.id, () => retryDownloadFallback(delta.id, delta.error?.current)),
-      "download fallback"
+      "download-fallback"
     );
   }
 });
@@ -188,6 +202,13 @@ runtime?.onMessage?.addListener((message, sender, sendResponse) => {
     handleDurableStorageRequest(message, durableStorageBackend, storageFenceAuthority).then(
       (response) => sendResponse(response),
       (error: unknown) => sendResponse({ ok: false, error: errorMessage(error) })
+    );
+    return true;
+  }
+  if (isBackgroundDiagnosticsRequest(message)) {
+    readBackgroundDiagnostics(durableStorageBackend).then(
+      (events) => sendResponse({ ok: true, events }),
+      () => sendResponse({ ok: false, events: [], error: "Background diagnostics are unavailable" })
     );
     return true;
   }
@@ -263,7 +284,7 @@ async function reconcileSessionRules(): Promise<void> {
   await pruneSessionAdRules(extensionApi, liveTabIds);
 }
 
-function scheduleSessionReconciliation(lifecycle: string): void {
+function scheduleSessionReconciliation(lifecycle: BackgroundTaskCode): void {
   if (sessionReconciliation) {
     return;
   }
@@ -912,8 +933,9 @@ function errorMessage(error: unknown): string {
   return String(error);
 }
 
-function settleBackgroundTask(task: Promise<unknown>, lifecycle: string): void {
+function settleBackgroundTask(task: Promise<unknown>, lifecycle: BackgroundTaskCode): void {
   void task.catch((error: unknown) => {
+    recordBackgroundDiagnostic(durableStorageBackend, lifecycle);
     console.warn(`Aviary background task failed during ${lifecycle}: ${errorMessage(error)}`);
   });
 }

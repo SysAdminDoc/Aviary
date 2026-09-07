@@ -49,7 +49,7 @@ signal; its private-mode persistence follows the manager and is reported as unkn
 
 ## Data stored locally
 
-The logical keys below are stored in the active profile. The extension owns one IndexedDB database,
+The logical keys below are stored in the active profile unless noted. The extension owns one IndexedDB database,
 `aviary.durable.v1`, in its background origin. Content scripts and options use a typed extension
 message API and cannot open that active database from X. On upgrade, the content script reads only
 the old X-origin database, sends each value with a SHA-256 receipt, checks the background readback,
@@ -89,7 +89,8 @@ restore and journal authority.
 | `aviary.readingMarkers.v1` | One last-read X post id and local update time per feed surface | Show a local new-post separator, advance it after an upward viewport exit or explicit action, and include it in library backups. No post text or unread badge. |
 | `aviary.catchUp.v1` | Bounded copies of rendered post text, account, permalink, media references, filter reason, and basic counts | Power the local Catch-up digest; capped at 4,000 rows and 30 days; **Forget seen posts** removes them. |
 | `aviary.adObservations.v1` | Which ad markers were present on a route, as counts, no post content | Notice when X changes its ad markup; bounded to 64 entries and 30 days. |
-| `aviary.diagnostics.v1` | Aviary's own warning and error text, the time, and the *names* of a message's detail fields, never their values | Let a failure from an earlier page load still be reportable; bounded to 50 entries and 7 days; clearable from Trust. |
+| `aviary.diagnostics.v1` | Stable authored message id, severity, ISO time, and detail-key names only | Let a failure from an earlier page load still be reportable; bounded to 50 entries and 7 days; clearable from Trust. Legacy message and reason values are removed on migration. |
+| `aviary.background.diagnostics.v1` | Bounded background operation code, severity, and ISO time only | Keep worker failures reportable after suspension or restart; bounded to 64 entries and never includes URLs, filenames, provider text, or exception strings. |
 | `aviary.firstRun.v1` | A single flag recording that the first-run notice was dismissed | Stop showing the notice again on this profile. |
 | `aviary.media.history.v1` | Bounded media dedup records and short-lived hashed in-flight claims | Avoid duplicate downloads across tabs; failed claims expire or are removed, and **Clear download history** removes all of them. The date-range JSON and CSV export contains hashes and timestamps only, never source media URLs. |
 | `aviary.media.queue.v1` | Queued, paused, failed, opened, and completed media jobs. A job can include X media URLs, fallback URLs, a filename, media kind/id, a browser download id, and an opted-in sidecar request with bounded post text, account, post id, permalink, and queue time. | Resume/retry media work and create the sidecar only after a confirmed save; completed history is separately clearable. |
@@ -118,8 +119,12 @@ error, and timestamp for a fallback that finishes under a different browser id. 
 included in profiles or library backups.
 
 Selector health and other transient DOM diagnostics are in memory unless an action is explicitly
-written to the audit log. Imported media bytes are not retained after a completed archive import;
-resumable import state may retain the local source while the job is unfinished.
+written to the audit log. Persisted page diagnostics contain only stable message ids, severity,
+ISO time, and detail-key names. The background ring contains only operation codes, severity, and
+time. **Copy diagnostics** in the Control Center or Options page merges those redacted records and
+never copies URLs, filenames, provider text, exception strings, or credentials. Imported media
+bytes are not retained after a completed archive import; resumable import state may retain the
+local source while the job is unfinished.
 
 ## Data not stored
 

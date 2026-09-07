@@ -141,6 +141,10 @@ Provider calls, when you've enabled one, show you the destination, the fields, a
 retention notice and your remaining budget before any work begins. Per-request and daily byte limits
 stop a call before it leaves the browser.
 
+Support diagnostics are copied only when you ask. The report keeps stable event ids, severity,
+timestamps, operation codes, and detail-key names, while leaving out URLs, filenames, provider
+text, exception strings, and credentials.
+
 One thing Aviary deliberately does not offer is local encryption. Its data sits in the same browser
 profile as X's own session cookie, auth token and cached media, none of which Aviary can encrypt and
 all of which matter more than its copy. Use full-disk encryption instead, which covers the lot.

@@ -248,7 +248,8 @@ The Control Center "Export" section exposes:
   script and only activates a remote media URL after an explicit link click.
 - **Rebuild captured threads**, reads every locally captured post in parent-first order and downloads
   a ZIP with the reconstructed JSON and viewer. It never asks X for a missing reply.
-- "Copy diagnostics", copies the Aviary diagnostic log (version, route, recent events) to the clipboard.
+- "Copy diagnostics", copies a merged redacted report from the page and background worker. It
+  contains stable event ids, severity, timestamps, operation codes, and detail-key names only.
 - **Preservation archive** keeps WARC and WACZ together. WARC is the raw record stream. WACZ 1.1.1
   adds a byte-sorted CDXJ index, a page list, and checksummed package metadata for direct use in
   [replayweb.page](https://replayweb.page/). The panel shows the expected WACZ size before download

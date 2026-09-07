@@ -3549,6 +3549,81 @@ ${body}
   // src/platform/build-version.ts
   var AVIARY_VERSION = false ? "dev" : "1.47.2";
 
+  // src/platform/diagnostics.ts
+  var UNKNOWN_DIAGNOSTIC_MESSAGE_ID = "diagnostic.unknown";
+  var Diagnostics = class {
+    #events = [];
+    #sink;
+    /**
+     * Mirror events to a persistent store. The sink runs inside `push`, so it must not throw and
+     * must not await: every caller of `info`/`warn`/`error` is on a feature's hot path.
+     */
+    setSink(sink) {
+      this.#sink = sink;
+    }
+    info(message, details) {
+      this.push("info", message, details);
+    }
+    warn(message, details) {
+      this.push("warn", message, details);
+    }
+    error(message, details) {
+      this.push("error", message, details);
+    }
+    snapshot() {
+      return [...this.#events];
+    }
+    push(level, message, details) {
+      const event = {
+        level,
+        message,
+        at: (/* @__PURE__ */ new Date()).toISOString(),
+        messageId: diagnosticMessageId(message),
+        ...details ? { details } : {}
+      };
+      this.#events.push(event);
+      if (this.#events.length > 200) {
+        this.#events.shift();
+      }
+      try {
+        this.#sink?.(event);
+      } catch {
+      }
+    }
+  };
+  function diagnosticMessageId(message) {
+    const source = message.trim();
+    if (!source) {
+      return UNKNOWN_DIAGNOSTIC_MESSAGE_ID;
+    }
+    let hash = 2166136261;
+    for (let index = 0; index < source.length; index += 1) {
+      hash ^= source.charCodeAt(index);
+      hash = Math.imul(hash, 16777619);
+    }
+    return `diagnostic.${(hash >>> 0).toString(16).padStart(8, "0")}`;
+  }
+  function safeDetailKeys(details) {
+    return Object.keys(details ?? {}).slice(0, 12).map((key) => /^[A-Za-z][A-Za-z0-9_.-]{0,63}$/.test(key) ? key : "unknown");
+  }
+  function redactDiagnosticEvent(event) {
+    return {
+      level: event.level,
+      at: safeDiagnosticTimestamp(event.at),
+      messageId: isSafeDiagnosticMessageId(event.messageId) ? event.messageId : diagnosticMessageId(event.message),
+      detailKeys: safeDetailKeys(event.details)
+    };
+  }
+  function isSafeDiagnosticTimestamp(value) {
+    return typeof value === "string" && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(value) && Number.isFinite(Date.parse(value));
+  }
+  function safeDiagnosticTimestamp(value) {
+    return isSafeDiagnosticTimestamp(value) ? value : (/* @__PURE__ */ new Date()).toISOString();
+  }
+  function isSafeDiagnosticMessageId(value) {
+    return typeof value === "string" && /^(?:diagnostic|background)\.[a-z0-9][a-z0-9._-]{0,95}$/.test(value);
+  }
+
   // src/ui/control-center/constants.ts
   var MEDIA_LAYOUT_OPTIONS = [
     ["default", "Default grid"],
@@ -32344,12 +32419,11 @@ ${COLOR_CSS}`;
     }
   }
   function buildDiagnosticsPayload(ctx) {
-    const events = ctx.diagnostics.snapshot();
+    const events = ctx.diagnostics.snapshot().map(redactDiagnosticEvent);
     const payload = {
       generator: "Aviary",
       generatedAt: (/* @__PURE__ */ new Date()).toISOString(),
       surface: ctx.route.surface,
-      href: ctx.route.href,
       locale: ctx.settings.i18n.locale,
       userAgent: globalThis.navigator?.userAgent ?? "unknown",
       // One content-free line naming the feature the bisect landed on, so a report carries the
@@ -33637,17 +33711,15 @@ ${text}`
                   provider: ctx.settings.integrations.ai.provider
                 });
                 showFeatureToast(`${ft(ctx, command.label)}: ${ft(ctx, "result copied to the clipboard.")}`, { ctx });
-              } catch (error) {
-                ctx.diagnostics.warn("AI result clipboard failed", {
-                  error: String(error?.message ?? error)
-                });
+              } catch {
+                ctx.diagnostics.warn("AI result clipboard failed");
                 showFeatureToast(ft(ctx, "The result could not be copied. Your browser blocked clipboard access."), {
                   tone: "error",
                   ctx
                 });
               }
             } else {
-              ctx.diagnostics.warn("AI provider call failed", { error: result.error ?? "unknown" });
+              ctx.diagnostics.warn("AI provider call failed");
               showFeatureToast(
                 `${ft(ctx, command.label)}: ${result.error ?? ft(ctx, "the provider did not respond")}. ${ft(ctx, "Check the key and model in Integrations.")}`,
                 { tone: "error", ctx }
@@ -33655,7 +33727,7 @@ ${text}`
             }
           } catch (error) {
             const message = String(error?.message ?? error);
-            ctx.diagnostics.warn("AI provider call failed", { error: message });
+            ctx.diagnostics.warn("AI provider call failed");
             showFeatureToast(`${ft(ctx, command.label)}: ${message}`, { tone: "error", ctx });
           } finally {
             item.disabled = false;
@@ -33668,10 +33740,8 @@ ${text}`
             ctx.diagnostics.info("AI prompt copied", { command: command.id, length: prompt.length });
             void ctx.auditLog.record("diagnostics.copy", { kind: "ai", command: command.id });
             showFeatureToast(ft(ctx, "Prompt copied to the clipboard. Paste it into your assistant."), { ctx });
-          } catch (error) {
-            ctx.diagnostics.warn("AI prompt clipboard failed", {
-              error: String(error?.message ?? error)
-            });
+          } catch {
+            ctx.diagnostics.warn("AI prompt clipboard failed");
             showFeatureToast(ft(ctx, "The prompt could not be copied. Your browser blocked clipboard access."), {
               tone: "error",
               ctx
@@ -36785,109 +36855,67 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     };
   }
 
-  // src/platform/diagnostics.ts
-  var Diagnostics = class {
-    #events = [];
-    #sink;
-    /**
-     * Mirror events to a persistent store. The sink runs inside `push`, so it must not throw and
-     * must not await: every caller of `info`/`warn`/`error` is on a feature's hot path.
-     */
-    setSink(sink) {
-      this.#sink = sink;
-    }
-    info(message, details) {
-      this.push("info", message, details);
-    }
-    warn(message, details) {
-      this.push("warn", message, details);
-    }
-    error(message, details) {
-      this.push("error", message, details);
-    }
-    snapshot() {
-      return [...this.#events];
-    }
-    push(level, message, details) {
-      const event = {
-        level,
-        message,
-        at: (/* @__PURE__ */ new Date()).toISOString(),
-        ...details ? { details } : {}
-      };
-      this.#events.push(event);
-      if (this.#events.length > 200) {
-        this.#events.shift();
-      }
-      try {
-        this.#sink?.(event);
-      } catch {
-      }
-    }
-  };
-
   // src/platform/diagnostics-store.ts
   var DIAGNOSTICS_KEY = "aviary.diagnostics.v1";
+  var DIAGNOSTICS_SCHEMA_VERSION = 2;
   var DIAGNOSTICS_LIMIT = 50;
   var DIAGNOSTICS_RETENTION_MS = 7 * 24 * 60 * 60 * 1e3;
-  var MAX_REASON_LENGTH = 200;
   function isPersistedLevel(level) {
     return level === "warn" || level === "error";
+  }
+  function safeDetailKeys2(details) {
+    return Array.isArray(details) ? details.slice(0, 12).map((key) => typeof key === "string" && /^[A-Za-z][A-Za-z0-9_.-]{0,63}$/.test(key) ? key : "unknown") : [];
   }
   function redactDiagnostic(event) {
     if (!isPersistedLevel(event.level)) {
       return null;
     }
-    const details = event.details ?? {};
-    const detailKeys = Object.keys(details).slice(0, 12);
-    const rawReason = details.message ?? details.error ?? details.reason;
-    const record = {
-      at: event.at,
+    const redacted = redactDiagnosticEvent(event);
+    return {
+      at: redacted.at,
       level: event.level,
-      message: String(event.message).slice(0, MAX_REASON_LENGTH),
-      detailKeys
+      messageId: redacted.messageId,
+      detailKeys: redacted.detailKeys
     };
-    if (typeof rawReason === "string" && rawReason.length > 0) {
-      record.reason = rawReason.slice(0, MAX_REASON_LENGTH);
-    }
-    return record;
   }
   function parse2(raw) {
     if (!raw || typeof raw !== "object") {
-      return [];
+      return { events: [], migrated: raw !== void 0 };
     }
-    const events = raw.events;
+    const candidateEnvelope = raw;
+    const events = candidateEnvelope.events;
     if (!Array.isArray(events)) {
-      return [];
+      return { events: [], migrated: true };
     }
     const cutoff = Date.now() - DIAGNOSTICS_RETENTION_MS;
     const parsed = [];
+    let migrated = candidateEnvelope.version !== DIAGNOSTICS_SCHEMA_VERSION;
     for (const entry of events) {
       if (!entry || typeof entry !== "object") {
+        migrated = true;
         continue;
       }
       const candidate = entry;
-      const at = typeof candidate.at === "string" ? candidate.at : null;
+      const at = isSafeDiagnosticTimestamp(candidate.at) ? candidate.at : null;
       const level = candidate.level === "warn" || candidate.level === "error" ? candidate.level : null;
-      if (!at || !level || typeof candidate.message !== "string") {
+      if (!at || !level) {
+        migrated = true;
         continue;
       }
       const timestamp = Date.parse(at);
       if (Number.isFinite(timestamp) && timestamp < cutoff) {
+        migrated = true;
         continue;
       }
-      const record = {
-        at,
-        level,
-        message: candidate.message.slice(0, MAX_REASON_LENGTH),
-        detailKeys: Array.isArray(candidate.detailKeys) ? candidate.detailKeys.filter((key) => typeof key === "string").slice(0, 12) : []
-      };
-      if (typeof candidate.reason === "string" && candidate.reason.length > 0) {
-        record.reason = candidate.reason.slice(0, MAX_REASON_LENGTH);
+      const legacyMessage = typeof candidate.message === "string" ? candidate.message : "";
+      const messageId = isSafeDiagnosticMessageId(candidate.messageId) ? candidate.messageId : diagnosticMessageId(legacyMessage);
+      const detailKeys = safeDetailKeys2(candidate.detailKeys);
+      if (!isSafeDiagnosticMessageId(candidate.messageId) || "message" in candidate || "reason" in candidate || !Array.isArray(candidate.detailKeys) || detailKeys.some((key, index) => key !== candidate.detailKeys?.[index])) {
+        migrated = true;
       }
-      parsed.push(record);
+      parsed.push({ at, level, messageId, detailKeys });
     }
-    return parsed.slice(-DIAGNOSTICS_LIMIT);
+    return { events: parsed.slice(-DIAGNOSTICS_LIMIT), migrated };
   }
   var DiagnosticsStore = class {
     #storage;
@@ -36901,12 +36929,25 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       if (this.#loaded) {
         return this.snapshot();
       }
+      let parsed;
       try {
-        this.#events = parse2(await this.#storage.get(DIAGNOSTICS_KEY, void 0));
+        parsed = parse2(await this.#storage.get(DIAGNOSTICS_KEY, void 0));
       } catch {
-        this.#events = [];
+        parsed = { events: [], migrated: false };
       }
+      this.#events = parsed.events;
       this.#loaded = true;
+      if (parsed.migrated) {
+        const migration = replaceStored(
+          this.#storage,
+          DIAGNOSTICS_KEY,
+          { version: DIAGNOSTICS_SCHEMA_VERSION, events: this.#events }
+        );
+        this.#tail = migration.then(
+          () => void 0,
+          () => void 0
+        );
+      }
       return this.snapshot();
     }
     snapshot() {
@@ -36935,7 +36976,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
         () => replaceStored(
           this.#storage,
           DIAGNOSTICS_KEY,
-          { version: 1, events: [] }
+          { version: DIAGNOSTICS_SCHEMA_VERSION, events: [] }
         )
       );
       this.#tail = clearWrite.then(
@@ -36954,14 +36995,17 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
         const next = await mutateStored(
           this.#storage,
           DIAGNOSTICS_KEY,
-          { version: 1, events: [] },
+          { version: DIAGNOSTICS_SCHEMA_VERSION, events: [] },
           (stored) => {
-            const events = parse2(stored);
+            const events = parse2(stored).events;
             events.push(record);
-            return { version: 1, events: events.slice(-DIAGNOSTICS_LIMIT) };
+            return {
+              version: DIAGNOSTICS_SCHEMA_VERSION,
+              events: events.slice(-DIAGNOSTICS_LIMIT)
+            };
           }
         );
-        this.#events = next.events;
+        this.#events = parse2(next).events;
       }).then(
         () => void 0,
         () => void 0
@@ -37950,6 +37994,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     "aviary.audit.v1",
     "aviary.firstRun.v1",
     "aviary.diagnostics.v1",
+    "aviary.background.diagnostics.v1",
     "aviary.adObservations.v1",
     "aviary.library.bookmarks.v1",
     "aviary.snapshots.v1",

@@ -10,14 +10,6 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
 
 ### P1, Next
 
-- [ ] F281, P1: Persist diagnostic codes without provider or page values
-  Why: the page diagnostic store retains raw `message`, `error`, or `reason` detail values despite the privacy statement, while background task failures vanish into `console.warn` when the worker is suspended.
-  Evidence: `src/platform/diagnostics-store.ts:36-55`, `src/features/ai/command-menu.ts:257-265`, `src/entrypoints/extension-background.ts:474-477`, `docs/PRIVACY.md:66`; https://developer.chrome.com/docs/extensions/develop/concepts/service-workers/lifecycle
-  Touches: diagnostics types and store, provider call sites, extension background, options readiness UI, privacy tests and migration
-  Acceptance: persisted page records contain authored message IDs, severity, time, and detail-key names only; migration deletes every stored `reason` value; a bounded background ring stores operation code, severity, and time without URLs, filenames, provider text, or exception strings; the options page can copy the merged redacted report after a worker restart; tests use sentinel secrets and prove none reach storage or clipboard.
-  Complexity: M
-  Depends: F273 for one extension-owned diagnostic source.
-
 - [ ] F282, P1: Produce validator-clean CDXJ and WACZ packages
   Why: synthetic HTTPS resources are indexed with `status: "-"`, although CDXJ defines the field as an HTTP response status. Current tests check ordering and offsets but not external conformance or replay.
   Evidence: `src/features/export/warc.ts:103-183`, `src/features/export/wacz.ts:69-134`, `tests/wacz.test.mjs`; https://specs.webrecorder.net/cdxj/0.1.0/; https://specs.webrecorder.net/wacz/1.1.1/
@@ -190,9 +182,9 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
   Why: the OpenAI-compatible path always sends `max_tokens`, which reasoning models reject with `unsupported_parameter`. The user sees `Provider HTTP 400` with no explanation, on a correctly configured account.
   Evidence: `src/features/integrations/ai-provider.ts:114-120`, `:133-135` (the bare HTTP status message); https://developers.openai.com/api/reference/python/resources/chat/subresources/completions/methods/create; https://github.com/simonw/llm/issues/724
   Touches: `src/features/integrations/ai-provider.ts`, `src/features/integrations/usage.ts` (request-size estimate), `src/ui/control-center/sections/advanced.ts` provider copy, `tests/integration-usage.test.mjs`, a new provider-compatibility test
-  Acceptance: a 400 naming an unsupported completion-limit parameter is retried once with the other parameter name and the working choice is remembered per configured endpoint, or the request sends `max_completion_tokens` first and falls back, whichever the fixture matrix shows costs fewer round trips; a provider error body that names a parameter or a model is surfaced to the user as a stated reason instead of a bare status, without persisting the provider text (see F281); the usage ledger charges one reservation for a retried pair, not two; fixtures cover a legacy chat model, a reasoning model, and a self-hosted OpenAI-compatible endpoint that accepts neither name.
+  Acceptance: a 400 naming an unsupported completion-limit parameter is retried once with the other parameter name and the working choice is remembered per configured endpoint, or the request sends `max_completion_tokens` first and falls back, whichever the fixture matrix shows costs fewer round trips; a provider error body that names a parameter or a model is surfaced to the user as a stated reason instead of a bare status, without persisting the provider text under the redacted diagnostic schema; the usage ledger charges one reservation for a retried pair, not two; fixtures cover a legacy chat model, a reasoning model, and a self-hosted OpenAI-compatible endpoint that accepts neither name.
   Complexity: S
-  Depends: F281 for the redaction rule that governs how much of a provider error may be shown and stored.
+  Depends: None. Uses the shipped redacted diagnostic schema for provider failures.
 
 - [ ] F305, P2: Fail preflight on a source export nothing references
   Why: the repository exports deliberately for testability, so an exported declaration does not prove that production, tests, or tools use it; a reference gate can detect abandoned entry points without relying on compiler visibility.
@@ -352,7 +344,7 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
   Touches: feature registry, observer diagnostics, redacted diagnostic store, Advanced performance view, deterministic registry and large-DOM tests
   Acceptance: each apply pass records feature ID, invocation count, total duration, maximum duration, and whether the pass was incremental or full in a bounded local ring; no selector, route URL, post text, handle, or DOM value is stored; Long Animation Frame data is correlated when supported and reported as unavailable otherwise; a reset control clears the aggregate immediately; a synthetic slow feature and a 400-node overflow identify the correct feature and pass type; a 20-run fixed registry benchmark reports enabled and disabled medians, and instrumentation adds no more than 5 percent or 0.25 ms per pass, whichever allowance is larger.
   Complexity: M
-  Depends: F281 for the redacted diagnostic schema.
+  Depends: None. Uses the shipped redacted diagnostic schema.
 
 - [ ] F325, P2: Hide For You independently from opening Following
   Why: users may want the algorithmic tab gone, not merely bypassed once on arrival, and current `forceFollowing` deliberately leaves a manual switch back available.

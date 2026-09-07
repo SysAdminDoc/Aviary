@@ -18,7 +18,7 @@ before(async () => {
   // One bundle: the store and Diagnostics must share module state, not two esbuild copies.
   await writeFile(
     entry,
-    `export { Diagnostics } from ${JSON.stringify(abs("src/platform/diagnostics.ts"))};
+    `export * from ${JSON.stringify(abs("src/platform/diagnostics.ts"))};
 export * from ${JSON.stringify(abs("src/platform/diagnostics-store.ts"))};`,
     "utf8"
   );
@@ -77,7 +77,9 @@ test("only warnings and errors persist; info would evict the failures beside it"
     saved.map((entry) => entry.level),
     ["warn", "error"]
   );
-  assert.equal(saved[1].reason, "boom");
+  assert.match(saved[1].messageId, /^diagnostic\.[a-f0-9]{8}$/);
+  assert.equal("message" in saved[1], false);
+  assert.equal("reason" in saved[1], false);
 });
 
 test("detail values never reach storage, only their key names", async () => {
@@ -104,20 +106,23 @@ test("detail values never reach storage, only their key names", async () => {
   assert.deepEqual(store.snapshot()[0].detailKeys, ["handle", "url", "postText"]);
 });
 
-test("a reason string is truncated rather than stored whole", async () => {
+test("message text and detail values never reach the persisted shape", async () => {
   const storage = memoryStorage();
   const store = new mod.DiagnosticsStore(storage);
   await store.load();
   store.record({
     level: "error",
     at: new Date().toISOString(),
-    message: "x".repeat(500),
-    details: { message: "y".repeat(500) }
+    message: "SECRET-EXCEPTION https://x.com/private/status/123",
+    details: { message: "SECRET-DETAIL", filename: "private-video.mp4" }
   });
   await store.flush();
+  const persisted = JSON.stringify(storage.peek(mod.DIAGNOSTICS_KEY));
+  for (const secret of ["SECRET-EXCEPTION", "private/status/123", "SECRET-DETAIL", "private-video.mp4"]) {
+    assert.equal(persisted.includes(secret), false, `persisted diagnostics leaked ${secret}`);
+  }
   const [entry] = store.snapshot();
-  assert.equal(entry.message.length, 200);
-  assert.equal(entry.reason.length, 200);
+  assert.deepEqual(Object.keys(entry).sort(), ["at", "detailKeys", "level", "messageId"]);
 });
 
 test("the ring is bounded and keeps the newest entries", async () => {
@@ -130,25 +135,32 @@ test("the ring is bounded and keeps the newest entries", async () => {
   await store.flush();
   const saved = store.snapshot();
   assert.equal(saved.length, mod.DIAGNOSTICS_LIMIT);
-  assert.equal(saved.at(-1).message, `warning ${mod.DIAGNOSTICS_LIMIT + 24}`);
+  assert.equal(saved.at(-1).messageId, mod.diagnosticMessageId(`warning ${mod.DIAGNOSTICS_LIMIT + 24}`));
 });
 
-test("stored warnings survive a reload and expired ones are dropped", async () => {
+test("legacy stored messages migrate to ids and expired ones are dropped", async () => {
   const fresh = new Date().toISOString();
   const stale = new Date(Date.now() - mod.DIAGNOSTICS_RETENTION_MS - 60_000).toISOString();
   const storage = memoryStorage({
     version: 1,
     events: [
-      { at: stale, level: "error", message: "old failure", detailKeys: [] },
-      { at: fresh, level: "warn", message: "recent warning", detailKeys: [] }
+      { at: stale, level: "error", message: "SECRET-OLD", reason: "SECRET-REASON", detailKeys: [] },
+      { at: fresh, level: "warn", message: "recent warning", reason: "SECRET-REASON", detailKeys: ["url"] }
     ]
   });
   const store = new mod.DiagnosticsStore(storage);
   const loaded = await store.load();
+  await store.flush();
   assert.deepEqual(
-    loaded.map((entry) => entry.message),
-    ["recent warning"]
+    loaded.map((entry) => entry.messageId),
+    [mod.diagnosticMessageId("recent warning")]
   );
+  const migrated = JSON.stringify(storage.peek(mod.DIAGNOSTICS_KEY));
+  assert.equal(migrated.includes("SECRET-OLD"), false);
+  assert.equal(migrated.includes("SECRET-REASON"), false);
+  assert.equal(migrated.includes('"message"'), false);
+  assert.equal(migrated.includes('"reason"'), false);
+  assert.equal(storage.peek(mod.DIAGNOSTICS_KEY).version, mod.DIAGNOSTICS_SCHEMA_VERSION);
 });
 
 test("a malformed payload degrades to empty rather than throwing", async () => {
@@ -184,5 +196,5 @@ test("clearing forgets everything and writes the empty ring", async () => {
   await store.flush();
   await store.clear();
   assert.deepEqual(store.snapshot(), []);
-  assert.deepEqual(storage.peek(mod.DIAGNOSTICS_KEY), { version: 1, events: [] });
+  assert.deepEqual(storage.peek(mod.DIAGNOSTICS_KEY), { version: mod.DIAGNOSTICS_SCHEMA_VERSION, events: [] });
 });

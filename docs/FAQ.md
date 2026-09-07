@@ -59,8 +59,9 @@ hosts. Review the generated userscript metadata before installing it.
 1. Open the Control Center and check **Selector health**.
 2. If App root or Primary column is degraded, X may have changed a surface selector. Aviary uses
    stable test ids first and fallbacks second, so most regressions are visual rather than fatal.
-3. Use **Copy diagnostics** and attach the JSON to a bug report. It contains route/version and
-   recent diagnostic events, not cookies, auth headers, or API keys.
+3. Use **Copy diagnostics** and attach the JSON to a bug report. It contains stable event ids,
+   severity, timestamps, operation codes, and detail-key names, not URLs, filenames, provider or
+   exception text, cookies, auth headers, or API keys.
 
 ## Why are there no keyboard shortcuts?
 

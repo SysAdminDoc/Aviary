@@ -4,9 +4,14 @@
  * A content-script click cannot request extension permissions directly. This page is the durable
  * management surface: it reports what is granted and lets the user grant or revoke each optional
  * permission. The native media context-menu click can request download access inline as a second
- * browser-owned gesture. No network calls, no storage writes.
+ * browser-owned gesture. No network calls. Diagnostics are read locally and copied only on click.
  */
 
+import {
+  BACKGROUND_DIAGNOSTICS_MESSAGE,
+  parseBackgroundDiagnostics
+} from "../extension/background-diagnostics.ts";
+import { DIAGNOSTICS_KEY, parseStoredDiagnostics } from "../platform/diagnostics-store.ts";
 import { createStorageGateway } from "../platform/storage.ts";
 import { createDurableStorageGateway } from "../platform/durable-storage.ts";
 import { ACTIVE_PROFILE_KEY, DEFAULT_PROFILE_ID, createProfileStorageGateway } from "../platform/profile.ts";
@@ -47,20 +52,65 @@ const RTL_LOCALES = new Set(["ar", "he"]);
  */
 async function readLocale(): Promise<string> {
   try {
-    const backend = createExtensionDurableStorageBackend();
-    if (!backend) throw new Error("Extension durable storage is unavailable");
-    const durable = createDurableStorageGateway(
-      createStorageGateway("aviary", { mode: "extension" }),
-      { backend }
-    );
-    const activeId = await durable.get<string | null>(ACTIVE_PROFILE_KEY, null);
-    const scoped = createProfileStorageGateway(durable, activeId ?? DEFAULT_PROFILE_ID);
+    const scoped = await activeProfileStorage();
     const settings = await scoped.get<{ i18n?: { locale?: unknown } } | null>(SETTINGS_KEY, null);
     const code = settings?.i18n?.locale;
     return typeof code === "string" && code.length > 0 ? code : "en";
   } catch {
     return "en";
   }
+}
+
+async function activeProfileStorage() {
+  const backend = createExtensionDurableStorageBackend();
+  if (!backend) throw new Error("Extension durable storage is unavailable");
+  const durable = createDurableStorageGateway(
+    createStorageGateway("aviary", { mode: "extension" }),
+    { backend }
+  );
+  const activeId = await durable.get<string | null>(ACTIVE_PROFILE_KEY, null);
+  return createProfileStorageGateway(durable, activeId ?? DEFAULT_PROFILE_ID);
+}
+
+async function readPersistedDiagnostics(): Promise<ReturnType<typeof parseStoredDiagnostics>> {
+  try {
+    const scoped = await activeProfileStorage();
+    return parseStoredDiagnostics(await scoped.get<unknown>(DIAGNOSTICS_KEY, undefined));
+  } catch {
+    return [];
+  }
+}
+
+async function readWorkerDiagnostics(): Promise<ReturnType<typeof parseBackgroundDiagnostics>> {
+  try {
+    const response = await globalThis.chrome?.runtime?.sendMessage?.({
+      type: BACKGROUND_DIAGNOSTICS_MESSAGE,
+      operation: "read"
+    });
+    if (!response || typeof response !== "object") return [];
+    return parseBackgroundDiagnostics({
+      version: 1,
+      events: (response as { events?: unknown }).events
+    });
+  } catch {
+    return [];
+  }
+}
+
+async function buildDiagnosticsReport(): Promise<string> {
+  const [page, background] = await Promise.all([readPersistedDiagnostics(), readWorkerDiagnostics()]);
+  return JSON.stringify(
+    {
+      generator: "Aviary",
+      generatedAt: new Date().toISOString(),
+      version: globalThis.chrome?.runtime?.getManifest?.()?.version ?? "unknown",
+      surface: "extension-options",
+      events: page,
+      background
+    },
+    null,
+    2
+  );
 }
 
 function applyTranslations(): void {
@@ -119,6 +169,7 @@ function start(): void {
   }
   showVersion();
   wireOpenX();
+  wireDiagnostics();
   for (const card of CARDS) {
     wireCard(card);
   }
@@ -130,6 +181,34 @@ function start(): void {
       void refresh(card);
     }
   });
+}
+
+function wireDiagnostics(): void {
+  document.getElementById("diagnostics-copy")?.addEventListener("click", () => {
+    void copyDiagnostics();
+  });
+}
+
+async function copyDiagnostics(): Promise<void> {
+  const button = document.getElementById("diagnostics-copy") as HTMLButtonElement | null;
+  const status = document.getElementById("diagnostics-status");
+  if (button) button.disabled = true;
+  try {
+    const clipboard = globalThis.navigator?.clipboard;
+    if (!clipboard?.writeText) throw new Error("Clipboard API unavailable");
+    await clipboard.writeText(await buildDiagnosticsReport());
+    if (status) {
+      status.textContent = translate("Diagnostics copied to clipboard.");
+      status.dataset.tone = "success";
+    }
+  } catch {
+    if (status) {
+      status.textContent = translate("Could not copy diagnostics.");
+      status.dataset.tone = "error";
+    }
+  } finally {
+    if (button) button.disabled = false;
+  }
 }
 
 function wireOpenX(): void {

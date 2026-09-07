@@ -190,6 +190,11 @@ test("every durable store key declared in src is registered everywhere it must b
     // Warnings and errors from earlier page loads; bounded, profile-scoped, and about this
     // install rather than about the user's library.
     "aviary.diagnostics.v1": { backup: "install diagnostics, not user data" },
+    // Worker diagnostics live in the extension background and are not profile data or backup data.
+    "aviary.background.diagnostics.v1": {
+      profile: "extension worker ring, not profile data",
+      backup: "worker diagnostics, not user data"
+    },
     // The private WACZ signing key has its own explicit export. Sweeping it into a routine library
     // backup would turn a data backup into an unmarked identity credential.
     "aviary.waczSigning.v1": { backup: "private signing identity, explicitly exported only" }

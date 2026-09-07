@@ -1,5 +1,6 @@
 import { supportedLocales } from "../../platform/i18n.ts";
 import { AVIARY_VERSION } from "../../platform/build-version.ts";
+import { redactDiagnosticEvent, type DiagnosticEvent } from "../../platform/diagnostics.ts";
 import type { ProfileStatus } from "../../platform/profile.ts";
 import {
   DEFAULT_SETTINGS,
@@ -1608,19 +1609,18 @@ function downloadBlob(data: Uint8Array, filename: string, contentType = "applica
 }
 
 interface DiagnosticsContext {
-  diagnostics: { snapshot(): unknown };
+  diagnostics: { snapshot(): DiagnosticEvent[] };
   diagnosticsStore?: { snapshot(): unknown[] };
   route: { surface: string; href: string };
   settings: { i18n: { locale: string } };
 }
 
 function buildDiagnosticsPayload(ctx: DiagnosticsContext): string {
-  const events = ctx.diagnostics.snapshot();
+  const events = ctx.diagnostics.snapshot().map(redactDiagnosticEvent);
   const payload = {
     generator: "Aviary",
     generatedAt: new Date().toISOString(),
     surface: ctx.route.surface,
-    href: ctx.route.href,
     locale: ctx.settings.i18n.locale,
     userAgent: globalThis.navigator?.userAgent ?? "unknown",
     // One content-free line naming the feature the bisect landed on, so a report carries the

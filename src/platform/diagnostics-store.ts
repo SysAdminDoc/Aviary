@@ -1,98 +1,117 @@
-import type { DiagnosticEvent, DiagnosticLevel } from "./diagnostics.ts";
+import {
+  diagnosticMessageId,
+  isSafeDiagnosticTimestamp,
+  redactDiagnosticEvent,
+  isSafeDiagnosticMessageId,
+  type DiagnosticEvent,
+  type DiagnosticLevel
+} from "./diagnostics.ts";
 import type { StorageGateway } from "./storage.ts";
 import { mutateStored, replaceStored } from "./storage-lock.ts";
 
 export const DIAGNOSTICS_KEY = "aviary.diagnostics.v1";
+export const DIAGNOSTICS_SCHEMA_VERSION = 2;
 export const DIAGNOSTICS_LIMIT = 50;
 export const DIAGNOSTICS_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
-const MAX_REASON_LENGTH = 200;
 
-/**
- * A bounded, profile-scoped record of the warnings and errors Aviary produced.
- *
- * The in-memory ring is lost on reload, which is exactly when a failure matters: a user cannot
- * report what evaporated on refresh. Only `warn` and `error` are persisted — `info` is a running
- * commentary and would evict the failures it sits next to.
- *
- * What is retained is deliberately narrow. Diagnostic messages are literals authored in this
- * repository, never page content, so the message itself carries no post text, handle, or URL.
- * Detail *values* can be anything a caller passed, so only their keys are kept, plus a truncated
- * reason string for errors that report one. Nothing else from `details` survives.
- */
+/** The profile-scoped shape written to storage. It contains no display text or detail values. */
 export interface StoredDiagnostic {
   at: string;
   level: "warn" | "error";
-  message: string;
+  messageId: string;
   detailKeys: string[];
-  reason?: string;
 }
 
-interface StoredDiagnostics {
-  version: 1;
+interface StoredDiagnosticsEnvelope {
+  version: number;
   events: StoredDiagnostic[];
+}
+
+interface ParsedDiagnostics {
+  events: StoredDiagnostic[];
+  migrated: boolean;
 }
 
 function isPersistedLevel(level: DiagnosticLevel): level is "warn" | "error" {
   return level === "warn" || level === "error";
 }
 
+function safeDetailKeys(details: unknown): string[] {
+  return Array.isArray(details)
+    ? details
+        .slice(0, 12)
+        .map((key) => (typeof key === "string" && /^[A-Za-z][A-Za-z0-9_.-]{0,63}$/.test(key) ? key : "unknown"))
+    : [];
+}
+
+/** Converts a live event to the only warning/error fields allowed to cross the storage boundary. */
 export function redactDiagnostic(event: DiagnosticEvent): StoredDiagnostic | null {
   if (!isPersistedLevel(event.level)) {
     return null;
   }
-  const details = event.details ?? {};
-  const detailKeys = Object.keys(details).slice(0, 12);
-  const rawReason = details.message ?? details.error ?? details.reason;
-  const record: StoredDiagnostic = {
-    at: event.at,
+  const redacted = redactDiagnosticEvent(event);
+  return {
+    at: redacted.at,
     level: event.level,
-    message: String(event.message).slice(0, MAX_REASON_LENGTH),
-    detailKeys
+    messageId: redacted.messageId,
+    detailKeys: redacted.detailKeys
   };
-  if (typeof rawReason === "string" && rawReason.length > 0) {
-    record.reason = rawReason.slice(0, MAX_REASON_LENGTH);
-  }
-  return record;
 }
 
-function parse(raw: unknown): StoredDiagnostic[] {
+/** Parses both the current envelope and the pre-F281 shape for options/report consumers. */
+export function parseStoredDiagnostics(raw: unknown): StoredDiagnostic[] {
+  return parse(raw).events;
+}
+
+function parse(raw: unknown): ParsedDiagnostics {
   if (!raw || typeof raw !== "object") {
-    return [];
+    return { events: [], migrated: raw !== undefined };
   }
-  const events = (raw as Partial<StoredDiagnostics>).events;
+  const candidateEnvelope = raw as Partial<StoredDiagnosticsEnvelope>;
+  const events = candidateEnvelope.events;
   if (!Array.isArray(events)) {
-    return [];
+    return { events: [], migrated: true };
   }
   const cutoff = Date.now() - DIAGNOSTICS_RETENTION_MS;
   const parsed: StoredDiagnostic[] = [];
+  let migrated = candidateEnvelope.version !== DIAGNOSTICS_SCHEMA_VERSION;
   for (const entry of events) {
     if (!entry || typeof entry !== "object") {
+      migrated = true;
       continue;
     }
-    const candidate = entry as Partial<StoredDiagnostic>;
-    const at = typeof candidate.at === "string" ? candidate.at : null;
+    const candidate = entry as Partial<StoredDiagnostic> & {
+      message?: unknown;
+      reason?: unknown;
+    };
+    const at = isSafeDiagnosticTimestamp(candidate.at) ? candidate.at : null;
     const level = candidate.level === "warn" || candidate.level === "error" ? candidate.level : null;
-    if (!at || !level || typeof candidate.message !== "string") {
+    if (!at || !level) {
+      migrated = true;
       continue;
     }
     const timestamp = Date.parse(at);
     if (Number.isFinite(timestamp) && timestamp < cutoff) {
+      migrated = true;
       continue;
     }
-    const record: StoredDiagnostic = {
-      at,
-      level,
-      message: candidate.message.slice(0, MAX_REASON_LENGTH),
-      detailKeys: Array.isArray(candidate.detailKeys)
-        ? candidate.detailKeys.filter((key): key is string => typeof key === "string").slice(0, 12)
-        : []
-    };
-    if (typeof candidate.reason === "string" && candidate.reason.length > 0) {
-      record.reason = candidate.reason.slice(0, MAX_REASON_LENGTH);
+    const legacyMessage = typeof candidate.message === "string" ? candidate.message : "";
+    const messageId = isSafeDiagnosticMessageId(candidate.messageId)
+      ? candidate.messageId
+      : diagnosticMessageId(legacyMessage);
+    const detailKeys = safeDetailKeys(candidate.detailKeys);
+    if (
+      !isSafeDiagnosticMessageId(candidate.messageId) ||
+      "message" in candidate ||
+      "reason" in candidate ||
+      !Array.isArray(candidate.detailKeys) ||
+      detailKeys.some((key, index) => key !== candidate.detailKeys?.[index])
+    ) {
+      migrated = true;
     }
-    parsed.push(record);
+    parsed.push({ at, level, messageId, detailKeys });
   }
-  return parsed.slice(-DIAGNOSTICS_LIMIT);
+  return { events: parsed.slice(-DIAGNOSTICS_LIMIT), migrated };
 }
 
 export class DiagnosticsStore {
@@ -109,12 +128,25 @@ export class DiagnosticsStore {
     if (this.#loaded) {
       return this.snapshot();
     }
+    let parsed: ParsedDiagnostics;
     try {
-      this.#events = parse(await this.#storage.get<unknown>(DIAGNOSTICS_KEY, undefined));
+      parsed = parse(await this.#storage.get<unknown>(DIAGNOSTICS_KEY, undefined));
     } catch {
-      this.#events = [];
+      parsed = { events: [], migrated: false };
     }
+    this.#events = parsed.events;
     this.#loaded = true;
+    if (parsed.migrated) {
+      const migration = replaceStored(
+        this.#storage,
+        DIAGNOSTICS_KEY,
+        { version: DIAGNOSTICS_SCHEMA_VERSION, events: this.#events } satisfies StoredDiagnosticsEnvelope
+      );
+      this.#tail = migration.then(
+        () => undefined,
+        () => undefined
+      );
+    }
     return this.snapshot();
   }
 
@@ -146,7 +178,7 @@ export class DiagnosticsStore {
       replaceStored(
         this.#storage,
         DIAGNOSTICS_KEY,
-        { version: 1, events: [] } satisfies StoredDiagnostics
+        { version: DIAGNOSTICS_SCHEMA_VERSION, events: [] } satisfies StoredDiagnosticsEnvelope
       )
     );
     this.#tail = clearWrite.then(
@@ -165,17 +197,20 @@ export class DiagnosticsStore {
     if (!record) return;
     this.#tail = this.#tail
       .then(async () => {
-        const next = await mutateStored<StoredDiagnostics>(
+        const next = await mutateStored<StoredDiagnosticsEnvelope>(
           this.#storage,
           DIAGNOSTICS_KEY,
-          { version: 1, events: [] },
+          { version: DIAGNOSTICS_SCHEMA_VERSION, events: [] },
           (stored) => {
-            const events = parse(stored);
+            const events = parse(stored).events;
             events.push(record);
-            return { version: 1, events: events.slice(-DIAGNOSTICS_LIMIT) };
+            return {
+              version: DIAGNOSTICS_SCHEMA_VERSION,
+              events: events.slice(-DIAGNOSTICS_LIMIT)
+            };
           }
         );
-        this.#events = next.events;
+        this.#events = parse(next).events;
       })
       .then(
         () => undefined,

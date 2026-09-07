@@ -81,6 +81,7 @@ async function load() {
       `export { DownloadQueue, MEDIA_QUEUE_KEY } from ${JSON.stringify(abs("src/features/media/queue.ts"))};`,
       `export { CheckpointStore, CHECKPOINT_KEY } from ${JSON.stringify(abs("src/features/export/jobs.ts"))};`,
       `export { DiagnosticsStore, DIAGNOSTICS_KEY } from ${JSON.stringify(abs("src/platform/diagnostics-store.ts"))};`,
+      `export { diagnosticMessageId } from ${JSON.stringify(abs("src/platform/diagnostics.ts"))};`,
       `export { ProfileManager, PROFILE_REGISTRY_KEY, DEFAULT_PROFILE_ID } from ${JSON.stringify(abs("src/platform/profile.ts"))};`,
       `export { DEFAULT_SETTINGS, cloneSettings, normalizeSettings, diffKnownSettings, applyKnownSettingsPatch } from ${JSON.stringify(abs("src/platform/settings.ts"))};`,
       `export { withStorageLock, withExclusiveStorageGate, mutateStored } from ${JSON.stringify(abs("src/platform/storage-lock.ts"))};`
@@ -1072,12 +1073,15 @@ test("diagnostic records merge by event and clear is authoritative", async () =>
   a.record({ level: "error", message: "A", at: "2026-09-06T00:00:00.000Z", details: { source: "a" } });
   b.record({ level: "warn", message: "B", at: "2026-09-06T00:00:01.000Z", details: { source: "b" } });
   await Promise.all([a.flush(), b.flush()]);
-  assert.deepEqual(mod.readShared(mod.DIAGNOSTICS_KEY).events.map((entry) => entry.message).sort(), ["A", "B"]);
+  assert.deepEqual(
+    mod.readShared(mod.DIAGNOSTICS_KEY).events.map((entry) => entry.messageId).sort(),
+    [mod.diagnosticMessageId("A"), mod.diagnosticMessageId("B")].sort()
+  );
 
   await a.clear();
   b.record({ level: "warn", message: "C", at: "2026-09-06T00:00:02.000Z", details: { source: "c" } });
   await b.flush();
-  assert.deepEqual(mod.readShared(mod.DIAGNOSTICS_KEY).events.map((entry) => entry.message), ["C"]);
+  assert.deepEqual(mod.readShared(mod.DIAGNOSTICS_KEY).events.map((entry) => entry.messageId), [mod.diagnosticMessageId("C")]);
 });
 
 test("profile registry merges new profiles and preserves the install default", async () => {

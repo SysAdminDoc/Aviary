@@ -157,6 +157,49 @@ h3 {
   border-block: 1px solid var(--av-border);
 }
 
+.diagnostics-tools {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 24px;
+  padding-block: 22px;
+  border-bottom: 1px solid var(--av-border);
+}
+
+.diagnostics-tools h2 {
+  font-size: 18px;
+  letter-spacing: -0.02em;
+}
+
+.diagnostics-tools p {
+  margin-top: 5px;
+  color: var(--av-muted);
+  font-size: 13px;
+}
+
+.diagnostics-action {
+  display: grid;
+  justify-items: end;
+  gap: 6px;
+}
+
+#diagnostics-status {
+  min-height: 18px;
+  margin: 0;
+  color: var(--av-accent);
+  font-size: 12px;
+  font-weight: 650;
+  text-align: end;
+}
+
+#diagnostics-status[data-tone="success"] {
+  color: var(--av-ok);
+}
+
+#diagnostics-status[data-tone="error"] {
+  color: var(--av-danger);
+}
+
 .permission-column {
   min-width: 0;
   padding-inline-end: 32px;
@@ -463,6 +506,19 @@ button.ghost:hover:not(:disabled),
 
   .workspace {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .diagnostics-tools {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+  }
+
+  .diagnostics-action {
+    justify-items: start;
+  }
+
+  #diagnostics-status {
+    text-align: start;
   }
 
   .permission-column {

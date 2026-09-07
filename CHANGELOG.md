@@ -3,6 +3,10 @@
 ## Unreleased
 
 ### Security
+- Diagnostic persistence now keeps only stable authored message ids, severity, ISO timestamps, and
+  detail-key names. Legacy message and reason values migrate out, AI provider failures no longer
+  attach provider text, and the Options page can copy a merged redacted report with the bounded
+  background-worker ring.
 - Storage locks now carry a commit fence. The extension background rejects stale owner generations
   at the mutation boundary, and userscript managers retain immutable fenced operations so a paused
   callback cannot overwrite a newer accepted value after expiry or restart.

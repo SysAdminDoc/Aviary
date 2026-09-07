@@ -67,15 +67,49 @@ after(async () => {
  * Loads the page with a permissions stub whose answers the test controls, and records every call
  * the controller makes.
  */
-async function mountOptions({ granted = [], grantOutcome = true } = {}) {
+async function mountOptions({ granted = [], grantOutcome = true, persistedDiagnostics = undefined, backgroundDiagnostics = [] } = {}) {
   await page.setContent(optionsHtml);
   await page.evaluate(
-    ({ initial, outcome }) => {
+    ({ initial, outcome, persisted, background }) => {
       const held = new Set(initial);
       window.__calls = { request: [], remove: [], contains: [] };
       const key = (request) => JSON.stringify(request.permissions ?? request.origins);
       globalThis.chrome = {
-        runtime: { getManifest: () => ({ version: "9.9.9" }) },
+        runtime: {
+          id: "options-test",
+          getManifest: () => ({ version: "9.9.9" }),
+          async sendMessage(message) {
+            if (message?.type === "AVIARY_STORAGE_FENCE") {
+              return {
+                ok: true,
+                result: message.fence ?? {
+                  version: 1,
+                  name: String(message.name ?? "aviary.test"),
+                  owner: "options-test",
+                  generation: 1,
+                  expiresAt: Date.now() + 60_000
+                }
+              };
+            }
+            if (message?.type === "AVIARY_DURABLE_STORAGE" && message.operation === "read") {
+              if (String(message.key).endsWith(".diagnostics.v1") && persisted !== undefined) {
+                return { ok: true, result: { found: true, removed: false, value: persisted } };
+              }
+              return { ok: true, result: { found: false, removed: false } };
+            }
+            if (message?.type === "AVIARY_BACKGROUND_DIAGNOSTICS") {
+              return { ok: true, events: background };
+            }
+            return { ok: true };
+          }
+        },
+        storage: {
+          local: {
+            async get() { return {}; },
+            async set() {},
+            async remove() {}
+          }
+        },
         permissions: {
           async contains(request) {
             window.__calls.contains.push(request);
@@ -93,7 +127,7 @@ async function mountOptions({ granted = [], grantOutcome = true } = {}) {
         }
       };
     },
-    { initial: granted, outcome: grantOutcome }
+    { initial: granted, outcome: grantOutcome, persisted: persistedDiagnostics, background: backgroundDiagnostics }
   );
   await page.addScriptTag({ path: bundlePath });
   await page.waitForTimeout(60);
@@ -335,4 +369,64 @@ test("each card explains its own grant rather than borrowing the other's", async
   assert.match(messages.downloads, /Media saves through the browser/);
   assert.match(messages.media, /full-size media directly/);
   assert.notEqual(messages.downloads, messages.media, "the two grants must not share one message");
+});
+
+test("support diagnostics copy a merged redacted report after a worker restart", async () => {
+  const pageAt = new Date().toISOString();
+  const workerAt = new Date(Date.now() + 1).toISOString();
+  await mountOptions({
+    persistedDiagnostics: {
+      version: 2,
+      events: [
+        {
+          at: pageAt,
+          level: "error",
+          message: "SECRET-PAGE-EXCEPTION https://x.com/private/status/123",
+          reason: "SECRET-PAGE-REASON",
+          detailKeys: ["url"]
+        }
+      ]
+    },
+    backgroundDiagnostics: [
+      {
+        operation: "download-fallback",
+        severity: "error",
+        at: workerAt,
+        filename: "SECRET-FILENAME.mp4",
+        provider: "SECRET-PROVIDER"
+      }
+    ]
+  });
+  await page.evaluate(() => {
+    window.__clipboard = "";
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText: async (text) => { window.__clipboard = text; } }
+    });
+  });
+
+  await page.click("#diagnostics-copy");
+  await page.waitForTimeout(60);
+  const result = await page.evaluate(() => ({
+    status: document.getElementById("diagnostics-status").textContent,
+    report: window.__clipboard
+  }));
+
+  assert.match(result.status, /Diagnostics copied/i);
+  const report = JSON.parse(result.report);
+  assert.equal(report.surface, "extension-options");
+  assert.equal(report.events.length, 1);
+  assert.equal(report.background.length, 1);
+  assert.match(report.events[0].messageId, /^diagnostic\./);
+  assert.deepEqual(Object.keys(report.events[0]).sort(), ["at", "detailKeys", "level", "messageId"]);
+  assert.deepEqual(Object.keys(report.background[0]).sort(), ["at", "operation", "severity"]);
+  for (const secret of [
+    "SECRET-PAGE-EXCEPTION",
+    "SECRET-PAGE-REASON",
+    "private/status/123",
+    "SECRET-FILENAME.mp4",
+    "SECRET-PROVIDER"
+  ]) {
+    assert.equal(result.report.includes(secret), false, `clipboard report leaked ${secret}`);
+  }
 });

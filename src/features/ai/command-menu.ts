@@ -243,17 +243,15 @@ function openMenu(article: Element, trigger: HTMLElement, ctx: FeatureContext): 
                 provider: ctx.settings.integrations.ai.provider
               });
               showFeatureToast(`${ft(ctx, command.label)}: ${ft(ctx, "result copied to the clipboard.")}`, { ctx });
-            } catch (error) {
-              ctx.diagnostics.warn("AI result clipboard failed", {
-                error: String((error as Error)?.message ?? error)
-              });
+            } catch {
+              ctx.diagnostics.warn("AI result clipboard failed");
               showFeatureToast(ft(ctx, "The result could not be copied. Your browser blocked clipboard access."), {
                 tone: "error",
                 ctx
               });
             }
           } else {
-            ctx.diagnostics.warn("AI provider call failed", { error: result.error ?? "unknown" });
+            ctx.diagnostics.warn("AI provider call failed");
             showFeatureToast(
               `${ft(ctx, command.label)}: ${result.error ?? ft(ctx, "the provider did not respond")}. ${ft(ctx, "Check the key and model in Integrations.")}`,
               { tone: "error", ctx }
@@ -261,7 +259,7 @@ function openMenu(article: Element, trigger: HTMLElement, ctx: FeatureContext): 
           }
         } catch (error) {
           const message = String((error as Error)?.message ?? error);
-          ctx.diagnostics.warn("AI provider call failed", { error: message });
+          ctx.diagnostics.warn("AI provider call failed");
           showFeatureToast(`${ft(ctx, command.label)}: ${message}`, { tone: "error", ctx });
         } finally {
           item.disabled = false;
@@ -274,10 +272,8 @@ function openMenu(article: Element, trigger: HTMLElement, ctx: FeatureContext): 
           ctx.diagnostics.info("AI prompt copied", { command: command.id, length: prompt.length });
           void ctx.auditLog.record("diagnostics.copy", { kind: "ai", command: command.id });
           showFeatureToast(ft(ctx, "Prompt copied to the clipboard. Paste it into your assistant."), { ctx });
-        } catch (error) {
-          ctx.diagnostics.warn("AI prompt clipboard failed", {
-            error: String((error as Error)?.message ?? error)
-          });
+        } catch {
+          ctx.diagnostics.warn("AI prompt clipboard failed");
           showFeatureToast(ft(ctx, "The prompt could not be copied. Your browser blocked clipboard access."), {
             tone: "error",
             ctx
