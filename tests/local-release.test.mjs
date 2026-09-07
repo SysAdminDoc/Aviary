@@ -5,7 +5,7 @@ import path from "node:path";
 import { test } from "node:test";
 
 import { ensureSigningKey, packCrx3, verifyCrx3 } from "../tools/release-crx.mjs";
-import { assertAlignedVersions, parseReleaseArgs, selectVerificationScript } from "../tools/release-local.mjs";
+import { assertAlignedVersions, hasResumableReleaseState, parseReleaseArgs, selectVerificationScript } from "../tools/release-local.mjs";
 import { missingReleaseReport, reconcileReleaseLedger } from "../tools/release-ledger.mjs";
 import { importSourceModule } from "./helpers/source-import.mjs";
 
@@ -85,6 +85,20 @@ test("historical releases use the strongest verification script available at tha
   assert.equal(selectVerificationScript({ scripts: { "verify:fast": "npm run test" } }), "verify:fast");
   assert.equal(selectVerificationScript({ scripts: { "verify:release": "npm run verify:fast" } }), "verify:release");
   assert.equal(selectVerificationScript({ scripts: {} }), null);
+});
+
+test("historical release state can resume only after the verified artifact set exists", () => {
+  const expected = { version: "1.44.1", commit: "commit-1441" };
+  assert.equal(hasResumableReleaseState({
+    format: 1,
+    version: expected.version,
+    commit: expected.commit,
+    assets: ["release.zip"],
+    releaseDir: "C:/releases/v1.44.1",
+    digests: { "release.zip": "sha256:abc" }
+  }, expected), true);
+  assert.equal(hasResumableReleaseState({ ...expected, format: 1, assets: [] }, expected), false);
+  assert.equal(hasResumableReleaseState(null, expected), false);
 });
 
 test("release planning rejects drifted version markers", async () => {

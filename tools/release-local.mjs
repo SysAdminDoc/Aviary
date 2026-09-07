@@ -111,6 +111,20 @@ export function selectVerificationScript(packageJson) {
   return ["verify:release", "verify:fast", "verify"].find((name) => typeof scripts[name] === "string") ?? null;
 }
 
+export function hasResumableReleaseState(state, expected) {
+  return Boolean(
+    state &&
+    state.format === CURRENT_FORMAT &&
+    state.version === expected.version &&
+    state.commit === expected.commit &&
+    Array.isArray(state.assets) &&
+    state.assets.length > 0 &&
+    typeof state.releaseDir === "string" &&
+    state.digests &&
+    typeof state.digests === "object"
+  );
+}
+
 export async function prepareReleaseArtifacts({
   buildRoot,
   releaseRoot = buildRoot,
@@ -294,12 +308,10 @@ async function publishHistoricalRelease({ root: projectRoot, options, plan }) {
   if (compareVersions(version, plan.version) >= 0) {
     throw new Error("--historical must target a version older than the current package.");
   }
-  const tempParent = await mkdtemp(path.join(os.tmpdir(), "aviary-release-worktree-"));
-  const worktree = path.join(tempParent, `v${version}`);
   const statePath = path.join(options.stateDir, `v${version}.json`);
   let state = await readState(statePath);
   validateState(state, { version, commit: ledgerEntry.commit });
-  if (state?.assets) {
+  if (hasResumableReleaseState(state, { version, commit: ledgerEntry.commit })) {
     await verifyReleaseArtifacts(state.releaseDir, state.assets, state.digests);
     await ensureTag(projectRoot, `v${version}`, ledgerEntry.commit);
     state.phase = "tagged";
@@ -310,6 +322,8 @@ async function publishHistoricalRelease({ root: projectRoot, options, plan }) {
     console.log(`[release:local] resumed ${version} from ${state.phase} phase.`);
     return;
   }
+  const tempParent = await mkdtemp(path.join(os.tmpdir(), "aviary-release-worktree-"));
+  const worktree = path.join(tempParent, `v${version}`);
   try {
     await runGit(["worktree", "add", "--detach", worktree, ledgerEntry.commit], { cwd: projectRoot, inherit: true });
     await runNpm(["ci", "--ignore-scripts"], { cwd: worktree, inherit: true });
