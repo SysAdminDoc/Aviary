@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
+import { chromium } from "playwright";
 
 import { captureAgeReport, listFixtureFiles, readCaptureManifest } from "../tools/capture-manifest.mjs";
 import { assertScrubbed, extractHtml, scrub } from "../tools/capture-decode.mjs";
@@ -241,4 +242,35 @@ test("the surfaces features depend on are present in a capture, not invented", a
 
   const missing = [...claimed].filter((id) => !captures.includes(`data-testid="${id}"`));
   assert.deepEqual(missing, [], `the registry claims test ids no capture contains: ${missing.join(", ")}`);
+});
+
+test("the dated upstream selector comparison is complete for adopted equivalents", async () => {
+  const { SELECTOR_COMPARISON, SURFACE_SELECTORS } = await importSourceModule("src/platform/selectors.ts");
+  assert.equal(new Set(SELECTOR_COMPARISON.map((entry) => entry.surface)).size, SELECTOR_COMPARISON.length);
+  for (const entry of SELECTOR_COMPARISON) {
+    assert.match(entry.checkedOn, /^2026-09-07$/);
+    assert.ok(entry.source && entry.license && entry.reference.startsWith("https://github.com/"));
+    if (entry.equivalent) assert.ok(entry.disagreement !== undefined, `${entry.surface} must state agreement or disagreement`);
+  }
+  for (const surface of ["App root", "Tweet", "Media photo", "Video", "Promoted placement", "Profile photo grid", "Videos plain tweet entries"]) {
+    assert.ok(SELECTOR_COMPARISON.some((entry) => entry.surface === surface), `missing comparison for ${surface}`);
+  }
+
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const page = await browser.newPage();
+    await page.setContent(`
+      <main>
+        <article data-testid="tweet"><div>plain tweet entry</div><div data-testid="placementTracking"></div></article>
+        <div data-testid="profile-photo-grid-123"><img src="https://pbs.twimg.com/media/fixture?format=jpg"></div>
+      </main>
+    `);
+    const tested = SURFACE_SELECTORS.filter((entry) => ["Tweet", "Media photo", "Promoted placement"].includes(entry.surface));
+    const counts = await page.evaluate((entries) => Object.fromEntries(entries.map((entry) => [entry.surface, document.querySelectorAll(entry.fallback).length])), tested);
+    assert.ok(counts.Tweet > 0, "plain tweet fallback must match a structural article");
+    assert.ok(counts["Media photo"] > 0, "profile photo grid media fallback must match an image");
+    assert.ok(counts["Promoted placement"] > 0, "placement fallback must match the observed ad marker");
+  } finally {
+    await browser.close();
+  }
 });

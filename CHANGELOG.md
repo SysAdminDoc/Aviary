@@ -65,6 +65,10 @@
   live for integrations loaded from the separate panel chunk.
 
 ### Added
+- **Dated selector evidence.** Aviary now keeps a checked-in comparison of its selector registry
+  against browsertrix-behaviors 0.13.1 and twitter-web-exporter 1.4.3-beta.1. The comparison records
+  disagreements and licenses, while structural fallbacks for plain tweets and profile photo media
+  are proved by fixtures rather than copied from upstream code.
 - **Atomic local releases.** `npm run release:local -- --plan` reports missing release versions
   against their exact package commits. The explicit `--publish` path requires a clean tree, runs
   the full release gate, rebuilds ZIP assets, signs and verifies a secondary CRX3, writes checksums

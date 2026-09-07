@@ -91,15 +91,6 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
 
 ### P1, Next
 
-- [ ] F308, P1: Cross-check the selector registry against a maintained third-party X behaviour
-  Why: every selector claim in the project is proved against captures dated 2026-05-19, and refreshing them needs an operator session. Webrecorder ships `browsertrix-behaviors` with a maintained X behaviour whose selector table was last updated 2026-08-25, which is a second, dated, independently maintained source for the same DOM that costs no authenticated capture and no request to X.
-  Evidence: https://github.com/webrecorder/browsertrix-behaviors (v0.13.1, 2026-08-26), https://raw.githubusercontent.com/webrecorder/browsertrix-behaviors/main/src/site/twitter.ts (anchor-relative XPath off the `h1`, `promoted` skip rule, `expand` for "Show more", recursive quote descent, and a re-locate-after-mutation helper for X's recycled virtualized rows); `src/platform/selectors.ts` (21 surfaces, 12 `churnRisk: "High"`), `_decoded/captures.json`
-  Touches: `src/platform/selectors.ts`, a comparison note or generated table under `docs/`, `tests/fixtures.test.mjs`, `Roadmap_Blocked.md` entries that a confirmed selector would unblock
-  Acceptance: every Aviary surface whose selector has an equivalent in the third-party behaviour records that equivalent and the date it was checked, beside the existing `stable`/`fallback` pair; surfaces where the two disagree are listed with the disagreement stated rather than silently resolved in Aviary's favour; the comparison is a checked-in artifact with its own date, not a one-off; Aviary's own fallback chain gains any structural selector the comparison shows is more durable, proved by a fixture; nothing is copied that Aviary cannot prove against a fixture it holds, and if any selector is taken verbatim its upstream license and attribution are recorded beside it.
-  Complexity: M
-  Depends: None. Reduces what F134 and F139 must wait for without replacing the capture.
-  Research update 2026-09-06: Add structural fixtures for `profile-photo-grid-*` Photos modules and plain tweet entries in Videos from twitter-web-exporter v1.4.3 (2026-08-31); distinguish absent metadata from no media. Exercise history/likes and recycled rows before attributing an actual feature failure to their route classification. External selectors supplement, never reset, authenticated capture age. Evidence: https://github.com/prinsss/twitter-web-exporter/commit/3e07f1e7ad7469c1bd6526b03bdcb90c495f25b1; https://github.com/EltonChou/TwitterMediaHarvest/issues/339; https://github.com/EltonChou/TwitterMediaHarvest/issues/355
-
 - [ ] F309, P1: Test passive request boundaries and state account-risk limits accurately
   Why: direct network guards do not prove a UI action cannot trigger X's own requests, and passive observation does not establish an exemption from X's automation policy.
   Evidence: `src/platform/network.ts`, `src/page/page-agent.ts`, `src/features/media/downloader.ts`, `src/features/layout/force-following.ts`; https://help.x.com/en/rules-and-policies/x-automation; https://github.com/insin/control-panel-for-twitter/issues/931

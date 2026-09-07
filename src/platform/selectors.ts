@@ -4,6 +4,86 @@ export type ChurnRisk = "Low" | "Medium" | "High";
 export type SelectorRelevance = "required" | "optional" | "inapplicable";
 export type SelectorMatch = "stable" | "fallback" | "missing";
 
+export interface SelectorComparison {
+  surface: string;
+  equivalent: string | null;
+  disagreement: string | null;
+  source: string;
+  checkedOn: string;
+  license: string;
+  reference: string;
+}
+
+/**
+ * Dated comparison notes, not executable third-party code. These records keep selector research
+ * reviewable and make it explicit when an upstream behavior has no equivalent in Aviary.
+ */
+export const SELECTOR_COMPARISON: readonly SelectorComparison[] = [
+  {
+    surface: "App root",
+    equivalent: "h1[role=heading][aria-level=1] followed by an aria-labeled root",
+    disagreement: "browsertrix walks from the heading; Aviary uses X's explicit react-root anchor",
+    source: "browsertrix-behaviors 0.13.1",
+    checkedOn: "2026-09-07",
+    license: "AGPL-3.0-or-later",
+    reference: "https://github.com/webrecorder/browsertrix-behaviors/blob/v0.13.1/src/site/twitter.ts"
+  },
+  {
+    surface: "Tweet",
+    equivalent: "article",
+    disagreement: "browsertrix scopes articles below its crawl root; Aviary keeps an article fallback for recycled rows",
+    source: "browsertrix-behaviors 0.13.1",
+    checkedOn: "2026-09-07",
+    license: "AGPL-3.0-or-later",
+    reference: "https://github.com/webrecorder/browsertrix-behaviors/blob/v0.13.1/src/site/twitter.ts"
+  },
+  {
+    surface: "Media photo",
+    equivalent: "a[href*='/photo/']",
+    disagreement: "the upstream behavior opens the viewer; Aviary reads the rendered image for a local download",
+    source: "browsertrix-behaviors 0.13.1",
+    checkedOn: "2026-09-07",
+    license: "AGPL-3.0-or-later",
+    reference: "https://github.com/webrecorder/browsertrix-behaviors/blob/v0.13.1/src/site/twitter.ts"
+  },
+  {
+    surface: "Video",
+    equivalent: "video or audio descendant",
+    disagreement: "browsertrix waits for playback; Aviary observes network metadata so downloads do not require playback",
+    source: "browsertrix-behaviors 0.13.1",
+    checkedOn: "2026-09-07",
+    license: "AGPL-3.0-or-later",
+    reference: "https://github.com/webrecorder/browsertrix-behaviors/blob/v0.13.1/src/site/twitter.ts"
+  },
+  {
+    surface: "Promoted placement",
+    equivalent: "div[data-testid='placementTracking']",
+    disagreement: null,
+    source: "browsertrix-behaviors 0.13.1",
+    checkedOn: "2026-09-07",
+    license: "AGPL-3.0-or-later",
+    reference: "https://github.com/webrecorder/browsertrix-behaviors/blob/v0.13.1/src/site/twitter.ts"
+  },
+  {
+    surface: "Profile photo grid",
+    equivalent: "entry id /^profile-(photo-)?grid-/",
+    disagreement: "twitter-web-exporter observes GraphQL module ids, while Aviary can only prove rendered DOM structure",
+    source: "twitter-web-exporter 1.4.3-beta.1",
+    checkedOn: "2026-09-07",
+    license: "MIT",
+    reference: "https://github.com/prinsss/twitter-web-exporter/commit/3e07f1e7ad7469c1bd6526b03bdcb90c495f25b1"
+  },
+  {
+    surface: "Videos plain tweet entries",
+    equivalent: "TimelineAddEntries containing ordinary tweet entries",
+    disagreement: "twitter-web-exporter notes the API route change; no new Aviary selector is copied without a DOM fixture",
+    source: "twitter-web-exporter 1.4.3-beta.1",
+    checkedOn: "2026-09-07",
+    license: "MIT",
+    reference: "https://github.com/prinsss/twitter-web-exporter/commit/3e07f1e7ad7469c1bd6526b03bdcb90c495f25b1"
+  }
+];
+
 export interface SurfaceSelector {
   surface: string;
   stable: string;
@@ -67,7 +147,7 @@ export const SURFACE_SELECTORS: SurfaceSelector[] = [
   {
     surface: "Tweet",
     stable: 'article[data-testid="tweet"]',
-    fallback: "article .css-175oi2r",
+    fallback: "article .css-175oi2r, article",
     churnRisk: "High",
     note: "Process added articles only and mark processed nodes.",
     feature: "Filtering and export"
@@ -91,7 +171,7 @@ export const SURFACE_SELECTORS: SurfaceSelector[] = [
   {
     surface: "Media photo",
     stable: '[data-testid="tweetPhoto"] img[src*="pbs.twimg.com/media"]',
-    fallback: 'img[src*="format="]',
+    fallback: 'img[src*="format="], [data-testid^="profile-photo-grid-"] img[src*="pbs.twimg.com/media"]',
     churnRisk: "Medium",
     note: "Normalize image URLs to original quality before download.",
     feature: "Media controls"
