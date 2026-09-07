@@ -11371,7 +11371,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     {
       surface: "Tweet",
       stable: 'article[data-testid="tweet"]',
-      fallback: "article .css-175oi2r",
+      fallback: "article .css-175oi2r, article",
       churnRisk: "High",
       note: "Process added articles only and mark processed nodes.",
       feature: "Filtering and export"
@@ -11395,7 +11395,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     {
       surface: "Media photo",
       stable: '[data-testid="tweetPhoto"] img[src*="pbs.twimg.com/media"]',
-      fallback: 'img[src*="format="]',
+      fallback: 'img[src*="format="], [data-testid^="profile-photo-grid-"] img[src*="pbs.twimg.com/media"]',
       churnRisk: "Medium",
       note: "Normalize image URLs to original quality before download.",
       feature: "Media controls"
@@ -11801,18 +11801,18 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       }
     }
     async observe(route, counts) {
-      const now2 = this.#now();
+      const now3 = this.#now();
       const next = {
-        at: new Date(now2).toISOString(),
+        at: new Date(now3).toISOString(),
         route: ROUTES.has(route) ? route : "unknown",
         counts: normalizeCounts(counts)
       };
       const previous = this.#observations.at(-1);
       const sameSample = previous && sameObservation(previous, next);
       const previousAt = previous ? Date.parse(previous.at) : 0;
-      if (!sameSample || !Number.isFinite(previousAt) || now2 - previousAt >= AD_OBSERVATION_REFRESH_MS) {
+      if (!sameSample || !Number.isFinite(previousAt) || now3 - previousAt >= AD_OBSERVATION_REFRESH_MS) {
         this.#observations.push(next);
-        this.#observations = trimObservations(this.#observations, now2, this.#limit);
+        this.#observations = trimObservations(this.#observations, now3, this.#limit);
         await this.#persist();
       }
       return this.snapshot();
@@ -11861,14 +11861,14 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       degradedReason: null
     };
   }
-  function normalizeObservations(raw, now2, limit) {
+  function normalizeObservations(raw, now3, limit) {
     const source = isRecord2(raw) && Array.isArray(raw.observations) ? raw.observations : [];
-    const cutoff = now2 - AD_OBSERVATION_RETENTION_MS;
+    const cutoff = now3 - AD_OBSERVATION_RETENTION_MS;
     const normalized = [];
     for (const candidate of source) {
       if (!isRecord2(candidate) || typeof candidate.at !== "string") continue;
       const at = Date.parse(candidate.at);
-      if (!Number.isFinite(at) || at < cutoff || at > now2 + 6e4) continue;
+      if (!Number.isFinite(at) || at < cutoff || at > now3 + 6e4) continue;
       const route = typeof candidate.route === "string" && ROUTES.has(candidate.route) ? candidate.route : "unknown";
       normalized.push({
         at: new Date(at).toISOString(),
@@ -11879,8 +11879,8 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     normalized.sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
     return normalized.slice(-limit);
   }
-  function trimObservations(observations, now2, limit) {
-    const cutoff = now2 - AD_OBSERVATION_RETENTION_MS;
+  function trimObservations(observations, now3, limit) {
+    const cutoff = now3 - AD_OBSERVATION_RETENTION_MS;
     return observations.filter((entry) => Date.parse(entry.at) >= cutoff).slice(-limit);
   }
   function normalizeCounts(raw) {
@@ -11964,10 +11964,10 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
         missingCritical.map((item) => item.surface).join(","),
         currentSnapshot.adObservations.missingContracts.join(",")
       ].join(":");
-      const now2 = Date.now();
-      if (signature !== lastCriticalSignature || now2 - lastLogAt >= MIN_LOG_INTERVAL_MS) {
+      const now3 = Date.now();
+      if (signature !== lastCriticalSignature || now3 - lastLogAt >= MIN_LOG_INTERVAL_MS) {
         lastCriticalSignature = signature;
-        lastLogAt = now2;
+        lastLogAt = now3;
         ctx.diagnostics.warn(
           missingCritical.length > 0 ? "Critical selector health degraded" : "Ad contract health degraded",
           {
@@ -12876,10 +12876,10 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     });
   }
   async function readLockContenders(store6, prefix, owner) {
-    const now2 = Date.now();
+    const now3 = Date.now();
     const contenders = [];
     for (const [key, value] of await store6.entries(`${prefix}.`)) {
-      if (!isSharedLockContender(value) || value.expiresAt <= now2) {
+      if (!isSharedLockContender(value) || value.expiresAt <= now3) {
         await store6.remove(key);
         continue;
       }
@@ -13061,8 +13061,8 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       this.#state = normalizeState(stored);
       this.#loaded = true;
     }
-    snapshot(now2 = /* @__PURE__ */ new Date()) {
-      const day = localDay(now2);
+    snapshot(now3 = /* @__PURE__ */ new Date()) {
+      const day = localDay(now3);
       const current = this.#state.days.find((entry) => entry.day === day) ?? emptyDay(day);
       return {
         day,
@@ -13251,7 +13251,9 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     }
     return {
       model: config.model,
-      max_tokens: request.maxTokens ?? 1024,
+      // OpenAI-compatible reasoning endpoints use the longer parameter name first. Estimating
+      // that shape is conservative for the legacy fallback, whose `max_tokens` key is shorter.
+      max_completion_tokens: request.maxTokens ?? 1024,
       messages: [
         ...request.systemPrompt ? [{ role: "system", content: request.systemPrompt }] : [],
         { role: "user", content: request.prompt }
@@ -14474,7 +14476,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     const articles = root instanceof Element && root.matches('article[data-testid="tweet"]') ? [root] : Array.from(root.querySelectorAll('article[data-testid="tweet"]'));
     const seen = /* @__PURE__ */ new Set();
     const records = [];
-    const now2 = (/* @__PURE__ */ new Date()).toISOString();
+    const now3 = (/* @__PURE__ */ new Date()).toISOString();
     for (const article of articles) {
       const tweet = extractTweet(
         article,
@@ -14546,7 +14548,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
         handle: tweet.handle,
         displayName,
         text: tweet.text,
-        capturedAt: now2,
+        capturedAt: now3,
         surface,
         media,
         permalink: permalink2
@@ -15935,12 +15937,12 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     async reserve(fingerprint2, allowPerceptual = false) {
       await this.load();
       const candidate = normalizeFingerprint(fingerprint2);
-      const now2 = Date.now();
+      const now3 = Date.now();
       const reservation = {
         ...candidate,
-        token: reservationToken(candidate, now2),
-        at: new Date(now2).toISOString(),
-        expiresAt: now2 + MEDIA_HISTORY_RESERVATION_TTL_MS
+        token: reservationToken(candidate, now3),
+        at: new Date(now3).toISOString(),
+        expiresAt: now3 + MEDIA_HISTORY_RESERVATION_TTL_MS
       };
       let result = { match: null, token: reservation.token };
       try {
@@ -15950,7 +15952,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
           emptySnapshot2(),
           (stored) => {
             const entries = readEntries(stored);
-            const reservations = readReservations(stored, now2);
+            const reservations = readReservations(stored, now3);
             const match = findFingerprintMatch(entries, reservations, candidate, allowPerceptual);
             if (match) {
               result = { match, token: null };
@@ -16206,13 +16208,13 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     const safe = value.replaceAll('"', '""');
     return /[",\n\r]/.test(safe) ? `"${safe}"` : safe;
   }
-  function readReservations(stored, now2 = Date.now()) {
+  function readReservations(stored, now3 = Date.now()) {
     const candidates2 = Array.isArray(stored?.reservations) ? stored.reservations : [];
     const reservations = [];
     for (const candidate of candidates2) {
       if (!candidate || typeof candidate !== "object") continue;
       const value = candidate;
-      if (!validToken(value.token) || !validHash(value.identityHash) || typeof value.at !== "string" || typeof value.expiresAt !== "number" || !Number.isFinite(value.expiresAt) || value.expiresAt <= now2) {
+      if (!validToken(value.token) || !validHash(value.identityHash) || typeof value.at !== "string" || typeof value.expiresAt !== "number" || !Number.isFinite(value.expiresAt) || value.expiresAt <= now3) {
         continue;
       }
       reservations.push({
@@ -16226,8 +16228,8 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     }
     return reservations.slice(-MEDIA_HISTORY_RESERVATION_LIMIT);
   }
-  function activeReservations(reservations, now2 = Date.now()) {
-    return reservations.filter((entry) => entry.expiresAt > now2);
+  function activeReservations(reservations, now3 = Date.now()) {
+    return reservations.filter((entry) => entry.expiresAt > now3);
   }
   function snapshotFrom(stored, entries, reservations, limit) {
     return {
@@ -16289,10 +16291,10 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     return sha256Hex(new TextEncoder().encode(`aviary-media-legacy:${key}`));
   }
   function isCurrentSnapshot(stored) {
-    const now2 = Date.now();
+    const now3 = Date.now();
     return stored.schemaVersion === MEDIA_HISTORY_SCHEMA_VERSION && Array.isArray(stored.entries) && Array.isArray(stored.reservations) && stored.entries.every(
       (entry) => typeof entry === "object" && entry !== null && "identityHash" in entry && validHash(entry.identityHash) && !("key" in entry) && "quality" in entry && isQualityReceipt(entry.quality)
-    ) && stored.reservations.every((entry) => isActiveStoredReservation(entry, now2));
+    ) && stored.reservations.every((entry) => isActiveStoredReservation(entry, now3));
   }
   function findEntry(entries, fingerprint2, allowPerceptual) {
     const exact = fingerprint2.exactHash && entries.find((entry) => entry.exactHash === fingerprint2.exactHash);
@@ -16327,10 +16329,10 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     const normalized = normalizeDownloadQuality(value);
     return JSON.stringify(normalized) === JSON.stringify(value);
   }
-  function isActiveStoredReservation(value, now2) {
+  function isActiveStoredReservation(value, now3) {
     if (!value || typeof value !== "object") return false;
     const entry = value;
-    return validToken(entry.token) && validHash(entry.identityHash) && (entry.exactHash === void 0 || validHash(entry.exactHash)) && (entry.perceptualHash === void 0 || validHash(entry.perceptualHash)) && typeof entry.at === "string" && typeof entry.expiresAt === "number" && Number.isFinite(entry.expiresAt) && entry.expiresAt > now2;
+    return validToken(entry.token) && validHash(entry.identityHash) && (entry.exactHash === void 0 || validHash(entry.exactHash)) && (entry.perceptualHash === void 0 || validHash(entry.perceptualHash)) && typeof entry.at === "string" && typeof entry.expiresAt === "number" && Number.isFinite(entry.expiresAt) && entry.expiresAt > now3;
   }
   function findFingerprintMatch(entries, reservations, fingerprint2, allowPerceptual) {
     const candidates2 = [...entries, ...reservations];
@@ -16350,10 +16352,10 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     return null;
   }
   var reservationSequence = 0;
-  function reservationToken(fingerprint2, now2) {
+  function reservationToken(fingerprint2, now3) {
     reservationSequence += 1;
     return sha256Hex(new TextEncoder().encode(
-      `${fingerprint2.exactHash ?? fingerprint2.identityHash}:${now2}:${reservationSequence}:${Math.random()}`
+      `${fingerprint2.exactHash ?? fingerprint2.identityHash}:${now3}:${reservationSequence}:${Math.random()}`
     ));
   }
   function validToken(value) {
@@ -21279,7 +21281,7 @@ ${record.text}${mediaList}`;
   var MAX_RULE_LENGTH = 400;
   var MAX_RULE_SET_BYTES = 64 * 1024;
   var PORTABLE_RULE_SET_HEADER = "# Aviary filter rules v1";
-  function compileRules(lines, now2 = Date.now()) {
+  function compileRules(lines, now3 = Date.now()) {
     const rules = [];
     const expired = [];
     const errors = [];
@@ -21291,7 +21293,7 @@ ${record.text}${mediaList}`;
       }
       try {
         const rule = parseRule(source);
-        if (rule.expiresAt !== null && rule.expiresAt <= now2) {
+        if (rule.expiresAt !== null && rule.expiresAt <= now3) {
           expired.push(rule);
           return;
         }
@@ -21313,8 +21315,8 @@ ${record.text}${mediaList}`;
     return `${[PORTABLE_RULE_SET_HEADER, ...normalizeRuleLines(lines)].join("\n")}
 `;
   }
-  function previewRuleSetImport(payload, current, now2 = Date.now()) {
-    const parsed = parsePortableRuleSet(payload, now2);
+  function previewRuleSetImport(payload, current, now3 = Date.now()) {
+    const parsed = parsePortableRuleSet(payload, now3);
     const existing = normalizeRuleLines(current);
     const existingSet = new Set(existing);
     const addLines = [...existing];
@@ -21365,7 +21367,7 @@ ${record.text}${mediaList}`;
       }
     };
   }
-  function parsePortableRuleSet(payload, now2) {
+  function parsePortableRuleSet(payload, now3) {
     const lines = [];
     const errors = [];
     if (new TextEncoder().encode(payload).byteLength > MAX_RULE_SET_BYTES) {
@@ -21388,7 +21390,7 @@ ${record.text}${mediaList}`;
       seen.add(source);
       const comment = source.startsWith("#");
       if (!comment) {
-        const result = compileRules([source], now2);
+        const result = compileRules([source], now3);
         if (result.errors[0]) {
           errors.push({ source, line, message: result.errors[0].message });
           return;
@@ -21481,10 +21483,10 @@ ${record.text}${mediaList}`;
     }
     return { amount: value, unit: unit.toLowerCase() === "d" ? "d" : "h", startedAt };
   }
-  function renewRuleLine(source, now2 = Date.now()) {
+  function renewRuleLine(source, now3 = Date.now()) {
     return source.replace(
       /(for\s+\d+\s*[hd]\s+from\s+)(\S+)(\s*:)/i,
-      (_match, head, _instant, tail) => `${head}${new Date(now2).toISOString()}${tail}`
+      (_match, head, _instant, tail) => `${head}${new Date(now3).toISOString()}${tail}`
     );
   }
   function splitOnConnective(body) {
@@ -22017,14 +22019,14 @@ ${record.text}${mediaList}`;
   }
   function refreshCompiled(ctx) {
     const signature = filterSignature(ctx);
-    const now2 = Date.now();
-    const stale = nextExpiry !== null && now2 >= nextExpiry;
+    const now3 = Date.now();
+    const stale = nextExpiry !== null && now3 >= nextExpiry;
     if (compiled && signature === compiledSignature && !stale) {
       return;
     }
     compiledSignature = signature;
     generation += 1;
-    const ruleSet = compileRules(ctx.settings.filter.rules, now2);
+    const ruleSet = compileRules(ctx.settings.filter.rules, now3);
     ruleErrors = ruleSet.errors.map((error) => ({ ...error, origin: "rules" }));
     expiredRules = ruleSet.expired;
     nextExpiry = ruleSet.nextExpiry;
@@ -22355,12 +22357,12 @@ ${target}:focus-within { ${REVEALED} }`);
       this.#storage = storage;
       this.#limit = Math.max(64, Math.min(CATCH_UP_LIMIT, Math.floor(limit)));
     }
-    async load(now2 = Date.now()) {
+    async load(now3 = Date.now()) {
       if (this.#loaded) return;
       this.#loaded = true;
       try {
         const raw = await this.#storage.get(CATCH_UP_KEY, void 0);
-        this.#entries = parseStored(raw, now2, this.#limit);
+        this.#entries = parseStored(raw, now3, this.#limit);
       } catch {
         this.#entries = /* @__PURE__ */ new Map();
       }
@@ -22397,7 +22399,7 @@ ${target}:focus-within { ${REVEALED} }`);
         metrics
       });
     }
-    flush(now2) {
+    flush(now3) {
       if (!this.#dirty) return;
       this.#dirty = false;
       const pending = this.#pending;
@@ -22408,15 +22410,15 @@ ${target}:focus-within { ${REVEALED} }`);
           CATCH_UP_KEY,
           { version: 1, entries: [] },
           (stored) => {
-            const combined = parseStored(stored, now2, this.#limit);
+            const combined = parseStored(stored, now3, this.#limit);
             for (const [id, entry] of pending) {
               const existing = combined.get(id);
               combined.set(id, normalizeRecord(entry, existing?.seenAt));
             }
-            return { version: 1, entries: trimEntries(combined, now2, this.#limit) };
+            return { version: 1, entries: trimEntries(combined, now3, this.#limit) };
           }
         );
-        this.#entries = parseStored(merged, now2, this.#limit);
+        this.#entries = parseStored(merged, now3, this.#limit);
       }).then(
         () => void 0,
         () => void 0
@@ -22434,11 +22436,11 @@ ${target}:focus-within { ${REVEALED} }`);
     }
   };
   function buildCatchUpDigest(entries, options = {}) {
-    const now2 = Number.isFinite(options.now) ? Number(options.now) : Date.now();
+    const now3 = Number.isFinite(options.now) ? Number(options.now) : Date.now();
     const windowHours = normalizeWindow(options.windowHours);
-    const cutoff = now2 - (windowHours === 13 ? 12 : windowHours) * 60 * 60 * 1e3;
+    const cutoff = now3 - (windowHours === 13 ? 12 : windowHours) * 60 * 60 * 1e3;
     const inWindow = entries.filter(
-      (entry) => windowHours === 13 ? entry.seenAt < cutoff : entry.seenAt >= cutoff && entry.seenAt <= now2
+      (entry) => windowHours === 13 ? entry.seenAt < cutoff : entry.seenAt >= cutoff && entry.seenAt <= now3
     );
     const counts = emptyCounts2();
     for (const entry of inWindow) {
@@ -22493,19 +22495,19 @@ ${target}:focus-within { ${REVEALED} }`);
     }
     return [...links.values()].sort((left, right) => right.shared - left.shared || left.url.localeCompare(right.url)).slice(0, 10);
   }
-  function parseStored(raw, now2, limit) {
+  function parseStored(raw, now3, limit) {
     const entries = raw && typeof raw === "object" && Array.isArray(raw.entries) ? raw.entries ?? [] : [];
     const result = /* @__PURE__ */ new Map();
     for (const entry of entries) {
       if (!isCatchUpRecord(entry)) continue;
       const normalized = normalizeRecord(entry);
-      if (normalized.seenAt < now2 - CATCH_UP_RETENTION_MS) continue;
+      if (normalized.seenAt < now3 - CATCH_UP_RETENTION_MS) continue;
       result.set(normalized.tweetId, normalized);
     }
-    return new Map(trimEntries(result, now2, limit).map((entry) => [entry.tweetId, entry]));
+    return new Map(trimEntries(result, now3, limit).map((entry) => [entry.tweetId, entry]));
   }
-  function trimEntries(entries, now2, limit) {
-    return [...entries.values()].filter((entry) => entry.seenAt >= now2 - CATCH_UP_RETENTION_MS).sort((left, right) => left.seenAt - right.seenAt).slice(-limit).map(cloneRecord2);
+  function trimEntries(entries, now3, limit) {
+    return [...entries.values()].filter((entry) => entry.seenAt >= now3 - CATCH_UP_RETENTION_MS).sort((left, right) => left.seenAt - right.seenAt).slice(-limit).map(cloneRecord2);
   }
   function isCatchUpRecord(value) {
     if (!value || typeof value !== "object") return false;
@@ -22642,12 +22644,12 @@ ${target}:focus-within { ${REVEALED} }`);
      * Record a post as seen. Returns true when this is the first time, so callers can tell a
      * first sighting from a revisit without a second lookup.
      */
-    mark(id, now2) {
+    mark(id, now3) {
       if (!TWEET_ID.test(id) || this.#seen.has(id)) {
         return false;
       }
-      this.#seen.set(id, now2);
-      this.#pending.set(id, now2);
+      this.#seen.set(id, now3);
+      this.#pending.set(id, now3);
       this.#dirty = true;
       return true;
     }
@@ -22660,12 +22662,12 @@ ${target}:focus-within { ${REVEALED} }`);
      * know what has already gone past. The union is taken under a cross-tab lock and the retention
      * rules are re-applied to the merged map, so the cap still holds.
      */
-    flush(now2) {
+    flush(now3) {
       if (!this.#dirty) {
         return;
       }
       this.#dirty = false;
-      this.#prune(now2);
+      this.#prune(now3);
       const pending = this.#pending;
       this.#pending = /* @__PURE__ */ new Map();
       this.#tail = this.#tail.then(async () => {
@@ -22681,7 +22683,7 @@ ${target}:focus-within { ${REVEALED} }`);
                 combined.set(id, at);
               }
             }
-            return { version: 1, seen: Object.fromEntries(prune(combined, now2)) };
+            return { version: 1, seen: Object.fromEntries(prune(combined, now3)) };
           }
         );
         this.#seen = parse(merged);
@@ -22703,8 +22705,8 @@ ${target}:focus-within { ${REVEALED} }`);
         seen: {}
       });
     }
-    #prune(now2) {
-      this.#seen = prune(this.#seen, now2);
+    #prune(now3) {
+      this.#seen = prune(this.#seen, now3);
     }
   };
   var ReadingMarkerStore = class {
@@ -22731,11 +22733,11 @@ ${target}:focus-within { ${REVEALED} }`);
       return marker ? { ...marker } : null;
     }
     /** Store a user-selected position, including an explicit mark-above action. */
-    set(surface, lastReadId, now2) {
-      if (!isReadingMarkerSurface(surface) || !TWEET_ID.test(lastReadId) || !Number.isFinite(now2)) {
+    set(surface, lastReadId, now3) {
+      if (!isReadingMarkerSurface(surface) || !TWEET_ID.test(lastReadId) || !Number.isFinite(now3)) {
         return false;
       }
-      const next = { lastReadId, updatedAt: Math.max(0, Math.floor(now2)) };
+      const next = { lastReadId, updatedAt: Math.max(0, Math.floor(now3)) };
       const current = this.#markers.get(surface);
       if (current?.lastReadId === next.lastReadId) {
         return false;
@@ -22746,12 +22748,12 @@ ${target}:focus-within { ${REVEALED} }`);
       return true;
     }
     /** Move the boundary toward older posts when one leaves the viewport upward. */
-    advance(surface, lastReadId, now2) {
+    advance(surface, lastReadId, now3) {
       const current = this.#markers.get(surface);
       if (current && compareTweetIds(lastReadId, current.lastReadId) >= 0) {
         return false;
       }
-      return this.set(surface, lastReadId, now2);
+      return this.set(surface, lastReadId, now3);
     }
     snapshot() {
       return {
@@ -22872,8 +22874,8 @@ ${target}:focus-within { ${REVEALED} }`);
     }
     return result;
   }
-  function prune(seen, now2) {
-    const cutoff = now2 - SEEN_POSTS_RETENTION_MS;
+  function prune(seen, now3) {
+    const cutoff = now3 - SEEN_POSTS_RETENTION_MS;
     const kept = /* @__PURE__ */ new Map();
     for (const [id, at] of seen) {
       if (at >= cutoff) {
@@ -22897,11 +22899,19 @@ ${target}:focus-within { ${REVEALED} }`);
   var STYLE_ID6 = "av-seen-posts";
   var MARKER3 = "data-av-seen";
   var FLUSH_DELAY_MS = 1500;
+  var DWELL_MS = 1e3;
+  var MIN_VISIBLE_RATIO = 0.5;
+  var MIN_VISIBLE_PIXELS = 200;
   var store;
   var storeLoading;
   var catchUpStore;
   var catchUpLoading;
   var flushTimer;
+  var visibilityObserver;
+  var visibilityChangeHandler;
+  var visibility = /* @__PURE__ */ new Map();
+  var dwellTimers = /* @__PURE__ */ new Map();
+  var testSeams = {};
   async function ensureStore(ctx) {
     if (store) {
       return;
@@ -22969,8 +22979,8 @@ ${target}:focus-within { ${REVEALED} }`);
       }
     },
     async destroy(ctx) {
-      store?.flush(Date.now());
-      catchUpStore?.flush(Date.now());
+      store?.flush(now());
+      catchUpStore?.flush(now());
       await store?.settled();
       await catchUpStore?.settled();
       teardown();
@@ -22992,7 +23002,6 @@ ${target}:focus-within { ${REVEALED} }`);
     if (articles.length === 0) {
       return;
     }
-    const now2 = Date.now();
     let marked = false;
     let captured = false;
     for (const article of articles) {
@@ -23002,14 +23011,16 @@ ${target}:focus-within { ${REVEALED} }`);
       }
       if (store.has(id)) {
         article.setAttribute(MARKER3, "1");
+      } else if (isDirectStatusPost(ctx, article, id)) {
+        const result = qualify(ctx, article, id);
+        marked ||= result.marked;
+        captured ||= result.captured;
       } else {
-        if (store.mark(id, now2)) {
-          marked = true;
-        }
         article.removeAttribute(MARKER3);
+        observeArticle(ctx, article, id);
       }
       const seenAt = store.seenAt(id);
-      if (seenAt !== null && catchUpStore) {
+      if (seenAt !== null && catchUpStore && !isDirectStatusPost(ctx, article, id)) {
         const record = collectExportRecords(article, ctx.route.surface)[0];
         if (record) {
           catchUpStore.upsertExportRecord(
@@ -23024,8 +23035,110 @@ ${target}:focus-within { ${REVEALED} }`);
       }
     }
     if (marked || captured) {
-      scheduleFlush(now2);
+      scheduleFlush(now());
     }
+  }
+  function now() {
+    return testSeams.now?.() ?? Date.now();
+  }
+  function scheduleTimer(callback, delay2) {
+    return (testSeams.setTimeout ?? setTimeout)(callback, delay2);
+  }
+  function clearTimer(timer2) {
+    (testSeams.clearTimeout ?? clearTimeout)(timer2);
+  }
+  function ensureVisibilityObserver(ctx) {
+    if (visibilityObserver) return visibilityObserver;
+    const factory = testSeams.createObserver ?? ((callback, options) => {
+      if (typeof IntersectionObserver !== "function") return void 0;
+      return new IntersectionObserver(callback, options);
+    });
+    visibilityObserver = factory((entries) => {
+      for (const entry of entries) {
+        handleVisibility(ctx, entry);
+      }
+    }, { threshold: [0, MIN_VISIBLE_RATIO] });
+    if (!visibilityObserver) return void 0;
+    visibilityChangeHandler = () => {
+      if (document.visibilityState === "visible") return;
+      for (const article of visibility.keys()) {
+        const state2 = visibility.get(article);
+        if (state2) visibility.set(article, { ...state2, visible: false });
+        cancelDwell(article);
+      }
+    };
+    document.addEventListener("visibilitychange", visibilityChangeHandler);
+    return visibilityObserver;
+  }
+  function observeArticle(ctx, article, id) {
+    const observer3 = ensureVisibilityObserver(ctx);
+    if (!observer3 || visibility.has(article)) return;
+    visibility.set(article, { id, visible: false });
+    observer3.observe(article);
+  }
+  function handleVisibility(ctx, entry) {
+    const article = entry.target;
+    const id = readTweetId3(article);
+    if (!id || !store || store.has(id)) {
+      cancelDwell(article);
+      return;
+    }
+    const visible = document.visibilityState === "visible" && entry.isIntersecting && isVisibleEnough(entry);
+    const prior = visibility.get(article);
+    visibility.set(article, { id, visible });
+    if (!visible) {
+      cancelDwell(article);
+      return;
+    }
+    if (prior?.visible && dwellTimers.has(article)) return;
+    const scheduledId = id;
+    const timer2 = scheduleTimer(() => {
+      dwellTimers.delete(article);
+      const current = visibility.get(article);
+      if (!article.isConnected || !current?.visible || current.id !== scheduledId) return;
+      const result = qualify(ctx, article, scheduledId);
+      if (result.marked || result.captured) scheduleFlush(now());
+    }, DWELL_MS);
+    dwellTimers.set(article, timer2);
+  }
+  function isVisibleEnough(entry) {
+    if (entry.intersectionRatio >= MIN_VISIBLE_RATIO) return true;
+    const height = entry.boundingClientRect.height;
+    return height > (entry.rootBounds?.height ?? window.innerHeight) && entry.intersectionRect.height >= MIN_VISIBLE_PIXELS;
+  }
+  function cancelDwell(article) {
+    const timer2 = dwellTimers.get(article);
+    if (timer2 !== void 0) {
+      clearTimer(timer2);
+      dwellTimers.delete(article);
+    }
+  }
+  function isDirectStatusPost(ctx, article, id) {
+    if (ctx.route.surface !== "status") return false;
+    const match = /\/status\/(\d{1,25})/.exec(ctx.route.path ?? "");
+    if (!match) return false;
+    return match[1] === id;
+  }
+  function qualify(ctx, article, id) {
+    if (!store || store.has(id)) return { marked: false, captured: false };
+    const marked = store.mark(id, now());
+    article.removeAttribute(MARKER3);
+    let captured = false;
+    const seenAt = store.seenAt(id);
+    if (seenAt !== null && catchUpStore) {
+      const record = collectExportRecords(article, ctx.route.surface)[0];
+      if (record) {
+        catchUpStore.upsertExportRecord(
+          record,
+          seenAt,
+          classifyArticle(article, article.getAttribute("data-av-filter-reason")),
+          article.getAttribute("data-av-filter-reason"),
+          readMetrics(article)
+        );
+        captured = true;
+      }
+    }
+    return { marked, captured };
   }
   function collect(root) {
     const selector = 'article[data-testid="tweet"]';
@@ -23049,14 +23162,14 @@ ${target}:focus-within { ${REVEALED} }`);
     }
     return null;
   }
-  function scheduleFlush(now2) {
+  function scheduleFlush(now3) {
     if (flushTimer !== void 0) {
       return;
     }
-    flushTimer = setTimeout(() => {
+    flushTimer = scheduleTimer(() => {
       flushTimer = void 0;
-      store?.flush(now2);
-      catchUpStore?.flush(now2);
+      store?.flush(now3);
+      catchUpStore?.flush(now3);
     }, FLUSH_DELAY_MS);
   }
   function ensureStyle2() {
@@ -23085,16 +23198,25 @@ html[data-av-motion="reduce"] article[data-testid="tweet"][${MARKER3}="1"] {
   }
   function teardown() {
     if (flushTimer !== void 0) {
-      const now2 = Date.now();
-      store?.flush(now2);
-      catchUpStore?.flush(now2);
+      const at = now();
+      store?.flush(at);
+      catchUpStore?.flush(at);
     }
+    visibilityObserver?.disconnect();
+    visibilityObserver = void 0;
+    if (visibilityChangeHandler) {
+      document.removeEventListener("visibilitychange", visibilityChangeHandler);
+      visibilityChangeHandler = void 0;
+    }
+    for (const timer2 of dwellTimers.values()) clearTimer(timer2);
+    dwellTimers.clear();
+    visibility.clear();
     document.getElementById(STYLE_ID6)?.remove();
     for (const article of Array.from(document.querySelectorAll(`[${MARKER3}]`))) {
       article.removeAttribute(MARKER3);
     }
     if (flushTimer !== void 0) {
-      clearTimeout(flushTimer);
+      clearTimer(flushTimer);
       flushTimer = void 0;
     }
   }
@@ -26220,14 +26342,14 @@ a.av-link-clean {
   }
   function mapTweets(parsed, surface) {
     if (!Array.isArray(parsed)) return [];
-    const now2 = (/* @__PURE__ */ new Date()).toISOString();
+    const now3 = (/* @__PURE__ */ new Date()).toISOString();
     const out = [];
     for (const entry of parsed) {
       const tweet = isRecord9(entry) && isRecord9(entry.tweet) ? entry.tweet : entry;
       if (!isRecord9(tweet)) continue;
       const id = stringField(tweet, "id_str", "id");
       const text = stringField(tweet, "full_text", "text") ?? "";
-      const createdAt = stringField(tweet, "created_at") ?? now2;
+      const createdAt = stringField(tweet, "created_at") ?? now3;
       const record = {
         tweetId: id,
         handle: stringFromAuthor(tweet) ?? null,
@@ -26237,7 +26359,7 @@ a.av-link-clean {
         // what wacz.ts derives the CDXJ timestamp from, and those describe when the record was
         // captured -- so putting X's `created_at` here made a signed archive assert a capture instant
         // that never happened. types.ts states the split; `createdAt` below carries the authored time.
-        capturedAt: now2,
+        capturedAt: now3,
         surface,
         media: [],
         permalink: id ? `https://x.com/i/web/status/${id}` : null
@@ -26376,7 +26498,7 @@ a.av-link-clean {
           `Archive is ${formatMiB2(source.byteLength)}, over the ${formatMiB2(ceiling)} this browser profile can store.`
         );
       }
-      const now2 = (/* @__PURE__ */ new Date()).toISOString();
+      const now3 = (/* @__PURE__ */ new Date()).toISOString();
       const job = {
         jobId: `archive-${Date.now()}-${++this.#state.sequence}`,
         filename: filename || "archive.zip",
@@ -26386,8 +26508,8 @@ a.av-link-clean {
         recordCount: 0,
         warningCount: 0,
         errorCount: 0,
-        createdAt: now2,
-        updatedAt: now2,
+        createdAt: now3,
+        updatedAt: now3,
         resumeOnBoot: true,
         source: ""
       };
@@ -29056,12 +29178,12 @@ ${COLOR_CSS}`;
     }
     async upsert(input) {
       await this.load();
-      const now2 = (/* @__PURE__ */ new Date()).toISOString();
+      const now3 = (/* @__PURE__ */ new Date()).toISOString();
       const tweetId = normalizeId(input.tweetId);
       const existing = tweetId ? this.#state.entries.find((entry2) => entry2.tweetId === tweetId) : void 0;
       if (existing) {
         applyInput(existing, input);
-        existing.updatedAt = now2;
+        existing.updatedAt = now3;
         await this.#persist({ added: [existing], removed: [] });
         return existing;
       }
@@ -29075,8 +29197,8 @@ ${COLOR_CSS}`;
         folder: normalizeFolder(input.folder),
         remindAt: normalizeReminder(input.remindAt),
         notes: normalizeNotes(input.notes),
-        capturedAt: now2,
-        updatedAt: now2,
+        capturedAt: now3,
+        updatedAt: now3,
         source: "manual",
         sourceOperation: null
       };
@@ -29106,7 +29228,7 @@ ${COLOR_CSS}`;
       await this.load();
       const normalized = dedupeCaptured(inputs);
       if (normalized.length === 0) return 0;
-      const now2 = (/* @__PURE__ */ new Date()).toISOString();
+      const now3 = (/* @__PURE__ */ new Date()).toISOString();
       try {
         const merged = await mutateStored(
           this.#storage,
@@ -29129,7 +29251,7 @@ ${COLOR_CSS}`;
                 if (text) existing.text = text;
                 if (url) existing.url = url;
                 existing.capturedAt = input.capturedAt;
-                existing.updatedAt = now2;
+                existing.updatedAt = now3;
                 existing.source = "captured";
                 existing.sourceOperation = normalizeOperation(input.sourceOperation);
                 continue;
@@ -29145,7 +29267,7 @@ ${COLOR_CSS}`;
                 remindAt: null,
                 notes: "",
                 capturedAt: input.capturedAt,
-                updatedAt: now2,
+                updatedAt: now3,
                 source: "captured",
                 sourceOperation: normalizeOperation(input.sourceOperation)
               };
@@ -30504,15 +30626,15 @@ ${COLOR_CSS}`;
     async create(label, kind = "offline") {
       await this.load();
       const cleanLabel = label.trim().slice(0, 80) || "Offline library";
-      const now2 = (/* @__PURE__ */ new Date()).toISOString();
+      const now3 = (/* @__PURE__ */ new Date()).toISOString();
       const profile = {
         // `Date.now()` plus a count is the collision pattern already fixed once in bookmarks:
         // two profiles created in the same millisecond after a deletion can collide.
         id: `${kind === "x-account" ? "account" : "offline"}-${randomId()}`,
         label: cleanLabel,
         kind,
-        createdAt: now2,
-        lastUsedAt: now2
+        createdAt: now3,
+        lastUsedAt: now3
       };
       this.#state.profiles.push(profile);
       const defaultProfile = this.#state.profiles.find((entry) => entry.id === DEFAULT_PROFILE_ID);
@@ -32074,9 +32196,9 @@ ${COLOR_CSS}`;
           if (expired.size === 0) {
             return 0;
           }
-          const now2 = Date.now();
+          const now3 = Date.now();
           ctx.settings.filter.rules = ctx.settings.filter.rules.map(
-            (line) => expired.has(line.trim()) ? renewRuleLine(line.trim(), now2) : line
+            (line) => expired.has(line.trim()) ? renewRuleLine(line.trim(), now3) : line
           );
           await ctx.saveSettings();
           ctx.requestApply();
@@ -33201,6 +33323,30 @@ ${COLOR_CSS}`;
   var launcherState = /* @__PURE__ */ new WeakMap();
 
   // src/features/integrations/ai-provider.ts
+  var completionLimitByEndpoint = /* @__PURE__ */ new Map();
+  function completionEndpointKey(endpoint) {
+    return endpoint.trim().replace(/\/$/, "").toLowerCase();
+  }
+  function boundedProviderText(value) {
+    if (typeof value !== "string") return void 0;
+    const text = value.trim().replace(/\s+/g, " ");
+    return text ? text.slice(0, 4096) : void 0;
+  }
+  function providerErrorMessage(body) {
+    const trimmed = body.trim().slice(0, 4096);
+    if (!trimmed) return void 0;
+    try {
+      const parsed = JSON.parse(body);
+      const value = typeof parsed.error === "string" ? parsed.error : parsed.error && typeof parsed.error === "object" ? parsed.error.message : parsed.message;
+      return boundedProviderText(value);
+    } catch {
+      return boundedProviderText(trimmed);
+    }
+  }
+  function namesUnsupportedCompletionLimit(message) {
+    if (!message) return false;
+    return /(?:unsupported|unknown|unrecognized|invalid|not\s+permitted)[^\n]{0,100}(?:max_completion_tokens|max_tokens)|(?:max_completion_tokens|max_tokens)[^\n]{0,100}(?:unsupported|unknown|unrecognized|invalid|not\s+permitted)/i.test(message);
+  }
   async function runAiPrompt(config, request, options = {}) {
     if (!config.enabled) return { ok: false, error: "AI provider integration disabled" };
     if (!config.apiKey) return { ok: false, error: "AI provider API key missing" };
@@ -33269,30 +33415,52 @@ ${COLOR_CSS}`;
       "content-type": "application/json",
       authorization: `Bearer ${config.apiKey}`
     };
-    const result = await withNetworkTimeout(async (signal) => {
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          model: config.model,
-          max_tokens: request.maxTokens ?? 1024,
-          messages: [
-            ...request.systemPrompt ? [{ role: "system", content: request.systemPrompt }] : [],
-            { role: "user", content: request.prompt }
-          ]
-        }),
-        signal
-      });
-      if (!response.ok) return { status: response.status };
-      return {
-        payload: await response.json()
-      };
-    }, NETWORK_TIMEOUTS.ai);
-    if ("status" in result) {
-      return { ok: false, error: `Provider HTTP ${result.status}` };
+    const key = completionEndpointKey(endpoint);
+    const remembered = completionLimitByEndpoint.get(key);
+    const first = remembered ?? "max_completion_tokens";
+    const second = first === "max_completion_tokens" ? "max_tokens" : "max_completion_tokens";
+    async function send(limitParameter) {
+      return withNetworkTimeout(async (signal) => {
+        const response = await fetch(endpoint, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            model: config.model,
+            [limitParameter]: request.maxTokens ?? 1024,
+            messages: [
+              ...request.systemPrompt ? [{ role: "system", content: request.systemPrompt }] : [],
+              { role: "user", content: request.prompt }
+            ]
+          }),
+          signal
+        });
+        if (!response.ok) {
+          return { status: response.status, message: providerErrorMessage(await response.text()) };
+        }
+        return {
+          payload: await response.json(),
+          limitParameter
+        };
+      }, NETWORK_TIMEOUTS.ai);
     }
+    let result = await send(first);
+    if ("status" in result && result.status === 400 && namesUnsupportedCompletionLimit(result.message)) {
+      result = await send(second);
+      if ("status" in result && result.status === 400 && namesUnsupportedCompletionLimit(result.message)) {
+        return {
+          ok: false,
+          error: `Provider HTTP 400: neither ${first} nor ${second} is supported${result.message ? ` (${result.message})` : ""}`
+        };
+      }
+    }
+    if ("status" in result) {
+      return { ok: false, error: `Provider HTTP ${result.status}${result.message ? `: ${result.message}` : ""}` };
+    }
+    completionLimitByEndpoint.set(key, result.limitParameter);
     const payload = result.payload;
-    if (payload?.error) return { ok: false, error: payload.error.message ?? "Provider error" };
+    if (payload?.error) {
+      return { ok: false, error: providerErrorMessage(JSON.stringify(payload.error)) ?? "Provider error" };
+    }
     const text = payload?.choices?.[0]?.message?.content ?? "";
     return { ok: true, text };
   }
@@ -34510,7 +34678,7 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
         try {
           const category = blockedRequestCategory(state?.config ?? INITIAL_CONFIG, String(url));
           if (category) {
-            emit("blocked", { url: String(url), via: "sendBeacon", at: now(), category });
+            emit("blocked", { url: String(url), via: "sendBeacon", at: now2(), category });
             return true;
           }
         } catch {
@@ -34535,7 +34703,7 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
           const config = state?.config ?? INITIAL_CONFIG;
           const category = blockedRequestCategory(config, url);
           if (category) {
-            emit("blocked", { url, via: "xhr", at: now(), category });
+            emit("blocked", { url, via: "xhr", at: now2(), category });
             completeAsNetworkError(this);
             return;
           }
@@ -34613,7 +34781,7 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
       const config = state?.config ?? INITIAL_CONFIG;
       const blockedCategory = blockedRequestCategory(config, url);
       if (blockedCategory) {
-        emit("blocked", { url, via: "fetch", at: now(), category: blockedCategory });
+        emit("blocked", { url, via: "fetch", at: now2(), category: blockedCategory });
         return new Response(null, { status: 204, statusText: "No Content" });
       }
       const response = await originalFetch(input, init);
@@ -34623,7 +34791,7 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
           const text = await cloned.text();
           const rewritten = rewritePlaylistToBestVariant(text);
           if (rewritten) {
-            emit("playlist", { url, variantsBefore: rewritten.variantsBefore, at: now() });
+            emit("playlist", { url, variantsBefore: rewritten.variantsBefore, at: now2() });
             return new Response(rewritten.playlist, {
               status: response.status,
               statusText: response.statusText,
@@ -34681,7 +34849,7 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
       operation: graphqlOperationName(url),
       status,
       bytes: oversize ? 0 : bytes,
-      at: now(),
+      at: now2(),
       body: oversize ? "" : body,
       ...oversize ? { truncated: true, originalBytes: bytes } : {}
     });
@@ -34803,7 +34971,7 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
     } catch {
     }
   }
-  function now() {
+  function now2() {
     return (/* @__PURE__ */ new Date()).toISOString();
   }
   function isRecord14(value) {
@@ -35222,11 +35390,11 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
   }
   function rejectCapture(ctx, reason) {
     rejectedPayloads += 1;
-    const now2 = Date.now();
-    if (now2 - lastRejectionWarningAt < 1e3) {
+    const now3 = Date.now();
+    if (now3 - lastRejectionWarningAt < 1e3) {
       return;
     }
-    lastRejectionWarningAt = now2;
+    lastRejectionWarningAt = now3;
     ctx.diagnostics.warn("Network capture rejected a page message", { reason });
   }
   function resetCaptureSession() {
@@ -35904,7 +36072,7 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
     const height = globalThis.innerHeight || document.documentElement.clientHeight || 0;
     if (height <= 0) return;
     let changed = false;
-    const now2 = Date.now();
+    const now3 = Date.now();
     for (const [article, state2] of articleStates) {
       if (!article.isConnected) {
         articleStates.delete(article);
@@ -35918,7 +36086,7 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
       }
       if (state2.wasVisible && rect.bottom <= 0) {
         state2.wasVisible = false;
-        changed = store5.advance(activeSurface, state2.id, now2) || changed;
+        changed = store5.advance(activeSurface, state2.id, now3) || changed;
       }
     }
     if (changed) {
@@ -36412,11 +36580,11 @@ html.av-hide-nav-more [data-testid="AppTabBar_More_Menu"] {
   function minutesOfDay(date) {
     return date.getHours() * 60 + date.getMinutes();
   }
-  function withinWindow(now2, startMinute, endMinute) {
+  function withinWindow(now3, startMinute, endMinute) {
     if (startMinute === endMinute) {
       return true;
     }
-    return startMinute < endMinute ? now2 >= startMinute && now2 < endMinute : now2 >= startMinute || now2 < endMinute;
+    return startMinute < endMinute ? now3 >= startMinute && now3 < endMinute : now3 >= startMinute || now3 < endMinute;
   }
   function parseTime(value) {
     const match = /^(\d{1,2}):(\d{2})$/.exec(value.trim());
@@ -36469,13 +36637,13 @@ html.av-hide-nav-more [data-testid="AppTabBar_More_Menu"] {
       });
       return;
     }
-    const now2 = Date.now();
-    if (now2 < overrideUntil) {
+    const now3 = Date.now();
+    if (now3 < overrideUntil) {
       hidePanel();
       scheduleRecheck(ctx);
       return;
     }
-    if (withinWindow(minutesOfDay(new Date(now2)), start, end)) {
+    if (withinWindow(minutesOfDay(new Date(now3)), start, end)) {
       hidePanel();
     } else {
       showPanel(ctx);
@@ -38040,11 +38208,11 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       }
     }
     function rejectMessage(reason2) {
-      const now2 = Date.now();
-      if (now2 - lastRejectedAt < 1e3) {
+      const now3 = Date.now();
+      if (now3 - lastRejectedAt < 1e3) {
         return;
       }
-      lastRejectedAt = now2;
+      lastRejectedAt = now3;
       options.diagnostics.warn("Page bridge rejected a malformed message", { reason: reason2 });
     }
     function dispatch(value) {
@@ -38373,10 +38541,10 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       };
     }
     refill() {
-      const now2 = Date.now();
-      const elapsed = Math.max(0, now2 - this.#lastRefill) / 1e3;
+      const now3 = Date.now();
+      const elapsed = Math.max(0, now3 - this.#lastRefill) / 1e3;
       this.#tokens = Math.min(this.capacity, this.#tokens + elapsed * this.refillPerSecond);
-      this.#lastRefill = now2;
+      this.#lastRefill = now3;
     }
   };
   function delay(ms) {
@@ -39213,15 +39381,15 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
   var durableOperationSequence = 0;
   var lastDurableOperationOrder = 0;
   function createDurableOperation() {
-    const now2 = Math.max(0, Math.floor(Date.now()));
-    const requestedOrder = now2 * 1e3;
+    const now3 = Math.max(0, Math.floor(Date.now()));
+    const requestedOrder = now3 * 1e3;
     const operationOrder = Math.min(
       Number.MAX_SAFE_INTEGER,
       Math.max(requestedOrder, lastDurableOperationOrder + 1)
     );
     lastDurableOperationOrder = operationOrder;
     return {
-      operationId: `${now2.toString(36)}-${(++durableOperationSequence).toString(36)}-${Math.random().toString(36).slice(2)}`,
+      operationId: `${now3.toString(36)}-${(++durableOperationSequence).toString(36)}-${Math.random().toString(36).slice(2)}`,
       operationOrder
     };
   }

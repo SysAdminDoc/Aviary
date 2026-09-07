@@ -7,12 +7,28 @@ import { SeenPostStore } from "./seen-posts.ts";
 const STYLE_ID = "av-seen-posts";
 const MARKER = "data-av-seen";
 const FLUSH_DELAY_MS = 1500;
+const DWELL_MS = 1000;
+const MIN_VISIBLE_RATIO = 0.5;
+const MIN_VISIBLE_PIXELS = 200;
 
 let store: SeenPostStore | undefined;
 let storeLoading: Promise<void> | undefined;
 let catchUpStore: CatchUpStore | undefined;
 let catchUpLoading: Promise<void> | undefined;
 let flushTimer: ReturnType<typeof setTimeout> | undefined;
+let visibilityObserver: IntersectionObserver | undefined;
+let visibilityChangeHandler: (() => void) | undefined;
+const visibility = new Map<Element, { id: string; visible: boolean }>();
+const dwellTimers = new Map<Element, ReturnType<typeof setTimeout>>();
+
+interface SeenPostsTestSeams {
+  createObserver?: (callback: IntersectionObserverCallback, options?: IntersectionObserverInit) => IntersectionObserver;
+  now?: () => number;
+  setTimeout?: typeof setTimeout;
+  clearTimeout?: typeof clearTimeout;
+}
+
+let testSeams: SeenPostsTestSeams = {};
 
 /**
  * Builds and loads the store on first need, whichever entry point gets there first.
@@ -106,8 +122,8 @@ export const seenPostsFeature: FeatureModule = {
     // of what the user had just scrolled past. `flush` only queues the write onto its own tail and
     // returns void, so awaiting it awaited `undefined` and resolved before the write landed --
     // exactly the loss this was meant to prevent. `settled()` is the part worth waiting for.
-    store?.flush(Date.now());
-    catchUpStore?.flush(Date.now());
+    store?.flush(now());
+    catchUpStore?.flush(now());
     await store?.settled();
     await catchUpStore?.settled();
     teardown();
@@ -135,7 +151,6 @@ function scan(ctx: FeatureContext, root: ParentNode | Element): void {
   if (articles.length === 0) {
     return;
   }
-  const now = Date.now();
   let marked = false;
   let captured = false;
 
@@ -146,16 +161,17 @@ function scan(ctx: FeatureContext, root: ParentNode | Element): void {
     }
     if (store!.has(id)) {
       article.setAttribute(MARKER, "1");
+    } else if (isDirectStatusPost(ctx, article, id)) {
+      const result = qualify(ctx, article, id);
+      marked ||= result.marked;
+      captured ||= result.captured;
     } else {
-      // First sighting: leave it undimmed, but remember it for next time.
-      if (store!.mark(id, now)) {
-        marked = true;
-      }
       article.removeAttribute(MARKER);
+      observeArticle(ctx, article, id);
     }
 
     const seenAt = store!.seenAt(id);
-    if (seenAt !== null && catchUpStore) {
+    if (seenAt !== null && catchUpStore && !isDirectStatusPost(ctx, article, id)) {
       const record = collectExportRecords(article, ctx.route.surface)[0];
       if (record) {
         catchUpStore.upsertExportRecord(
@@ -171,8 +187,120 @@ function scan(ctx: FeatureContext, root: ParentNode | Element): void {
   }
 
   if (marked || captured) {
-    scheduleFlush(now);
+    scheduleFlush(now());
   }
+}
+
+function now(): number {
+  return testSeams.now?.() ?? Date.now();
+}
+
+function scheduleTimer(callback: () => void, delay: number): ReturnType<typeof setTimeout> {
+  return (testSeams.setTimeout ?? setTimeout)(callback, delay);
+}
+
+function clearTimer(timer: ReturnType<typeof setTimeout>): void {
+  (testSeams.clearTimeout ?? clearTimeout)(timer);
+}
+
+function ensureVisibilityObserver(ctx: FeatureContext): IntersectionObserver | undefined {
+  if (visibilityObserver) return visibilityObserver;
+  const factory = testSeams.createObserver ?? ((callback: IntersectionObserverCallback, options?: IntersectionObserverInit) => {
+    if (typeof IntersectionObserver !== "function") return undefined as unknown as IntersectionObserver;
+    return new IntersectionObserver(callback, options);
+  });
+  visibilityObserver = factory((entries) => {
+    for (const entry of entries) {
+      handleVisibility(ctx, entry);
+    }
+  }, { threshold: [0, MIN_VISIBLE_RATIO] });
+  if (!visibilityObserver) return undefined;
+  visibilityChangeHandler = () => {
+    if (document.visibilityState === "visible") return;
+    for (const article of visibility.keys()) {
+      const state = visibility.get(article);
+      if (state) visibility.set(article, { ...state, visible: false });
+      cancelDwell(article);
+    }
+  };
+  document.addEventListener("visibilitychange", visibilityChangeHandler);
+  return visibilityObserver;
+}
+
+function observeArticle(ctx: FeatureContext, article: Element, id: string): void {
+  const observer = ensureVisibilityObserver(ctx);
+  if (!observer || visibility.has(article)) return;
+  visibility.set(article, { id, visible: false });
+  observer.observe(article);
+}
+
+function handleVisibility(ctx: FeatureContext, entry: IntersectionObserverEntry): void {
+  const article = entry.target as Element;
+  const id = readTweetId(article);
+  if (!id || !store || store.has(id)) {
+    cancelDwell(article);
+    return;
+  }
+  const visible = document.visibilityState === "visible" && entry.isIntersecting && isVisibleEnough(entry);
+  const prior = visibility.get(article);
+  visibility.set(article, { id, visible });
+  if (!visible) {
+    cancelDwell(article);
+    return;
+  }
+  if (prior?.visible && dwellTimers.has(article)) return;
+  const scheduledId = id;
+  const timer = scheduleTimer(() => {
+    dwellTimers.delete(article);
+    const current = visibility.get(article);
+    if (!article.isConnected || !current?.visible || current.id !== scheduledId) return;
+    const result = qualify(ctx, article, scheduledId);
+    if (result.marked || result.captured) scheduleFlush(now());
+  }, DWELL_MS);
+  dwellTimers.set(article, timer);
+}
+
+function isVisibleEnough(entry: IntersectionObserverEntry): boolean {
+  if (entry.intersectionRatio >= MIN_VISIBLE_RATIO) return true;
+  const height = entry.boundingClientRect.height;
+  return height > (entry.rootBounds?.height ?? window.innerHeight) && entry.intersectionRect.height >= MIN_VISIBLE_PIXELS;
+}
+
+function cancelDwell(article: Element): void {
+  const timer = dwellTimers.get(article);
+  if (timer !== undefined) {
+    clearTimer(timer);
+    dwellTimers.delete(article);
+  }
+}
+
+function isDirectStatusPost(ctx: FeatureContext, article: Element, id: string): boolean {
+  if (ctx.route.surface !== "status") return false;
+  const match = /\/status\/(\d{1,25})/.exec(ctx.route.path ?? "");
+  if (!match) return false;
+  return match[1] === id;
+}
+
+function qualify(ctx: FeatureContext, article: Element, id: string): { marked: boolean; captured: boolean } {
+  if (!store || store.has(id)) return { marked: false, captured: false };
+  const marked = store.mark(id, now());
+  article.removeAttribute(MARKER);
+  let captured = false;
+  const seenAt = store.seenAt(id);
+  if (seenAt !== null && catchUpStore) {
+    const record = collectExportRecords(article, ctx.route.surface)[0];
+    if (record) {
+      catchUpStore.upsertExportRecord(
+        record,
+        seenAt,
+        classifyArticle(article, article.getAttribute("data-av-filter-reason")),
+        article.getAttribute("data-av-filter-reason"),
+        readMetrics(article)
+      );
+      captured = true;
+    }
+  }
+  return { marked, captured };
 }
 
 function collect(root: ParentNode | Element): Element[] {
@@ -204,7 +332,7 @@ function scheduleFlush(now: number): void {
   if (flushTimer !== undefined) {
     return;
   }
-  flushTimer = setTimeout(() => {
+  flushTimer = scheduleTimer(() => {
     flushTimer = undefined;
     store?.flush(now);
     catchUpStore?.flush(now);
@@ -239,16 +367,25 @@ html[data-av-motion="reduce"] article[data-testid="tweet"][${MARKER}="1"] {
 function teardown(): void {
   // Turning the setting off also drops the pending timer, so push what it was holding first.
   if (flushTimer !== undefined) {
-    const now = Date.now();
-    store?.flush(now);
-    catchUpStore?.flush(now);
+    const at = now();
+    store?.flush(at);
+    catchUpStore?.flush(at);
   }
+  visibilityObserver?.disconnect();
+  visibilityObserver = undefined;
+  if (visibilityChangeHandler) {
+    document.removeEventListener("visibilitychange", visibilityChangeHandler);
+    visibilityChangeHandler = undefined;
+  }
+  for (const timer of dwellTimers.values()) clearTimer(timer);
+  dwellTimers.clear();
+  visibility.clear();
   document.getElementById(STYLE_ID)?.remove();
   for (const article of Array.from(document.querySelectorAll(`[${MARKER}]`))) {
     article.removeAttribute(MARKER);
   }
   if (flushTimer !== undefined) {
-    clearTimeout(flushTimer);
+    clearTimer(flushTimer);
     flushTimer = undefined;
   }
 }
@@ -264,6 +401,12 @@ export function resetSeenPostsState(): void {
   storeLoading = undefined;
   catchUpStore = undefined;
   catchUpLoading = undefined;
+  testSeams = {};
+}
+
+/** Test seam for deterministic dwell and observer-boundary tests. Production uses browser APIs. */
+export function setSeenPostsTestSeams(next: SeenPostsTestSeams = {}): void {
+  testSeams = next;
 }
 
 export function getCatchUpStore(): CatchUpStore | undefined {

@@ -144,16 +144,6 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
 
 ## Research-Driven Additions (2026-09-05)
 
-### P1, Next
-
-- [ ] F318, P1: Mark a post seen only after visible dwell
-  Why: the current scan records every rendered article immediately, including virtualized posts below the viewport, so dimming and Catch-up can claim the viewer saw content that never reached the screen.
-  Evidence: `src/features/filtering/seen-posts-feature.ts` (`scan()` calls `store.mark()` without `IntersectionObserver` or `document.visibilityState`); https://github.com/phuaky/xrai uses 1,000 ms active dwell or a direct status open before marking content seen
-  Touches: `src/features/filtering/seen-posts-feature.ts`, `src/features/filtering/seen-posts.ts`, Catch-up capture, `tests/seen-posts-dimming.test.mjs`, `tests/catch-up-capture.test.mjs`, a viewport fixture
-  Acceptance: a timeline post is recorded only after at least 50 percent of its box, or 200 CSS pixels for a post taller than the viewport, stays visible for 1,000 continuous milliseconds while `document.visibilityState` is `visible`; direct navigation to that post's Status route records it immediately; fast scroll-through, background-tab time, detached or recycled nodes, and interrupted dwell do not mark it; two simultaneous candidates keep independent timers; disabling or destroying the feature cancels observers and timers and flushes only qualified IDs; existing stored IDs remain valid; tests use a controllable observer and clock and prove each boundary without sleeping.
-  Complexity: M
-  Depends: None. F276 separately protects simultaneous writes after a post qualifies as seen.
-
 - [ ] F319, P1: Preserve protected and unknown audience state through export
   Why: portable output currently cannot distinguish a public post from content captured while its author was protected, so a shareable package can expose follower-only material without warning.
   Evidence: `src/features/export/types.ts` has no audience field; `src/features/export/thread-capture.ts` already reads `userLegacy` but drops its `protected` boolean; https://docs.x.com/x-api/fundamentals/data-dictionary and https://help.x.com/en/safety-and-security/public-and-protected-posts

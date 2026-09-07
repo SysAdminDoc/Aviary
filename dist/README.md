@@ -121,7 +121,9 @@ The full reference lives in [docs/FEATURES.md](docs/FEATURES.md). The short vers
   activation, expiry windows, and portable plain-text rule sets you can preview before applying.
 - **Hidden posts.** A Hide control on every post that collapses the row for good, with undo.
 - **Catch-up.** A bounded local digest of posts Aviary already rendered, by hour window. It never
-  marks anything read and never asks X for a timeline it wasn't given.
+  marks anything read and never asks X for a timeline it wasn't given. Optional seen-post dimming
+  records a post only after a visible one-second dwell, so virtualized rows and background-tab time
+  do not count.
 - **Reading position.** One saved position per feed surface, a "New since you last looked"
   separator, and no unread badge anywhere.
 - **Export.** JSON, CSV, HTML, Markdown and XLSX bundled into a ZIP with per-file checksums, plus a
@@ -162,6 +164,11 @@ for userscripts depends on the manager; browsers expose no standard signal for A
 Provider calls, when you've enabled one, show you the destination, the fields, an estimated size, a
 retention notice and your remaining budget before any work begins. Per-request and daily byte limits
 stop a call before it leaves the browser.
+
+Passive capture only observes bounded responses that X already requested. It does not start an
+authenticated timeline or profile discovery request and it never copies X cookies or authorization
+headers. X can still make its own requests when you use X controls, so this is a boundary on Aviary's
+actions, not a promise of account safety or legal compliance.
 
 Support diagnostics are copied only when you ask. The report keeps stable event ids, severity,
 timestamps, operation codes, and detail-key names, while leaving out URLs, filenames, provider

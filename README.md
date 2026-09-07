@@ -121,7 +121,9 @@ The full reference lives in [docs/FEATURES.md](docs/FEATURES.md). The short vers
   activation, expiry windows, and portable plain-text rule sets you can preview before applying.
 - **Hidden posts.** A Hide control on every post that collapses the row for good, with undo.
 - **Catch-up.** A bounded local digest of posts Aviary already rendered, by hour window. It never
-  marks anything read and never asks X for a timeline it wasn't given.
+  marks anything read and never asks X for a timeline it wasn't given. Optional seen-post dimming
+  records a post only after a visible one-second dwell, so virtualized rows and background-tab time
+  do not count.
 - **Reading position.** One saved position per feed surface, a "New since you last looked"
   separator, and no unread badge anywhere.
 - **Export.** JSON, CSV, HTML, Markdown and XLSX bundled into a ZIP with per-file checksums, plus a
