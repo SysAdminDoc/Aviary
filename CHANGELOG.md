@@ -202,6 +202,12 @@
   export from a redacted backup.
 
 ### Changed
+- The accessibility suite now covers the three WCAG 2.2 criteria axe cannot check. Every control on
+  every destination is focused at two viewport heights and must not end up entirely behind the
+  sticky Save row or the destination rail; every interactive target is measured at its activating
+  region and must reach 24 by 24 CSS pixels or name the exception that lets it be smaller; and
+  nothing in the panel may be operable by dragging alone. No control needed resizing: the small
+  checkboxes all sit inside labels that are comfortably larger.
 - The six authored themes now survive Windows High Contrast. Every state that spoke only through a
   tint, a shadow or a glow gains a border or an outline in a system colour: the hovered row, the
   selected timeline tab, the active navigation item, the focused search field, the media action

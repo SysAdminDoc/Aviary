@@ -31,7 +31,8 @@ before(async () => {
   await writeFile(
     entry,
     `export { mountControlCenter } from ${JSON.stringify(abs("src/ui/control-center.ts"))};
-export { DEFAULT_SETTINGS, cloneSettings } from ${JSON.stringify(abs("src/platform/settings.ts"))};`,
+export { DEFAULT_SETTINGS, cloneSettings } from ${JSON.stringify(abs("src/platform/settings.ts"))};
+export { CONTROL_CENTER_SECTION_MANIFEST } from ${JSON.stringify(abs("src/ui/control-center/section-manifest.ts"))};`,
     "utf8"
   );
   const bundle = path.join(temp, "bundle.js");
@@ -303,4 +304,255 @@ test("the status line actually announces the result of a save", async () => {
   // changed again and stopped warning about unsaved work — not that it says one fixed word.
   assert.notEqual(announced.saved, announced.staged, "the save must be announced too");
   assert.ok(!/Unsaved/i.test(announced.saved), `the panel still reads "${announced.saved}" after saving`);
+});
+
+/**
+ * The WCAG 2.2 criteria axe does not check.
+ *
+ * axe reports colour, names, roles and structure. It says nothing about a control that receives
+ * focus underneath a sticky element, nothing about a drag-only interaction, and only part of what
+ * target size requires. All three are shapes this panel has: settings commit through a sticky Save
+ * row at the bottom of a scrolling page, the destination rail is pinned down the left, and the
+ * toggle rows are dense.
+ *
+ *   2.4.11 Focus Not Obscured (Minimum), AA -- the focused control must not be entirely hidden.
+ *   2.5.7 Dragging Movements, AA          -- anything draggable needs a single-pointer alternative.
+ *   2.5.8 Target Size (Minimum), AA       -- 24 by 24 CSS pixels, or a named exception.
+ *
+ * Each test ends with a positive control that breaks the thing it checks and requires the check to
+ * notice, because a sweep over a panel that happens to be fine is indistinguishable from a sweep
+ * that cannot see anything.
+ */
+
+const OCCLUDERS = [".av-transaction-bar", ".av-nav"];
+/** Tall enough to lay out normally, and short enough that a section must scroll under the row. */
+const A11Y_VIEWPORTS = [
+  { width: 1440, height: 900 },
+  { width: 1024, height: 560 }
+];
+const FOCUSABLE =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+/**
+ * Focuses each control in the panel and reports any whose box ends up entirely inside an occluder.
+ *
+ * Focus order here is document order: the panel sets no positive `tabindex`, and a separate test
+ * below drives real Tab presses and requires them to visit the same sequence.
+ */
+const OBSCURED_SWEEP = (options) => {
+  const shadow = document.getElementById("av-control-center").shadowRoot;
+  const covered = (inner, outer) =>
+    inner.width > 0 &&
+    inner.height > 0 &&
+    inner.left >= outer.left &&
+    inner.right <= outer.right &&
+    inner.top >= outer.top &&
+    inner.bottom <= outer.bottom;
+
+  const hidden = [];
+  for (const entry of window.__manifest) {
+    const item = shadow.querySelector(`[data-av-section="${entry.id}"]`);
+    if (!item) {
+      hidden.push(`${entry.id}: destination is missing from the rail`);
+      continue;
+    }
+    item.click();
+    const occluders = options.occluders
+      .map((selector) => ({ selector, node: shadow.querySelector(selector) }))
+      .filter((entry) => entry.node !== null)
+      .map((entry) => ({ ...entry, box: entry.node.getBoundingClientRect() }));
+
+    for (const node of shadow.querySelectorAll(options.focusable)) {
+      node.focus();
+      if (shadow.activeElement !== node) continue;
+      const rect = node.getBoundingClientRect();
+      for (const { selector, node: occluder, box } of occluders) {
+        // A control inside the rail is not obscured by the rail; it is the rail.
+        if (occluder.contains(node)) continue;
+        if (covered(rect, box)) {
+          hidden.push(`${entry.id}: ${node.className || node.tagName} sits entirely inside ${selector}`);
+        }
+      }
+    }
+  }
+  return hidden;
+};
+
+async function openPanelAt(viewport) {
+  await page.setViewportSize(viewport);
+  await mount();
+  await page.evaluate(() => {
+    const shadow = document.getElementById("av-control-center").shadowRoot;
+    shadow.querySelector(".av-launcher").click();
+    window.__manifest = AviaryA11y.CONTROL_CENTER_SECTION_MANIFEST.map((entry) => ({ id: entry.id }));
+  });
+}
+
+test("no control is left focused entirely behind the save row or the rail", async () => {
+  for (const viewport of A11Y_VIEWPORTS) {
+    await openPanelAt(viewport);
+    const hidden = await page.evaluate(OBSCURED_SWEEP, {
+      occluders: OCCLUDERS,
+      focusable: FOCUSABLE
+    });
+    assert.deepEqual(hidden, [], `at ${viewport.width}x${viewport.height}, focus landed under a pinned element`);
+  }
+
+  // Positive control: grow the save row until it covers the page, and the sweep has to say so.
+  await openPanelAt({ width: 1024, height: 560 });
+  await page.evaluate(() => {
+    const shadow = document.getElementById("av-control-center").shadowRoot;
+    const style = document.createElement("style");
+    style.textContent = ".av-transaction-bar { position: fixed; inset: 0; z-index: 9; }";
+    shadow.append(style);
+  });
+  const broken = await page.evaluate(OBSCURED_SWEEP, { occluders: OCCLUDERS, focusable: FOCUSABLE });
+  assert.ok(
+    broken.length > 0,
+    "a save row covering the whole page must be reported, or this sweep cannot see an occlusion"
+  );
+  await page.setViewportSize({ width: 1440, height: 900 });
+});
+
+test("real Tab presses visit the controls this sweep measures", async () => {
+  // The sweep focuses controls in document order. This is what says that is the tab order.
+  await openPanelAt({ width: 1440, height: 900 });
+  await page.evaluate(() => {
+    const shadow = document.getElementById("av-control-center").shadowRoot;
+    shadow.querySelector('[data-av-section="presets"]').click();
+  });
+
+  // Scoped to the panel: the launcher sits outside it and Tab starts inside once it is open.
+  const expected = await page.evaluate((focusable) => {
+    const shadow = document.getElementById("av-control-center").shadowRoot;
+    const panel = shadow.querySelector(".av-panel");
+    return [...shadow.querySelectorAll(focusable)]
+      .filter((node) => panel.contains(node))
+      .filter((node) => {
+        node.focus();
+        return shadow.activeElement === node;
+      })
+      .map((node) => `${node.tagName}.${node.className || ""}`);
+  }, FOCUSABLE);
+  assert.ok(expected.length >= 10, `expected a real destination, saw ${expected.length} controls`);
+
+  await page.evaluate(() => {
+    const shadow = document.getElementById("av-control-center").shadowRoot;
+    shadow.querySelectorAll("*")[0]?.blur?.();
+    shadow.querySelector(".av-panel")?.focus?.();
+  });
+
+  const visited = [];
+  for (let index = 0; index < expected.length + 2; index += 1) {
+    await page.keyboard.press("Tab");
+    const current = await page.evaluate(() => {
+      const shadow = document.getElementById("av-control-center").shadowRoot;
+      const node = shadow.activeElement;
+      return node ? `${node.tagName}.${node.className || ""}` : null;
+    });
+    if (current === null) break;
+    if (visited.length > 0 && current === visited[0]) break;
+    visited.push(current);
+  }
+
+  assert.deepEqual(
+    visited.slice(0, expected.length),
+    expected,
+    "the tab order and the order this sweep measures must be the same order"
+  );
+});
+
+/**
+ * The activating region, not the input box.
+ *
+ * Every small control in this panel is a checkbox inside a `label` -- a 38 by 22 painted toggle in
+ * a 994 by 55 row, or a 14 by 14 box in an 83 by 40 chip. Clicking anywhere in the label activates
+ * the control, so the label is the target 2.5.8 is about. Measuring the input would report sixty-two
+ * failures that a pointer user cannot experience, which is how a real check gets switched off.
+ */
+const TARGET_SIZE_SWEEP = (options) => {
+  const shadow = document.getElementById("av-control-center").shadowRoot;
+  const small = [];
+
+  for (const entry of window.__manifest) {
+    shadow.querySelector(`[data-av-section="${entry.id}"]`)?.click();
+    const targets = [];
+    for (const node of shadow.querySelectorAll(options.focusable)) {
+      const label = node.closest("label");
+      const target = label ?? node;
+      const rect = target.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) continue;
+      targets.push({ node, target, rect });
+    }
+
+    for (const { node, target, rect } of targets) {
+      if (rect.width >= options.minimum && rect.height >= options.minimum) continue;
+
+      // The spacing exception: a circle of the minimum diameter centred on the target must not
+      // reach another target's circle.
+      const centre = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+      const crowded = targets.some((other) => {
+        if (other.target === target) return false;
+        const box = other.rect;
+        const otherCentre = { x: box.left + box.width / 2, y: box.top + box.height / 2 };
+        return Math.hypot(centre.x - otherCentre.x, centre.y - otherCentre.y) < options.minimum;
+      });
+      if (!crowded) {
+        small.push(`${entry.id}: ${node.className || node.tagName} is ${Math.round(rect.width)}x${Math.round(rect.height)}, exempt by spacing`);
+        continue;
+      }
+      small.push(
+        `${entry.id}: ${node.className || node.tagName} target is ${Math.round(rect.width)}x${Math.round(rect.height)}, under ${options.minimum} with no exception`
+      );
+    }
+  }
+  return small;
+};
+
+test("every interactive target is 24 by 24, or names the exception that lets it be smaller", async () => {
+  await openPanelAt({ width: 1440, height: 900 });
+  const findings = await page.evaluate(TARGET_SIZE_SWEEP, { focusable: FOCUSABLE, minimum: 24 });
+  const failures = findings.filter((entry) => entry.includes("no exception"));
+  assert.deepEqual(failures, [], "a target under 24 by 24 needs a spec exception, and this one has none");
+
+  // Positive control: shrink the rows the toggles live in and the sweep has to report them.
+  await page.evaluate(() => {
+    const shadow = document.getElementById("av-control-center").shadowRoot;
+    const style = document.createElement("style");
+    style.textContent = ".av-row { min-height: 0 !important; height: 8px !important; padding: 0 !important; }";
+    shadow.append(style);
+  });
+  const shrunk = await page.evaluate(TARGET_SIZE_SWEEP, { focusable: FOCUSABLE, minimum: 24 });
+  assert.ok(
+    shrunk.some((entry) => entry.includes("no exception")),
+    "an 8-pixel row must be reported, or this sweep cannot see a small target"
+  );
+});
+
+test("nothing in the panel can only be operated by dragging", async () => {
+  // 2.5.7 holds because no path here requires a drag. That is a claim about the panel, so it is
+  // asserted rather than assumed: a reorderable list added later has to bring a single-pointer
+  // alternative with it, and this fails until it does.
+  await openPanelAt({ width: 1440, height: 900 });
+  const dragOnly = await page.evaluate(() => {
+    const shadow = document.getElementById("av-control-center").shadowRoot;
+    const found = [];
+    for (const entry of window.__manifest) {
+      shadow.querySelector(`[data-av-section="${entry.id}"]`)?.click();
+      for (const node of shadow.querySelectorAll("*")) {
+        if (node.draggable === true) found.push(`${entry.id}: ${node.className || node.tagName} is draggable`);
+        const style = getComputedStyle(node);
+        // A slider is the other drag-shaped control, and it is exempt only when the keyboard and
+        // a click can move it too.
+        if (node.tagName === "INPUT" && node.getAttribute("type") === "range" && node.disabled) {
+          found.push(`${entry.id}: a disabled range control has no alternative`);
+        }
+        if (style.touchAction === "none" && node.tagName !== "CANVAS") {
+          found.push(`${entry.id}: ${node.className || node.tagName} suppresses touch scrolling`);
+        }
+      }
+    }
+    return found;
+  });
+  assert.deepEqual(dragOnly, [], "a drag-only interaction needs a single-pointer alternative");
 });
