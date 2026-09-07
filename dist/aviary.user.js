@@ -1765,6 +1765,72 @@ html.av-reduce-motion *::after {
   scroll-behavior: auto !important;
   transition-duration: 0.001ms !important;
 }
+
+/* Windows High Contrast, and every other forced-colors mode.
+
+   The user agent replaces every colour these palettes paint with, and drops box-shadow,
+   text-shadow and non-url() background-image to none outright. Six authored themes expressed
+   the states below through exactly those properties: the hovered row was a tint, the selected tab
+   was a colour and, under noir, a glow; the active navigation item was a tint plus an inset shadow
+   rail; the search field's focus was a border tint plus a shadow ring; the media action was a
+   filled accent button with a transparent border. All of that renders as nothing here, so a
+   forced-colors user could not tell any of them from the resting state.
+
+   Borders and outlines survive, and a system colour keyword is honoured rather than overridden.
+   Every rule below restores one lost state with one of those. opacity and filter are not
+   overridden, which is why the dimmed-by-filter state needs nothing here. */
+@media (forced-colors: active) {
+  html[data-av-theme] [data-testid="cellInnerDiv"] > div:hover {
+    outline: 1px solid Highlight;
+    outline-offset: -1px;
+  }
+
+  html[data-av-theme] [data-testid="primaryColumn"] [role="tab"][aria-selected="true"] {
+    border-bottom: 3px solid Highlight;
+    text-shadow: none;
+  }
+
+  html[data-av-theme] [data-testid^="AppTabBar_"][aria-current="page"],
+  html[data-av-theme] [data-testid^="AppTabBar_"][data-av-active-route="1"] {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
+
+  html[data-av-theme] [data-av-media-action] {
+    border-color: ButtonText;
+  }
+
+  html[data-av-theme] [data-av-media-action]:hover:not(:disabled) {
+    border-color: Highlight;
+    outline: 2px solid Highlight;
+    outline-offset: -3px;
+  }
+
+  html[data-av-theme] form[role="search"]:has([data-testid="SearchBox_Search_Input"]):focus-within {
+    outline: 2px solid Highlight;
+    outline-offset: 1px;
+  }
+
+  html[data-av-theme] [data-testid="primaryColumn"],
+  html[data-av-theme] [data-testid="sidebarColumn"] aside[role="complementary"],
+  html[data-av-theme] [aria-label="Timeline: Trending now"],
+  html[data-av-theme] [data-testid="GrokDrawer"],
+  html[data-av-theme] [data-testid="grokImgGen"] {
+    border: 1px solid CanvasText;
+  }
+
+  html[data-av-theme] [data-testid="sidebarColumn"] [data-testid="UserCell"]:hover {
+    outline: 1px solid Highlight;
+    outline-offset: -1px;
+  }
+
+  /* The conversation gutter Aviary redraws: a coloured line is a line the UA repaints, so the
+     focal post keeps an explicit edge of its own. */
+  html[data-av-theme] article[data-av-conversation-role="focal"] {
+    outline: 1px solid CanvasText;
+    outline-offset: -1px;
+  }
+}
 `;
 
   // src/features/appearance/title-badge.ts

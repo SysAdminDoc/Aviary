@@ -202,6 +202,11 @@
   export from a redacted backup.
 
 ### Changed
+- The six authored themes now survive Windows High Contrast. Every state that spoke only through a
+  tint, a shadow or a glow gains a border or an outline in a system colour: the hovered row, the
+  selected timeline tab, the active navigation item, the focused search field, the media action
+  button, and the cards that separated themselves with a drop shadow. The themes had never been
+  checked under forced colours before.
 - Video quality, codec evidence and proven playback are now three separate records. The rendition
   ranking reads resolution first and treats a missing bitrate as missing rather than zero, so a
   1080p file no longer loses to a 480p one that happened to declare a bitrate. A codec name is
