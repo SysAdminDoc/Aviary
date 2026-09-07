@@ -58,17 +58,6 @@ export function videoContainers(root: Element): HTMLElement[] {
   });
 }
 
-export function extractVideos(article: Element): ExtractedVideo[] {
-  const results: ExtractedVideo[] = [];
-  for (const container of videoContainers(article)) {
-    const extracted = extractVideo(container);
-    if (extracted) {
-      results.push(extracted);
-    }
-  }
-  return results;
-}
-
 export function extractVideo(
   container: HTMLElement,
   metadata: VideoMetadata = {}

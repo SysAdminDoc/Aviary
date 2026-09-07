@@ -5,7 +5,6 @@ import type {
   ExportArticleSummary,
   ExportMedia,
   ExportPoll,
-  ExportProfileAbout,
   ExportQuoteSummary,
   ExportRecord
 } from "./types.ts";
@@ -135,34 +134,6 @@ function readPostLanguage(article: Element): string | null {
       textNode?.closest("[lang]")?.getAttribute("lang") ??
       article.getAttribute("lang")
   );
-}
-
-export function collectProfileAbout(root: ParentNode): ExportProfileAbout | null {
-  const main = root.querySelector('[data-testid="primaryColumn"]');
-  if (!main) return null;
-  const handleNode = main.querySelector('[data-testid="UserName"] span');
-  const handleText = handleNode?.textContent?.trim() ?? "";
-  const handle = handleText.replace(/^@/, "");
-  if (!handle) return null;
-
-  const displayName = readFirstText(main.querySelector('[data-testid="UserName"]'));
-  const bio = readFirstText(main.querySelector('[data-testid="UserDescription"]'));
-  const location = readFirstText(main.querySelector('[data-testid="UserLocation"]'));
-  const urlLink = main.querySelector<HTMLAnchorElement>('[data-testid="UserUrl"]');
-  const joined = readFirstText(main.querySelector('[data-testid="UserJoinDate"]'));
-  const followingCount = readFirstText(main.querySelector('a[href$="/following"]'));
-  const followerCount = readFirstText(main.querySelector('a[href$="/verified_followers"], a[href$="/followers"]'));
-
-  return {
-    handle,
-    displayName,
-    bio,
-    location,
-    url: urlLink?.href ?? urlLink?.getAttribute("href") ?? null,
-    joined,
-    followingCount,
-    followerCount
-  };
 }
 
 function readPoll(article: Element): ExportPoll | null {

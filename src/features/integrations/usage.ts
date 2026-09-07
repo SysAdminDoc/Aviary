@@ -69,17 +69,6 @@ export interface AiDisclosure {
   dailyLimitBytes: number;
 }
 
-export interface EmbeddingDisclosure {
-  provider: string;
-  endpoint: string;
-  fields: string[];
-  retained: string;
-  networkAllowed: boolean;
-  dailyUsedBytes: number;
-  dailyLimitBytes: number;
-  maxRecordBytes: number;
-}
-
 const EMPTY: UsageState = { schemaVersion: 1, days: [] };
 
 /**
@@ -326,24 +315,6 @@ export function buildAiDisclosure(
     budgetReason,
     dailyUsedBytes: usage?.ai.bytes ?? 0,
     dailyLimitBytes: budget.dailyBytes
-  };
-}
-
-export function buildEmbeddingDisclosure(
-  config: IntegrationSettings["semanticSearch"],
-  usage: UsageSnapshot | undefined,
-  networkAllowed: boolean
-): EmbeddingDisclosure {
-  const budget = defaultEmbeddingBudget(config);
-  return {
-    provider: "Configured embedding endpoint",
-    endpoint: config.endpoint || "Not configured",
-    fields: ["model", "captured record text"],
-    retained: "Vectors and bounded record text stay in Aviary's local semantic index; provider retention follows its policy.",
-    networkAllowed,
-    dailyUsedBytes: usage?.embedding.bytes ?? 0,
-    dailyLimitBytes: budget.dailyBytes,
-    maxRecordBytes: budget.maxRequestBytes
   };
 }
 

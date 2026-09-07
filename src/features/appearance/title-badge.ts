@@ -77,5 +77,3 @@ function stop(): void {
 export function resetTitleBadgeState(): void {
   stop();
 }
-
-export const TITLE_BADGE_PATTERN = BADGE;

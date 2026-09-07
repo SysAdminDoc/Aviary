@@ -25,6 +25,9 @@ import {
  * authority. Web Locks remains the fallback for unprivileged browser and test contexts.
  */
 
+/** Every store a restore touches is coordinated through this one name. */
+export const LIBRARY_RESTORE_LOCK = "aviary.library.restore";
+
 type LockManagerLike = {
   request(name: string, callback: () => Promise<unknown>): Promise<unknown>;
   request(
@@ -179,10 +182,10 @@ function drainStorageGate(): void {
 
 function runStorageGateRequest(request: StorageGateRequest): void {
   void runUnderSharedStorageLock(
-    "aviary.library.restore",
+    LIBRARY_RESTORE_LOCK,
     request.mode,
     request.run,
-    "aviary.library.restore",
+    LIBRARY_RESTORE_LOCK,
     request.mode === "exclusive"
   ).then(
     request.resolve,

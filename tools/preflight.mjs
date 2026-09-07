@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { captureAgeReport, readCaptureManifest } from "./capture-manifest.mjs";
 import { browserFloorFailures, readBrowserFloors } from "./browser-floors.mjs";
 import { fileDigest, sourceFingerprint } from "./build-fingerprint.mjs";
+import { sourceExportReferences } from "./source-exports.mjs";
 import { repositoryUrl, userscriptUrls } from "./userscript-meta.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -75,6 +76,15 @@ const DELIVERY_BUDGETS = [
   { file: `aviary-source-v${pkg.version}.zip`, maxBytes: 10_000_000 }
 ];
 
+/**
+ * Exports nothing refers to are abandoned entry points, and they read as supported API.
+ *
+ * An entry here is a deliberate exception and has to say why it exists. Deleting the symbol or
+ * wiring it up is the expected fix; the allowlist is for a symbol that is genuinely referenced
+ * somewhere this scan cannot see.
+ */
+const ALLOWED_UNREFERENCED_EXPORTS = new Map();
+
 const failures = [];
 const warnings = [];
 
@@ -84,6 +94,7 @@ await checkManifests();
 await checkBundles();
 await checkPermissions();
 await checkSourcePolicy();
+await checkSourceExportReferences();
 await checkDependencyPolicy();
 await checkReleaseMetadata();
 await checkDeliverySize();
@@ -590,6 +601,34 @@ async function checkSourcePolicy() {
     }
     if (/backdrop-filter/.test(text)) {
       failures.push(`${rel}: backdrop-filter detected — banned for content scripts`);
+    }
+  }
+}
+
+async function checkSourceExportReferences() {
+  const graph = await sourceExportReferences(root);
+  // Same reasoning as the source-policy floor above: a broken walk finds no exports, reports no
+  // unreferenced ones, and passes. The floors sit well under the real counts so ordinary pruning
+  // never trips them.
+  if (graph.sourceFileCount < 50 || graph.exportCount < 200) {
+    failures.push(
+      `export reference scan saw only ${graph.exportCount} exports across ${graph.sourceFileCount} ` +
+        "source files, which is too few to be real; the walk is broken and the check would pass vacuously"
+    );
+    return;
+  }
+  for (const entry of graph.unreferenced) {
+    const reason = ALLOWED_UNREFERENCED_EXPORTS.get(`${entry.file}:${entry.name}`);
+    if (reason) continue;
+    failures.push(
+      `${entry.file}:${entry.line + 1}: exported ${entry.name} is referenced from nowhere in ` +
+        "src/, tests/, or tools/ — delete it, wire it up, or allowlist it with a reason"
+    );
+  }
+  for (const key of ALLOWED_UNREFERENCED_EXPORTS.keys()) {
+    const [file, name] = key.split(":");
+    if (!graph.unreferenced.some((entry) => entry.file === file && entry.name === name)) {
+      failures.push(`${key} is allowlisted as unreferenced but now has a reference; remove the allowlist entry`);
     }
   }
 }

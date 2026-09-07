@@ -54,14 +54,6 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
 
 ### P2, Later
 
-- [ ] F305, P2: Fail preflight on a source export nothing references
-  Why: the repository exports deliberately for testability, so an exported declaration does not prove that production, tests, or tools use it; a reference gate can detect abandoned entry points without relying on compiler visibility.
-  Evidence: dead across `src/`, `tests/`, and `tools/`: `crossTabLocksAvailable` (`src/platform/storage-lock.ts:77`), `extractVideos` (`src/features/media/video-extract.ts`), `collectProfileAbout` (`src/features/export/collector.ts`), `buildEmbeddingDisclosure` (`src/features/integrations/usage.ts`), `extensionFor` (`src/features/media/urls.ts`), `defaultSnapshotForPreset` (`src/features/core/presets.ts`), `videoPlaybackBound` (`src/features/performance/video-playback.ts`), `AVIARY_FAVICON_URL` (`src/features/appearance/favicon.ts`), `TITLE_BADGE_PATTERN` (`src/features/appearance/title-badge.ts`)
-  Touches: `tools/preflight.mjs`, the nine modules above, `tests/source-contracts.test.mjs`
-  Acceptance: preflight reports every exported symbol in `src/` with no reference from `src/`, `tests/`, or `tools/`, and fails on any not named in a short allowlist that states why each entry exists; the nine current cases are deleted or wired up rather than allowlisted, and any test that only existed to reach a deleted symbol is deleted with it; planting a new unreferenced export makes preflight fail, and removing the check while an unreferenced export exists is proved to make it pass, so the gate cannot pass by finding nothing.
-  Complexity: S
-  Depends: None. Check the current reference graph before deleting any previously identified symbol; F328 can change the lock's exported contract.
-
 - [ ] F306, P2: Generate synthetic capture fixtures so selector proof is not one operator session
   Why: every selector claim in the project rests on two `_decoded/` files dated 2026-05-19, which are 110 days old on 2026-09-06 against a 90-day ceiling and pass only on a waiver expiring 2026-09-30. After that `preflight` fails and takes `verify` with it, blocking releases unrelated to selectors. The same files carry a named account's handle and body text and are in git history, which is what F184 is about. A generator turns both problems into one.
   Evidence: `_decoded/captures.json` (`ceilingDays: 90`, `acknowledgedStaleUntil: "2026-09-30"`, both captures `capturedOn: "2026-05-19"`), `tools/capture-decode.mjs`, `src/platform/selectors.ts:12-22` (each surface names its owning feature), `.github/pull_request_template.md` (a capture is required as evidence for selector work), `Roadmap_Blocked.md` F134, F184, F237

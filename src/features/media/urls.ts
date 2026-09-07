@@ -76,7 +76,3 @@ export function tweetIdFromHref(href: string | null | undefined): string | null 
   const match = /\/status(?:es)?\/(\d{6,})/.exec(href);
   return match?.[1] ?? null;
 }
-
-export function extensionFor(format: NormalizedImage["format"]): string {
-  return format;
-}

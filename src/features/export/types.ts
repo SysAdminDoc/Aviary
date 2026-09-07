@@ -100,17 +100,6 @@ export interface ExportArticleSummary {
   url: string | null;
 }
 
-export interface ExportProfileAbout {
-  handle: string;
-  displayName: string | null;
-  bio: string | null;
-  location: string | null;
-  url: string | null;
-  joined: string | null;
-  followingCount: string | null;
-  followerCount: string | null;
-}
-
 export type ExportFormat = "json" | "csv" | "html" | "markdown" | "xlsx";
 
 export interface ExportArtifact {

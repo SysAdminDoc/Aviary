@@ -107,5 +107,3 @@ function stop(): void {
 export function resetFaviconState(): void {
   stop();
 }
-
-export const AVIARY_FAVICON_URL = markUrl;

@@ -9,5 +9,3 @@ export const NATIVE_I18N_COPY = {
   actionTitle: "Aviary",
   contextDownloadMedia: "Download media with Aviary"
 } as const;
-
-export type NativeI18nKey = keyof typeof NATIVE_I18N_COPY;

@@ -99,6 +99,3 @@ function restoreThreadRecommendations(): void {
     node.removeAttribute(HEADING_MARKER);
   }
 }
-
-export const THREAD_RECOMMENDATION_MARKER = MARKER;
-export const THREAD_RECOMMENDATION_LABELS = HEADING_LABELS;

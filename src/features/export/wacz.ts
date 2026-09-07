@@ -8,8 +8,6 @@ import { buildStoreZip, type ZipFileEntry } from "./zip-store.ts";
 const ENCODER = new TextEncoder();
 
 export const WACZ_VERSION = "1.1.1";
-export const CDXJ_VERSION = "0.1.0";
-export const REPLAYWEB_URL = "https://replayweb.page/";
 
 const WARC_PATH = "archive/aviary.warc";
 const INDEX_PATH = "indexes/index.cdxj";

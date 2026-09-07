@@ -1,4 +1,5 @@
 import { importSourceModule } from "./helpers/source-import.mjs";
+import { sourceExportReferences } from "../tools/source-exports.mjs";
 import assert from "node:assert/strict";
 import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
@@ -78,6 +79,48 @@ function isScopedKeyboardInteraction(relative, text) {
   if (!allowed.has(relative)) return false;
   return /\.key\s*(?:===|!==)\s*["'](?:Escape|Tab|Arrow(?:Up|Down|Left|Right)|Home|End|Enter|\s)["']/.test(text);
 }
+
+// Split so the name never appears whole in this file: the scan reads tests/ too, and a literal
+// here would count as the reference the planted case is supposed to lack.
+const PLANTED_NAME = `aviaryPlanted${"DeadExport"}`;
+const PLANTED_SOURCE = `export function ${PLANTED_NAME}(): void {}\n`;
+const PLANTED_REFERENCE = `// ${PLANTED_NAME}\n`;
+
+test("no source export is left with nothing referring to it", async () => {
+  const graph = await sourceExportReferences(root);
+
+  // A gate that finds nothing reports success, so state what it saw before trusting the verdict.
+  assert.ok(
+    graph.sourceFileCount >= 50 && graph.exportCount >= 200,
+    `export scan saw ${graph.exportCount} exports across ${graph.sourceFileCount} source files, which is too few to be real`
+  );
+  assert.deepEqual(
+    graph.unreferenced.map((entry) => `${entry.file}:${entry.line + 1} ${entry.name}`),
+    [],
+    "delete the export, wire it up, or allowlist it in tools/preflight.mjs with a reason"
+  );
+
+  // Plant one and the scan has to see it, otherwise the empty list above means nothing.
+  const planted = await sourceExportReferences(
+    root,
+    new Map([["src/features/media/urls.ts", PLANTED_SOURCE]])
+  );
+  assert.deepEqual(
+    planted.unreferenced.map((entry) => entry.name),
+    [PLANTED_NAME],
+    "a deliberately unreferenced export must be reported"
+  );
+
+  // The other half: a reference has to actually clear it, or the check would fail everything.
+  const referenced = await sourceExportReferences(
+    root,
+    new Map([
+      ["src/features/media/urls.ts", PLANTED_SOURCE],
+      ["tests/helpers/planted-reference.mjs", PLANTED_REFERENCE]
+    ])
+  );
+  assert.deepEqual(referenced.unreferenced, [], "a referenced export must not be reported");
+});
 
 test("no stylesheet targets one of X's generated class names", async () => {
   const files = await listFiles(path.join(root, "src"), ".ts");

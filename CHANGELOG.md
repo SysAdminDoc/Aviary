@@ -202,6 +202,10 @@
   export from a redacted backup.
 
 ### Changed
+- Preflight now fails on an exported name in `src/` that nothing in `src/`, `tests/`, or `tools/`
+  refers to. Sixteen abandoned entry points were deleted, the shared restore-lock name moved to the
+  module that actually uses it, and the check reports the export count it scanned so a broken walk
+  cannot pass by finding nothing.
 - Browser support now starts at Chromium 102 and Firefox 140.0. The floor matches the APIs Aviary
   actually declares, keeps Firefox 140.15 covered after its September security fixes, and leaves
   feature detection in place for newer browser APIs.

@@ -13,7 +13,6 @@ export interface ZipByteSource {
 }
 
 export const ZIP_SOURCE_READ_BYTES = 4 * 1024 * 1024;
-export const ZIP_MAX_ALLOCATOR_BYTES = 8 * 1024 * 1024;
 
 const LOCAL_HEADER = 0x04034b50;
 const CENTRAL_HEADER = 0x02014b50;
@@ -196,18 +195,6 @@ export async function readZipSource(
     results.push(finish({ ...entry, raw: inflated }, inflated));
   }
   return results;
-}
-
-export function zipByteSourceFromBytes(data: Uint8Array): ZipByteSource {
-  return {
-    size: data.byteLength,
-    async read(offset, length) {
-      if (!Number.isInteger(offset) || !Number.isInteger(length) || offset < 0 || length < 0 || offset + length > data.byteLength) {
-        throw new Error("ZIP source read is outside the archive.");
-      }
-      return data.slice(offset, offset + length);
-    }
-  };
 }
 
 /** True when this build can inflate; lets callers explain the failure instead of guessing. */

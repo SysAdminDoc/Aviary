@@ -4,7 +4,6 @@ const MARKER = "data-av-video-playback";
 const LOOP_ORIGINAL = "data-av-loop-original";
 const VIDEO_SELECTOR = "video";
 
-let listenersBound = false;
 let visibilityBound = false;
 /** Videos that were playing when the tab went to the background. */
 const pausedByBlur = new WeakSet<HTMLVideoElement>();
@@ -65,7 +64,6 @@ function applyVideoPlayback(ctx: FeatureContext, root: ParentNode): void {
   } else {
     unbindVisibility();
   }
-  listenersBound = keepPlaying || loop;
 }
 
 function collectVideos(root: ParentNode): HTMLVideoElement[] {
@@ -119,7 +117,6 @@ function unbindVisibility(): void {
 
 function teardown(): void {
   unbindVisibility();
-  listenersBound = false;
   for (const video of Array.from(document.querySelectorAll<HTMLVideoElement>(`[${MARKER}]`))) {
     if (video.hasAttribute(LOOP_ORIGINAL)) {
       video.loop = video.getAttribute(LOOP_ORIGINAL) === "1";
@@ -132,8 +129,4 @@ function teardown(): void {
 /** Test seam: module-level listener state must not leak between cases. */
 export function resetVideoPlaybackState(): void {
   teardown();
-}
-
-export function videoPlaybackBound(): boolean {
-  return listenersBound;
 }

@@ -1,4 +1,4 @@
-import { cloneSettings, DEFAULT_SETTINGS, normalizeSettings, type AviarySettings } from "../../platform/settings.ts";
+import { cloneSettings, normalizeSettings, type AviarySettings } from "../../platform/settings.ts";
 
 export type PresetId =
   | "quiet-reader"
@@ -203,10 +203,6 @@ export function describePresetDelta(current: AviarySettings, preset: PresetDefin
     }
   }
   return result;
-}
-
-export function defaultSnapshotForPreset(preset: PresetDefinition): AviarySettings {
-  return applyPreset(DEFAULT_SETTINGS, preset);
 }
 
 function cloneOverrides(overrides: PresetOverrides): PresetOverrides {

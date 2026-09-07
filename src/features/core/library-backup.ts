@@ -528,9 +528,6 @@ export async function previewLibraryRestore(
   };
 }
 
-/** Every store a restore touches is coordinated through this one name. */
-export const LIBRARY_RESTORE_LOCK = "aviary.library.restore";
-
 /**
  * Restores under one lock held across snapshot, write, and rollback.
  *
