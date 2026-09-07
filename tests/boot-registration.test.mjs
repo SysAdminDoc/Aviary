@@ -51,7 +51,7 @@ before(async () => {
       `export { boot } from ${JSON.stringify(abs("src/main.ts"))};`,
       // Same bundle on purpose: the local-only policy is module-scope state, so importing it here
       // proves main.ts and this test share one instance the way a real build does.
-      `export { assertOutboundAllowed, LocalOnlyError } from ${JSON.stringify(abs("src/features/integrations/network-policy.ts"))};`,
+      `export { assertOutboundAllowed, LocalOnlyError, NetworkPolicyNotInstalledError, localOnlyPolicyInstalled, resetLocalOnlyPolicy, setLocalOnlyPolicy } from ${JSON.stringify(abs("src/features/integrations/network-policy.ts"))};`,
       `export { SETTINGS_KEY } from ${JSON.stringify(abs("src/platform/settings.ts"))};`
     ].join("\n"),
     "utf8"
@@ -203,6 +203,46 @@ test("local-only mode reads the live setting the app booted with, not a snapshot
 
   assert.equal(result.allowed, null, "outbound calls are permitted while local-only is off");
   assert.equal(result.blocked, "local-only", "turning local-only on must block without a reload");
+});
+
+test("booting installs the outbound policy, and nothing goes out before it does", async () => {
+  // The module refuses everything until a policy is installed. That is only safe if boot actually
+  // installs one, which is what this asserts against the app this harness booted -- the same
+  // module instance main.ts wrote to, not a copy. Delete the `setLocalOnlyPolicy` line from
+  // main.ts and this fails.
+  const installed = await page.evaluate(() => AviaryBoot.localOnlyPolicyInstalled());
+  assert.equal(installed, true, "boot must install the outbound policy");
+
+  // And the other half: with no policy, an integration entry point is refused, and refused for the
+  // right reason. A boot-order fault reported as "Local-only mode blocked this" would send the
+  // reader to a switch that is not the problem.
+  const uninstalled = await page.evaluate(() => {
+    const settings = window.__boot.app.context.settings;
+    AviaryBoot.resetLocalOnlyPolicy();
+    try {
+      AviaryBoot.assertOutboundAllowed("A request");
+      return "allowed";
+    } catch (error) {
+      return error instanceof AviaryBoot.NetworkPolicyNotInstalledError
+        ? "refused-not-installed"
+        : error instanceof AviaryBoot.LocalOnlyError
+          ? "refused-local-only"
+          : String(error);
+    } finally {
+      // Put back exactly what boot installed, so the tests after this one see the booted posture.
+      AviaryBoot.setLocalOnlyPolicy(() => settings.privacy.localOnly);
+    }
+  });
+  assert.equal(
+    uninstalled,
+    "refused-not-installed",
+    "an integration reached before the install point must be refused, and not as local-only mode"
+  );
+  assert.equal(
+    await page.evaluate(() => AviaryBoot.localOnlyPolicyInstalled()),
+    true,
+    "the policy has to be back in place for the tests that follow"
+  );
 });
 
 test("the one path that persists settings normalizes them on the way through", async () => {

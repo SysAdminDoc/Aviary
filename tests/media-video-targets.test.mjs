@@ -1,6 +1,12 @@
 import { importSourceEntry, importSourceModule } from "./helpers/source-import.mjs";
+import { allowOutbound } from "./helpers/network-policy.mjs";
 import assert from "node:assert/strict";
 import { test } from "node:test";
+
+// Nothing outbound is permitted until a policy is installed, so a spec that drives an integration
+// says which posture it is driving under. This file's cases assume Local-only mode is off; the
+// ones that assert the refusal install the opposite policy themselves.
+await allowOutbound();
 
 test("a MediaSource blob is never chosen over a real variant", async () => {
   const { extractVideo } = await importSourceModule("src/features/media/video-extract.ts");
@@ -153,11 +159,13 @@ test("tellAria2Status fails soft in local-only mode rather than throwing out", a
     );
     assert.equal(reached, 0, "local-only mode must stop the call before it reaches the network");
 
-    // An unconfigured endpoint is the other soft path, and must not throw either.
-    mod.resetLocalOnlyPolicy();
+    // An unconfigured endpoint is the other soft path, and must not throw either. Said as an
+    // explicit policy: uninstalling would leave the module refusing everything, which is a
+    // different reason for the same answer and would prove nothing about the endpoint.
+    mod.setLocalOnlyPolicy(() => false);
     assert.equal(await mod.tellAria2Status({ endpoint: "", secret: "" }, "abc"), null);
   } finally {
-    mod.resetLocalOnlyPolicy();
+    mod.setLocalOnlyPolicy(() => false);
     globalThis.fetch = originalFetch;
   }
 });

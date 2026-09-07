@@ -48,6 +48,9 @@ before(async () => {
       `export { sharedDownloadWatcher } from ${JSON.stringify(abs("src/features/media/download-watch.ts"))};`,
       `export { DownloadPermissionError, createDownloader } from ${JSON.stringify(abs("src/features/media/downloader.ts"))};`,
       `export { TokenBucket } from ${JSON.stringify(abs("src/platform/rate-limit.ts"))};`,
+      // The page bundle carries its own copy of the outbound policy, and nothing is permitted
+      // until one is installed. The cases below drive a configured integration, so they say so.
+      `export { setLocalOnlyPolicy } from ${JSON.stringify(abs("src/features/integrations/network-policy.ts"))};`,
       `export { DEFAULT_SETTINGS, cloneSettings } from ${JSON.stringify(abs("src/platform/settings.ts"))};`
     ].join("\n"),
     "utf8"
@@ -68,6 +71,9 @@ before(async () => {
   page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
   await page.setContent(`<!doctype html><meta charset=utf-8><body>${FIXTURE}</body>`);
   await page.addScriptTag({ path: bundle });
+  // Not in local-only mode, said once and explicitly. The module refuses everything until a policy
+  // is installed, which is what stops a boot-order bug from letting a request out.
+  await page.evaluate(() => AviaryBatch.setLocalOnlyPolicy(() => false));
 });
 
 after(async () => {

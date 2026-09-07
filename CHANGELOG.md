@@ -219,6 +219,11 @@
 - Export records now carry a video's poster URL, which the export used to drop entirely.
 
 ### Fixed
+- **The outbound network policy now fails closed.** It started permissive and relied on boot
+  reaching its install line, which sits after storage, profile, diagnostics, usage and the settings
+  load, so the default contradicted the setting it enforces. Nothing outbound is permitted until a
+  policy is installed, and the refusal names the missing installation rather than Local-only mode,
+  because a startup fault reported as the user's own setting sends them to the wrong switch.
 - The panel's Spanish, Portuguese, French, German, Japanese, Korean, Arabic and Hebrew catalogs were
   missing 28 strings that shipped with the yt-dlp handoff. They were showing English in every
   locale, and the coverage gate could not see it because the string manifest had not been rebuilt.

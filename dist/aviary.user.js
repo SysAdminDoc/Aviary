@@ -14516,6 +14516,14 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
   }
 
   // src/features/integrations/network-policy.ts
+  var NetworkPolicyNotInstalledError = class extends Error {
+    constructor(what) {
+      super(
+        `${what} was blocked: Aviary's outbound network policy has not been installed yet. This is a startup fault in Aviary, not the Local-only mode setting.`
+      );
+      this.name = "NetworkPolicyNotInstalledError";
+    }
+  };
   var LocalOnlyError = class extends Error {
     constructor(what) {
       super(
@@ -14525,15 +14533,23 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     }
   };
   var SHARED_POLICY_KEY = "__AVIARY_LOCAL_ONLY__";
-  var localOnly = () => false;
+  var localOnly = null;
   function setLocalOnlyPolicy(predicate) {
     localOnly = predicate;
     globalThis[SHARED_POLICY_KEY] = predicate;
   }
+  function localOnlyPolicyInstalled() {
+    return localOnly !== null || typeof globalThis[SHARED_POLICY_KEY] === "function";
+  }
   function isLocalOnly() {
-    return globalThis[SHARED_POLICY_KEY]?.() ?? localOnly();
+    const shared2 = globalThis[SHARED_POLICY_KEY];
+    if (shared2) return shared2();
+    return localOnly === null ? true : localOnly();
   }
   function assertOutboundAllowed(what) {
+    if (!localOnlyPolicyInstalled()) {
+      throw new NetworkPolicyNotInstalledError(what);
+    }
     if (isLocalOnly()) {
       throw new LocalOnlyError(what);
     }

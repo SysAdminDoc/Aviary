@@ -1,6 +1,12 @@
 import { importSourceModule } from "./helpers/source-import.mjs";
+import { allowOutbound } from "./helpers/network-policy.mjs";
 import assert from "node:assert/strict";
 import { test } from "node:test";
+
+// Nothing outbound is permitted until a policy is installed, so a spec that drives an integration
+// says which posture it is driving under. This file's cases assume Local-only mode is off; the
+// ones that assert the refusal install the opposite policy themselves.
+await allowOutbound();
 
 const record = (overrides = {}) => ({
   tweetId: "1",

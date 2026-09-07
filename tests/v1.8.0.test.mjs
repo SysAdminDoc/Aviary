@@ -390,9 +390,32 @@ test("every setting a preset promises now has an implementation behind it", asyn
 
 test("local-only mode blocks every integration entry point", async () => {
   const policy = await importSourceModule("src/features/integrations/network-policy.ts");
-  const { assertOutboundAllowed, setLocalOnlyPolicy, resetLocalOnlyPolicy, LocalOnlyError } = policy;
+  const {
+    assertOutboundAllowed,
+    setLocalOnlyPolicy,
+    resetLocalOnlyPolicy,
+    LocalOnlyError,
+    NetworkPolicyNotInstalledError
+  } = policy;
 
+  // This used to assert that an uninstalled policy allows the request. It was the contract, and it
+  // was the wrong one: the install point in main.ts sits after storage, profile, diagnostics, usage
+  // and the settings load, so anything reaching an integration before that line went out with the
+  // user's Local-only mode switched on. Nothing goes out until a policy is installed, and the
+  // refusal names the installation rather than the setting -- a boot-order fault reported as
+  // "Local-only mode blocked this" sends the reader to a switch that is not the problem.
   resetLocalOnlyPolicy();
+  assert.throws(() => assertOutboundAllowed("A request"), NetworkPolicyNotInstalledError);
+  assert.throws(() => assertOutboundAllowed("A request"), /has not been installed/);
+  assert.doesNotThrow(() => {
+    try {
+      assertOutboundAllowed("A request");
+    } catch (error) {
+      assert.ok(!(error instanceof LocalOnlyError), "a boot fault must not be reported as the setting");
+    }
+  });
+
+  setLocalOnlyPolicy(() => false);
   assert.doesNotThrow(() => assertOutboundAllowed("A request"));
 
   setLocalOnlyPolicy(() => true);
@@ -406,7 +429,7 @@ test("local-only mode blocks every integration entry point", async () => {
   assert.throws(() => assertOutboundAllowed("A request"), LocalOnlyError);
   on = false;
   assert.doesNotThrow(() => assertOutboundAllowed("A request"));
-  resetLocalOnlyPolicy();
+  setLocalOnlyPolicy(() => false);
 
   // Which modules honour the policy is settled by calling them -- see the guard test below, which
   // rejects a real call into every integration client. That main.ts wires the policy to the live
