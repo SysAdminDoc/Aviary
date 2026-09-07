@@ -109,8 +109,6 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
 ### P1, Next
 
 ### P2, Later
-  Complexity: M
-  Depends: None. Preserve the 1.1.1 target and the external cross-validator rather than shipping the draft shape.
 
 - [ ] F304, P2: Send the completion-limit parameter current OpenAI models accept
   Why: the OpenAI-compatible path always sends `max_tokens`, which reasoning models reject with `unsupported_parameter`. The user sees `Provider HTTP 400` with no explanation, on a correctly configured account.
