@@ -48,7 +48,8 @@ import {
   type AviarySettings,
   cloneSettings,
   DEFAULT_SETTINGS,
-  mergeKnownSettings,
+  applyKnownSettingsPatch,
+  diffKnownSettings,
   normalizeSettings,
   readSettingsEnvelope,
   SETTINGS_KEY,
@@ -57,7 +58,7 @@ import {
 import { createStorageGateway, setStorageErrorSink } from "./platform/storage.ts";
 import { createDurableStorageGateway, DURABLE_STORAGE_KEYS } from "./platform/durable-storage.ts";
 import { createProfileStorageGateway, ProfileManager } from "./platform/profile.ts";
-import { replaceStored } from "./platform/storage-lock.ts";
+import { mutateStored } from "./platform/storage-lock.ts";
 import { createTrustedHtmlPolicy } from "./platform/trusted-types.ts";
 import { IntegrationUsageLedger } from "./features/integrations/usage.ts";
 import { requestExtensionAdRuleSync } from "./extension/ad-rule.ts";
@@ -233,6 +234,7 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
   const freshInstall = storedSettings === undefined;
   const settingsEnvelope = readSettingsEnvelope(storedSettings ?? DEFAULT_SETTINGS);
   const settings = settingsEnvelope.settings;
+  let lastSavedSettings = cloneSettings(settings);
   if (settingsEnvelope.applied.length > 0) {
     diagnostics.info("Settings schema upgraded", {
       from: settingsEnvelope.fromVersion,
@@ -244,7 +246,6 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
   // and normalization happens before any feature runs. Losing a user's rules without a word is not
   // an option, so the drop is reported where the rest of the boot's decisions are.
   reportDroppedCustomCss(storedSettings, settings, diagnostics);
-  const futurePayload = settingsEnvelope.future;
   if (settingsEnvelope.fromFuture) {
     // Written by a newer Aviary. Run with normalized values, but never write this build's
     // narrower shape back over settings it cannot represent.
@@ -350,13 +351,23 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
       // rather than replacing it: `fromFuture` used to be a diagnostics line and nothing else, so
       // downgrading and toggling any single setting silently deleted every key the newer schema
       // had added.
-      await replaceStored(
-        storage,
-        SETTINGS_KEY,
-        futurePayload
-          ? mergeKnownSettings(futurePayload, settings)
-          : normalizeSettings(cloneSettings(settings))
-      );
+      const normalized = normalizeSettings(cloneSettings(settings));
+      const patch = diffKnownSettings(lastSavedSettings, normalized);
+      await mutateStored<unknown>(storage, SETTINGS_KEY, undefined, (current) => {
+        if (current === undefined) return normalized;
+        const envelope = readSettingsEnvelope(current);
+        if (envelope.fromFuture && envelope.future) {
+          return applyKnownSettingsPatch(envelope.future, patch);
+        }
+        return normalizeSettings(
+          applyKnownSettingsPatch(envelope.settings, patch)
+        );
+      });
+      // Keep the caller's live object untouched. Controls may still be showing a value that the
+      // normalizer rejected, and existing callers rely on seeing what they entered until they
+      // explicitly change it again. The normalized snapshot is only the baseline for the next
+      // delta, so a later save cannot replay an unrelated tab's merged values.
+      lastSavedSettings = cloneSettings(normalized);
       await reconcileExtensionAdRule(options.source, networkShieldActive(settings), diagnostics);
       diagnostics.info("Settings saved", { key: SETTINGS_KEY });
     },

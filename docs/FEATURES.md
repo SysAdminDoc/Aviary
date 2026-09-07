@@ -60,7 +60,9 @@ X-origin database. It uses the manager's own value store and reports a clear sto
 before a single value exceeds 16 MiB. Extension and manager lock registers are shared across x.com,
 twitter.com, and pro.x.com, and each accepted write carries a stale-owner fence. If extension storage is briefly unavailable, pending values and removals
 share one journal. The background applies each operation and removes its marker in one transaction,
-so a closed tab or restarted worker can retry without reviving old data.
+so a closed tab or restarted worker can retry without reviving old data. Settings, profiles, media
+queue entries, export checkpoints and diagnostics also write only their transaction-local change,
+which keeps non-conflicting edits from two open X tabs and makes clears authoritative.
 
 AI and embedding calls are opt-in and show the destination, fields, estimated size, retention
 notice, network status, and budget before provider work begins. Per-request and daily UTF-8 byte
@@ -349,4 +351,3 @@ The Control Center "Integrations" section gates each integration behind a per-fe
   Local-only mode stops before a provider request.
 
 The Integrations panel also surfaces a "Recent integration errors" readout that distills failed audit-log entries, handy when a Bluesky token expires or your Aria2 daemon stops listening. Aria2 history stores completed/queued gids locally and prevents the same media URL from being requeued across browser sessions.
-

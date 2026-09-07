@@ -1,5 +1,5 @@
 import type { StorageGateway } from "../../platform/storage.ts";
-import { replaceStored } from "../../platform/storage-lock.ts";
+import { mutateStored, replaceStored } from "../../platform/storage-lock.ts";
 import type {
   ExportCheckpoint,
   ExportFormat,
@@ -45,6 +45,16 @@ export interface CheckpointStoreShape {
 
 const EMPTY: CheckpointStoreShape = { jobs: {}, records: {} };
 
+type CheckpointField = keyof ExportCheckpoint;
+
+type CheckpointChange =
+  | { kind: "start"; job: ExportCheckpoint }
+  | { kind: "append"; jobId: string; records: ExportRecord[]; total: number | null; updatedAt: string }
+  | { kind: "update"; jobId: string; set: Partial<ExportCheckpoint>; remove?: readonly CheckpointField[] }
+  | { kind: "updates"; updates: ReadonlyArray<{ jobId: string; set: Partial<ExportCheckpoint>; remove?: readonly CheckpointField[] }> }
+  | { kind: "remove"; jobId: string }
+  | { kind: "sweep"; policy: RetentionPolicy };
+
 export class CheckpointStore {
   readonly #storage: StorageGateway;
   #state: CheckpointStoreShape = EMPTY;
@@ -64,6 +74,22 @@ export class CheckpointStore {
     };
     this.#policy = await loadRetentionPolicy(this.#storage);
     this.#loaded = true;
+    const interrupted = Object.entries(raw?.jobs ?? {})
+      .filter(([, value]) => Boolean(value && typeof value === "object" && (value as Partial<ExportCheckpoint>).status === "running"))
+      .map(([jobId]) => ({
+        jobId,
+        set: {
+          status: "paused" as const,
+          done: false,
+          resumeOnBoot: true,
+          error: "Interrupted before completion; resume when ready."
+        }
+      }));
+    if (interrupted.length > 0) {
+      // Persist the recovery transition before sweep so a second context cannot write the live
+      // status back over the paused state this boot just discovered.
+      await this.#persistMany(interrupted);
+    }
     return this.sweep();
   }
 
@@ -95,7 +121,7 @@ export class CheckpointStore {
       resumeOnBoot: false
     };
     this.#state.records[jobId] = [];
-    await this.#persist();
+    await this.#persist({ kind: "start", job: cloneJob(this.#state.jobs[jobId]) });
     await this.sweep();
   }
 
@@ -119,7 +145,13 @@ export class CheckpointStore {
     job.recordCount = retained.length;
     job.progress = { completed: retained.length, total: job.progress.total };
     job.updatedAt = new Date().toISOString();
-    await this.#persist();
+    await this.#persist({
+      kind: "append",
+      jobId,
+      records: batch.map(cloneRecord),
+      total: job.progress.total,
+      updatedAt: job.updatedAt
+    });
   }
 
   async finish(jobId: string): Promise<void> {
@@ -132,7 +164,18 @@ export class CheckpointStore {
       job.resumeOnBoot = false;
       job.updatedAt = new Date().toISOString();
       delete job.error;
-      await this.#persist();
+      await this.#persist({
+        kind: "update",
+        jobId,
+        set: {
+          done: true,
+          status: "completed",
+          progress: { ...job.progress },
+          resumeOnBoot: false,
+          updatedAt: job.updatedAt
+        },
+        remove: ["error"]
+      });
     }
   }
 
@@ -144,7 +187,11 @@ export class CheckpointStore {
     job.done = false;
     job.resumeOnBoot = false;
     job.updatedAt = new Date().toISOString();
-    await this.#persist();
+    await this.#persist({
+      kind: "update",
+      jobId,
+      set: { status: "paused", done: false, resumeOnBoot: false, updatedAt: job.updatedAt }
+    });
     return true;
   }
 
@@ -157,7 +204,12 @@ export class CheckpointStore {
     job.resumeOnBoot = false;
     job.updatedAt = new Date().toISOString();
     delete job.error;
-    await this.#persist();
+    await this.#persist({
+      kind: "update",
+      jobId,
+      set: { status: "running", done: false, resumeOnBoot: false, updatedAt: job.updatedAt },
+      remove: ["error"]
+    });
     return true;
   }
 
@@ -169,7 +221,11 @@ export class CheckpointStore {
     job.done = true;
     job.resumeOnBoot = false;
     job.updatedAt = new Date().toISOString();
-    await this.#persist();
+    await this.#persist({
+      kind: "update",
+      jobId,
+      set: { status: "cancelled", done: true, resumeOnBoot: false, updatedAt: job.updatedAt }
+    });
     return true;
   }
 
@@ -182,7 +238,17 @@ export class CheckpointStore {
     job.resumeOnBoot = false;
     job.updatedAt = new Date().toISOString();
     job.error = error instanceof Error ? error.message : String(error);
-    await this.#persist();
+    await this.#persist({
+      kind: "update",
+      jobId,
+      set: {
+        status: "failed",
+        done: true,
+        resumeOnBoot: false,
+        updatedAt: job.updatedAt,
+        error: job.error
+      }
+    });
     return true;
   }
 
@@ -195,7 +261,11 @@ export class CheckpointStore {
       total: progress.total === null ? null : nonNegativeInteger(progress.total, job.progress.total ?? 0)
     };
     job.updatedAt = new Date().toISOString();
-    await this.#persist();
+    await this.#persist({
+      kind: "update",
+      jobId,
+      set: { progress: { ...job.progress }, updatedAt: job.updatedAt }
+    });
     return true;
   }
 
@@ -209,7 +279,7 @@ export class CheckpointStore {
     await this.load();
     delete this.#state.jobs[jobId];
     delete this.#state.records[jobId];
-    await this.#persist();
+    await this.#persist({ kind: "remove", jobId });
   }
 
   async sweep(policy?: RetentionPolicy): Promise<RetentionSweepResult> {
@@ -217,74 +287,175 @@ export class CheckpointStore {
     if (policy) {
       this.#policy = normalizeRetentionPolicy(policy);
     }
-
-    const beforeJobs = Object.keys(this.#state.jobs).length;
-    const beforeRecords = Object.values(this.#state.records).reduce(
-      (total, records) => total + records.length,
-      0
-    );
-    const removeIds = new Set<string>();
-
-    if (this.#policy.maxAgeDays > 0) {
-      const cutoff = Date.now() - this.#policy.maxAgeDays * 24 * 60 * 60 * 1000;
-      for (const job of Object.values(this.#state.jobs)) {
-        const startedAt = Date.parse(job.startedAt);
-        if (Number.isFinite(startedAt) && startedAt < cutoff) {
-          removeIds.add(job.jobId);
-        }
-      }
-    }
-
-    if (this.#policy.maxJobs > 0) {
-      const newest = Object.values(this.#state.jobs)
-        .filter((job) => !removeIds.has(job.jobId))
-        .sort(compareJobs)
-        .slice(-this.#policy.maxJobs)
-        .map((job) => job.jobId);
-      const keepIds = new Set(newest);
-      for (const job of Object.values(this.#state.jobs)) {
-        if (!removeIds.has(job.jobId) && !keepIds.has(job.jobId)) {
-          removeIds.add(job.jobId);
-        }
-      }
-    }
-
-    for (const jobId of removeIds) {
-      delete this.#state.jobs[jobId];
-      delete this.#state.records[jobId];
-    }
-
-    for (const job of Object.values(this.#state.jobs)) {
-      const records = this.#state.records[job.jobId] ?? [];
-      if (this.#policy.maxRecordsPerJob > 0 && records.length > this.#policy.maxRecordsPerJob) {
-        this.#state.records[job.jobId] = records.slice(-this.#policy.maxRecordsPerJob);
-      }
-      job.recordCount = this.#state.records[job.jobId]?.length ?? 0;
-    }
-
-    const afterRecords = Object.values(this.#state.records).reduce(
-      (total, records) => total + records.length,
-      0
-    );
-    const result: RetentionSweepResult = {
-      removedJobs: beforeJobs - Object.keys(this.#state.jobs).length,
-      removedRecords: beforeRecords - afterRecords,
-      retainedJobs: Object.keys(this.#state.jobs).length,
-      policy: this.retentionPolicy
-    };
-    if (result.removedJobs > 0 || result.removedRecords > 0) {
-      await this.#persist();
-    }
+    let result = emptySweep(this.#policy, Object.keys(this.#state.jobs).length);
+    await this.#persist({ kind: "sweep", policy: this.#policy }, (nextResult) => {
+      result = nextResult;
+    });
     return result;
   }
 
-  async #persist(): Promise<void> {
+  async #persist(
+    change: CheckpointChange,
+    onResult?: (result: RetentionSweepResult) => void
+  ): Promise<void> {
     try {
-      await replaceStored(this.#storage, CHECKPOINT_KEY, this.#state);
+      const next = await mutateStored<CheckpointStoreShape>(
+        this.#storage,
+        CHECKPOINT_KEY,
+        EMPTY,
+        (stored) => {
+          const applied = applyCheckpointChange(stored, change, this.#policy);
+          onResult?.(applied.result);
+          return applied.state;
+        }
+      );
+      this.#state = normalizeCheckpointState(next);
     } catch {
       // best effort
     }
   }
+
+  async #persistMany(
+    updates: ReadonlyArray<{ jobId: string; set: Partial<ExportCheckpoint> }>
+  ): Promise<void> {
+    await this.#persist({ kind: "updates", updates });
+  }
+}
+
+function normalizeCheckpointState(value: unknown): CheckpointStoreShape {
+  if (!value || typeof value !== "object") return { jobs: {}, records: {} };
+  const raw = value as Partial<CheckpointStoreShape>;
+  return {
+    jobs: normalizeJobs(raw.jobs, false),
+    records: normalizeRecords(raw.records)
+  };
+}
+
+function cloneJob(job: ExportCheckpoint): ExportCheckpoint {
+  return {
+    ...job,
+    formats: [...job.formats],
+    progress: { ...job.progress }
+  };
+}
+
+function cloneRecord(record: ExportRecord): ExportRecord {
+  return { ...record };
+}
+
+function applyCheckpointChange(
+  value: unknown,
+  change: CheckpointChange,
+  policy: RetentionPolicy
+): { state: CheckpointStoreShape; result: RetentionSweepResult } {
+  const state = normalizeCheckpointState(value);
+  let result = emptySweep(policy, Object.keys(state.jobs).length);
+
+  if (change.kind === "start") {
+    state.jobs[change.job.jobId] = cloneJob(change.job);
+    state.records[change.job.jobId] = [];
+  } else if (change.kind === "append") {
+    const job = state.jobs[change.jobId];
+    if (job && !isTerminal(job.status)) {
+      const records = state.records[change.jobId] ?? [];
+      const seen = new Set(records.map((entry) => recordKey(entry)));
+      for (const record of change.records) {
+        const key = recordKey(record);
+        if (!seen.has(key)) {
+          seen.add(key);
+          records.push(cloneRecord(record));
+        }
+      }
+      const retained = policy.maxRecordsPerJob > 0
+        ? records.slice(-policy.maxRecordsPerJob)
+        : records;
+      state.records[change.jobId] = retained;
+      job.recordCount = retained.length;
+      job.progress = { completed: retained.length, total: change.total };
+      job.updatedAt = change.updatedAt;
+    }
+  } else if (change.kind === "update") {
+    applyCheckpointUpdate(state, change.jobId, change.set, change.remove);
+  } else if (change.kind === "updates") {
+    for (const update of change.updates) {
+      applyCheckpointUpdate(state, update.jobId, update.set, update.remove);
+    }
+  } else if (change.kind === "remove") {
+    delete state.jobs[change.jobId];
+    delete state.records[change.jobId];
+  } else {
+    const swept = sweepCheckpointState(state, policy);
+    result = swept.result;
+    return { state: swept.state, result };
+  }
+
+  return { state, result };
+}
+
+function applyCheckpointUpdate(
+  state: CheckpointStoreShape,
+  jobId: string,
+  set: Partial<ExportCheckpoint>,
+  remove: readonly CheckpointField[] | undefined
+): void {
+  const job = state.jobs[jobId];
+  // A stale update cannot recreate a job removed by another tab.
+  if (!job) return;
+  state.jobs[jobId] = { ...job, ...set, progress: set.progress ? { ...set.progress } : { ...job.progress } };
+  for (const field of remove ?? []) delete state.jobs[jobId][field];
+}
+
+function sweepCheckpointState(
+  input: CheckpointStoreShape,
+  policy: RetentionPolicy
+): { state: CheckpointStoreShape; result: RetentionSweepResult } {
+  const state = normalizeCheckpointState(input);
+  const beforeJobs = Object.keys(state.jobs).length;
+  const beforeRecords = Object.values(state.records).reduce((total, records) => total + records.length, 0);
+  const removeIds = new Set<string>();
+
+  if (policy.maxAgeDays > 0) {
+    const cutoff = Date.now() - policy.maxAgeDays * 24 * 60 * 60 * 1000;
+    for (const job of Object.values(state.jobs)) {
+      const startedAt = Date.parse(job.startedAt);
+      if (Number.isFinite(startedAt) && startedAt < cutoff) removeIds.add(job.jobId);
+    }
+  }
+
+  if (policy.maxJobs > 0) {
+    const newest = Object.values(state.jobs)
+      .filter((job) => !removeIds.has(job.jobId))
+      .sort(compareJobs)
+      .slice(-policy.maxJobs)
+      .map((job) => job.jobId);
+    const keepIds = new Set(newest);
+    for (const job of Object.values(state.jobs)) {
+      if (!removeIds.has(job.jobId) && !keepIds.has(job.jobId)) removeIds.add(job.jobId);
+    }
+  }
+
+  for (const jobId of removeIds) {
+    delete state.jobs[jobId];
+    delete state.records[jobId];
+  }
+  for (const job of Object.values(state.jobs)) {
+    const records = state.records[job.jobId] ?? [];
+    if (policy.maxRecordsPerJob > 0 && records.length > policy.maxRecordsPerJob) {
+      state.records[job.jobId] = records.slice(-policy.maxRecordsPerJob);
+    }
+    job.recordCount = state.records[job.jobId]?.length ?? 0;
+  }
+
+  const afterRecords = Object.values(state.records).reduce((total, records) => total + records.length, 0);
+  return {
+    state,
+    result: {
+      removedJobs: beforeJobs - Object.keys(state.jobs).length,
+      removedRecords: beforeRecords - afterRecords,
+      retainedJobs: Object.keys(state.jobs).length,
+      policy: { ...policy }
+    }
+  };
 }
 
 export function normalizeRetentionPolicy(input: unknown): RetentionPolicy {
@@ -345,11 +516,11 @@ function recordKey(record: ExportRecord): string {
   return `${identity}|${record.text.length}|${hashRecordText(record.text)}`;
 }
 
-function normalizeJobs(input: unknown): Record<string, ExportCheckpoint> {
+function normalizeJobs(input: unknown, recoverRunning = true): Record<string, ExportCheckpoint> {
   if (!input || typeof input !== "object") return {};
   const result: Record<string, ExportCheckpoint> = {};
   for (const [jobId, value] of Object.entries(input)) {
-    const job = normalizeJob(value, jobId);
+    const job = normalizeJob(value, jobId, recoverRunning);
     if (job) result[job.jobId] = job;
   }
   return result;
@@ -364,7 +535,7 @@ function normalizeRecords(input: unknown): Record<string, ExportRecord[]> {
   return result;
 }
 
-function normalizeJob(value: unknown, fallbackId: string): ExportCheckpoint | null {
+function normalizeJob(value: unknown, fallbackId: string, recoverRunning = true): ExportCheckpoint | null {
   if (!value || typeof value !== "object") return null;
   const raw = value as Partial<ExportCheckpoint>;
   const jobId = typeof raw.jobId === "string" && raw.jobId.length > 0 ? raw.jobId : fallbackId;
@@ -377,7 +548,7 @@ function normalizeJob(value: unknown, fallbackId: string): ExportCheckpoint | nu
       : "paused";
   // A process that died cannot leave a live runner behind. Reclassify it as an interrupted,
   // user-visible pause and make it eligible for the next boot's explicit resume check.
-  const status = persistedStatus === "running" ? "paused" : persistedStatus;
+  const status = recoverRunning && persistedStatus === "running" ? "paused" : persistedStatus;
   const progress = normalizeProgress(raw.progress, recordCount);
   return {
     jobId,

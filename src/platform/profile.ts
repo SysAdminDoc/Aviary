@@ -1,5 +1,6 @@
 import type { StorageGateway } from "./storage.ts";
 import type { StorageLockFence } from "./storage-fence.ts";
+import { mutateStored } from "./storage-lock.ts";
 
 export const PROFILE_REGISTRY_KEY = "aviary.profiles.v1";
 export const ACTIVE_PROFILE_KEY = "aviary.profile.active.v1";
@@ -68,6 +69,11 @@ export interface ProfileStatus {
 interface ProfileState {
   profiles: ProfileRecord[];
 }
+
+type ProfileChange =
+  | { kind: "add"; profile: ProfileRecord; defaultProfile?: ProfileRecord }
+  | { kind: "update"; id: string; set: Partial<ProfileRecord> }
+  | { kind: "clear" };
 
 const EMPTY: ProfileState = { profiles: [] };
 
@@ -167,7 +173,12 @@ export class ProfileManager {
       lastUsedAt: now
     };
     this.#state.profiles.push(profile);
-    await this.#persist();
+    const defaultProfile = this.#state.profiles.find((entry) => entry.id === DEFAULT_PROFILE_ID);
+    await this.#persist({
+      kind: "add",
+      profile: { ...profile },
+      ...(defaultProfile ? { defaultProfile: { ...defaultProfile } } : {})
+    });
     return { ...profile };
   }
 
@@ -176,9 +187,10 @@ export class ProfileManager {
     const profile = this.#state.profiles.find((entry) => entry.id === profileId);
     if (!profile) return false;
     this.#activeId = profile.id;
-    profile.lastUsedAt = new Date().toISOString();
-    await this.#base.set(ACTIVE_PROFILE_KEY, this.#activeId);
-    await this.#persist();
+    const lastUsedAt = new Date().toISOString();
+    profile.lastUsedAt = lastUsedAt;
+    await mutateStored<string | null>(this.#base, ACTIVE_PROFILE_KEY, null, () => this.#activeId);
+    await this.#persist({ kind: "update", id: profile.id, set: { lastUsedAt } });
     return true;
   }
 
@@ -219,8 +231,14 @@ export class ProfileManager {
     return found.some((value) => value !== undefined);
   }
 
-  async #persist(): Promise<void> {
-    await this.#base.set(PROFILE_REGISTRY_KEY, this.#state);
+  async #persist(change: ProfileChange): Promise<void> {
+    const next = await mutateStored<ProfileState>(
+      this.#base,
+      PROFILE_REGISTRY_KEY,
+      EMPTY,
+      (stored) => applyProfileChange(stored, change)
+    );
+    this.#state = normalizeState(next);
   }
 }
 
@@ -262,6 +280,23 @@ function normalizeState(value: unknown): ProfileState {
     : [];
   const unique = new Map(profiles.map((profile) => [profile.id, profile]));
   return { profiles: [...unique.values()] };
+}
+
+function applyProfileChange(value: unknown, change: ProfileChange): ProfileState {
+  const state = normalizeState(value);
+  if (change.kind === "clear") return { profiles: [] };
+  const byId = new Map(state.profiles.map((profile) => [profile.id, { ...profile }]));
+  if (change.kind === "add") {
+    if (change.defaultProfile && !byId.has(DEFAULT_PROFILE_ID)) {
+      byId.set(DEFAULT_PROFILE_ID, { ...change.defaultProfile });
+    }
+    byId.set(change.profile.id, { ...change.profile });
+  } else {
+    const current = byId.get(change.id);
+    // A stale update must not recreate a profile that another tab removed or cleared.
+    if (current) byId.set(change.id, { ...current, ...change.set });
+  }
+  return { profiles: [...byId.values()] };
 }
 
 function normalizeProfile(value: unknown): ProfileRecord | null {

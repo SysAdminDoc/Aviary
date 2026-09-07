@@ -604,6 +604,82 @@ export function mergeKnownSettings(
   return merged;
 }
 
+/** Returns only the current build's changed setting leaves, preserving unrelated tab edits. */
+export function diffKnownSettings(
+  before: AviarySettings,
+  after: AviarySettings
+): Record<string, unknown> {
+  const patch = diffSettingValue(
+    before as unknown as Record<string, unknown>,
+    after as unknown as Record<string, unknown>
+  );
+  if (!patch || typeof patch !== "object" || Array.isArray(patch)) return {};
+  delete (patch as Record<string, unknown>).schemaVersion;
+  return patch as Record<string, unknown>;
+}
+
+/** Applies a settings patch without replacing sibling groups or fields a newer build owns. */
+export function applyKnownSettingsPatch(
+  target: unknown,
+  patch: Record<string, unknown>
+): Record<string, unknown> {
+  const base = isPlainSettingsRecord(target) ? cloneSettingsRecord(target) : {};
+  mergeSettingsPatch(base, patch);
+  return base;
+}
+
+function diffSettingValue(before: unknown, after: unknown): unknown {
+  if (Object.is(before, after)) return undefined;
+  if (Array.isArray(before) && Array.isArray(after)) {
+    if (before.length === after.length && before.every((entry, index) =>
+      diffSettingValue(entry, after[index]) === undefined
+    )) {
+      return undefined;
+    }
+    return cloneSettingsValue(after);
+  }
+  if (isPlainSettingsRecord(before) && isPlainSettingsRecord(after)) {
+    const result: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(after)) {
+      const changed = diffSettingValue(before[key], value);
+      if (changed !== undefined) result[key] = changed;
+    }
+    return Object.keys(result).length > 0 ? result : undefined;
+  }
+  return cloneSettingsValue(after);
+}
+
+function mergeSettingsPatch(target: Record<string, unknown>, patch: Record<string, unknown>): void {
+  for (const [key, value] of Object.entries(patch)) {
+    if (BLOCKED_OBJECT_KEYS.has(key)) continue;
+    if (isPlainSettingsRecord(value) && isPlainSettingsRecord(target[key])) {
+      const child = cloneSettingsRecord(target[key] as Record<string, unknown>);
+      mergeSettingsPatch(child, value);
+      target[key] = child;
+    } else {
+      target[key] = cloneSettingsValue(value);
+    }
+  }
+}
+
+function isPlainSettingsRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function cloneSettingsRecord(value: Record<string, unknown>): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  for (const [key, entry] of Object.entries(value)) {
+    if (!BLOCKED_OBJECT_KEYS.has(key)) result[key] = cloneSettingsValue(entry);
+  }
+  return result;
+}
+
+function cloneSettingsValue(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(cloneSettingsValue);
+  if (isPlainSettingsRecord(value)) return cloneSettingsRecord(value);
+  return value;
+}
+
 export function readSettingsEnvelope(input: unknown): SettingsEnvelope {
   const raw = asRecord(input);
   const declared = typeof raw.schemaVersion === "number" && Number.isFinite(raw.schemaVersion)

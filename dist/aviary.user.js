@@ -287,14 +287,66 @@ var Aviary = (() => {
       crosspost: { attachLastDownload: false }
     }
   };
-  function mergeKnownSettings(future, settings) {
-    const merged = { ...future };
-    const known = normalizeSettings(cloneSettings(settings));
-    for (const [key, value] of Object.entries(known)) {
-      if (key === "schemaVersion") continue;
-      merged[key] = value;
+  function diffKnownSettings(before, after) {
+    const patch = diffSettingValue(
+      before,
+      after
+    );
+    if (!patch || typeof patch !== "object" || Array.isArray(patch)) return {};
+    delete patch.schemaVersion;
+    return patch;
+  }
+  function applyKnownSettingsPatch(target, patch) {
+    const base = isPlainSettingsRecord(target) ? cloneSettingsRecord(target) : {};
+    mergeSettingsPatch(base, patch);
+    return base;
+  }
+  function diffSettingValue(before, after) {
+    if (Object.is(before, after)) return void 0;
+    if (Array.isArray(before) && Array.isArray(after)) {
+      if (before.length === after.length && before.every(
+        (entry, index) => diffSettingValue(entry, after[index]) === void 0
+      )) {
+        return void 0;
+      }
+      return cloneSettingsValue(after);
     }
-    return merged;
+    if (isPlainSettingsRecord(before) && isPlainSettingsRecord(after)) {
+      const result = {};
+      for (const [key, value] of Object.entries(after)) {
+        const changed = diffSettingValue(before[key], value);
+        if (changed !== void 0) result[key] = changed;
+      }
+      return Object.keys(result).length > 0 ? result : void 0;
+    }
+    return cloneSettingsValue(after);
+  }
+  function mergeSettingsPatch(target, patch) {
+    for (const [key, value] of Object.entries(patch)) {
+      if (BLOCKED_OBJECT_KEYS.has(key)) continue;
+      if (isPlainSettingsRecord(value) && isPlainSettingsRecord(target[key])) {
+        const child = cloneSettingsRecord(target[key]);
+        mergeSettingsPatch(child, value);
+        target[key] = child;
+      } else {
+        target[key] = cloneSettingsValue(value);
+      }
+    }
+  }
+  function isPlainSettingsRecord(value) {
+    return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+  }
+  function cloneSettingsRecord(value) {
+    const result = {};
+    for (const [key, entry] of Object.entries(value)) {
+      if (!BLOCKED_OBJECT_KEYS.has(key)) result[key] = cloneSettingsValue(entry);
+    }
+    return result;
+  }
+  function cloneSettingsValue(value) {
+    if (Array.isArray(value)) return value.map(cloneSettingsValue);
+    if (isPlainSettingsRecord(value)) return cloneSettingsRecord(value);
+    return value;
   }
   function readSettingsEnvelope(input) {
     const raw = asRecord(input);
@@ -16004,6 +16056,9 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     #seq = 0;
     #loaded = false;
     #persistTail = Promise.resolve();
+    #changeSequence = 0;
+    #pendingChanges = [];
+    #lastPersistFailure;
     constructor(storage, onPersistError) {
       this.#storage = storage;
       this.#onPersistError = onPersistError;
@@ -16027,8 +16082,16 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
           Number.isFinite(raw?.sequence) ? Math.trunc(raw.sequence) : 0,
           ...this.#jobs.map((job) => sequenceFromId(job.id))
         );
-        if (jobs.some((job) => job.status === "paused" && job.resumeOnBoot)) {
-          this.#persist();
+        const interrupted = jobs.filter((job) => job.status === "paused" && job.resumeOnBoot).map((job) => ({
+          id: job.id,
+          set: {
+            status: "paused",
+            resumeOnBoot: true,
+            ...job.error ? { error: job.error } : {}
+          }
+        }));
+        if (interrupted.length > 0) {
+          this.#persist({ kind: "updates", updates: interrupted });
         }
         this.#notify();
       } catch (error) {
@@ -16040,17 +16103,24 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     }
     /** Persists every queued item before a batch starts its first external handoff. */
     async checkpoint() {
-      await this.#queuePersist();
+      const through = this.#changeSequence;
+      await this.#persistTail;
+      const failure = this.#lastPersistFailure;
+      if (failure && failure.token <= through) {
+        this.#lastPersistFailure = void 0;
+        throw failure.error;
+      }
     }
     enqueue(job) {
       const entry = {
-        id: `job-${++this.#seq}`,
+        id: `job-${++this.#seq}-${randomSuffix()}`,
         status: "queued",
         resumeOnBoot: true,
         ...job
       };
       this.#jobs.push(entry);
       this.#trim();
+      this.#persist({ kind: "add", job: cloneJob(entry), sequence: this.#seq });
       this.#notify();
       return entry;
     }
@@ -16063,7 +16133,19 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       else job.fallbackUrls = [...target.fallbackUrls];
       if (target.mediaId === void 0) delete job.mediaId;
       else job.mediaId = target.mediaId;
-      this.#persist();
+      const remove = [];
+      if (target.fallbackUrls === void 0) remove.push("fallbackUrls");
+      if (target.mediaId === void 0) remove.push("mediaId");
+      this.#persist({
+        kind: "update",
+        id: jobId,
+        set: {
+          url: target.url,
+          ...target.fallbackUrls === void 0 ? {} : { fallbackUrls: [...target.fallbackUrls] },
+          ...target.mediaId === void 0 ? {} : { mediaId: target.mediaId }
+        },
+        ...remove.length > 0 ? { remove } : {}
+      });
       this.#notify();
       return true;
     }
@@ -16091,14 +16173,24 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       } else if (status !== "failed") {
         delete job.error;
       }
-      this.#persist();
+      const set = { status };
+      const remove = [];
+      if (status === "running" && job.startedAt) set.startedAt = job.startedAt;
+      if (status === "completed" || status === "failed" || status === "opened" || status === "duplicate" || status === "cancelled") {
+        if (job.finishedAt) set.finishedAt = job.finishedAt;
+        set.resumeOnBoot = false;
+        remove.push("downloadId");
+      }
+      if (error) set.error = error;
+      else if (status !== "failed") remove.push("error");
+      this.#persist({ kind: "update", id: jobId, set, remove });
       this.#notify();
     }
     trackDownload(jobId, downloadId) {
       const job = this.#jobs.find((entry) => entry.id === jobId);
       if (!job || !Number.isSafeInteger(downloadId) || downloadId < 0) return;
       job.downloadId = downloadId;
-      this.#persist();
+      this.#persist({ kind: "update", id: jobId, set: { downloadId } });
       this.#notify();
     }
     pause(jobId) {
@@ -16107,7 +16199,11 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       job.status = "paused";
       job.resumeOnBoot = false;
       job.error = "Paused by user.";
-      this.#persist();
+      this.#persist({
+        kind: "update",
+        id: jobId,
+        set: { status: "paused", resumeOnBoot: false, error: "Paused by user." }
+      });
       this.#notify();
       return true;
     }
@@ -16117,7 +16213,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       job.status = "queued";
       job.resumeOnBoot = false;
       delete job.error;
-      this.#persist();
+      this.#persist({ kind: "update", id: jobId, set: { status: "queued", resumeOnBoot: false }, remove: ["error"] });
       this.#notify();
       return true;
     }
@@ -16127,7 +16223,11 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       job.status = "cancelled";
       job.resumeOnBoot = false;
       job.finishedAt = (/* @__PURE__ */ new Date()).toISOString();
-      this.#persist();
+      this.#persist({
+        kind: "update",
+        id: jobId,
+        set: { status: "cancelled", resumeOnBoot: false, finishedAt: job.finishedAt }
+      });
       this.#notify();
       return true;
     }
@@ -16142,7 +16242,14 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
         delete job.finishedAt;
       }
       if (retryable.length > 0) {
-        this.#persist();
+        this.#persist({
+          kind: "updates",
+          updates: retryable.map((job) => ({
+            id: job.id,
+            set: { status: "queued", resumeOnBoot: true },
+            remove: ["error", "finishedAt"]
+          }))
+        });
         this.#notify();
       }
       return retryable.map((job) => ({ ...job }));
@@ -16186,8 +16293,16 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     }
     clear() {
       this.#jobs.length = 0;
-      this.#persist();
+      this.#persist({ kind: "clear", sequence: this.#seq });
       this.#notify();
+    }
+    remove(jobId) {
+      const index = this.#jobs.findIndex((job) => job.id === jobId);
+      if (index < 0) return false;
+      this.#jobs.splice(index, 1);
+      this.#persist({ kind: "remove", id: jobId });
+      this.#notify();
+      return true;
     }
     #trim() {
       while (this.#jobs.length > QUEUE_LIMIT) {
@@ -16203,22 +16318,50 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
         }
       }
     }
-    #persist() {
-      void this.#queuePersist();
+    #persist(change) {
+      void this.#queuePersist(change).catch(() => void 0);
     }
-    #queuePersist() {
+    #queuePersist(change) {
       if (!this.#storage) return Promise.resolve();
-      const snapshot = {
-        sequence: this.#seq,
-        jobs: this.#jobs.map((job) => ({ ...job }))
-      };
+      const token = ++this.#changeSequence;
+      this.#pendingChanges.push({ token, change });
       const write = this.#persistTail.then(
-        () => replaceStored(this.#storage, MEDIA_QUEUE_KEY, snapshot)
-      );
+        () => mutateStored(
+          this.#storage,
+          MEDIA_QUEUE_KEY,
+          { sequence: 0, jobs: [] },
+          (stored) => applyQueueChange(stored, change)
+        )
+      ).then((next) => {
+        this.#pendingChanges = this.#pendingChanges.filter((entry) => entry.token !== token);
+        this.#adopt(next, change);
+        for (const pending of this.#pendingChanges) {
+          this.#adopt(applyQueueChange(this.#currentState(), pending.change));
+        }
+      });
       this.#persistTail = write.catch((error) => {
+        this.#pendingChanges = this.#pendingChanges.filter((entry) => entry.token !== token);
+        this.#lastPersistFailure = { token, error };
         this.#onPersistError?.(error);
       });
       return write;
+    }
+    #currentState() {
+      return { sequence: this.#seq, jobs: this.#jobs.map(cloneJob) };
+    }
+    #adopt(next, change) {
+      const normalized = normalizeQueueState(next);
+      const preserveMissing = change?.kind === "update" || change?.kind === "updates";
+      const existing = preserveMissing ? new Map(this.#jobs.map((job) => [job.id, cloneJob(job)])) : void 0;
+      if (existing) {
+        for (const job of normalized.jobs) existing.set(job.id, cloneJob(job));
+        for (const job of existing.values()) {
+          if (!normalized.jobs.some((entry) => entry.id === job.id)) normalized.jobs.push(job);
+        }
+      }
+      this.#jobs.length = 0;
+      this.#jobs.push(...normalized.jobs.map(cloneJob));
+      this.#seq = Math.max(normalized.sequence, ...this.#jobs.map((job) => sequenceFromId(job.id)));
     }
   };
   function isDownloadJob(value) {
@@ -16248,8 +16391,55 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     };
   }
   function sequenceFromId(id) {
-    const match = /^job-(\d+)$/.exec(id);
+    const match = /^job-(\d+)/.exec(id);
     return match ? Number.parseInt(match[1], 10) : 0;
+  }
+  function randomSuffix() {
+    const uuid = globalThis.crypto?.randomUUID?.();
+    if (uuid) return uuid.replaceAll("-", "").slice(0, 12);
+    return Math.random().toString(36).slice(2, 14);
+  }
+  function cloneJob(job) {
+    return {
+      ...job,
+      ...job.fallbackUrls ? { fallbackUrls: [...job.fallbackUrls] } : {},
+      ...job.sidecar ? { sidecar: { ...job.sidecar } } : {}
+    };
+  }
+  function normalizeQueueState(value) {
+    if (!value || typeof value !== "object") return { sequence: 0, jobs: [] };
+    const raw = value;
+    const jobs = Array.isArray(raw.jobs) ? raw.jobs.filter(isDownloadJob).map(normalizeJob).slice(-QUEUE_LIMIT) : [];
+    const sequence = Math.max(
+      Number.isFinite(raw.sequence) ? Math.trunc(raw.sequence) : 0,
+      ...jobs.map((job) => sequenceFromId(job.id))
+    );
+    return { sequence, jobs };
+  }
+  function applyQueueChange(value, change) {
+    const state2 = normalizeQueueState(value);
+    if (change.kind === "clear") {
+      return { sequence: Math.max(state2.sequence, change.sequence), jobs: [] };
+    }
+    const byId = new Map(state2.jobs.map((job) => [job.id, cloneJob(job)]));
+    if (change.kind === "add") {
+      byId.set(change.job.id, cloneJob(change.job));
+    } else if (change.kind === "remove") {
+      byId.delete(change.id);
+    } else {
+      const updates = change.kind === "update" ? [change] : change.updates;
+      for (const update of updates) {
+        const current = byId.get(update.id);
+        if (!current) continue;
+        const next = { ...current, ...update.set };
+        for (const field2 of update.remove ?? []) delete next[field2];
+        byId.set(update.id, next);
+      }
+    }
+    return {
+      sequence: Math.max(state2.sequence, change.kind === "add" ? change.sequence : 0),
+      jobs: [...byId.values()].slice(-QUEUE_LIMIT)
+    };
   }
 
   // src/features/media/template.ts
@@ -17657,6 +17847,18 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
       };
       this.#policy = await loadRetentionPolicy(this.#storage);
       this.#loaded = true;
+      const interrupted = Object.entries(raw?.jobs ?? {}).filter(([, value]) => Boolean(value && typeof value === "object" && value.status === "running")).map(([jobId]) => ({
+        jobId,
+        set: {
+          status: "paused",
+          done: false,
+          resumeOnBoot: true,
+          error: "Interrupted before completion; resume when ready."
+        }
+      }));
+      if (interrupted.length > 0) {
+        await this.#persistMany(interrupted);
+      }
       return this.sweep();
     }
     get retentionPolicy() {
@@ -17684,7 +17886,7 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
         resumeOnBoot: false
       };
       this.#state.records[jobId] = [];
-      await this.#persist();
+      await this.#persist({ kind: "start", job: cloneJob2(this.#state.jobs[jobId]) });
       await this.sweep();
     }
     async append(jobId, batch) {
@@ -17705,7 +17907,13 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
       job.recordCount = retained.length;
       job.progress = { completed: retained.length, total: job.progress.total };
       job.updatedAt = (/* @__PURE__ */ new Date()).toISOString();
-      await this.#persist();
+      await this.#persist({
+        kind: "append",
+        jobId,
+        records: batch.map(cloneRecord),
+        total: job.progress.total,
+        updatedAt: job.updatedAt
+      });
     }
     async finish(jobId) {
       await this.load();
@@ -17717,7 +17925,18 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
         job.resumeOnBoot = false;
         job.updatedAt = (/* @__PURE__ */ new Date()).toISOString();
         delete job.error;
-        await this.#persist();
+        await this.#persist({
+          kind: "update",
+          jobId,
+          set: {
+            done: true,
+            status: "completed",
+            progress: { ...job.progress },
+            resumeOnBoot: false,
+            updatedAt: job.updatedAt
+          },
+          remove: ["error"]
+        });
       }
     }
     async pause(jobId) {
@@ -17728,7 +17947,11 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
       job.done = false;
       job.resumeOnBoot = false;
       job.updatedAt = (/* @__PURE__ */ new Date()).toISOString();
-      await this.#persist();
+      await this.#persist({
+        kind: "update",
+        jobId,
+        set: { status: "paused", done: false, resumeOnBoot: false, updatedAt: job.updatedAt }
+      });
       return true;
     }
     async resume(jobId) {
@@ -17740,7 +17963,12 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
       job.resumeOnBoot = false;
       job.updatedAt = (/* @__PURE__ */ new Date()).toISOString();
       delete job.error;
-      await this.#persist();
+      await this.#persist({
+        kind: "update",
+        jobId,
+        set: { status: "running", done: false, resumeOnBoot: false, updatedAt: job.updatedAt },
+        remove: ["error"]
+      });
       return true;
     }
     async cancel(jobId) {
@@ -17751,7 +17979,11 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
       job.done = true;
       job.resumeOnBoot = false;
       job.updatedAt = (/* @__PURE__ */ new Date()).toISOString();
-      await this.#persist();
+      await this.#persist({
+        kind: "update",
+        jobId,
+        set: { status: "cancelled", done: true, resumeOnBoot: false, updatedAt: job.updatedAt }
+      });
       return true;
     }
     async fail(jobId, error) {
@@ -17763,7 +17995,17 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
       job.resumeOnBoot = false;
       job.updatedAt = (/* @__PURE__ */ new Date()).toISOString();
       job.error = error instanceof Error ? error.message : String(error);
-      await this.#persist();
+      await this.#persist({
+        kind: "update",
+        jobId,
+        set: {
+          status: "failed",
+          done: true,
+          resumeOnBoot: false,
+          updatedAt: job.updatedAt,
+          error: job.error
+        }
+      });
       return true;
     }
     async updateProgress(jobId, progress) {
@@ -17775,7 +18017,11 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
         total: progress.total === null ? null : nonNegativeInteger(progress.total, job.progress.total ?? 0)
       };
       job.updatedAt = (/* @__PURE__ */ new Date()).toISOString();
-      await this.#persist();
+      await this.#persist({
+        kind: "update",
+        jobId,
+        set: { progress: { ...job.progress }, updatedAt: job.updatedAt }
+      });
       return true;
     }
     listResumable() {
@@ -17785,70 +18031,144 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
       await this.load();
       delete this.#state.jobs[jobId];
       delete this.#state.records[jobId];
-      await this.#persist();
+      await this.#persist({ kind: "remove", jobId });
     }
     async sweep(policy) {
       await this.load();
       if (policy) {
         this.#policy = normalizeRetentionPolicy(policy);
       }
-      const beforeJobs = Object.keys(this.#state.jobs).length;
-      const beforeRecords = Object.values(this.#state.records).reduce(
-        (total, records) => total + records.length,
-        0
-      );
-      const removeIds = /* @__PURE__ */ new Set();
-      if (this.#policy.maxAgeDays > 0) {
-        const cutoff = Date.now() - this.#policy.maxAgeDays * 24 * 60 * 60 * 1e3;
-        for (const job of Object.values(this.#state.jobs)) {
-          const startedAt = Date.parse(job.startedAt);
-          if (Number.isFinite(startedAt) && startedAt < cutoff) {
-            removeIds.add(job.jobId);
-          }
-        }
-      }
-      if (this.#policy.maxJobs > 0) {
-        const newest = Object.values(this.#state.jobs).filter((job) => !removeIds.has(job.jobId)).sort(compareJobs).slice(-this.#policy.maxJobs).map((job) => job.jobId);
-        const keepIds = new Set(newest);
-        for (const job of Object.values(this.#state.jobs)) {
-          if (!removeIds.has(job.jobId) && !keepIds.has(job.jobId)) {
-            removeIds.add(job.jobId);
-          }
-        }
-      }
-      for (const jobId of removeIds) {
-        delete this.#state.jobs[jobId];
-        delete this.#state.records[jobId];
-      }
-      for (const job of Object.values(this.#state.jobs)) {
-        const records = this.#state.records[job.jobId] ?? [];
-        if (this.#policy.maxRecordsPerJob > 0 && records.length > this.#policy.maxRecordsPerJob) {
-          this.#state.records[job.jobId] = records.slice(-this.#policy.maxRecordsPerJob);
-        }
-        job.recordCount = this.#state.records[job.jobId]?.length ?? 0;
-      }
-      const afterRecords = Object.values(this.#state.records).reduce(
-        (total, records) => total + records.length,
-        0
-      );
-      const result = {
-        removedJobs: beforeJobs - Object.keys(this.#state.jobs).length,
-        removedRecords: beforeRecords - afterRecords,
-        retainedJobs: Object.keys(this.#state.jobs).length,
-        policy: this.retentionPolicy
-      };
-      if (result.removedJobs > 0 || result.removedRecords > 0) {
-        await this.#persist();
-      }
+      let result = emptySweep(this.#policy, Object.keys(this.#state.jobs).length);
+      await this.#persist({ kind: "sweep", policy: this.#policy }, (nextResult) => {
+        result = nextResult;
+      });
       return result;
     }
-    async #persist() {
+    async #persist(change, onResult) {
       try {
-        await replaceStored(this.#storage, CHECKPOINT_KEY, this.#state);
+        const next = await mutateStored(
+          this.#storage,
+          CHECKPOINT_KEY,
+          EMPTY3,
+          (stored) => {
+            const applied = applyCheckpointChange(stored, change, this.#policy);
+            onResult?.(applied.result);
+            return applied.state;
+          }
+        );
+        this.#state = normalizeCheckpointState(next);
       } catch {
       }
     }
+    async #persistMany(updates) {
+      await this.#persist({ kind: "updates", updates });
+    }
   };
+  function normalizeCheckpointState(value) {
+    if (!value || typeof value !== "object") return { jobs: {}, records: {} };
+    const raw = value;
+    return {
+      jobs: normalizeJobs(raw.jobs, false),
+      records: normalizeRecords(raw.records)
+    };
+  }
+  function cloneJob2(job) {
+    return {
+      ...job,
+      formats: [...job.formats],
+      progress: { ...job.progress }
+    };
+  }
+  function cloneRecord(record) {
+    return { ...record };
+  }
+  function applyCheckpointChange(value, change, policy) {
+    const state2 = normalizeCheckpointState(value);
+    let result = emptySweep(policy, Object.keys(state2.jobs).length);
+    if (change.kind === "start") {
+      state2.jobs[change.job.jobId] = cloneJob2(change.job);
+      state2.records[change.job.jobId] = [];
+    } else if (change.kind === "append") {
+      const job = state2.jobs[change.jobId];
+      if (job && !isTerminal(job.status)) {
+        const records = state2.records[change.jobId] ?? [];
+        const seen = new Set(records.map((entry) => recordKey(entry)));
+        for (const record of change.records) {
+          const key = recordKey(record);
+          if (!seen.has(key)) {
+            seen.add(key);
+            records.push(cloneRecord(record));
+          }
+        }
+        const retained = policy.maxRecordsPerJob > 0 ? records.slice(-policy.maxRecordsPerJob) : records;
+        state2.records[change.jobId] = retained;
+        job.recordCount = retained.length;
+        job.progress = { completed: retained.length, total: change.total };
+        job.updatedAt = change.updatedAt;
+      }
+    } else if (change.kind === "update") {
+      applyCheckpointUpdate(state2, change.jobId, change.set, change.remove);
+    } else if (change.kind === "updates") {
+      for (const update of change.updates) {
+        applyCheckpointUpdate(state2, update.jobId, update.set, update.remove);
+      }
+    } else if (change.kind === "remove") {
+      delete state2.jobs[change.jobId];
+      delete state2.records[change.jobId];
+    } else {
+      const swept = sweepCheckpointState(state2, policy);
+      result = swept.result;
+      return { state: swept.state, result };
+    }
+    return { state: state2, result };
+  }
+  function applyCheckpointUpdate(state2, jobId, set, remove) {
+    const job = state2.jobs[jobId];
+    if (!job) return;
+    state2.jobs[jobId] = { ...job, ...set, progress: set.progress ? { ...set.progress } : { ...job.progress } };
+    for (const field2 of remove ?? []) delete state2.jobs[jobId][field2];
+  }
+  function sweepCheckpointState(input, policy) {
+    const state2 = normalizeCheckpointState(input);
+    const beforeJobs = Object.keys(state2.jobs).length;
+    const beforeRecords = Object.values(state2.records).reduce((total, records) => total + records.length, 0);
+    const removeIds = /* @__PURE__ */ new Set();
+    if (policy.maxAgeDays > 0) {
+      const cutoff = Date.now() - policy.maxAgeDays * 24 * 60 * 60 * 1e3;
+      for (const job of Object.values(state2.jobs)) {
+        const startedAt = Date.parse(job.startedAt);
+        if (Number.isFinite(startedAt) && startedAt < cutoff) removeIds.add(job.jobId);
+      }
+    }
+    if (policy.maxJobs > 0) {
+      const newest = Object.values(state2.jobs).filter((job) => !removeIds.has(job.jobId)).sort(compareJobs).slice(-policy.maxJobs).map((job) => job.jobId);
+      const keepIds = new Set(newest);
+      for (const job of Object.values(state2.jobs)) {
+        if (!removeIds.has(job.jobId) && !keepIds.has(job.jobId)) removeIds.add(job.jobId);
+      }
+    }
+    for (const jobId of removeIds) {
+      delete state2.jobs[jobId];
+      delete state2.records[jobId];
+    }
+    for (const job of Object.values(state2.jobs)) {
+      const records = state2.records[job.jobId] ?? [];
+      if (policy.maxRecordsPerJob > 0 && records.length > policy.maxRecordsPerJob) {
+        state2.records[job.jobId] = records.slice(-policy.maxRecordsPerJob);
+      }
+      job.recordCount = state2.records[job.jobId]?.length ?? 0;
+    }
+    const afterRecords = Object.values(state2.records).reduce((total, records) => total + records.length, 0);
+    return {
+      state: state2,
+      result: {
+        removedJobs: beforeJobs - Object.keys(state2.jobs).length,
+        removedRecords: beforeRecords - afterRecords,
+        retainedJobs: Object.keys(state2.jobs).length,
+        policy: { ...policy }
+      }
+    };
+  }
   function normalizeRetentionPolicy(input) {
     const record = input && typeof input === "object" ? input : {};
     return {
@@ -17895,11 +18215,11 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
     const identity = record.tweetId ? `tweet:${record.tweetId}` : `source:${record.permalink ?? ""}|${record.surface}|${record.handle ?? ""}`;
     return `${identity}|${record.text.length}|${hashRecordText(record.text)}`;
   }
-  function normalizeJobs(input) {
+  function normalizeJobs(input, recoverRunning = true) {
     if (!input || typeof input !== "object") return {};
     const result = {};
     for (const [jobId, value] of Object.entries(input)) {
-      const job = normalizeJob2(value, jobId);
+      const job = normalizeJob2(value, jobId, recoverRunning);
       if (job) result[job.jobId] = job;
     }
     return result;
@@ -17912,14 +18232,14 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
     }
     return result;
   }
-  function normalizeJob2(value, fallbackId) {
+  function normalizeJob2(value, fallbackId, recoverRunning = true) {
     if (!value || typeof value !== "object") return null;
     const raw = value;
     const jobId = typeof raw.jobId === "string" && raw.jobId.length > 0 ? raw.jobId : fallbackId;
     const startedAt = typeof raw.startedAt === "string" ? raw.startedAt : (/* @__PURE__ */ new Date(0)).toISOString();
     const recordCount = nonNegativeInteger(raw.recordCount, 0);
     const persistedStatus = validStatus(raw.status) ? raw.status : raw.done === true ? "completed" : "paused";
-    const status = persistedStatus === "running" ? "paused" : persistedStatus;
+    const status = recoverRunning && persistedStatus === "running" ? "paused" : persistedStatus;
     const progress = normalizeProgress(raw.progress, recordCount);
     return {
       jobId,
@@ -21445,7 +21765,7 @@ ${target}:focus-within { ${REVEALED} }`);
       return this.#entries.size;
     }
     list() {
-      return [...this.#entries.values()].sort((left, right) => left.seenAt - right.seenAt).map(cloneRecord);
+      return [...this.#entries.values()].sort((left, right) => left.seenAt - right.seenAt).map(cloneRecord2);
     }
     upsert(record) {
       if (!isCatchUpRecord(record)) return;
@@ -21581,7 +21901,7 @@ ${target}:focus-within { ${REVEALED} }`);
     return new Map(trimEntries(result, now2, limit).map((entry) => [entry.tweetId, entry]));
   }
   function trimEntries(entries, now2, limit) {
-    return [...entries.values()].filter((entry) => entry.seenAt >= now2 - CATCH_UP_RETENTION_MS).sort((left, right) => left.seenAt - right.seenAt).slice(-limit).map(cloneRecord);
+    return [...entries.values()].filter((entry) => entry.seenAt >= now2 - CATCH_UP_RETENTION_MS).sort((left, right) => left.seenAt - right.seenAt).slice(-limit).map(cloneRecord2);
   }
   function isCatchUpRecord(value) {
     if (!value || typeof value !== "object") return false;
@@ -21617,7 +21937,7 @@ ${target}:focus-within { ${REVEALED} }`);
       }
     };
   }
-  function cloneRecord(record) {
+  function cloneRecord2(record) {
     return {
       ...record,
       media: record.media.map((media) => ({ ...media })),
@@ -25398,11 +25718,11 @@ a.av-link-clean {
       }
     }
     list() {
-      return Object.values(this.#state.jobs).sort(compareJobs2).map(cloneJob);
+      return Object.values(this.#state.jobs).sort(compareJobs2).map(cloneJob3);
     }
     get(jobId) {
       const job = this.#state.jobs[jobId];
-      return job ? cloneJob(job) : void 0;
+      return job ? cloneJob3(job) : void 0;
     }
     async start(filename, source) {
       await this.load();
@@ -25431,7 +25751,7 @@ a.av-link-clean {
       await this.#storage.set(archiveSourceKey(job.jobId), encodeBase642(source));
       await this.#trim();
       await this.#persist();
-      return cloneJob(job);
+      return cloneJob3(job);
     }
     /**
      * The smaller of what the product promises and what this browser profile can actually hold.
@@ -25643,7 +25963,7 @@ a.av-link-clean {
   function compareJobs2(left, right) {
     return Date.parse(left.createdAt) - Date.parse(right.createdAt) || left.jobId.localeCompare(right.jobId);
   }
-  function cloneJob(job) {
+  function cloneJob3(job) {
     return { ...job };
   }
   function encodeBase642(bytes) {
@@ -29342,7 +29662,12 @@ ${COLOR_CSS}`;
         lastUsedAt: now2
       };
       this.#state.profiles.push(profile);
-      await this.#persist();
+      const defaultProfile = this.#state.profiles.find((entry) => entry.id === DEFAULT_PROFILE_ID);
+      await this.#persist({
+        kind: "add",
+        profile: { ...profile },
+        ...defaultProfile ? { defaultProfile: { ...defaultProfile } } : {}
+      });
       return { ...profile };
     }
     async switchTo(profileId) {
@@ -29350,9 +29675,10 @@ ${COLOR_CSS}`;
       const profile = this.#state.profiles.find((entry) => entry.id === profileId);
       if (!profile) return false;
       this.#activeId = profile.id;
-      profile.lastUsedAt = (/* @__PURE__ */ new Date()).toISOString();
-      await this.#base.set(ACTIVE_PROFILE_KEY, this.#activeId);
-      await this.#persist();
+      const lastUsedAt = (/* @__PURE__ */ new Date()).toISOString();
+      profile.lastUsedAt = lastUsedAt;
+      await mutateStored(this.#base, ACTIVE_PROFILE_KEY, null, () => this.#activeId);
+      await this.#persist({ kind: "update", id: profile.id, set: { lastUsedAt } });
       return true;
     }
     async adoptLegacyIntoActive() {
@@ -29390,8 +29716,14 @@ ${COLOR_CSS}`;
       );
       return found.some((value) => value !== void 0);
     }
-    async #persist() {
-      await this.#base.set(PROFILE_REGISTRY_KEY, this.#state);
+    async #persist(change) {
+      const next = await mutateStored(
+        this.#base,
+        PROFILE_REGISTRY_KEY,
+        EMPTY8,
+        (stored) => applyProfileChange(stored, change)
+      );
+      this.#state = normalizeState4(next);
     }
   };
   function createProfileStorageGateway(base, profileId) {
@@ -29428,6 +29760,21 @@ ${COLOR_CSS}`;
     const profiles = Array.isArray(raw.profiles) ? raw.profiles.map(normalizeProfile).filter((profile) => profile !== null) : [];
     const unique = new Map(profiles.map((profile) => [profile.id, profile]));
     return { profiles: [...unique.values()] };
+  }
+  function applyProfileChange(value, change) {
+    const state2 = normalizeState4(value);
+    if (change.kind === "clear") return { profiles: [] };
+    const byId = new Map(state2.profiles.map((profile) => [profile.id, { ...profile }]));
+    if (change.kind === "add") {
+      if (change.defaultProfile && !byId.has(DEFAULT_PROFILE_ID)) {
+        byId.set(DEFAULT_PROFILE_ID, { ...change.defaultProfile });
+      }
+      byId.set(change.profile.id, { ...change.profile });
+    } else {
+      const current = byId.get(change.id);
+      if (current) byId.set(change.id, { ...current, ...change.set });
+    }
+    return { profiles: [...byId.values()] };
   }
   function normalizeProfile(value) {
     if (!value || typeof value !== "object") return null;
@@ -36133,14 +36480,38 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     async clear() {
       this.#events = [];
       this.#loaded = true;
-      await this.#storage.set(DIAGNOSTICS_KEY, { version: 1, events: [] });
+      const clearWrite = this.#tail.then(
+        () => replaceStored(
+          this.#storage,
+          DIAGNOSTICS_KEY,
+          { version: 1, events: [] }
+        )
+      );
+      this.#tail = clearWrite.then(
+        () => void 0,
+        () => void 0
+      );
+      await clearWrite;
     }
     async flush() {
       await this.#tail;
     }
     #queue() {
-      const payload = { version: 1, events: this.snapshot() };
-      this.#tail = this.#tail.then(() => this.#storage.set(DIAGNOSTICS_KEY, payload)).then(
+      const record = this.#events.at(-1);
+      if (!record) return;
+      this.#tail = this.#tail.then(async () => {
+        const next = await mutateStored(
+          this.#storage,
+          DIAGNOSTICS_KEY,
+          { version: 1, events: [] },
+          (stored) => {
+            const events = parse2(stored);
+            events.push(record);
+            return { version: 1, events: events.slice(-DIAGNOSTICS_LIMIT) };
+          }
+        );
+        this.#events = next.events;
+      }).then(
         () => void 0,
         () => void 0
       );
@@ -38114,6 +38485,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     const freshInstall = storedSettings === void 0;
     const settingsEnvelope = readSettingsEnvelope(storedSettings ?? DEFAULT_SETTINGS);
     const settings = settingsEnvelope.settings;
+    let lastSavedSettings = cloneSettings(settings);
     if (settingsEnvelope.applied.length > 0) {
       diagnostics.info("Settings schema upgraded", {
         from: settingsEnvelope.fromVersion,
@@ -38122,7 +38494,6 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       });
     }
     reportDroppedCustomCss(storedSettings, settings, diagnostics);
-    const futurePayload = settingsEnvelope.future;
     if (settingsEnvelope.fromFuture) {
       diagnostics.warn("Settings were written by a newer Aviary", {
         found: settingsEnvelope.fromVersion,
@@ -38203,11 +38574,19 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       pageBridge,
       registry,
       async saveSettings() {
-        await replaceStored(
-          storage,
-          SETTINGS_KEY,
-          futurePayload ? mergeKnownSettings(futurePayload, settings) : normalizeSettings(cloneSettings(settings))
-        );
+        const normalized = normalizeSettings(cloneSettings(settings));
+        const patch = diffKnownSettings(lastSavedSettings, normalized);
+        await mutateStored(storage, SETTINGS_KEY, void 0, (current) => {
+          if (current === void 0) return normalized;
+          const envelope = readSettingsEnvelope(current);
+          if (envelope.fromFuture && envelope.future) {
+            return applyKnownSettingsPatch(envelope.future, patch);
+          }
+          return normalizeSettings(
+            applyKnownSettingsPatch(envelope.settings, patch)
+          );
+        });
+        lastSavedSettings = cloneSettings(normalized);
         await reconcileExtensionAdRule(options.source, networkShieldActive(settings), diagnostics);
         diagnostics.info("Settings saved", { key: SETTINGS_KEY });
       },

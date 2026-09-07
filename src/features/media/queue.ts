@@ -1,5 +1,5 @@
 import type { StorageGateway } from "../../platform/storage.ts";
-import { replaceStored } from "../../platform/storage-lock.ts";
+import { mutateStored } from "../../platform/storage-lock.ts";
 import {
   normalizeMediaSidecarRequest,
   type MediaSidecarRequest
@@ -53,6 +53,15 @@ interface QueueState {
   jobs: DownloadJob[];
 }
 
+type QueueField = keyof DownloadJob;
+
+type QueueChange =
+  | { kind: "add"; job: DownloadJob; sequence: number }
+  | { kind: "update"; id: string; set: Partial<DownloadJob>; remove?: readonly QueueField[] }
+  | { kind: "updates"; updates: ReadonlyArray<{ id: string; set: Partial<DownloadJob>; remove?: readonly QueueField[] }> }
+  | { kind: "remove"; id: string }
+  | { kind: "clear"; sequence: number };
+
 export class DownloadQueue {
   readonly #jobs: DownloadJob[] = [];
   readonly #listeners = new Set<(snapshot: QueueSnapshot) => void>();
@@ -61,6 +70,9 @@ export class DownloadQueue {
   #seq = 0;
   #loaded = false;
   #persistTail: Promise<void> = Promise.resolve();
+  #changeSequence = 0;
+  #pendingChanges: Array<{ token: number; change: QueueChange }> = [];
+  #lastPersistFailure: { token: number; error: unknown } | undefined;
 
   constructor(storage?: StorageGateway, onPersistError?: (error: unknown) => void) {
     this.#storage = storage;
@@ -86,8 +98,18 @@ export class DownloadQueue {
         Number.isFinite(raw?.sequence) ? Math.trunc(raw.sequence) : 0,
         ...this.#jobs.map((job) => sequenceFromId(job.id))
       );
-      if (jobs.some((job) => job.status === "paused" && job.resumeOnBoot)) {
-        this.#persist();
+      const interrupted = jobs
+        .filter((job) => job.status === "paused" && job.resumeOnBoot)
+        .map((job) => ({
+          id: job.id,
+          set: {
+            status: "paused" as const,
+            resumeOnBoot: true,
+            ...(job.error ? { error: job.error } : {})
+          }
+        }));
+      if (interrupted.length > 0) {
+        this.#persist({ kind: "updates", updates: interrupted });
       }
       this.#notify();
     } catch (error) {
@@ -101,18 +123,25 @@ export class DownloadQueue {
 
   /** Persists every queued item before a batch starts its first external handoff. */
   async checkpoint(): Promise<void> {
-    await this.#queuePersist();
+    const through = this.#changeSequence;
+    await this.#persistTail;
+    const failure = this.#lastPersistFailure;
+    if (failure && failure.token <= through) {
+      this.#lastPersistFailure = undefined;
+      throw failure.error;
+    }
   }
 
   enqueue(job: Omit<DownloadJob, "id" | "status">): DownloadJob {
     const entry: DownloadJob = {
-      id: `job-${++this.#seq}`,
+      id: `job-${++this.#seq}-${randomSuffix()}`,
       status: "queued",
       resumeOnBoot: true,
       ...job
     };
     this.#jobs.push(entry);
     this.#trim();
+    this.#persist({ kind: "add", job: cloneJob(entry), sequence: this.#seq });
     this.#notify();
     return entry;
   }
@@ -129,7 +158,19 @@ export class DownloadQueue {
     else job.fallbackUrls = [...target.fallbackUrls];
     if (target.mediaId === undefined) delete job.mediaId;
     else job.mediaId = target.mediaId;
-    this.#persist();
+    const remove: QueueField[] = [];
+    if (target.fallbackUrls === undefined) remove.push("fallbackUrls");
+    if (target.mediaId === undefined) remove.push("mediaId");
+    this.#persist({
+      kind: "update",
+      id: jobId,
+      set: {
+        url: target.url,
+        ...(target.fallbackUrls === undefined ? {} : { fallbackUrls: [...target.fallbackUrls] }),
+        ...(target.mediaId === undefined ? {} : { mediaId: target.mediaId })
+      },
+      ...(remove.length > 0 ? { remove } : {})
+    });
     this.#notify();
     return true;
   }
@@ -158,7 +199,17 @@ export class DownloadQueue {
     } else if (status !== "failed") {
       delete job.error;
     }
-    this.#persist();
+    const set: Partial<DownloadJob> = { status };
+    const remove: QueueField[] = [];
+    if (status === "running" && job.startedAt) set.startedAt = job.startedAt;
+    if (status === "completed" || status === "failed" || status === "opened" || status === "duplicate" || status === "cancelled") {
+      if (job.finishedAt) set.finishedAt = job.finishedAt;
+      set.resumeOnBoot = false;
+      remove.push("downloadId");
+    }
+    if (error) set.error = error;
+    else if (status !== "failed") remove.push("error");
+    this.#persist({ kind: "update", id: jobId, set, remove });
     this.#notify();
   }
 
@@ -166,7 +217,7 @@ export class DownloadQueue {
     const job = this.#jobs.find((entry) => entry.id === jobId);
     if (!job || !Number.isSafeInteger(downloadId) || downloadId < 0) return;
     job.downloadId = downloadId;
-    this.#persist();
+    this.#persist({ kind: "update", id: jobId, set: { downloadId } });
     this.#notify();
   }
 
@@ -176,7 +227,11 @@ export class DownloadQueue {
     job.status = "paused";
     job.resumeOnBoot = false;
     job.error = "Paused by user.";
-    this.#persist();
+    this.#persist({
+      kind: "update",
+      id: jobId,
+      set: { status: "paused", resumeOnBoot: false, error: "Paused by user." }
+    });
     this.#notify();
     return true;
   }
@@ -187,7 +242,7 @@ export class DownloadQueue {
     job.status = "queued";
     job.resumeOnBoot = false;
     delete job.error;
-    this.#persist();
+    this.#persist({ kind: "update", id: jobId, set: { status: "queued", resumeOnBoot: false }, remove: ["error"] });
     this.#notify();
     return true;
   }
@@ -198,7 +253,11 @@ export class DownloadQueue {
     job.status = "cancelled";
     job.resumeOnBoot = false;
     job.finishedAt = new Date().toISOString();
-    this.#persist();
+    this.#persist({
+      kind: "update",
+      id: jobId,
+      set: { status: "cancelled", resumeOnBoot: false, finishedAt: job.finishedAt }
+    });
     this.#notify();
     return true;
   }
@@ -214,7 +273,14 @@ export class DownloadQueue {
       delete job.finishedAt;
     }
     if (retryable.length > 0) {
-      this.#persist();
+      this.#persist({
+        kind: "updates",
+        updates: retryable.map((job) => ({
+          id: job.id,
+          set: { status: "queued" as const, resumeOnBoot: true },
+          remove: ["error", "finishedAt"] as QueueField[]
+        }))
+      });
       this.#notify();
     }
     return retryable.map((job) => ({ ...job }));
@@ -264,8 +330,17 @@ export class DownloadQueue {
 
   clear(): void {
     this.#jobs.length = 0;
-    this.#persist();
+    this.#persist({ kind: "clear", sequence: this.#seq });
     this.#notify();
+  }
+
+  remove(jobId: string): boolean {
+    const index = this.#jobs.findIndex((job) => job.id === jobId);
+    if (index < 0) return false;
+    this.#jobs.splice(index, 1);
+    this.#persist({ kind: "remove", id: jobId });
+    this.#notify();
+    return true;
   }
 
   #trim(): void {
@@ -285,23 +360,58 @@ export class DownloadQueue {
     }
   }
 
-  #persist(): void {
-    void this.#queuePersist();
+  #persist(change: QueueChange): void {
+    void this.#queuePersist(change).catch(() => undefined);
   }
 
-  #queuePersist(): Promise<void> {
+  #queuePersist(change: QueueChange): Promise<void> {
     if (!this.#storage) return Promise.resolve();
-    const snapshot: QueueState = {
-      sequence: this.#seq,
-      jobs: this.#jobs.map((job) => ({ ...job }))
-    };
+    const token = ++this.#changeSequence;
+    this.#pendingChanges.push({ token, change });
     const write = this.#persistTail.then(() =>
-      replaceStored(this.#storage!, MEDIA_QUEUE_KEY, snapshot)
-    );
+      mutateStored<QueueState>(
+        this.#storage!,
+        MEDIA_QUEUE_KEY,
+        { sequence: 0, jobs: [] },
+        (stored) => applyQueueChange(stored, change)
+      )
+    ).then((next) => {
+      this.#pendingChanges = this.#pendingChanges.filter((entry) => entry.token !== token);
+      this.#adopt(next, change);
+      for (const pending of this.#pendingChanges) {
+        this.#adopt(applyQueueChange(this.#currentState(), pending.change));
+      }
+    });
     this.#persistTail = write.catch((error) => {
+      this.#pendingChanges = this.#pendingChanges.filter((entry) => entry.token !== token);
+      this.#lastPersistFailure = { token, error };
       this.#onPersistError?.(error);
     });
     return write;
+  }
+
+  #currentState(): QueueState {
+    return { sequence: this.#seq, jobs: this.#jobs.map(cloneJob) };
+  }
+
+  #adopt(next: QueueState, change?: QueueChange): void {
+    const normalized = normalizeQueueState(next);
+    const preserveMissing = change?.kind === "update" || change?.kind === "updates";
+    const existing = preserveMissing
+      ? new Map(this.#jobs.map((job) => [job.id, cloneJob(job)]))
+      : undefined;
+    if (existing) {
+      for (const job of normalized.jobs) existing.set(job.id, cloneJob(job));
+      // Some lightweight callers intentionally provide a no-op persistence gateway. Keep their
+      // local status visible when the gateway returns its empty fallback, while real writes still
+      // adopt every merged job that the transaction read.
+      for (const job of existing.values()) {
+        if (!normalized.jobs.some((entry) => entry.id === job.id)) normalized.jobs.push(job);
+      }
+    }
+    this.#jobs.length = 0;
+    this.#jobs.push(...normalized.jobs.map(cloneJob));
+    this.#seq = Math.max(normalized.sequence, ...this.#jobs.map((job) => sequenceFromId(job.id)));
   }
 }
 
@@ -346,6 +456,60 @@ function normalizeJob(value: DownloadJob): DownloadJob {
 }
 
 function sequenceFromId(id: string): number {
-  const match = /^job-(\d+)$/.exec(id);
+  const match = /^job-(\d+)/.exec(id);
   return match ? Number.parseInt(match[1]!, 10) : 0;
+}
+
+function randomSuffix(): string {
+  const uuid = globalThis.crypto?.randomUUID?.();
+  if (uuid) return uuid.replaceAll("-", "").slice(0, 12);
+  return Math.random().toString(36).slice(2, 14);
+}
+
+function cloneJob(job: DownloadJob): DownloadJob {
+  return {
+    ...job,
+    ...(job.fallbackUrls ? { fallbackUrls: [...job.fallbackUrls] } : {}),
+    ...(job.sidecar ? { sidecar: { ...job.sidecar } } : {})
+  };
+}
+
+function normalizeQueueState(value: unknown): QueueState {
+  if (!value || typeof value !== "object") return { sequence: 0, jobs: [] };
+  const raw = value as Partial<QueueState>;
+  const jobs = Array.isArray(raw.jobs)
+    ? raw.jobs.filter(isDownloadJob).map(normalizeJob).slice(-QUEUE_LIMIT)
+    : [];
+  const sequence = Math.max(
+    Number.isFinite(raw.sequence) ? Math.trunc(raw.sequence as number) : 0,
+    ...jobs.map((job) => sequenceFromId(job.id))
+  );
+  return { sequence, jobs };
+}
+
+function applyQueueChange(value: unknown, change: QueueChange): QueueState {
+  const state = normalizeQueueState(value);
+  if (change.kind === "clear") {
+    return { sequence: Math.max(state.sequence, change.sequence), jobs: [] };
+  }
+  const byId = new Map(state.jobs.map((job) => [job.id, cloneJob(job)]));
+  if (change.kind === "add") {
+    byId.set(change.job.id, cloneJob(change.job));
+  } else if (change.kind === "remove") {
+    byId.delete(change.id);
+  } else {
+    const updates = change.kind === "update" ? [change] : change.updates;
+    for (const update of updates) {
+      const current = byId.get(update.id);
+      // An update from a stale tab must not resurrect a job explicitly cleared elsewhere.
+      if (!current) continue;
+      const next = { ...current, ...update.set };
+      for (const field of update.remove ?? []) delete next[field];
+      byId.set(update.id, next);
+    }
+  }
+  return {
+    sequence: Math.max(state.sequence, change.kind === "add" ? change.sequence : 0),
+    jobs: [...byId.values()].slice(-QUEUE_LIMIT)
+  };
 }

@@ -63,6 +63,9 @@
   export from a redacted backup.
 
 ### Changed
+- Settings, profiles, media queue, export checkpoints and diagnostics now persist the change made
+  inside the storage transaction. Two open X tabs keep non-conflicting additions and updates, and
+  a clear cannot be undone by a stale snapshot.
 - The userscript now keeps durable records in its manager store and reports an explicit capacity
   error before a single stored value exceeds 16 MiB.
 - Writes made during a temporary storage outage now share one locked journal. The background stages

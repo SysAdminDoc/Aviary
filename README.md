@@ -123,7 +123,8 @@ and a settings export replaces them with a placeholder.
 In the extension build, durable settings and library records live in one IndexedDB database owned by
 the background worker. Content scripts and the options page reach it through a typed message API, so
 scripts running on the X page can't inspect it. The userscript never opens an X-origin database at
-all.
+all. Writes from two open X tabs merge at the storage transaction, so a later save does not erase a
+non-conflicting change or bring back something the other tab cleared.
 
 Provider calls, when you've enabled one, show you the destination, the fields, an estimated size, a
 retention notice and your remaining budget before any work begins. Per-request and daily byte limits

@@ -1,5 +1,6 @@
 import type { DiagnosticEvent, DiagnosticLevel } from "./diagnostics.ts";
 import type { StorageGateway } from "./storage.ts";
+import { mutateStored, replaceStored } from "./storage-lock.ts";
 
 export const DIAGNOSTICS_KEY = "aviary.diagnostics.v1";
 export const DIAGNOSTICS_LIMIT = 50;
@@ -141,7 +142,18 @@ export class DiagnosticsStore {
   async clear(): Promise<void> {
     this.#events = [];
     this.#loaded = true;
-    await this.#storage.set(DIAGNOSTICS_KEY, { version: 1, events: [] } satisfies StoredDiagnostics);
+    const clearWrite = this.#tail.then(() =>
+      replaceStored(
+        this.#storage,
+        DIAGNOSTICS_KEY,
+        { version: 1, events: [] } satisfies StoredDiagnostics
+      )
+    );
+    this.#tail = clearWrite.then(
+      () => undefined,
+      () => undefined
+    );
+    await clearWrite;
   }
 
   async flush(): Promise<void> {
@@ -149,9 +161,22 @@ export class DiagnosticsStore {
   }
 
   #queue(): void {
-    const payload: StoredDiagnostics = { version: 1, events: this.snapshot() };
+    const record = this.#events.at(-1);
+    if (!record) return;
     this.#tail = this.#tail
-      .then(() => this.#storage.set(DIAGNOSTICS_KEY, payload))
+      .then(async () => {
+        const next = await mutateStored<StoredDiagnostics>(
+          this.#storage,
+          DIAGNOSTICS_KEY,
+          { version: 1, events: [] },
+          (stored) => {
+            const events = parse(stored);
+            events.push(record);
+            return { version: 1, events: events.slice(-DIAGNOSTICS_LIMIT) };
+          }
+        );
+        this.#events = next.events;
+      })
       .then(
         () => undefined,
         () => undefined

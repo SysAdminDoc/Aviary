@@ -10,14 +10,6 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
 
 ### P1, Next
 
-- [ ] F276, P1: Replace the remaining stale full-snapshot writes with merge-on-write deltas
-  Why: serializing a stale snapshot does not preserve changes made by another tab. Settings, profiles, media queue, export jobs, and diagnostics retain this loss mode.
-  Evidence: `src/main.ts:286`, `src/platform/profile.ts:210`, `src/features/media/queue.ts:280`, `src/features/export/jobs.ts:280`, `src/platform/diagnostics-store.ts:154`, `src/platform/storage-lock.ts:3-16`
-  Touches: the five stores above, `src/platform/storage-lock.ts`, cross-tab storage tests
-  Acceptance: each store persists additions, updates, removals, and explicit clears against the value read inside its transaction; deterministic two-context tests interleave both writers and retain both non-conflicting changes; a clear remains authoritative and stale state cannot resurrect an entry.
-  Complexity: L
-  Depends: F273 and F275.
-
 - [ ] F277, P1: Retain terminal download results and reconcile browser IDs before resume
   Why: a fast completion is consumed before the button starts waiting, leaving it disabled for 300 seconds; after reload, Resume can also duplicate a retained browser transfer.
   Evidence: `src/features/media/media-buttons.ts:1185`, `src/features/media/download-watch.ts:82-98`, `src/features/media/queue.ts:69-90`, `src/features/media/batch-downloader.ts:549-633`; deterministic `settle -> terminal -> wait` reproduction returned complete then pending; https://developer.chrome.com/docs/extensions/reference/api/downloads

@@ -78,6 +78,11 @@ async function load() {
       `export { SnapshotStore, SNAPSHOTS_KEY } from ${JSON.stringify(abs("src/features/library/snapshots.ts"))};`,
       `export { CleanupQueue, CLEANUP_QUEUE_KEY } from ${JSON.stringify(abs("src/features/library/cleanup-queue.ts"))};`,
       `export { ArchiveLibraryStore, ARCHIVE_LIBRARY_KEY, ARCHIVE_COLLECTION_LIMIT } from ${JSON.stringify(abs("src/features/library/archive-library.ts"))};`,
+      `export { DownloadQueue, MEDIA_QUEUE_KEY } from ${JSON.stringify(abs("src/features/media/queue.ts"))};`,
+      `export { CheckpointStore, CHECKPOINT_KEY } from ${JSON.stringify(abs("src/features/export/jobs.ts"))};`,
+      `export { DiagnosticsStore, DIAGNOSTICS_KEY } from ${JSON.stringify(abs("src/platform/diagnostics-store.ts"))};`,
+      `export { ProfileManager, PROFILE_REGISTRY_KEY, DEFAULT_PROFILE_ID } from ${JSON.stringify(abs("src/platform/profile.ts"))};`,
+      `export { DEFAULT_SETTINGS, cloneSettings, normalizeSettings, diffKnownSettings, applyKnownSettingsPatch } from ${JSON.stringify(abs("src/platform/settings.ts"))};`,
       `export { withStorageLock, withExclusiveStorageGate, mutateStored } from ${JSON.stringify(abs("src/platform/storage-lock.ts"))};`
     ].join("\n"),
     "utf8"
@@ -960,4 +965,138 @@ test("a lock survives losing every scrap of in-memory state", async () => {
   } finally {
     second.restore();
   }
+});
+
+test("download queue merges additions and does not resurrect a cleared job", async () => {
+  const mod = await load();
+  mod.setSettleDelay(2);
+  const a = new mod.DownloadQueue(mod.tab());
+  const b = new mod.DownloadQueue(mod.tab());
+  await a.load();
+  await b.load();
+
+  const first = a.enqueue({ url: "https://cdn.test/a.mp4", filename: "a.mp4", kind: "video" });
+  const second = b.enqueue({ url: "https://cdn.test/b.mp4", filename: "b.mp4", kind: "video" });
+  assert.notEqual(first.id, second.id, "two tabs must not allocate the same queue id");
+  await Promise.all([a.checkpoint(), b.checkpoint()]);
+  assert.equal(mod.readShared(mod.MEDIA_QUEUE_KEY).jobs.length, 2);
+
+  await a.clear();
+  b.mark(first.id, "completed");
+  await b.checkpoint();
+  assert.deepEqual(mod.readShared(mod.MEDIA_QUEUE_KEY).jobs, [], "a stale update resurrected a cleared job");
+});
+
+test("download queue field updates keep independent target and lifecycle changes", async () => {
+  const mod = await load();
+  mod.setSettleDelay(2);
+  const seed = new mod.DownloadQueue(mod.tab());
+  const job = seed.enqueue({ url: "https://cdn.test/low.mp4", filename: "video.mp4", kind: "video" });
+  await seed.checkpoint();
+  const a = new mod.DownloadQueue(mod.tab());
+  const b = new mod.DownloadQueue(mod.tab());
+  await Promise.all([a.load(), b.load()]);
+
+  a.updateTarget(job.id, { url: "https://cdn.test/high.mp4", mediaId: "media-1" });
+  b.mark(job.id, "running");
+  await Promise.all([a.checkpoint(), b.checkpoint()]);
+  const stored = mod.readShared(mod.MEDIA_QUEUE_KEY).jobs.find((entry) => entry.id === job.id);
+  assert.equal(stored.url, "https://cdn.test/high.mp4");
+  assert.equal(stored.status, "running");
+  assert.equal(stored.mediaId, "media-1");
+});
+
+test("export checkpoints merge jobs and records while a stale append stays deleted", async () => {
+  const mod = await load();
+  mod.setSettleDelay(2);
+  const a = new mod.CheckpointStore(mod.tab());
+  const b = new mod.CheckpointStore(mod.tab());
+  await a.load();
+  await b.load();
+
+  await Promise.all([
+    a.start("job-a", "home", ["json"], false),
+    b.start("job-b", "home", ["json"], false)
+  ]);
+  await Promise.all([
+    a.append("job-a", [{ tweetId: "a", handle: "alice", displayName: "Alice", text: "A", capturedAt: "2026-09-06T00:00:00Z", surface: "home", media: [], permalink: null }]),
+    b.append("job-b", [{ tweetId: "b", handle: "bob", displayName: "Bob", text: "B", capturedAt: "2026-09-06T00:00:00Z", surface: "home", media: [], permalink: null }])
+  ]);
+  assert.deepEqual(Object.keys(mod.readShared(mod.CHECKPOINT_KEY).jobs).sort(), ["job-a", "job-b"]);
+  assert.equal(mod.readShared(mod.CHECKPOINT_KEY).records["job-a"].length, 1);
+
+  const stale = new mod.CheckpointStore(mod.tab());
+  await stale.load();
+  await a.remove("job-a");
+  await stale.append("job-a", [{ tweetId: "late", handle: "late", displayName: "Late", text: "late", capturedAt: "2026-09-06T00:00:00Z", surface: "home", media: [], permalink: null }]);
+  const stored = mod.readShared(mod.CHECKPOINT_KEY);
+  assert.equal(stored.jobs["job-a"], undefined, "a stale append recreated a removed job");
+  assert.equal(stored.jobs["job-b"].recordCount, 1, "the other tab's job was lost");
+});
+
+test("diagnostic records merge by event and clear is authoritative", async () => {
+  const mod = await load();
+  mod.setSettleDelay(2);
+  const a = new mod.DiagnosticsStore(mod.tab());
+  const b = new mod.DiagnosticsStore(mod.tab());
+  await a.load();
+  await b.load();
+
+  a.record({ level: "error", message: "A", at: "2026-09-06T00:00:00.000Z", details: { source: "a" } });
+  b.record({ level: "warn", message: "B", at: "2026-09-06T00:00:01.000Z", details: { source: "b" } });
+  await Promise.all([a.flush(), b.flush()]);
+  assert.deepEqual(mod.readShared(mod.DIAGNOSTICS_KEY).events.map((entry) => entry.message).sort(), ["A", "B"]);
+
+  await a.clear();
+  b.record({ level: "warn", message: "C", at: "2026-09-06T00:00:02.000Z", details: { source: "c" } });
+  await b.flush();
+  assert.deepEqual(mod.readShared(mod.DIAGNOSTICS_KEY).events.map((entry) => entry.message), ["C"]);
+});
+
+test("profile registry merges new profiles and preserves the install default", async () => {
+  const mod = await load();
+  mod.setSettleDelay(2);
+  const a = new mod.ProfileManager(mod.tab());
+  const b = new mod.ProfileManager(mod.tab());
+  await a.load();
+  await b.load();
+  const [one, two] = await Promise.all([a.create("One"), b.create("Two")]);
+  const ids = mod.readShared(mod.PROFILE_REGISTRY_KEY).profiles.map((profile) => profile.id).sort();
+  assert.deepEqual(ids, [mod.DEFAULT_PROFILE_ID, one.id, two.id].sort());
+});
+
+test("settings saves merge changed leaves and preserve an explicit clear", async () => {
+  const mod = await load();
+  mod.setSettleDelay(2);
+  const storageA = mod.tab();
+  const storageB = mod.tab();
+  const baseline = mod.cloneSettings(mod.DEFAULT_SETTINGS);
+  const settingsA = mod.cloneSettings(baseline);
+  const settingsB = mod.cloneSettings(baseline);
+  settingsA.appearance.theme = "noir";
+  settingsA.filter.rules = ["text contains old"];
+  settingsB.layout.hideRightSidebar = true;
+
+  const save = (storage, before, current) => {
+    const normalized = mod.normalizeSettings(mod.cloneSettings(current));
+    const patch = mod.diffKnownSettings(before, normalized);
+    return mod.mutateStored(storage, "aviary.settings.v1", baseline, (stored) =>
+      mod.normalizeSettings(mod.applyKnownSettingsPatch(stored, patch))
+    );
+  };
+
+  await Promise.all([save(storageA, baseline, settingsA), save(storageB, baseline, settingsB)]);
+  const merged = mod.readShared("aviary.settings.v1");
+  assert.equal(merged.appearance.theme, "noir");
+  assert.equal(merged.layout.hideRightSidebar, true);
+
+  const stale = mod.cloneSettings(settingsA);
+  const cleared = mod.cloneSettings(settingsA);
+  cleared.filter.rules = [];
+  await save(storageA, settingsA, cleared);
+  stale.appearance.denseMode = true;
+  await save(storageB, settingsA, stale);
+  const afterClear = mod.readShared("aviary.settings.v1");
+  assert.deepEqual(afterClear.filter.rules, [], "a stale settings snapshot resurrected a cleared list");
+  assert.equal(afterClear.appearance.denseMode, true);
 });
