@@ -63,6 +63,7 @@ export function parseReleaseArgs(args) {
 
 export async function createReleasePlan({ projectRoot = root, version, run = defaultRun }) {
   const packageVersion = await readPackageVersion(projectRoot);
+  await assertAlignedVersions(projectRoot, packageVersion);
   if (version && version !== packageVersion && !version.startsWith("historical:")) {
     throw new Error(`Requested ${version}, but package.json is ${packageVersion}`);
   }
@@ -86,6 +87,23 @@ export async function createReleasePlan({ projectRoot = root, version, run = def
     stateFile: path.join(defaultStateDir(), `v${packageVersion}.json`),
     ledger
   };
+}
+
+export async function assertAlignedVersions(projectRoot, version) {
+  const packageLock = JSON.parse(await readFile(path.join(projectRoot, "package-lock.json"), "utf8"));
+  const lockRoot = packageLock.packages?.[""];
+  if (packageLock.version !== version || lockRoot?.version !== version) {
+    throw new Error(`package-lock.json is not aligned with package.json ${version}`);
+  }
+  for (const manifestName of ["manifest.chrome.json", "manifest.firefox.json"]) {
+    const manifest = JSON.parse(await readFile(path.join(projectRoot, "src", "extension", manifestName), "utf8"));
+    if (manifest.version !== version) throw new Error(`${manifestName} is not aligned with package.json ${version}`);
+  }
+  const readme = await readFile(path.join(projectRoot, "README.md"), "utf8");
+  if (!readme.includes(`version-${version}-`)) throw new Error(`README version badge is not aligned with ${version}`);
+  const privacy = await readFile(path.join(projectRoot, "docs", "PRIVACY.md"), "utf8");
+  if (!privacy.includes(`release ${version}`)) throw new Error(`privacy release marker is not aligned with ${version}`);
+  return true;
 }
 
 export async function prepareReleaseArtifacts({

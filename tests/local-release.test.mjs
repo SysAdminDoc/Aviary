@@ -5,7 +5,7 @@ import path from "node:path";
 import { test } from "node:test";
 
 import { ensureSigningKey, packCrx3, verifyCrx3 } from "../tools/release-crx.mjs";
-import { parseReleaseArgs } from "../tools/release-local.mjs";
+import { assertAlignedVersions, parseReleaseArgs } from "../tools/release-local.mjs";
 import { missingReleaseReport, reconcileReleaseLedger } from "../tools/release-ledger.mjs";
 import { importSourceModule } from "./helpers/source-import.mjs";
 
@@ -78,4 +78,8 @@ test("local release CLI makes publishing explicit and supports historical rebuil
   assert.equal(parseReleaseArgs(["--publish", "--version=1.47.2"]).publish, true);
   assert.equal(parseReleaseArgs(["--publish", "--historical", "1.44.1"]).historical, "1.44.1");
   assert.throws(() => parseReleaseArgs(["--unknown"]), /Unknown release option/);
+});
+
+test("release planning rejects drifted version markers", async () => {
+  await assert.doesNotReject(() => assertAlignedVersions(process.cwd(), "1.47.2"));
 });
