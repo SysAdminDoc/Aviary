@@ -39,6 +39,12 @@
   background restart. Chrome also freezes a page holder past lease expiry and proves a newer
   fenced write survives the stale owner's resume; missing browsers or lifecycle controls fail the
   lane instead of falling back to a simulated store.
+- The smoke suite now installs provenance-checked Tampermonkey 5.5.0 and Violentmonkey 2.47.0
+  packages into disposable profiles, saves the built userscript through each manager's editor,
+  and drives real GM storage from two synthetic X origins. It verifies value-change callbacks,
+  lock contention, interrupted restore recovery, stale fences, and durable values after restart.
+  The older browser lanes are named model adapters so their Map-backed coverage is not mistaken for
+  manager installation coverage.
 - Trust now attributes serialized mutation apply work to each feature with bounded local timing
   samples, full or incremental pass counts, and maximum duration. Long Animation Frame timing is
   correlated when the browser exposes it, and unsupported browsers say so. The reset action clears

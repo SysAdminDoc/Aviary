@@ -27,7 +27,7 @@
     "test:visual": "npm run build && node --test tests/visual/settings-visual-regression.test.mjs tests/visual/injected-visual-regression.test.mjs tests/visual/reflow-visual-regression.test.mjs",
     "test:visual:update": "npm run build && node tools/update-settings-visuals.mjs",
     "typecheck": "tsc --noEmit",
-    "smoke": "node tests/smoke/dnr-chromium.smoke.mjs && node tests/smoke/dnr-firefox.smoke.mjs && node tests/smoke/aviary.smoke.mjs && node tests/smoke/incognito-chromium.smoke.mjs && node tests/smoke/externally-gated.smoke.mjs && node tests/smoke/extension-lifecycle.smoke.mjs",
+    "smoke": "node tests/smoke/dnr-chromium.smoke.mjs && node tests/smoke/dnr-firefox.smoke.mjs && node tests/smoke/aviary.smoke.mjs && node tests/smoke/incognito-chromium.smoke.mjs && node tests/smoke/externally-gated.smoke.mjs && node tests/smoke/extension-lifecycle.smoke.mjs && node tests/smoke/userscript-manager-lifecycle.smoke.mjs",
     "verify:fast": "node tools/verify-fast.mjs",
     "verify:release": "node tools/release-gate.mjs",
     "release:local": "node tools/release-local.mjs",

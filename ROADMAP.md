@@ -152,14 +152,6 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
 
 ### P1, Next
 
-- [ ] F335, P1: Test installed Tampermonkey and Violentmonkey storage instead of substitutes
-  Why: manager-named browser lanes use a shared Node Map and cannot prove real GM persistence, value-change delivery, or cross-origin coordination.
-  Evidence: `tests/storage-authority-browser.test.mjs:216`; https://www.tampermonkey.net/documentation.php; https://violentmonkey.github.io/api/gm/
-  Touches: disposable manager-install harness, generated userscript verification, real storage/restart tests, test naming and validation documentation
-  Acceptance: load pinned, provenance-verified manager packages and the generated userscript in isolated profiles; exercise two permitted origins with synthetic routes and the managers' real GM APIs, never replacing them with bindings or Maps; read/write contention, value-change delivery where used, browser restart, interrupted restore, expiry, and resumed stale owners preserve the authoritative outcome; record actual manager/browser versions and source fingerprint; a missing installation or unavailable lifecycle control fails explicitly; label existing model lanes honestly; no authenticated X traffic or user's active profile/display is used.
-  Complexity: L
-  Depends: F328. F327 owns the extension installation and background lifecycle lanes.
-
 ### P2, Later
 
 - [ ] F336, P2: Preserve persisted storage status across the background bridge

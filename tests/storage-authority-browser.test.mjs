@@ -28,8 +28,8 @@ const CRASH_POINTS = [
 const LANES = [
   { name: "Chrome extension", engine: "chromium", mode: "extension" },
   { name: "Firefox extension", engine: "firefox", mode: "extension" },
-  { name: "Tampermonkey", engine: "chromium", mode: "userscript" },
-  { name: "Violentmonkey", engine: "firefox", mode: "userscript" }
+  { name: "Tampermonkey model adapter", engine: "chromium", mode: "userscript" },
+  { name: "Violentmonkey model adapter", engine: "firefox", mode: "userscript" }
 ];
 
 let temp;

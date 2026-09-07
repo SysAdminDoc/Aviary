@@ -269,14 +269,17 @@ sha256sum dist/aviary-source-v1.47.2.zip
 fixed timestamps and sorted entries. It excludes generated output, dependencies, and image captures.
 
 ```powershell
-npm run smoke   # packaged-extension probes, including worker restart and stale-owner recovery
+npm run smoke   # packaged extensions plus pinned Tampermonkey and Violentmonkey manager lanes
 npm run test:matrix  # route/locale matrix plus the 50,000-record release fault matrix
 ```
 
 Smoke needs a Chromium runner and a normal Firefox install. Every lane uses a throwaway profile,
-every provider call goes to a local stub, and each run cleans up after itself. The packaged
-extension lifecycle lane fails explicitly when a browser or lifecycle control is unavailable,
-so it cannot silently fall back to a simulated store.
+every provider call goes to a local stub, and each run cleans up after itself. The userscript lanes
+download pinned, hash-checked manager packages, install the built script through each manager's
+editor, and exercise two synthetic X origins with real GM storage. They also verify value-change
+callbacks, lock contention, interrupted restore recovery, stale fences, and persistence after a
+browser or manager restart. A missing manager package, browser, editor, or lifecycle control fails
+explicitly, so the suite cannot silently fall back to a simulated store.
 
 ## Selector captures
 
