@@ -48,6 +48,7 @@ import {
   type RetentionPolicy
 } from "../export/jobs.ts";
 import { renderForExternalTarget } from "../export/external-targets.ts";
+import { summarizeAudience, type ExportAudienceSelection } from "../export/audience.ts";
 import { filterExpiredRules, filterRuleErrors } from "../filtering/filter-engine.ts";
 import { applyFilterRuleImportAtomic } from "../filtering/rule-import.ts";
 import { exportRuleSet, previewRuleSetImport, renewRuleLine } from "../filtering/rules.ts";
@@ -310,6 +311,7 @@ export const controlCenterFeature: FeatureModule = {
         return {
           jobCount: store?.list().length ?? 0,
           knownQueries: queries ? Object.keys(queries.queries).length : 0,
+          audience: summarizeAudience(collectAllRecords(store), exportAudienceSelection(ctx)),
           jobs: (store?.list() ?? []).map((job) => ({
             jobId: job.jobId,
             status: job.status,
@@ -331,7 +333,8 @@ export const controlCenterFeature: FeatureModule = {
         return {
           records: result.records,
           filename: result.filename,
-          files: result.artifacts.length
+          files: result.artifacts.length,
+          audience: result.audience
         };
       },
       async rebuildThreads() {
@@ -1177,18 +1180,23 @@ export const controlCenterFeature: FeatureModule = {
         rebuildSearchIndex();
         const store = getCheckpointStore();
         const records = collectAllRecords(store);
-        const artifact = buildWarcArchive(records);
+        const artifact = buildWarcArchive(records, { audience: exportAudienceSelection(ctx) });
         downloadBlob(artifact.data, artifact.filename, artifact.contentType);
         void ctx.auditLog.record("export.complete", { format: "warc", records: records.length });
         return { records: records.length };
       },
       getWaczEstimate() {
-        return estimateWaczBytes(collectAllRecords(getCheckpointStore()));
+        return estimateWaczBytes(collectAllRecords(getCheckpointStore()), {
+          audience: exportAudienceSelection(ctx)
+        });
       },
       async downloadWacz(options?: WaczWorkerBuildOptions) {
         rebuildSearchIndex();
         const records = collectAllRecords(getCheckpointStore());
-        const artifact = await buildWaczArchiveOffThread(records, options);
+        const artifact = await buildWaczArchiveOffThread(records, {
+          ...options,
+          audience: exportAudienceSelection(ctx)
+        });
         downloadBlob(artifact.data, artifact.filename, artifact.contentType);
         void ctx.auditLog.record("export.complete", {
           format: "wacz",
@@ -1207,7 +1215,10 @@ export const controlCenterFeature: FeatureModule = {
       async downloadSignedWacz(options?: WaczWorkerBuildOptions) {
         rebuildSearchIndex();
         const records = collectAllRecords(getCheckpointStore());
-        const artifact = await buildSignedWaczArchiveOffThread(records, waczSigning, options);
+        const artifact = await buildSignedWaczArchiveOffThread(records, waczSigning, {
+          ...options,
+          audience: exportAudienceSelection(ctx)
+        });
         downloadBlob(artifact.data, artifact.filename, artifact.contentType);
         void ctx.auditLog.record("export.complete", {
           format: "wacz",
@@ -1238,7 +1249,7 @@ export const controlCenterFeature: FeatureModule = {
         rebuildSearchIndex();
         const store = getCheckpointStore();
         const records = collectAllRecords(store);
-        const rendered = renderForExternalTarget(target, records);
+        const rendered = renderForExternalTarget(target, records, { audience: exportAudienceSelection(ctx) });
         if (rendered.payload !== undefined) {
           await writeClipboard(rendered.payload);
           void ctx.auditLog.record("diagnostics.copy", { kind: "external", target });
@@ -1606,6 +1617,13 @@ function collectAllRecords(
     all.push(...store.records(job.jobId));
   }
   return all;
+}
+
+function exportAudienceSelection(ctx: { settings: AviarySettings }): ExportAudienceSelection {
+  return {
+    includeProtected: ctx.settings.export.includeProtected,
+    includeUnknown: ctx.settings.export.includeUnknown
+  };
 }
 
 function matchingCapturedRecords(query: string): Array<import("../export/types.ts").ExportRecord> {

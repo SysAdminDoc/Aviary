@@ -1046,6 +1046,28 @@ export function buildExportRows(ctx: PanelContext): HTMLElement[] {
     )
   );
   rows.push(
+    ctx.toggleRow(
+      "Include protected posts in share exports",
+      "Protected posts stay out of HTML, Markdown, WARC, WACZ, and static viewer output until you enable this explicitly. JSON and CSV remain archival and keep the audience field.",
+      ctx.options.settings.export.includeProtected,
+      async (checked) => {
+        ctx.options.settings.export.includeProtected = checked;
+        await ctx.save(checked ? "Protected post sharing enabled." : "Protected posts excluded from share exports.");
+      }
+    )
+  );
+  rows.push(
+    ctx.toggleRow(
+      "Include unknown-audience posts in share exports",
+      "DOM-only, imported, and older records stay out of share-oriented exports until you enable this explicitly. JSON and CSV remain archival.",
+      ctx.options.settings.export.includeUnknown,
+      async (checked) => {
+        ctx.options.settings.export.includeUnknown = checked;
+        await ctx.save(checked ? "Unknown-audience sharing enabled." : "Unknown-audience posts excluded from share exports.");
+      }
+    )
+  );
+  rows.push(
     ctx.textInputRow(
       "Save folder hint",
       "Folder name (or path) used as the export ZIP root and download prefix.",
@@ -1068,6 +1090,19 @@ export function buildExportRows(ctx: PanelContext): HTMLElement[] {
         })
       )
     );
+    if (status.audience) {
+      rows.push(
+        ctx.dataRow(
+          "Audience coverage",
+          ctx.localizedCopy("{public} public · {protected} protected · {unknown} unknown · {excluded} excluded from share exports", {
+            public: status.audience.public,
+            protected: status.audience.protected,
+            unknown: status.audience.unknown,
+            excluded: status.audience.excludedProtected + status.audience.excludedUnknown
+          })
+        )
+      );
+    }
     if (status.jobCount === 0) {
       rows.push(
         ctx.readonlyRow(

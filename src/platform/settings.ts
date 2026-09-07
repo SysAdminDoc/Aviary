@@ -346,6 +346,8 @@ export interface AviarySettings {
     preserveRawPayloads: boolean;
     autoDiscoverQueryIds: boolean;
     captureMediaBytes: boolean;
+    includeProtected: boolean;
+    includeUnknown: boolean;
   };
   links: {
     cleanShareButtons: boolean;
@@ -499,7 +501,9 @@ export const DEFAULT_SETTINGS: AviarySettings = {
     formats: ["json", "csv", "html"],
     preserveRawPayloads: false,
     autoDiscoverQueryIds: true,
-    captureMediaBytes: false
+    captureMediaBytes: false,
+    includeProtected: false,
+    includeUnknown: false
   },
   links: {
     cleanShareButtons: false,
@@ -922,6 +926,14 @@ export function normalizeSettings(input: unknown): AviarySettings {
       captureMediaBytes: booleanValue(
         exportSettings.captureMediaBytes,
         DEFAULT_SETTINGS.export.captureMediaBytes
+      ),
+      includeProtected: booleanValue(
+        exportSettings.includeProtected,
+        DEFAULT_SETTINGS.export.includeProtected
+      ),
+      includeUnknown: booleanValue(
+        exportSettings.includeUnknown,
+        DEFAULT_SETTINGS.export.includeUnknown
       )
     },
     links: {

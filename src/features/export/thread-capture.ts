@@ -67,6 +67,7 @@ function readTweet(
 
   const user = findUser(value, legacy);
   const userLegacy = asRecord(user?.legacy);
+  const audience = readAudience(user, userLegacy);
   const handle = cleanHandle(
     user?.screen_name ?? user?.screenName ?? user?.username ?? userLegacy?.screen_name ?? userLegacy?.screenName ?? value.screen_name ?? value.username
   );
@@ -96,11 +97,20 @@ function readTweet(
     surface: `graphql:${safeOperation(operationName)}`,
     media: [],
     permalink,
+    audience,
     ...(conversationId ? { conversationId, rootId: conversationId } : {}),
     ...(parentId ? { parentId } : {}),
     ...(authorId ? { authorId } : {}),
     ...(createdAt ? { createdAt } : {})
   };
+}
+
+function readAudience(
+  user: Record<string, unknown> | null,
+  legacy: Record<string, unknown> | null
+): "public" | "protected" | "unknown" {
+  const protectedValue = user?.protected ?? legacy?.protected;
+  return typeof protectedValue === "boolean" ? (protectedValue ? "protected" : "public") : "unknown";
 }
 
 function looksLikeTweet(value: Record<string, unknown>, legacy: Record<string, unknown> | null): boolean {

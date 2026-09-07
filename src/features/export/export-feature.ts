@@ -17,6 +17,15 @@ import { reconstructExportOrder, reconstructThreads } from "./thread-reconstruct
 import { buildExportViewer } from "./viewer.ts";
 import { buildZip, type ZipFileEntry } from "./zip-store.ts";
 import type { ExportFormat, ExportRecord } from "./types.ts";
+import {
+  DEFAULT_EXPORT_AUDIENCE,
+  filterShareRecords,
+  isShareOrientedFormat,
+  normalizeAudienceSelection,
+  summarizeAudience,
+  type ExportAudienceSelection,
+  type ExportAudienceSummary
+} from "./audience.ts";
 
 let checkpointStore: CheckpointStore | undefined;
 let queryRegistry: QueryRegistry | undefined;
@@ -110,6 +119,7 @@ export interface ExportRunResult {
   /** One entry per ZIP. `media.zipChunkSize` caps how many records each one carries. */
   artifacts: ExportArtifact[];
   filename: string;
+  audience: ExportAudienceSummary;
 }
 
 export interface CapturedThreadExportResult {
@@ -147,6 +157,10 @@ export async function runExportOfVisibleTweets(ctx: FeatureContext): Promise<Exp
     }
     await checkpointStore.updateProgress(jobId, { completed: packageRecords.length, total: packageRecords.length });
     // Handing the user an empty ZIP is worse than telling them nothing was captured.
+    const audience = summarizeAudience(packageRecords, {
+      includeProtected: ctx.settings.export.includeProtected,
+      includeUnknown: ctx.settings.export.includeUnknown
+    });
     const artifacts =
       records.length === 0
         ? []
@@ -154,7 +168,11 @@ export async function runExportOfVisibleTweets(ctx: FeatureContext): Promise<Exp
             packageRecords,
             formats,
             ctx.settings.media.lastSaveFolder,
-            ctx.settings.media.zipChunkSize
+            ctx.settings.media.zipChunkSize,
+            { audience: {
+              includeProtected: ctx.settings.export.includeProtected,
+              includeUnknown: ctx.settings.export.includeUnknown
+            } }
           );
     await checkpointStore.finish(jobId);
     ctx.diagnostics.info("Export completed", { records: packageRecords.length, formats });
@@ -166,7 +184,8 @@ export async function runExportOfVisibleTweets(ctx: FeatureContext): Promise<Exp
       jobId,
       records: packageRecords.length,
       artifacts,
-      filename: artifacts[0]?.filename ?? zipFilename(ctx.settings.media.lastSaveFolder)
+      filename: artifacts[0]?.filename ?? zipFilename(ctx.settings.media.lastSaveFolder),
+      audience
     };
   } catch (error) {
     await checkpointStore.fail(jobId, error);
@@ -249,15 +268,18 @@ export async function cancelExportJob(jobId: string): Promise<ExportJobActionRes
 export async function buildExportZip(
   records: ExportRecord[],
   formats: readonly ExportFormat[],
-  folder: string
+  folder: string,
+  options: { audience?: Partial<ExportAudienceSelection> } = {}
 ): Promise<Uint8Array> {
   const entries: ZipFileEntry[] = [];
   const safeFolder = sanitizeFolder(folder);
   const prepared = prepareExportPackage(reconstructExportOrder(records));
+  const audience = normalizeAudienceSelection(options.audience ?? DEFAULT_EXPORT_AUDIENCE);
+  const shareRecords = filterShareRecords(prepared.records, audience);
   const packageFiles: ExportPackageFile[] = [];
 
   for (const format of formats) {
-    const artifact = formatExport(format, prepared.records);
+    const artifact = formatExport(format, isShareOrientedFormat(format) ? shareRecords : prepared.records);
     const filename = packagePath(safeFolder, artifact.filename);
     entries.push({
       filename,
@@ -284,7 +306,7 @@ export async function buildExportZip(
     });
   }
 
-  const viewer = buildExportViewer(prepared.records);
+  const viewer = buildExportViewer(prepared.records, { audience });
   const viewerPath = packagePath(safeFolder, "viewer.html");
   entries.push({ filename: viewerPath, data: viewer });
   packageFiles.push({
@@ -316,7 +338,8 @@ export async function buildExportZipChunks(
   records: ExportRecord[],
   formats: readonly ExportFormat[],
   folder: string,
-  chunkSize: number
+  chunkSize: number,
+  options: { audience?: Partial<ExportAudienceSelection> } = {}
 ): Promise<ExportArtifact[]> {
   const orderedRecords = reconstructExportOrder(records);
   if (orderedRecords.length === 0) {
@@ -325,7 +348,7 @@ export async function buildExportZipChunks(
   const size = Math.max(1, Math.trunc(chunkSize) || orderedRecords.length);
   const base = zipFilename(folder);
   if (orderedRecords.length <= size) {
-    return [{ data: await buildExportZip(orderedRecords, formats, folder), filename: base }];
+    return [{ data: await buildExportZip(orderedRecords, formats, folder, options), filename: base }];
   }
 
   const total = Math.ceil(orderedRecords.length / size);
@@ -333,7 +356,7 @@ export async function buildExportZipChunks(
   for (let index = 0; index < total; index += 1) {
     const slice = orderedRecords.slice(index * size, (index + 1) * size);
     artifacts.push({
-      data: await buildExportZip(slice, formats, folder),
+      data: await buildExportZip(slice, formats, folder, options),
       filename: base.replace(/\.zip$/, `-part${index + 1}of${total}.zip`)
     });
   }

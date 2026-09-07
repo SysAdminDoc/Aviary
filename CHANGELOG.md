@@ -35,6 +35,10 @@
   than blocking Aviary startup or deleting them.
 
 ### Fixed
+- Export records now carry an audience state from GraphQL when X provides one. DOM-only, imported,
+  and legacy rows remain `unknown`; share-oriented HTML, Markdown, WARC, WACZ, viewer, and external
+  exports exclude protected and unknown rows until their explicit controls are enabled, while JSON
+  and CSV retain every row with the audience field for archival use.
 - Seen-post dimming now waits for a visible, one-second dwell before recording a timeline post. It
   accepts half a post or 200 CSS pixels of a taller post, cancels work when a node leaves the
   viewport or the tab is hidden, keeps candidates independent, and treats a direct Status route's

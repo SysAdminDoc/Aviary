@@ -2,6 +2,7 @@ import type { ExportArtifact, ExportFormat, ExportRecord } from "./types.ts";
 import { describeMediaCapture, serializeExportRecords } from "./assets.ts";
 import { reconstructThreads } from "./thread-reconstruction.ts";
 import { formatXlsx } from "./xlsx.ts";
+import { normalizeAudience } from "./audience.ts";
 
 const TEXT_ENCODER = new TextEncoder();
 
@@ -56,6 +57,7 @@ function csvArtifact(records: ExportRecord[]): ExportArtifact {
     "capturedAt",
     "surface",
     "permalink",
+    "audience",
     "text",
     "mediaUrls",
     "mediaStatus",
@@ -74,6 +76,7 @@ function csvArtifact(records: ExportRecord[]): ExportArtifact {
         record.capturedAt,
         record.surface,
         record.permalink ?? "",
+        normalizeAudience(record.audience),
         record.text,
         mediaUrls,
         mediaStatus,
@@ -147,7 +150,7 @@ function htmlArtifact(records: ExportRecord[]): ExportArtifact {
       const permalink = permalinkHref
         ? `<a href="${escapeHtml(permalinkHref)}" rel="noopener noreferrer">${escapeHtml(permalinkHref)}</a>`
         : "";
-      return `<article class="record">
+      return `<article class="record" data-audience="${normalizeAudience(record.audience)}">
   <header>
     <strong>${escapeHtml(record.displayName ?? record.handle ?? "Unknown")}</strong>
     <span class="handle">@${escapeHtml(record.handle ?? "")}</span>
@@ -203,7 +206,7 @@ function markdownArtifact(records: ExportRecord[]): ExportArtifact {
             return `- ${link} (${details})`;
           }).join("\n")}`;
     const permalink = record.permalink ? `\n\n${record.permalink}` : "";
-    return `${header}\n\n${body}${media}${permalink}`;
+    return `${header}\n\nAudience: ${normalizeAudience(record.audience)}\n\n${body}${media}${permalink}`;
   });
 
   const md = `# Aviary export\n\nGenerated ${new Date().toISOString()} · ${records.length} records. Media links marked remote-reference are not fetched automatically.\n\n${sections.join("\n\n---\n\n")}\n`;

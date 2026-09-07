@@ -50,15 +50,17 @@ const DELIVERY_BUDGETS = [
   // F284 adds the shared quality-receipt protocol, original-image retry state, and receipt-aware
   // history UI to the readable userscript. Keep the increase narrow and leave room for future
   // changes to make another explicit size decision.
-  { file: "aviary.user.js", maxBytes: 2_480_000 },
+  // F319 adds audience provenance to every export path and two share-safety controls. The
+  // generated single-file and lazy panel artifacts need only a few kilobytes of measured headroom.
+  { file: "aviary.user.js", maxBytes: 2_485_000 },
   { file: "aviary.meta.js", maxBytes: 4_000 },
   // F298 keeps the document-start bootstrap below half of the previous 2.42 MB ceiling. The
   // panel, archive, WACZ worker, viewer, and translated catalog live in the separately budgeted
   // web-accessible chunk below.
   { file: "extension-chrome/content.js", maxBytes: 1_210_000 },
   { file: "extension-firefox/content.js", maxBytes: 1_210_000 },
-  { file: "extension-chrome/chunks/extension-panel.js", maxBytes: 2_050_000 },
-  { file: "extension-firefox/chunks/extension-panel.js", maxBytes: 2_050_000 },
+  { file: "extension-chrome/chunks/extension-panel.js", maxBytes: 2_060_000 },
+  { file: "extension-firefox/chunks/extension-panel.js", maxBytes: 2_060_000 },
   { file: `aviary-source-v${pkg.version}.zip`, maxBytes: 10_000_000 }
 ];
 

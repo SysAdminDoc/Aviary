@@ -57,7 +57,7 @@ test("formatExport produces deterministic JSON, CSV, HTML, and Markdown artifact
 
   const html = formatExport("html", records);
   const htmlText = new TextDecoder().decode(html.data);
-  assert.match(htmlText, /<article class="record">/);
+  assert.match(htmlText, /<article class="record" data-audience="unknown">/);
   assert.ok(!htmlText.includes("<script>"));
 
   const md = formatExport("markdown", records);

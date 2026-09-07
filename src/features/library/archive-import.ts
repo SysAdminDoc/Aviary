@@ -372,7 +372,8 @@ function mapTweets(parsed: unknown, surface: string): ExportRecord[] {
       capturedAt: now,
       surface,
       media: [],
-      permalink: id ? `https://x.com/i/web/status/${id}` : null
+      permalink: id ? `https://x.com/i/web/status/${id}` : null,
+      audience: "unknown"
     };
     const conversationId = stringField(tweet, "conversation_id_str", "conversationId");
     const parentId = stringField(tweet, "in_reply_to_status_id_str", "inReplyToId", "in_reply_to_id");
@@ -410,7 +411,8 @@ function mapLikes(parsed: unknown, surface: string): ExportRecord[] {
       capturedAt: new Date().toISOString(),
       surface: `${surface}.likes`,
       media: [],
-      permalink: id ? `https://x.com/i/web/status/${id}` : null
+      permalink: id ? `https://x.com/i/web/status/${id}` : null,
+      audience: "unknown"
     };
     const participants = mentionParticipants(like);
     if (participants.length > 0) record.participants = participants;

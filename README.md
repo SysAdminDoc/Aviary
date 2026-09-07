@@ -127,7 +127,8 @@ The full reference lives in [docs/FEATURES.md](docs/FEATURES.md). The short vers
 - **Reading position.** One saved position per feed surface, a "New since you last looked"
   separator, and no unread badge anywhere.
 - **Export.** JSON, CSV, HTML, Markdown and XLSX bundled into a ZIP with per-file checksums, plus a
-  local viewer with virtualized scrolling and reconstructed thread reading.
+  local viewer with virtualized scrolling and reconstructed thread reading. Audience state is kept
+  on every record; protected and unknown posts stay out of share-oriented output until enabled.
 - **Preservation.** WARC record streams and validator-clean WACZ 1.1.1 packages that open directly in
   [replayweb.page](https://replayweb.page/). CDXJ entries carry exact WARC offsets and HTTP statuses,
   while authored and captured times stay distinct. An optional anonymous ECDSA signature is available.

@@ -214,7 +214,9 @@ var Aviary = (() => {
       formats: ["json", "csv", "html"],
       preserveRawPayloads: false,
       autoDiscoverQueryIds: true,
-      captureMediaBytes: false
+      captureMediaBytes: false,
+      includeProtected: false,
+      includeUnknown: false
     },
     links: {
       cleanShareButtons: false,
@@ -566,6 +568,14 @@ var Aviary = (() => {
         captureMediaBytes: booleanValue(
           exportSettings.captureMediaBytes,
           DEFAULT_SETTINGS.export.captureMediaBytes
+        ),
+        includeProtected: booleanValue(
+          exportSettings.includeProtected,
+          DEFAULT_SETTINGS.export.includeProtected
+        ),
+        includeUnknown: booleanValue(
+          exportSettings.includeUnknown,
+          DEFAULT_SETTINGS.export.includeUnknown
         )
       },
       links: {
@@ -5892,6 +5902,28 @@ ${body}
       )
     );
     rows.push(
+      ctx.toggleRow(
+        "Include protected posts in share exports",
+        "Protected posts stay out of HTML, Markdown, WARC, WACZ, and static viewer output until you enable this explicitly. JSON and CSV remain archival and keep the audience field.",
+        ctx.options.settings.export.includeProtected,
+        async (checked) => {
+          ctx.options.settings.export.includeProtected = checked;
+          await ctx.save(checked ? "Protected post sharing enabled." : "Protected posts excluded from share exports.");
+        }
+      )
+    );
+    rows.push(
+      ctx.toggleRow(
+        "Include unknown-audience posts in share exports",
+        "DOM-only, imported, and older records stay out of share-oriented exports until you enable this explicitly. JSON and CSV remain archival.",
+        ctx.options.settings.export.includeUnknown,
+        async (checked) => {
+          ctx.options.settings.export.includeUnknown = checked;
+          await ctx.save(checked ? "Unknown-audience sharing enabled." : "Unknown-audience posts excluded from share exports.");
+        }
+      )
+    );
+    rows.push(
       ctx.textInputRow(
         "Save folder hint",
         "Folder name (or path) used as the export ZIP root and download prefix.",
@@ -5913,6 +5945,19 @@ ${body}
           })
         )
       );
+      if (status.audience) {
+        rows.push(
+          ctx.dataRow(
+            "Audience coverage",
+            ctx.localizedCopy("{public} public \xB7 {protected} protected \xB7 {unknown} unknown \xB7 {excluded} excluded from share exports", {
+              public: status.audience.public,
+              protected: status.audience.protected,
+              unknown: status.audience.unknown,
+              excluded: status.audience.excludedProtected + status.audience.excludedUnknown
+            })
+          )
+        );
+      }
       if (status.jobCount === 0) {
         rows.push(
           ctx.readonlyRow(
@@ -13558,6 +13603,50 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     };
   }
 
+  // src/features/export/audience.ts
+  var DEFAULT_EXPORT_AUDIENCE = {
+    includeProtected: false,
+    includeUnknown: false
+  };
+  function normalizeAudience(value) {
+    return value === "public" || value === "protected" || value === "unknown" ? value : "unknown";
+  }
+  function normalizeAudienceSelection(value) {
+    return {
+      includeProtected: value?.includeProtected === true,
+      includeUnknown: value?.includeUnknown === true
+    };
+  }
+  function audienceOf(record) {
+    return normalizeAudience(record.audience);
+  }
+  function summarizeAudience(records, selection = DEFAULT_EXPORT_AUDIENCE) {
+    const summary = {
+      total: records.length,
+      public: 0,
+      protected: 0,
+      unknown: 0,
+      excludedProtected: 0,
+      excludedUnknown: 0
+    };
+    for (const record of records) {
+      const audience = audienceOf(record);
+      summary[audience] += 1;
+      if (audience === "protected" && !selection.includeProtected) summary.excludedProtected += 1;
+      if (audience === "unknown" && !selection.includeUnknown) summary.excludedUnknown += 1;
+    }
+    return summary;
+  }
+  function filterShareRecords(records, selection = DEFAULT_EXPORT_AUDIENCE) {
+    return records.filter((record) => {
+      const audience = audienceOf(record);
+      return audience === "public" || audience === "protected" && selection.includeProtected || audience === "unknown" && selection.includeUnknown;
+    });
+  }
+  function isShareOrientedFormat(format) {
+    return format === "html" || format === "markdown";
+  }
+
   // src/features/export/assets.ts
   var PERCEPTUAL_HASH_WIDTH = 17;
   var PERCEPTUAL_HASH_HEIGHT = 16;
@@ -13605,6 +13694,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
   function serializeExportRecord(record) {
     return {
       ...record,
+      audience: normalizeAudience(record.audience),
       media: mediaOf(record).map((media) => serializeExportMedia(media, record.capturedAt))
     };
   }
@@ -14551,8 +14641,12 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
         capturedAt: now3,
         surface,
         media,
-        permalink: permalink2
+        permalink: permalink2,
+        audience: "unknown"
       };
+      for (const entry of record.media) {
+        if (entry.attribution) entry.attribution = { ...entry.attribution, audience: record.audience ?? "unknown" };
+      }
       if (poll) record.poll = poll;
       if (quote) record.quote = quote;
       if (articleSummary) record.article = articleSummary;
@@ -19539,6 +19633,7 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
       "capturedAt",
       "surface",
       "permalink",
+      "audience",
       "text",
       "mediaUrls",
       "mediaStatus",
@@ -19557,6 +19652,7 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
           record.capturedAt,
           record.surface,
           record.permalink ?? "",
+          normalizeAudience(record.audience),
           record.text,
           mediaUrls,
           mediaStatus,
@@ -19608,7 +19704,7 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
       }).join("");
       const permalinkHref = record.permalink ? safeHref(record.permalink) : "";
       const permalink2 = permalinkHref ? `<a href="${escapeHtml(permalinkHref)}" rel="noopener noreferrer">${escapeHtml(permalinkHref)}</a>` : "";
-      return `<article class="record">
+      return `<article class="record" data-audience="${normalizeAudience(record.audience)}">
   <header>
     <strong>${escapeHtml(record.displayName ?? record.handle ?? "Unknown")}</strong>
     <span class="handle">@${escapeHtml(record.handle ?? "")}</span>
@@ -19662,6 +19758,8 @@ ${record.media.map((entry) => {
 
 ${record.permalink}` : "";
       return `${header}
+
+Audience: ${normalizeAudience(record.audience)}
 
 ${body}${media}${permalink2}`;
     });
@@ -19772,9 +19870,11 @@ ${sections.join("\n\n---\n\n")}
   }
   var LOCALE_ORDER = supportedLocales().map((locale) => locale.code);
   var RTL_CODES = supportedLocales().filter((locale) => locale.direction === "rtl").map((locale) => locale.code);
-  function buildExportViewer(records) {
-    const data = safeJson(serializeExportRecords(records));
-    const threads = safeJson(serializeThreads(reconstructThreads(records)));
+  function buildExportViewer(records, options = {}) {
+    const audience = options.audience === void 0 ? { includeProtected: true, includeUnknown: true } : normalizeAudienceSelection(options.audience);
+    const visibleRecords = filterShareRecords(records, audience);
+    const data = safeJson(serializeExportRecords(visibleRecords));
+    const threads = safeJson(serializeThreads(reconstructThreads(visibleRecords)));
     const labels = safeJson(buildViewerLabels());
     const script = viewerScript(labels, LOCALE_ORDER, RTL_CODES);
     const html = `<!doctype html>
@@ -20261,11 +20361,19 @@ a { color: var(--accent); }
         packageRecords = await captureExportMedia(records);
       }
       await checkpointStore.updateProgress(jobId, { completed: packageRecords.length, total: packageRecords.length });
+      const audience = summarizeAudience(packageRecords, {
+        includeProtected: ctx.settings.export.includeProtected,
+        includeUnknown: ctx.settings.export.includeUnknown
+      });
       const artifacts = records.length === 0 ? [] : await buildExportZipChunks(
         packageRecords,
         formats,
         ctx.settings.media.lastSaveFolder,
-        ctx.settings.media.zipChunkSize
+        ctx.settings.media.zipChunkSize,
+        { audience: {
+          includeProtected: ctx.settings.export.includeProtected,
+          includeUnknown: ctx.settings.export.includeUnknown
+        } }
       );
       await checkpointStore.finish(jobId);
       ctx.diagnostics.info("Export completed", { records: packageRecords.length, formats });
@@ -20277,7 +20385,8 @@ a { color: var(--accent); }
         jobId,
         records: packageRecords.length,
         artifacts,
-        filename: artifacts[0]?.filename ?? zipFilename(ctx.settings.media.lastSaveFolder)
+        filename: artifacts[0]?.filename ?? zipFilename(ctx.settings.media.lastSaveFolder),
+        audience
       };
     } catch (error) {
       await checkpointStore.fail(jobId, error);
@@ -20347,13 +20456,15 @@ a { color: var(--accent); }
     }
     return actionResult(ok);
   }
-  async function buildExportZip(records, formats, folder) {
+  async function buildExportZip(records, formats, folder, options = {}) {
     const entries = [];
     const safeFolder = sanitizeFolder(folder);
     const prepared = prepareExportPackage(reconstructExportOrder(records));
+    const audience = normalizeAudienceSelection(options.audience ?? DEFAULT_EXPORT_AUDIENCE);
+    const shareRecords = filterShareRecords(prepared.records, audience);
     const packageFiles = [];
     for (const format of formats) {
-      const artifact = formatExport(format, prepared.records);
+      const artifact = formatExport(format, isShareOrientedFormat(format) ? shareRecords : prepared.records);
       const filename = packagePath(safeFolder, artifact.filename);
       entries.push({
         filename,
@@ -20378,7 +20489,7 @@ a { color: var(--accent); }
         sha256: sha256Hex(asset.data)
       });
     }
-    const viewer = buildExportViewer(prepared.records);
+    const viewer = buildExportViewer(prepared.records, { audience });
     const viewerPath = packagePath(safeFolder, "viewer.html");
     entries.push({ filename: viewerPath, data: viewer });
     packageFiles.push({
@@ -20396,7 +20507,7 @@ a { color: var(--accent); }
     });
     return buildZip(entries);
   }
-  async function buildExportZipChunks(records, formats, folder, chunkSize) {
+  async function buildExportZipChunks(records, formats, folder, chunkSize, options = {}) {
     const orderedRecords = reconstructExportOrder(records);
     if (orderedRecords.length === 0) {
       return [];
@@ -20404,14 +20515,14 @@ a { color: var(--accent); }
     const size = Math.max(1, Math.trunc(chunkSize) || orderedRecords.length);
     const base = zipFilename(folder);
     if (orderedRecords.length <= size) {
-      return [{ data: await buildExportZip(orderedRecords, formats, folder), filename: base }];
+      return [{ data: await buildExportZip(orderedRecords, formats, folder, options), filename: base }];
     }
     const total = Math.ceil(orderedRecords.length / size);
     const artifacts = [];
     for (let index = 0; index < total; index += 1) {
       const slice = orderedRecords.slice(index * size, (index + 1) * size);
       artifacts.push({
-        data: await buildExportZip(slice, formats, folder),
+        data: await buildExportZip(slice, formats, folder, options),
         filename: base.replace(/\.zip$/, `-part${index + 1}of${total}.zip`)
       });
     }
@@ -20560,14 +20671,15 @@ a { color: var(--accent); }
 
   // src/features/export/external-targets.ts
   var ENCODER2 = new TextEncoder();
-  function renderForExternalTarget(target, records) {
+  function renderForExternalTarget(target, records, options = {}) {
+    const selected = options.audience === void 0 ? records : filterShareRecords(records, normalizeAudienceSelection(options.audience));
     switch (target) {
       case "clipboard-markdown":
-        return { id: target, payload: toPlainMarkdown(records) };
+        return { id: target, payload: toPlainMarkdown(selected) };
       case "obsidian":
-        return { id: target, artifact: toObsidianArtifact(records) };
+        return { id: target, artifact: toObsidianArtifact(selected) };
       case "notion":
-        return { id: target, artifact: toNotionArtifact(records) };
+        return { id: target, artifact: toNotionArtifact(selected) };
       case "raw-json":
         return { id: target, artifact: toJsonArtifact(records) };
       default:
@@ -22909,6 +23021,7 @@ ${target}:focus-within { ${REVEALED} }`);
   var flushTimer;
   var visibilityObserver;
   var visibilityChangeHandler;
+  var visibilityRefreshHandler;
   var visibility = /* @__PURE__ */ new Map();
   var dwellTimers = /* @__PURE__ */ new Map();
   var testSeams = {};
@@ -23009,6 +23122,11 @@ ${target}:focus-within { ${REVEALED} }`);
       if (!id) {
         continue;
       }
+      const tracked = visibility.get(article);
+      if (tracked && tracked.id !== id) {
+        cancelDwell(article);
+        visibility.delete(article);
+      }
       if (store.has(id)) {
         article.setAttribute(MARKER3, "1");
       } else if (isDirectStatusPost(ctx, article, id)) {
@@ -23060,7 +23178,10 @@ ${target}:focus-within { ${REVEALED} }`);
     }, { threshold: [0, MIN_VISIBLE_RATIO] });
     if (!visibilityObserver) return void 0;
     visibilityChangeHandler = () => {
-      if (document.visibilityState === "visible") return;
+      if (document.visibilityState === "visible") {
+        refreshTrackedVisibility(ctx);
+        return;
+      }
       for (const article of visibility.keys()) {
         const state2 = visibility.get(article);
         if (state2) visibility.set(article, { ...state2, visible: false });
@@ -23068,6 +23189,9 @@ ${target}:focus-within { ${REVEALED} }`);
       }
     };
     document.addEventListener("visibilitychange", visibilityChangeHandler);
+    visibilityRefreshHandler = () => refreshTrackedVisibility(ctx);
+    document.addEventListener("scroll", visibilityRefreshHandler, true);
+    window.addEventListener("resize", visibilityRefreshHandler);
     return visibilityObserver;
   }
   function observeArticle(ctx, article, id) {
@@ -23084,6 +23208,30 @@ ${target}:focus-within { ${REVEALED} }`);
       return;
     }
     const visible = document.visibilityState === "visible" && entry.isIntersecting && isVisibleEnough(entry);
+    updateVisibility(ctx, article, id, visible);
+  }
+  function refreshTrackedVisibility(ctx) {
+    const viewportHeight = typeof window === "object" && Number.isFinite(window.innerHeight) ? window.innerHeight : 0;
+    for (const article of [...visibility.keys()]) {
+      if (!article.isConnected) {
+        cancelDwell(article);
+        visibility.delete(article);
+        continue;
+      }
+      const id = readTweetId3(article);
+      if (!id || !store || store.has(id)) {
+        cancelDwell(article);
+        continue;
+      }
+      const rect = article.getBoundingClientRect();
+      const height = rect.height;
+      const intersectionHeight = Math.max(0, Math.min(rect.bottom, viewportHeight) - Math.max(rect.top, 0));
+      const ratio = height > 0 ? intersectionHeight / height : 0;
+      const visible = document.visibilityState === "visible" && intersectionHeight > 0 && (ratio >= MIN_VISIBLE_RATIO || height > viewportHeight && intersectionHeight >= MIN_VISIBLE_PIXELS);
+      updateVisibility(ctx, article, id, visible);
+    }
+  }
+  function updateVisibility(ctx, article, id, visible) {
     const prior = visibility.get(article);
     visibility.set(article, { id, visible });
     if (!visible) {
@@ -23095,7 +23243,8 @@ ${target}:focus-within { ${REVEALED} }`);
     const timer2 = scheduleTimer(() => {
       dwellTimers.delete(article);
       const current = visibility.get(article);
-      if (!article.isConnected || !current?.visible || current.id !== scheduledId) return;
+      const currentId = readTweetId3(article);
+      if (!article.isConnected || !current?.visible || current.id !== scheduledId || currentId !== scheduledId) return;
       const result = qualify(ctx, article, scheduledId);
       if (result.marked || result.captured) scheduleFlush(now());
     }, DWELL_MS);
@@ -23207,6 +23356,11 @@ html[data-av-motion="reduce"] article[data-testid="tweet"][${MARKER3}="1"] {
     if (visibilityChangeHandler) {
       document.removeEventListener("visibilitychange", visibilityChangeHandler);
       visibilityChangeHandler = void 0;
+    }
+    if (visibilityRefreshHandler) {
+      document.removeEventListener("scroll", visibilityRefreshHandler, true);
+      window.removeEventListener("resize", visibilityRefreshHandler);
+      visibilityRefreshHandler = void 0;
     }
     for (const timer2 of dwellTimers.values()) clearTimer(timer2);
     dwellTimers.clear();
@@ -24222,10 +24376,11 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
   // src/features/export/warc.ts
   var ENCODER3 = new TextEncoder();
   var WARC_VERSION = "WARC/1.1";
-  function buildWarcArchive(records) {
-    return buildIndexedWarcArchive(records).artifact;
+  function buildWarcArchive(records, options = {}) {
+    return buildIndexedWarcArchive(records, options).artifact;
   }
   function buildIndexedWarcArchive(records, options = {}) {
+    const selectedRecords = options.audience === void 0 ? [...records] : filterShareRecords(records, normalizeAudienceSelection(options.audience));
     const generatedAt = validDate(options.generatedAt) ?? /* @__PURE__ */ new Date();
     const filename = sanitizeFilename(options.filename ?? "tweets.warc");
     const generatedAtIso = toWarcDate(generatedAt);
@@ -24251,7 +24406,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       recordedAt: generatedAt,
       extraHeaders: { "WARC-Filename": filename }
     });
-    const packageManifest = buildExportPackageManifest(records, [], "", generatedAtIso);
+    const packageManifest = buildExportPackageManifest(selectedRecords, [], "", generatedAtIso);
     append({
       url: "urn:aviary:export-metadata",
       mime: "application/json",
@@ -24265,7 +24420,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       recordType: "metadata",
       recordedAt: generatedAt
     });
-    records.forEach((record, recordIndex) => {
+    selectedRecords.forEach((record, recordIndex) => {
       const recordedAt = validDate(record.capturedAt) ?? generatedAt;
       const timestamp = toWarcDate(recordedAt);
       const summaryUrl = syntheticRecordUrl(record, recordIndex);
@@ -24614,10 +24769,12 @@ ${entry.ts}`;
     return finishWaczArchive(prepared, signedData);
   }
   function prepareWaczArchive(records, options) {
+    const selectedRecords = options.audience === void 0 ? [...records] : filterShareRecords(records, normalizeAudienceSelection(options.audience));
     const generatedAt = validDate2(options.generatedAt) ?? /* @__PURE__ */ new Date();
-    const warc = buildIndexedWarcArchive(records, {
+    const warc = buildIndexedWarcArchive(selectedRecords, {
       generatedAt,
-      filename: "aviary.warc"
+      filename: "aviary.warc",
+      audience: { includeProtected: true, includeUnknown: true }
     });
     const indexBytes = ENCODER4.encode(renderCdxj(warc.index, "aviary.warc"));
     const pagesBytes = ENCODER4.encode(renderPages(warc.pages));
@@ -24629,8 +24786,8 @@ ${entry.ts}`;
     const datapackage = {
       profile: "data-package",
       wacz_version: WACZ_VERSION,
-      title: collectionTitle(records),
-      description: collectionDescription(records),
+      title: collectionTitle(selectedRecords),
+      description: collectionDescription(selectedRecords),
       created: generatedAt.toISOString(),
       modified: generatedAt.toISOString(),
       software: "Aviary",
@@ -24672,9 +24829,10 @@ ${entry.ts}`;
       data
     };
   }
-  function estimateWaczBytes(records) {
+  function estimateWaczBytes(records, options = {}) {
+    const selectedRecords = options.audience === void 0 ? records : filterShareRecords(records, normalizeAudienceSelection(options.audience));
     let contentBytes = 12e3;
-    for (const record of records) {
+    for (const record of selectedRecords) {
       contentBytes += ENCODER4.encode(JSON.stringify(serializeExportRecord(record))).length + 1500;
       for (const media of Array.isArray(record.media) ? record.media : []) {
         const retainedBytes = media.bytes instanceof Uint8Array ? media.bytes.length : Number.isFinite(media.byteLength) && (media.byteLength ?? 0) > 0 ? Math.trunc(media.byteLength) : 0;
@@ -24682,7 +24840,7 @@ ${entry.ts}`;
       }
     }
     return {
-      records: records.length,
+      records: selectedRecords.length,
       estimatedBytes: contentBytes
     };
   }
@@ -24772,7 +24930,7 @@ ${entry.ts}`;
   var MAX_WACZ_EXPORT_BYTES = 256 * 1024 * 1024;
   var requestSequence = 0;
   async function buildWaczArchiveOffThread(records, options = {}) {
-    const estimate = estimateWaczBytes(records);
+    const estimate = estimateWaczBytes(records, options);
     if (estimate.estimatedBytes > MAX_WACZ_EXPORT_BYTES) {
       throw new RangeError(
         `This WACZ is about ${formatMiB(estimate.estimatedBytes)} MiB. The safe export limit is ${formatMiB(MAX_WACZ_EXPORT_BYTES)} MiB.`
@@ -24780,7 +24938,7 @@ ${entry.ts}`;
     }
     throwIfAborted(options.signal);
     options.onProgress?.(0);
-    const source = true ? '"use strict";(()=>{function j(e,t=null){let r=v(e.sourceUrl??e.url),n=e.bytes instanceof Uint8Array?e.bytes:null,i=/^https?:\\/\\//i.test(r),a=n?"captured-bytes":e.captureStatus==="missing"||!i?"missing":"remote-reference",o=n?n.byteLength:ye(e.byteLength),d=n?Q(e.sha256)??I(n):Q(e.sha256),u=v(e.capturedAt??t)||null,s=v(e.captureError);return{status:a,sourceUrl:r,capturedAt:u,byteLength:o,sha256:d,retryable:a!=="captured-bytes"&&i,...a==="captured-bytes"&&v(e.assetPath)?{packagePath:v(e.assetPath)}:{},...s?{error:s}:{}}}function me(e,t=null){let r=j(e,t),n={kind:e.kind,url:e.url,capture:r};e.width!==void 0&&(n.width=e.width),e.height!==void 0&&(n.height=e.height),e.bitrate!==void 0&&(n.bitrate=e.bitrate),e.type!==void 0&&(n.type=e.type),e.altText!==void 0&&(n.altText=e.altText),e.language!==void 0&&(n.language=e.language),e.label!==void 0&&(n.label=e.label);let i=e.httpStatus;return typeof i=="number"&&Number.isInteger(i)&&i>=100&&i<=599&&(n.httpStatus=i),n}function J(e){return{...e,media:te(e).map(t=>me(t,e.capturedAt))}}function ee(e,t,r="",n=new Date().toISOString()){let i=[],a=0,o=0,d=0,u=0;return e.forEach((s,p)=>{te(s).forEach(y=>{let c=j(y,s.capturedAt),m=c.packagePath?he(r,c.packagePath):void 0,l=m?{...c,packagePath:m}:c;i.push({recordIndex:p,recordId:s.tweetId,kind:y.kind,capture:l}),c.status==="captured-bytes"?a+=c.byteLength??0:c.status==="remote-reference"?o+=1:d+=1,c.retryable&&(u+=1)})}),{schemaVersion:1,generator:"Aviary",generatedAt:n,recordCount:e.length,files:t.map(s=>({...s})),media:i,summary:{capturedBytes:a,remoteReferences:o,missing:d,retryable:u},offlineReady:o===0&&d===0,networkRequiredToComplete:o>0||u>0}}function te(e){return Array.isArray(e.media)?e.media:[]}function I(e){let t=Math.ceil((e.length+9)/64)*64,r=new Uint8Array(t);r.set(e),r[e.length]=128;let n=new DataView(r.buffer),i=e.length*8;n.setUint32(t-8,Math.floor(i/4294967296)),n.setUint32(t-4,i>>>0);let a=new Uint32Array([1779033703,3144134277,1013904242,2773480762,1359893119,2600822924,528734635,1541459225]),o=new Uint32Array(64);for(let d=0;d<r.length;d+=64){for(let f=0;f<16;f+=1)o[f]=n.getUint32(d+f*4);for(let f=16;f<64;f+=1){let E=w(o[f-15],7)^w(o[f-15],18)^o[f-15]>>>3,A=w(o[f-2],17)^w(o[f-2],19)^o[f-2]>>>10;o[f]=o[f-16]+E+o[f-7]+A>>>0}let u=a[0],s=a[1],p=a[2],y=a[3],c=a[4],m=a[5],l=a[6],h=a[7];for(let f=0;f<64;f+=1){let E=w(c,6)^w(c,11)^w(c,25),A=c&m^~c&l,T=h+E+A+xe[f]+o[f]>>>0,C=w(u,2)^w(u,13)^w(u,22),H=u&s^u&p^s&p,P=C+H>>>0;h=l,l=m,m=c,c=y+T>>>0,y=p,p=s,s=u,u=T+P>>>0}a[0]=a[0]+u>>>0,a[1]=a[1]+s>>>0,a[2]=a[2]+p>>>0,a[3]=a[3]+y>>>0,a[4]=a[4]+c>>>0,a[5]=a[5]+m>>>0,a[6]=a[6]+l>>>0,a[7]=a[7]+h>>>0}return Array.from(a,d=>d.toString(16).padStart(8,"0")).join("")}function w(e,t){return e>>>t|e<<32-t}function v(e){return typeof e=="string"?e.trim():""}function Q(e){let t=v(e).toLowerCase();return/^[0-9a-f]{64}$/.test(t)?t:null}function ye(e){return typeof e=="number"&&Number.isFinite(e)&&e>=0?Math.trunc(e):null}function he(e,t){return e?`${e.replace(/\\/+$/g,"")}/${t}`:t}var xe=Uint32Array.from([1116352408,1899447441,3049323471,3921009573,961987163,1508970993,2453635748,2870763221,3624381080,310598401,607225278,1426881987,1925078388,2162078206,2614888103,3248222580,3835390401,4022224774,264347078,604807628,770255983,1249150122,1555081692,1996064986,2554220882,2821834349,2952996808,3210313671,3336571891,3584528711,113926993,338241895,666307205,773529912,1294757372,1396182291,1695183700,1986661051,2177026350,2456956037,2730485921,2820302411,3259730800,3345764771,3516065817,3600352804,4094571909,275423344,430227734,506948616,659060556,883997877,958139571,1322822218,1537002063,1747873779,1955562222,2024104815,2227730452,2361852424,2428436474,2756734187,3204031479,3329325298]),qe=Uint8Array.from([0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,4]);var D=new TextEncoder,ae="WARC/1.1";function ie(e,t={}){let r=S(t.generatedAt)??new Date,n=Se(t.filename??"tweets.warc"),i=L(r),a=[],o=[],d=[],u=0,s=0,p=(c,m)=>{let l=Te({...c,occurrence:s++});a.push(l),m&&o.push({...m,offset:u,length:l.length}),u+=l.length};p({mime:"application/warc-fields",body:["software: Aviary",`format: ${ae}`,"conformsTo: https://iipc.github.io/warc-specifications/specifications/warc-format/warc-1.1/"].join(`\\r\n`),recordType:"warcinfo",recordedAt:r,extraHeaders:{"WARC-Filename":n}});let y=ee(e,[],"",i);return p({url:"urn:aviary:export-metadata",mime:"application/json",body:JSON.stringify({generator:"Aviary",generatedAt:i,count:e.length,metadataOnly:!0,packageManifest:y}),recordType:"metadata",recordedAt:r}),e.forEach((c,m)=>{let l=S(c.capturedAt)??r,h=L(l),f=Ae(c,m),E=D.encode(JSON.stringify(J(c),null,2)),A=F(E);p({url:f,mime:"application/json",body:E,recordType:"resource",recordedAt:l,payloadDigest:A});let T=Ee(c,m),C=c.handle?`@${c.handle} captured post`:`Captured post ${m+1}`,H=D.encode(we(c,C)),P=F(H);p({url:T,mime:"application/http; msgtype=response",body:ne(H,"text/html; charset=utf-8",200),recordType:"response",recordedAt:l,payloadDigest:P},{url:T,timestamp:h,digest:P,mime:"text/html",status:200});let z=S(c.createdAt);d.push({url:T,ts:h,title:C,capturedAt:h,...z?{publishedAt:L(z)}:{}});for(let[_,b]of oe(c).entries()){let x=j(b,c.capturedAt),R=S(x.capturedAt)??l,O=L(R),g=q(x.sourceUrl),k=se(b);if(x.status==="captured-bytes"&&b.bytes instanceof Uint8Array){let N=F(b.bytes);if(g){let B=Ue(b.httpStatus);if(B!==null){let ge=ne(b.bytes,k,B,b.httpHeaders);p({url:g,mime:"application/http; msgtype=response",body:ge,recordType:"response",recordedAt:R,payloadDigest:N},{url:g,timestamp:O,digest:N,mime:k,status:B})}else p({url:g,mime:k,body:b.bytes,recordType:"resource",recordedAt:R,payloadDigest:N})}else{let B=re(m,_,b);p({url:B,mime:k,body:b.bytes,recordType:"resource",recordedAt:R,payloadDigest:N})}continue}p({url:g??re(m,_,b),mime:"application/json",body:JSON.stringify({generator:"Aviary",metadataOnly:!0,message:"The media body is not in this WARC; the manifest records whether it is retryable.",media:x}),recordType:"metadata",recordedAt:R})}}),{artifact:{filename:n,contentType:"application/warc",data:X(a,u)},index:o.sort(Ce),pages:He(d)}}function oe(e){return Array.isArray(e.media)?e.media:[]}function S(e){if(e==null)return;let t=e instanceof Date?new Date(e.getTime()):new Date(e);return Number.isNaN(t.getTime())?void 0:t}function L(e){return e.toISOString().replace(/\\.[0-9]{3}Z$/,"Z")}function se(e){return e.type?.includes("/")?e.type:e.type==="png"?"image/png":e.type==="webp"?"image/webp":e.kind==="video"?"video/mp4":e.kind==="audio"?"audio/mp4":e.kind==="subtitle"?"text/vtt":"image/jpeg"}function be(e){let t=se(e);return t==="image/png"?"png":t==="image/webp"?"webp":t==="video/mp4"?"mp4":t==="audio/mp4"?"m4a":t==="audio/mpeg"?"mp3":t==="text/vtt"?"vtt":t==="text/srt"?"srt":t==="application/ttml+xml"||t==="text/ttml"?"ttml":"jpg"}function Ae(e,t){let r=encodeURIComponent(e.tweetId?.trim()||`record-${t+1}`);return`https://aviary.invalid/records/${Z(t)}-${r}.json`}function Ee(e,t){let r=encodeURIComponent(e.tweetId?.trim()||`record-${t+1}`);return`https://aviary.invalid/pages/${Z(t)}-${r}.html`}function re(e,t,r){return`https://aviary.invalid/media/${Z(e)}-${Z(t)}.${be(r)}`}function Z(e){return String(e+1).padStart(6,"0")}function q(e){if(!e)return null;try{let t=new URL(e);return t.protocol!=="http:"&&t.protocol!=="https:"?null:(t.hash="",t.href)}catch{return null}}function we(e,t){let r=q(e.permalink),n=S(e.createdAt)??S(e.capturedAt),i=S(e.capturedAt),a=n?.toISOString()??"unknown",o=i?.toISOString()??"unknown",d=oe(e).map(s=>{let p=q(s.sourceUrl||s.url);if(!p)return"";let y=U(p);return s.kind==="video"?`<video controls preload="metadata" src="${y}"></video>`:s.kind==="audio"?`<audio controls preload="metadata" src="${y}"></audio>`:s.kind==="subtitle"?`<p><a href="${y}" rel="noreferrer">Captured captions${s.language?` (${U(s.language)})`:""}</a></p>`:`<img src="${y}" alt="${U(s.altText??"Captured post media")}">`}).join(""),u=r?`<a href="${U(r)}" rel="noreferrer">Original post</a>`:"";return`<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n<title>${U(t)}</title>\n<style>\n:root{color-scheme:dark;background:#07080a;color:#f2f4f7;font:16px/1.55 system-ui,sans-serif}\nbody{margin:0;padding:clamp(24px,6vw,72px)}main{max-width:680px;margin:auto}\narticle{background:#111318;border:1px solid #292d35;border-radius:12px;padding:24px;box-shadow:0 20px 60px #0008}\nheader{display:flex;justify-content:space-between;gap:16px;color:#aab2c0;font-size:14px}strong{color:#f2f4f7}\np{white-space:pre-wrap;font-size:18px}.media{display:grid;gap:10px;margin-top:18px}img,video{width:100%;border-radius:12px;background:#050506}\na{display:inline-block;margin-top:18px;color:#7dd3fc;text-underline-offset:3px}\n</style>\n</head>\n<body><main><article><header><strong>${U(e.handle?`@${e.handle}`:e.displayName??"Captured post")}</strong><span><time datetime="${U(a)}">Posted ${U(a)}</time><br><small>Captured ${U(o)}</small></span></header><p>${U(e.text??"")}</p>${d?`<div class="media">${d}</div>`:""}${u}</article></main></body>\n</html>`}function U(e){return e.replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll(\'"\',"&quot;").replaceAll("\'","&#39;")}function ne(e,t,r,n={}){let i=[`HTTP/1.1 ${r} ${r===200?"OK":"Captured"}`,...Object.entries(n).sort(([o],[d])=>o.localeCompare(d)).filter(([o])=>!/^(?:content-type|content-length|connection)$/i.test(o)).map(([o,d])=>`${ce(o)}: ${W(d)}`),`Content-Type: ${W(t)||"application/octet-stream"}`,`Content-Length: ${e.length}`,"Connection: close","",""],a=D.encode(i.join(`\\r\n`));return X([a,e],a.length+e.length)}function Ue(e){return typeof e!="number"||!Number.isInteger(e)||e<100||e>599?null:e}function W(e){return e.replace(/[\\u0000-\\u001f\\u007f]/g," ").replace(/\\s+/g," ").trim()}function Te(e){let t=e.recordType??"resource",r=L(S(e.recordedAt)??new Date),n=typeof e.body=="string"?D.encode(e.body):e.body,i=W(e.url??""),a=W(e.mime)||"application/octet-stream",o=F(n),d=W(e.recordId??Re({recordType:t,recordedAt:r,url:i,mime:a,blockDigest:o,occurrence:e.occurrence??0})),u=[ae,`WARC-Type: ${t}`,...t==="warcinfo"?[]:[`WARC-Target-URI: ${i||"urn:aviary:unknown"}`],`WARC-Date: ${r}`,`WARC-Record-ID: ${d.startsWith("<")?d:`<${d}>`}`,...Object.entries(e.extraHeaders??{}).map(([y,c])=>`${ce(y)}: ${W(c)}`),`WARC-Block-Digest: ${o}`,...e.payloadDigest?[`WARC-Payload-Digest: ${W(e.payloadDigest)}`]:[],`Content-Type: ${a}`,`Content-Length: ${n.length}`],s=D.encode(`${u.join(`\\r\n`)}\\r\n\\r\n`),p=D.encode(`\\r\n\\r\n`);return X([s,n,p],s.length+n.length+p.length)}function ce(e){return e.replace(/[^A-Za-z0-9-]/g,"")||"X-Aviary-Header"}function Re(e){let t=I(D.encode([e.recordType,e.recordedAt,e.url,e.mime,e.blockDigest,String(e.occurrence)].join(`\n`)));return`<urn:uuid:${`${t.slice(0,8)}-${t.slice(8,12)}-5${t.slice(13,16)}-8${t.slice(17,20)}-${t.slice(20,32)}`}>`}function F(e){return`sha256:${$e(I(e))}`}function $e(e){let t="ABCDEFGHIJKLMNOPQRSTUVWXYZ234567",r=0,n=0,i="";for(let a=0;a<e.length;a+=2){for(r=r<<8|Number.parseInt(e.slice(a,a+2),16),n+=8;n>=5;)i+=t[r>>>n-5&31],n-=5;r&=(1<<n)-1}return n>0&&(i+=t[r<<5-n&31]),i}function X(e,t){let r=new Uint8Array(t),n=0;for(let i of e)r.set(i,n),n+=i.length;return r}function Se(e){let t=e.replace(/[\\\\/:*?"<>|\\u0000-\\u001f]/g,"-").trim();return t.toLowerCase().endsWith(".warc")?t:`${t||"tweets"}.warc`}function Ce(e,t){return e.url.localeCompare(t.url)||e.timestamp.localeCompare(t.timestamp)||e.offset-t.offset}function He(e){let t=new Set;return e.filter(r=>{let n=`${r.url}\n${r.ts}`;return t.has(n)?!1:(t.add(n),!0)})}var Pe=(()=>{let e=new Uint32Array(256);for(let t=0;t<256;t++){let r=t;for(let n=0;n<8;n++)r=r&1?3988292384^r>>>1:r>>>1;e[t]=r>>>0}return e})();function ke(e){let t=4294967295;for(let r=0;r<e.length;r++)t=(Pe[(t^e[r])&255]^t>>>8)>>>0;return(t^4294967295)>>>0}var de=2048,V=65535,G=4294967295,ue=0;function pe(e){return Ie(e,e.map(()=>ue),e.map(t=>t.data))}function Ie(e,t,r){let n=new TextEncoder,i=[],a=[],o=0;if(e.length>V)throw new RangeError(`A zip holds at most ${V} entries without ZIP64; got ${e.length}.`);for(let[l,h]of e.entries()){let f=t[l]??ue,E=r[l]??h.data;if(E.length>G)throw new RangeError(`"${h.filename}" is ${h.data.length} bytes; a zip entry cannot exceed ${G} without ZIP64.`);let A=n.encode(h.filename);if(A.length>V)throw new RangeError(`"${h.filename}" has a name longer than ${V} bytes.`);let T=ke(E),C=E.length,H=h.data.length,P=h.date??new Date,z=We(P),_=De(P),b=new ArrayBuffer(30+A.length),x=new DataView(b);x.setUint32(0,67324752,!0),x.setUint16(4,20,!0),x.setUint16(6,de,!0),x.setUint16(8,f,!0),x.setUint16(10,_,!0),x.setUint16(12,z,!0),x.setUint32(14,T,!0),x.setUint32(18,H,!0),x.setUint32(22,C,!0),x.setUint16(26,A.length,!0),x.setUint16(28,0,!0);let R=new Uint8Array(b);R.set(A,30),i.push(R),i.push(h.data);let O=new ArrayBuffer(46+A.length),g=new DataView(O);g.setUint32(0,33639248,!0),g.setUint16(4,20,!0),g.setUint16(6,20,!0),g.setUint16(8,de,!0),g.setUint16(10,f,!0),g.setUint16(12,_,!0),g.setUint16(14,z,!0),g.setUint32(16,T,!0),g.setUint32(20,H,!0),g.setUint32(24,C,!0),g.setUint16(28,A.length,!0),g.setUint16(30,0,!0),g.setUint16(32,0,!0),g.setUint16(34,0,!0),g.setUint16(36,0,!0),g.setUint32(38,0,!0),g.setUint32(42,o,!0);let k=new Uint8Array(O);k.set(A,46),a.push(k),o+=R.length+h.data.length}let d=o,u=0;for(let l of a)u+=l.length;if(d>G||u>G)throw new RangeError(`The archive is too large for a non-ZIP64 zip (central directory at ${d}, size ${u}).`);let s=new Uint8Array(22),p=new DataView(s.buffer);p.setUint32(0,101010256,!0),p.setUint16(4,0,!0),p.setUint16(6,0,!0),p.setUint16(8,e.length,!0),p.setUint16(10,e.length,!0),p.setUint32(12,u,!0),p.setUint32(16,d,!0),p.setUint16(20,0,!0);let y=o+u+s.length,c=new Uint8Array(y),m=0;for(let l of i)c.set(l,m),m+=l.length;for(let l of a)c.set(l,m),m+=l.length;return c.set(s,m),c}function We(e){return(Math.max(e.getUTCFullYear()-1980,0)&127)<<9|(e.getUTCMonth()+1&15)<<5|e.getUTCDate()&31}function De(e){return(e.getUTCHours()&31)<<11|(e.getUTCMinutes()&63)<<5|Math.floor(e.getUTCSeconds()/2)&31}var M=new TextEncoder,ve="1.1.1";var Me="archive/aviary.warc",ze="indexes/index.cdxj",_e="pages/pages.jsonl";function le(e,t={}){return Y(K(e,t))}function K(e,t){let r=fe(t.generatedAt)??new Date,n=ie(e,{generatedAt:r,filename:"aviary.warc"}),i=M.encode(Be(n.index,"aviary.warc")),a=M.encode(Oe(n.pages)),o=[{filename:Me,data:n.artifact.data,date:r},{filename:ze,data:i,date:r},{filename:_e,data:a,date:r}],d={profile:"data-package",wacz_version:ve,title:Ne(e),description:je(e),created:r.toISOString(),modified:r.toISOString(),software:"Aviary",...n.pages[0]?{mainPageUrl:n.pages[0].url,mainPageDate:n.pages[0].ts}:{},resources:o.map(s=>({name:Ve(s.filename),path:s.filename,hash:`sha256:${I(s.data)}`,bytes:s.data.length}))},u=M.encode(`${JSON.stringify(d,null,2)}\n`);return{generatedAt:r,datapackageBytes:u,datapackageHash:`sha256:${I(u)}`,resourceEntries:o}}function Y(e,t){let r=M.encode(`${JSON.stringify({path:"datapackage.json",hash:e.datapackageHash,...t?{signedData:t}:{}},null,2)}\n`),n=pe([...e.resourceEntries,{filename:"datapackage.json",data:e.datapackageBytes,date:e.generatedAt},{filename:"datapackage-digest.json",data:r,date:e.generatedAt}]);return{filename:`aviary-${Ge(e.generatedAt)}.wacz`,contentType:"application/wacz",data:n}}function Be(e,t="aviary.warc"){let r=e.map(n=>`${Le(n.url)} ${Fe(n.timestamp)} ${JSON.stringify({url:n.url,digest:n.digest,mime:n.mime,status:n.status,filename:t,offset:n.offset,length:n.length})}`);return r.sort(Ze),r.length>0?`${r.join(`\n`)}\n`:""}function Le(e){let t=new URL(e),r=t.hostname.toLowerCase(),n=r.includes(":")?r:r.split(".").filter(Boolean).reverse().join(","),i=t.port?`:${t.port}`:"";return`${n}${i})${t.pathname||"/"}${t.search}`}function Oe(e){let t=[JSON.stringify({format:"json-pages-1.0",id:"pages",title:"All Pages"})];return e.forEach((r,n)=>{t.push(JSON.stringify({id:`page-${String(n+1).padStart(6,"0")}`,url:r.url,ts:r.ts,...r.title?{title:r.title}:{},...r.capturedAt?{capturedAt:r.capturedAt}:{},...r.publishedAt?{publishedAt:r.publishedAt}:{}}))}),`${t.join(`\n`)}\n`}function Ne(e){let t=e.length;return`Aviary archive, ${t} captured post${t===1?"":"s"}`}function je(e){let t=e.length,r=e.reduce((n,i)=>n+(Array.isArray(i.media)?i.media.length:0),0);return[`A local WACZ export generated by Aviary from ${t} X post${t===1?"":"s"}.`,`It includes replayable post pages and ${r} referenced media item${r===1?"":"s"} when their bytes were retained.`].join(`\n\n`)}function Fe(e){let t=fe(e);if(!t)throw new TypeError(`Invalid CDX timestamp: ${e}`);return t.toISOString().replace(/[-:T]/g,"").slice(0,14)}function Ze(e,t){let r=M.encode(e),n=M.encode(t),i=Math.min(r.length,n.length);for(let a=0;a<i;a+=1){let o=r[a]-n[a];if(o!==0)return o}return r.length-n.length}function Ve(e){return e.split("/").pop()??e}function Ge(e){return e.toISOString().replace(/[-:]/g,"").replace(/\\.[0-9]{3}Z$/,"Z")}function fe(e){if(e===void 0)return;let t=e instanceof Date?new Date(e.getTime()):new Date(e);return Number.isNaN(t.getTime())?void 0:t}var $=globalThis;$.onmessage=e=>{let t=e.data;if(!(!t||!Number.isSafeInteger(t.id)))try{let r=t.type??"build";if(r==="finish"){if(!t.prepared)throw new TypeError("WACZ worker is missing prepared archive data");$.postMessage({id:t.id,type:"progress",progress:.85});let a=Y(t.prepared,t.signedData);$.postMessage({id:t.id,type:"progress",progress:1}),$.postMessage({id:t.id,type:"complete",artifact:a},[a.data.buffer]);return}if(!Array.isArray(t.records))throw new TypeError("WACZ worker is missing records");let n={...t.options?.generatedAt?{generatedAt:new Date(t.options.generatedAt)}:{}};if($.postMessage({id:t.id,type:"progress",progress:.15}),r==="prepare"){let a=K(t.records,n);$.postMessage({id:t.id,type:"prepared",prepared:a},Je(a));return}let i=le(t.records,n);$.postMessage({id:t.id,type:"progress",progress:1}),$.postMessage({id:t.id,type:"complete",artifact:i},[i.data.buffer])}catch(r){$.postMessage({id:t.id,type:"error",error:String(r?.message??r)})}};function Je(e){return[e.datapackageBytes.buffer,...e.resourceEntries.map(t=>t.data.buffer)]}})();\n' : "";
+    const source = true ? '"use strict";(()=>{var be={includeProtected:!1,includeUnknown:!1};function G(e){return e==="public"||e==="protected"||e==="unknown"?e:"unknown"}function _(e){return{includeProtected:e?.includeProtected===!0,includeUnknown:e?.includeUnknown===!0}}function Ae(e){return G(e.audience)}function Z(e,t=be){return e.filter(r=>{let n=Ae(r);return n==="public"||n==="protected"&&t.includeProtected||n==="unknown"&&t.includeUnknown})}function V(e,t=null){let r=v(e.sourceUrl??e.url),n=e.bytes instanceof Uint8Array?e.bytes:null,i=/^https?:\\/\\//i.test(r),a=n?"captured-bytes":e.captureStatus==="missing"||!i?"missing":"remote-reference",o=n?n.byteLength:Ee(e.byteLength),c=n?ne(e.sha256)??D(n):ne(e.sha256),d=v(e.capturedAt??t)||null,s=v(e.captureError);return{status:a,sourceUrl:r,capturedAt:d,byteLength:o,sha256:c,retryable:a!=="captured-bytes"&&i,...a==="captured-bytes"&&v(e.assetPath)?{packagePath:v(e.assetPath)}:{},...s?{error:s}:{}}}function we(e,t=null){let r=V(e,t),n={kind:e.kind,url:e.url,capture:r};e.width!==void 0&&(n.width=e.width),e.height!==void 0&&(n.height=e.height),e.bitrate!==void 0&&(n.bitrate=e.bitrate),e.type!==void 0&&(n.type=e.type),e.altText!==void 0&&(n.altText=e.altText),e.language!==void 0&&(n.language=e.language),e.label!==void 0&&(n.label=e.label);let i=e.httpStatus;return typeof i=="number"&&Number.isInteger(i)&&i>=100&&i<=599&&(n.httpStatus=i),n}function Y(e){return{...e,audience:G(e.audience),media:ie(e).map(t=>we(t,e.capturedAt))}}function ae(e,t,r="",n=new Date().toISOString()){let i=[],a=0,o=0,c=0,d=0;return e.forEach((s,u)=>{ie(s).forEach(m=>{let l=V(m,s.capturedAt),f=l.packagePath?Ue(r,l.packagePath):void 0,g=f?{...l,packagePath:f}:l;i.push({recordIndex:u,recordId:s.tweetId,kind:m.kind,capture:g}),l.status==="captured-bytes"?a+=l.byteLength??0:l.status==="remote-reference"?o+=1:c+=1,l.retryable&&(d+=1)})}),{schemaVersion:1,generator:"Aviary",generatedAt:n,recordCount:e.length,files:t.map(s=>({...s})),media:i,summary:{capturedBytes:a,remoteReferences:o,missing:c,retryable:d},offlineReady:o===0&&c===0,networkRequiredToComplete:o>0||d>0}}function ie(e){return Array.isArray(e.media)?e.media:[]}function D(e){let t=Math.ceil((e.length+9)/64)*64,r=new Uint8Array(t);r.set(e),r[e.length]=128;let n=new DataView(r.buffer),i=e.length*8;n.setUint32(t-8,Math.floor(i/4294967296)),n.setUint32(t-4,i>>>0);let a=new Uint32Array([1779033703,3144134277,1013904242,2773480762,1359893119,2600822924,528734635,1541459225]),o=new Uint32Array(64);for(let c=0;c<r.length;c+=64){for(let p=0;p<16;p+=1)o[p]=n.getUint32(c+p*4);for(let p=16;p<64;p+=1){let E=A(o[p-15],7)^A(o[p-15],18)^o[p-15]>>>3,b=A(o[p-2],17)^A(o[p-2],19)^o[p-2]>>>10;o[p]=o[p-16]+E+o[p-7]+b>>>0}let d=a[0],s=a[1],u=a[2],m=a[3],l=a[4],f=a[5],g=a[6],y=a[7];for(let p=0;p<64;p+=1){let E=A(l,6)^A(l,11)^A(l,25),b=l&f^~l&g,P=y+E+b+ke[p]+o[p]>>>0,k=A(d,2)^A(d,13)^A(d,22),C=d&s^d&u^s&u,W=k+C>>>0;y=g,g=f,f=l,l=m+P>>>0,m=u,u=s,s=d,d=P+W>>>0}a[0]=a[0]+d>>>0,a[1]=a[1]+s>>>0,a[2]=a[2]+u>>>0,a[3]=a[3]+m>>>0,a[4]=a[4]+l>>>0,a[5]=a[5]+f>>>0,a[6]=a[6]+g>>>0,a[7]=a[7]+y>>>0}return Array.from(a,c=>c.toString(16).padStart(8,"0")).join("")}function A(e,t){return e>>>t|e<<32-t}function v(e){return typeof e=="string"?e.trim():""}function ne(e){let t=v(e).toLowerCase();return/^[0-9a-f]{64}$/.test(t)?t:null}function Ee(e){return typeof e=="number"&&Number.isFinite(e)&&e>=0?Math.trunc(e):null}function Ue(e,t){return e?`${e.replace(/\\/+$/g,"")}/${t}`:t}var ke=Uint32Array.from([1116352408,1899447441,3049323471,3921009573,961987163,1508970993,2453635748,2870763221,3624381080,310598401,607225278,1426881987,1925078388,2162078206,2614888103,3248222580,3835390401,4022224774,264347078,604807628,770255983,1249150122,1555081692,1996064986,2554220882,2821834349,2952996808,3210313671,3336571891,3584528711,113926993,338241895,666307205,773529912,1294757372,1396182291,1695183700,1986661051,2177026350,2456956037,2730485921,2820302411,3259730800,3345764771,3516065817,3600352804,4094571909,275423344,430227734,506948616,659060556,883997877,958139571,1322822218,1537002063,1747873779,1955562222,2024104815,2227730452,2361852424,2428436474,2756734187,3204031479,3329325298]),nt=Uint8Array.from([0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,4]);var M=new TextEncoder,ce="WARC/1.1";function de(e,t={}){let r=t.audience===void 0?[...e]:Z(e,_(t.audience)),n=T(t.generatedAt)??new Date,i=Ie(t.filename??"tweets.warc"),a=L(n),o=[],c=[],d=[],s=0,u=0,m=(f,g)=>{let y=Ce({...f,occurrence:u++});o.push(y),g&&c.push({...g,offset:s,length:y.length}),s+=y.length};m({mime:"application/warc-fields",body:["software: Aviary",`format: ${ce}`,"conformsTo: https://iipc.github.io/warc-specifications/specifications/warc-format/warc-1.1/"].join(`\\r\n`),recordType:"warcinfo",recordedAt:n,extraHeaders:{"WARC-Filename":i}});let l=ae(r,[],"",a);return m({url:"urn:aviary:export-metadata",mime:"application/json",body:JSON.stringify({generator:"Aviary",generatedAt:a,count:e.length,metadataOnly:!0,packageManifest:l}),recordType:"metadata",recordedAt:n}),r.forEach((f,g)=>{let y=T(f.capturedAt)??n,p=L(y),E=Se(f,g),b=M.encode(JSON.stringify(Y(f),null,2)),P=J(b);m({url:E,mime:"application/json",body:b,recordType:"resource",recordedAt:y,payloadDigest:P});let k=$e(f,g),C=f.handle?`@${f.handle} captured post`:`Captured post ${g+1}`,W=M.encode(Te(f,C)),B=J(W);m({url:k,mime:"application/http; msgtype=response",body:se(W,"text/html; charset=utf-8",200),recordType:"response",recordedAt:y,payloadDigest:B},{url:k,timestamp:p,digest:B,mime:"text/html",status:200});let O=T(f.createdAt);d.push({url:k,ts:p,title:C,capturedAt:p,...O?{publishedAt:L(O)}:{}});for(let[H,x]of ue(f).entries()){let R=V(x,f.capturedAt),S=T(R.capturedAt)??y,h=L(S),$=Q(R.sourceUrl),j=pe(x);if(R.status==="captured-bytes"&&x.bytes instanceof Uint8Array){let F=J(x.bytes);if($){let N=Pe(x.httpStatus);if(N!==null){let he=se(x.bytes,j,N,x.httpHeaders);m({url:$,mime:"application/http; msgtype=response",body:he,recordType:"response",recordedAt:S,payloadDigest:F},{url:$,timestamp:h,digest:F,mime:j,status:N})}else m({url:$,mime:j,body:x.bytes,recordType:"resource",recordedAt:S,payloadDigest:F})}else{let N=oe(g,H,x);m({url:N,mime:j,body:x.bytes,recordType:"resource",recordedAt:S,payloadDigest:F})}continue}m({url:$??oe(g,H,x),mime:"application/json",body:JSON.stringify({generator:"Aviary",metadataOnly:!0,message:"The media body is not in this WARC; the manifest records whether it is retryable.",media:R}),recordType:"metadata",recordedAt:S})}}),{artifact:{filename:i,contentType:"application/warc",data:ee(o,s)},index:c.sort(Me),pages:ve(d)}}function ue(e){return Array.isArray(e.media)?e.media:[]}function T(e){if(e==null)return;let t=e instanceof Date?new Date(e.getTime()):new Date(e);return Number.isNaN(t.getTime())?void 0:t}function L(e){return e.toISOString().replace(/\\.[0-9]{3}Z$/,"Z")}function pe(e){return e.type?.includes("/")?e.type:e.type==="png"?"image/png":e.type==="webp"?"image/webp":e.kind==="video"?"video/mp4":e.kind==="audio"?"audio/mp4":e.kind==="subtitle"?"text/vtt":"image/jpeg"}function Re(e){let t=pe(e);return t==="image/png"?"png":t==="image/webp"?"webp":t==="video/mp4"?"mp4":t==="audio/mp4"?"m4a":t==="audio/mpeg"?"mp3":t==="text/vtt"?"vtt":t==="text/srt"?"srt":t==="application/ttml+xml"||t==="text/ttml"?"ttml":"jpg"}function Se(e,t){let r=encodeURIComponent(e.tweetId?.trim()||`record-${t+1}`);return`https://aviary.invalid/records/${X(t)}-${r}.json`}function $e(e,t){let r=encodeURIComponent(e.tweetId?.trim()||`record-${t+1}`);return`https://aviary.invalid/pages/${X(t)}-${r}.html`}function oe(e,t,r){return`https://aviary.invalid/media/${X(e)}-${X(t)}.${Re(r)}`}function X(e){return String(e+1).padStart(6,"0")}function Q(e){if(!e)return null;try{let t=new URL(e);return t.protocol!=="http:"&&t.protocol!=="https:"?null:(t.hash="",t.href)}catch{return null}}function Te(e,t){let r=Q(e.permalink),n=T(e.createdAt)??T(e.capturedAt),i=T(e.capturedAt),a=n?.toISOString()??"unknown",o=i?.toISOString()??"unknown",c=ue(e).map(s=>{let u=Q(s.sourceUrl||s.url);if(!u)return"";let m=w(u);return s.kind==="video"?`<video controls preload="metadata" src="${m}"></video>`:s.kind==="audio"?`<audio controls preload="metadata" src="${m}"></audio>`:s.kind==="subtitle"?`<p><a href="${m}" rel="noreferrer">Captured captions${s.language?` (${w(s.language)})`:""}</a></p>`:`<img src="${m}" alt="${w(s.altText??"Captured post media")}">`}).join(""),d=r?`<a href="${w(r)}" rel="noreferrer">Original post</a>`:"";return`<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n<title>${w(t)}</title>\n<style>\n:root{color-scheme:dark;background:#07080a;color:#f2f4f7;font:16px/1.55 system-ui,sans-serif}\nbody{margin:0;padding:clamp(24px,6vw,72px)}main{max-width:680px;margin:auto}\narticle{background:#111318;border:1px solid #292d35;border-radius:12px;padding:24px;box-shadow:0 20px 60px #0008}\nheader{display:flex;justify-content:space-between;gap:16px;color:#aab2c0;font-size:14px}strong{color:#f2f4f7}\np{white-space:pre-wrap;font-size:18px}.media{display:grid;gap:10px;margin-top:18px}img,video{width:100%;border-radius:12px;background:#050506}\na{display:inline-block;margin-top:18px;color:#7dd3fc;text-underline-offset:3px}\n</style>\n</head>\n<body><main><article><header><strong>${w(e.handle?`@${e.handle}`:e.displayName??"Captured post")}</strong><span><time datetime="${w(a)}">Posted ${w(a)}</time><br><small>Captured ${w(o)}</small></span></header><p>${w(e.text??"")}</p>${c?`<div class="media">${c}</div>`:""}${d}</article></main></body>\n</html>`}function w(e){return e.replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll(\'"\',"&quot;").replaceAll("\'","&#39;")}function se(e,t,r,n={}){let i=[`HTTP/1.1 ${r} ${r===200?"OK":"Captured"}`,...Object.entries(n).sort(([o],[c])=>o.localeCompare(c)).filter(([o])=>!/^(?:content-type|content-length|connection)$/i.test(o)).map(([o,c])=>`${le(o)}: ${I(c)}`),`Content-Type: ${I(t)||"application/octet-stream"}`,`Content-Length: ${e.length}`,"Connection: close","",""],a=M.encode(i.join(`\\r\n`));return ee([a,e],a.length+e.length)}function Pe(e){return typeof e!="number"||!Number.isInteger(e)||e<100||e>599?null:e}function I(e){return e.replace(/[\\u0000-\\u001f\\u007f]/g," ").replace(/\\s+/g," ").trim()}function Ce(e){let t=e.recordType??"resource",r=L(T(e.recordedAt)??new Date),n=typeof e.body=="string"?M.encode(e.body):e.body,i=I(e.url??""),a=I(e.mime)||"application/octet-stream",o=J(n),c=I(e.recordId??We({recordType:t,recordedAt:r,url:i,mime:a,blockDigest:o,occurrence:e.occurrence??0})),d=[ce,`WARC-Type: ${t}`,...t==="warcinfo"?[]:[`WARC-Target-URI: ${i||"urn:aviary:unknown"}`],`WARC-Date: ${r}`,`WARC-Record-ID: ${c.startsWith("<")?c:`<${c}>`}`,...Object.entries(e.extraHeaders??{}).map(([m,l])=>`${le(m)}: ${I(l)}`),`WARC-Block-Digest: ${o}`,...e.payloadDigest?[`WARC-Payload-Digest: ${I(e.payloadDigest)}`]:[],`Content-Type: ${a}`,`Content-Length: ${n.length}`],s=M.encode(`${d.join(`\\r\n`)}\\r\n\\r\n`),u=M.encode(`\\r\n\\r\n`);return ee([s,n,u],s.length+n.length+u.length)}function le(e){return e.replace(/[^A-Za-z0-9-]/g,"")||"X-Aviary-Header"}function We(e){let t=D(M.encode([e.recordType,e.recordedAt,e.url,e.mime,e.blockDigest,String(e.occurrence)].join(`\n`)));return`<urn:uuid:${`${t.slice(0,8)}-${t.slice(8,12)}-5${t.slice(13,16)}-8${t.slice(17,20)}-${t.slice(20,32)}`}>`}function J(e){return`sha256:${De(D(e))}`}function De(e){let t="ABCDEFGHIJKLMNOPQRSTUVWXYZ234567",r=0,n=0,i="";for(let a=0;a<e.length;a+=2){for(r=r<<8|Number.parseInt(e.slice(a,a+2),16),n+=8;n>=5;)i+=t[r>>>n-5&31],n-=5;r&=(1<<n)-1}return n>0&&(i+=t[r<<5-n&31]),i}function ee(e,t){let r=new Uint8Array(t),n=0;for(let i of e)r.set(i,n),n+=i.length;return r}function Ie(e){let t=e.replace(/[\\\\/:*?"<>|\\u0000-\\u001f]/g,"-").trim();return t.toLowerCase().endsWith(".warc")?t:`${t||"tweets"}.warc`}function Me(e,t){return e.url.localeCompare(t.url)||e.timestamp.localeCompare(t.timestamp)||e.offset-t.offset}function ve(e){let t=new Set;return e.filter(r=>{let n=`${r.url}\n${r.ts}`;return t.has(n)?!1:(t.add(n),!0)})}var ze=(()=>{let e=new Uint32Array(256);for(let t=0;t<256;t++){let r=t;for(let n=0;n<8;n++)r=r&1?3988292384^r>>>1:r>>>1;e[t]=r>>>0}return e})();function Be(e){let t=4294967295;for(let r=0;r<e.length;r++)t=(ze[(t^e[r])&255]^t>>>8)>>>0;return(t^4294967295)>>>0}var fe=2048,q=65535,K=4294967295,ge=0;function me(e){return Oe(e,e.map(()=>ge),e.map(t=>t.data))}function Oe(e,t,r){let n=new TextEncoder,i=[],a=[],o=0;if(e.length>q)throw new RangeError(`A zip holds at most ${q} entries without ZIP64; got ${e.length}.`);for(let[g,y]of e.entries()){let p=t[g]??ge,E=r[g]??y.data;if(E.length>K)throw new RangeError(`"${y.filename}" is ${y.data.length} bytes; a zip entry cannot exceed ${K} without ZIP64.`);let b=n.encode(y.filename);if(b.length>q)throw new RangeError(`"${y.filename}" has a name longer than ${q} bytes.`);let P=Be(E),k=E.length,C=y.data.length,W=y.date??new Date,B=He(W),O=Ne(W),H=new ArrayBuffer(30+b.length),x=new DataView(H);x.setUint32(0,67324752,!0),x.setUint16(4,20,!0),x.setUint16(6,fe,!0),x.setUint16(8,p,!0),x.setUint16(10,O,!0),x.setUint16(12,B,!0),x.setUint32(14,P,!0),x.setUint32(18,C,!0),x.setUint32(22,k,!0),x.setUint16(26,b.length,!0),x.setUint16(28,0,!0);let R=new Uint8Array(H);R.set(b,30),i.push(R),i.push(y.data);let S=new ArrayBuffer(46+b.length),h=new DataView(S);h.setUint32(0,33639248,!0),h.setUint16(4,20,!0),h.setUint16(6,20,!0),h.setUint16(8,fe,!0),h.setUint16(10,p,!0),h.setUint16(12,O,!0),h.setUint16(14,B,!0),h.setUint32(16,P,!0),h.setUint32(20,C,!0),h.setUint32(24,k,!0),h.setUint16(28,b.length,!0),h.setUint16(30,0,!0),h.setUint16(32,0,!0),h.setUint16(34,0,!0),h.setUint16(36,0,!0),h.setUint32(38,0,!0),h.setUint32(42,o,!0);let $=new Uint8Array(S);$.set(b,46),a.push($),o+=R.length+y.data.length}let c=o,d=0;for(let g of a)d+=g.length;if(c>K||d>K)throw new RangeError(`The archive is too large for a non-ZIP64 zip (central directory at ${c}, size ${d}).`);let s=new Uint8Array(22),u=new DataView(s.buffer);u.setUint32(0,101010256,!0),u.setUint16(4,0,!0),u.setUint16(6,0,!0),u.setUint16(8,e.length,!0),u.setUint16(10,e.length,!0),u.setUint32(12,d,!0),u.setUint32(16,c,!0),u.setUint16(20,0,!0);let m=o+d+s.length,l=new Uint8Array(m),f=0;for(let g of i)l.set(g,f),f+=g.length;for(let g of a)l.set(g,f),f+=g.length;return l.set(s,f),l}function He(e){return(Math.max(e.getUTCFullYear()-1980,0)&127)<<9|(e.getUTCMonth()+1&15)<<5|e.getUTCDate()&31}function Ne(e){return(e.getUTCHours()&31)<<11|(e.getUTCMinutes()&63)<<5|Math.floor(e.getUTCSeconds()/2)&31}var z=new TextEncoder,Le="1.1.1";var je="archive/aviary.warc",Fe="indexes/index.cdxj",_e="pages/pages.jsonl";function xe(e,t={}){return re(te(e,t))}function te(e,t){let r=t.audience===void 0?[...e]:Z(e,_(t.audience)),n=ye(t.generatedAt)??new Date,i=de(r,{generatedAt:n,filename:"aviary.warc",audience:{includeProtected:!0,includeUnknown:!0}}),a=z.encode(Ze(i.index,"aviary.warc")),o=z.encode(Je(i.pages)),c=[{filename:je,data:i.artifact.data,date:n},{filename:Fe,data:a,date:n},{filename:_e,data:o,date:n}],d={profile:"data-package",wacz_version:Le,title:Xe(r),description:qe(r),created:n.toISOString(),modified:n.toISOString(),software:"Aviary",...i.pages[0]?{mainPageUrl:i.pages[0].url,mainPageDate:i.pages[0].ts}:{},resources:c.map(u=>({name:Ye(u.filename),path:u.filename,hash:`sha256:${D(u.data)}`,bytes:u.data.length}))},s=z.encode(`${JSON.stringify(d,null,2)}\n`);return{generatedAt:n,datapackageBytes:s,datapackageHash:`sha256:${D(s)}`,resourceEntries:c}}function re(e,t){let r=z.encode(`${JSON.stringify({path:"datapackage.json",hash:e.datapackageHash,...t?{signedData:t}:{}},null,2)}\n`),n=me([...e.resourceEntries,{filename:"datapackage.json",data:e.datapackageBytes,date:e.generatedAt},{filename:"datapackage-digest.json",data:r,date:e.generatedAt}]);return{filename:`aviary-${Qe(e.generatedAt)}.wacz`,contentType:"application/wacz",data:n}}function Ze(e,t="aviary.warc"){let r=e.map(n=>`${Ve(n.url)} ${Ke(n.timestamp)} ${JSON.stringify({url:n.url,digest:n.digest,mime:n.mime,status:n.status,filename:t,offset:n.offset,length:n.length})}`);return r.sort(Ge),r.length>0?`${r.join(`\n`)}\n`:""}function Ve(e){let t=new URL(e),r=t.hostname.toLowerCase(),n=r.includes(":")?r:r.split(".").filter(Boolean).reverse().join(","),i=t.port?`:${t.port}`:"";return`${n}${i})${t.pathname||"/"}${t.search}`}function Je(e){let t=[JSON.stringify({format:"json-pages-1.0",id:"pages",title:"All Pages"})];return e.forEach((r,n)=>{t.push(JSON.stringify({id:`page-${String(n+1).padStart(6,"0")}`,url:r.url,ts:r.ts,...r.title?{title:r.title}:{},...r.capturedAt?{capturedAt:r.capturedAt}:{},...r.publishedAt?{publishedAt:r.publishedAt}:{}}))}),`${t.join(`\n`)}\n`}function Xe(e){let t=e.length;return`Aviary archive, ${t} captured post${t===1?"":"s"}`}function qe(e){let t=e.length,r=e.reduce((n,i)=>n+(Array.isArray(i.media)?i.media.length:0),0);return[`A local WACZ export generated by Aviary from ${t} X post${t===1?"":"s"}.`,`It includes replayable post pages and ${r} referenced media item${r===1?"":"s"} when their bytes were retained.`].join(`\n\n`)}function Ke(e){let t=ye(e);if(!t)throw new TypeError(`Invalid CDX timestamp: ${e}`);return t.toISOString().replace(/[-:T]/g,"").slice(0,14)}function Ge(e,t){let r=z.encode(e),n=z.encode(t),i=Math.min(r.length,n.length);for(let a=0;a<i;a+=1){let o=r[a]-n[a];if(o!==0)return o}return r.length-n.length}function Ye(e){return e.split("/").pop()??e}function Qe(e){return e.toISOString().replace(/[-:]/g,"").replace(/\\.[0-9]{3}Z$/,"Z")}function ye(e){if(e===void 0)return;let t=e instanceof Date?new Date(e.getTime()):new Date(e);return Number.isNaN(t.getTime())?void 0:t}var U=globalThis;U.onmessage=e=>{let t=e.data;if(!(!t||!Number.isSafeInteger(t.id)))try{let r=t.type??"build";if(r==="finish"){if(!t.prepared)throw new TypeError("WACZ worker is missing prepared archive data");U.postMessage({id:t.id,type:"progress",progress:.85});let a=re(t.prepared,t.signedData);U.postMessage({id:t.id,type:"progress",progress:1}),U.postMessage({id:t.id,type:"complete",artifact:a},[a.data.buffer]);return}if(!Array.isArray(t.records))throw new TypeError("WACZ worker is missing records");let n={...t.options?.generatedAt?{generatedAt:new Date(t.options.generatedAt)}:{},...t.options?.audience?{audience:t.options.audience}:{}};if(U.postMessage({id:t.id,type:"progress",progress:.15}),r==="prepare"){let a=te(t.records,n);U.postMessage({id:t.id,type:"prepared",prepared:a},et(a));return}let i=xe(t.records,n);U.postMessage({id:t.id,type:"progress",progress:1}),U.postMessage({id:t.id,type:"complete",artifact:i},[i.data.buffer])}catch(r){U.postMessage({id:t.id,type:"error",error:String(r?.message??r)})}};function et(e){return[e.datapackageBytes.buffer,...e.resourceEntries.map(t=>t.data.buffer)]}})();\n' : "";
     if (!source) {
       await new Promise((resolve) => {
         setTimeout(resolve, 0);
@@ -24804,7 +24962,7 @@ ${entry.ts}`;
     return reply.artifact;
   }
   async function buildSignedWaczArchiveOffThread(records, signer, options = {}) {
-    const estimate = estimateWaczBytes(records);
+    const estimate = estimateWaczBytes(records, options);
     if (estimate.estimatedBytes > MAX_WACZ_EXPORT_BYTES) {
       throw new RangeError(
         `This WACZ is about ${formatMiB(estimate.estimatedBytes)} MiB. The safe export limit is ${formatMiB(MAX_WACZ_EXPORT_BYTES)} MiB.`
@@ -24812,7 +24970,7 @@ ${entry.ts}`;
     }
     throwIfAborted(options.signal);
     options.onProgress?.(0);
-    const source = true ? '"use strict";(()=>{function j(e,t=null){let r=v(e.sourceUrl??e.url),n=e.bytes instanceof Uint8Array?e.bytes:null,i=/^https?:\\/\\//i.test(r),a=n?"captured-bytes":e.captureStatus==="missing"||!i?"missing":"remote-reference",o=n?n.byteLength:ye(e.byteLength),d=n?Q(e.sha256)??I(n):Q(e.sha256),u=v(e.capturedAt??t)||null,s=v(e.captureError);return{status:a,sourceUrl:r,capturedAt:u,byteLength:o,sha256:d,retryable:a!=="captured-bytes"&&i,...a==="captured-bytes"&&v(e.assetPath)?{packagePath:v(e.assetPath)}:{},...s?{error:s}:{}}}function me(e,t=null){let r=j(e,t),n={kind:e.kind,url:e.url,capture:r};e.width!==void 0&&(n.width=e.width),e.height!==void 0&&(n.height=e.height),e.bitrate!==void 0&&(n.bitrate=e.bitrate),e.type!==void 0&&(n.type=e.type),e.altText!==void 0&&(n.altText=e.altText),e.language!==void 0&&(n.language=e.language),e.label!==void 0&&(n.label=e.label);let i=e.httpStatus;return typeof i=="number"&&Number.isInteger(i)&&i>=100&&i<=599&&(n.httpStatus=i),n}function J(e){return{...e,media:te(e).map(t=>me(t,e.capturedAt))}}function ee(e,t,r="",n=new Date().toISOString()){let i=[],a=0,o=0,d=0,u=0;return e.forEach((s,p)=>{te(s).forEach(y=>{let c=j(y,s.capturedAt),m=c.packagePath?he(r,c.packagePath):void 0,l=m?{...c,packagePath:m}:c;i.push({recordIndex:p,recordId:s.tweetId,kind:y.kind,capture:l}),c.status==="captured-bytes"?a+=c.byteLength??0:c.status==="remote-reference"?o+=1:d+=1,c.retryable&&(u+=1)})}),{schemaVersion:1,generator:"Aviary",generatedAt:n,recordCount:e.length,files:t.map(s=>({...s})),media:i,summary:{capturedBytes:a,remoteReferences:o,missing:d,retryable:u},offlineReady:o===0&&d===0,networkRequiredToComplete:o>0||u>0}}function te(e){return Array.isArray(e.media)?e.media:[]}function I(e){let t=Math.ceil((e.length+9)/64)*64,r=new Uint8Array(t);r.set(e),r[e.length]=128;let n=new DataView(r.buffer),i=e.length*8;n.setUint32(t-8,Math.floor(i/4294967296)),n.setUint32(t-4,i>>>0);let a=new Uint32Array([1779033703,3144134277,1013904242,2773480762,1359893119,2600822924,528734635,1541459225]),o=new Uint32Array(64);for(let d=0;d<r.length;d+=64){for(let f=0;f<16;f+=1)o[f]=n.getUint32(d+f*4);for(let f=16;f<64;f+=1){let E=w(o[f-15],7)^w(o[f-15],18)^o[f-15]>>>3,A=w(o[f-2],17)^w(o[f-2],19)^o[f-2]>>>10;o[f]=o[f-16]+E+o[f-7]+A>>>0}let u=a[0],s=a[1],p=a[2],y=a[3],c=a[4],m=a[5],l=a[6],h=a[7];for(let f=0;f<64;f+=1){let E=w(c,6)^w(c,11)^w(c,25),A=c&m^~c&l,T=h+E+A+xe[f]+o[f]>>>0,C=w(u,2)^w(u,13)^w(u,22),H=u&s^u&p^s&p,P=C+H>>>0;h=l,l=m,m=c,c=y+T>>>0,y=p,p=s,s=u,u=T+P>>>0}a[0]=a[0]+u>>>0,a[1]=a[1]+s>>>0,a[2]=a[2]+p>>>0,a[3]=a[3]+y>>>0,a[4]=a[4]+c>>>0,a[5]=a[5]+m>>>0,a[6]=a[6]+l>>>0,a[7]=a[7]+h>>>0}return Array.from(a,d=>d.toString(16).padStart(8,"0")).join("")}function w(e,t){return e>>>t|e<<32-t}function v(e){return typeof e=="string"?e.trim():""}function Q(e){let t=v(e).toLowerCase();return/^[0-9a-f]{64}$/.test(t)?t:null}function ye(e){return typeof e=="number"&&Number.isFinite(e)&&e>=0?Math.trunc(e):null}function he(e,t){return e?`${e.replace(/\\/+$/g,"")}/${t}`:t}var xe=Uint32Array.from([1116352408,1899447441,3049323471,3921009573,961987163,1508970993,2453635748,2870763221,3624381080,310598401,607225278,1426881987,1925078388,2162078206,2614888103,3248222580,3835390401,4022224774,264347078,604807628,770255983,1249150122,1555081692,1996064986,2554220882,2821834349,2952996808,3210313671,3336571891,3584528711,113926993,338241895,666307205,773529912,1294757372,1396182291,1695183700,1986661051,2177026350,2456956037,2730485921,2820302411,3259730800,3345764771,3516065817,3600352804,4094571909,275423344,430227734,506948616,659060556,883997877,958139571,1322822218,1537002063,1747873779,1955562222,2024104815,2227730452,2361852424,2428436474,2756734187,3204031479,3329325298]),qe=Uint8Array.from([0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,4]);var D=new TextEncoder,ae="WARC/1.1";function ie(e,t={}){let r=S(t.generatedAt)??new Date,n=Se(t.filename??"tweets.warc"),i=L(r),a=[],o=[],d=[],u=0,s=0,p=(c,m)=>{let l=Te({...c,occurrence:s++});a.push(l),m&&o.push({...m,offset:u,length:l.length}),u+=l.length};p({mime:"application/warc-fields",body:["software: Aviary",`format: ${ae}`,"conformsTo: https://iipc.github.io/warc-specifications/specifications/warc-format/warc-1.1/"].join(`\\r\n`),recordType:"warcinfo",recordedAt:r,extraHeaders:{"WARC-Filename":n}});let y=ee(e,[],"",i);return p({url:"urn:aviary:export-metadata",mime:"application/json",body:JSON.stringify({generator:"Aviary",generatedAt:i,count:e.length,metadataOnly:!0,packageManifest:y}),recordType:"metadata",recordedAt:r}),e.forEach((c,m)=>{let l=S(c.capturedAt)??r,h=L(l),f=Ae(c,m),E=D.encode(JSON.stringify(J(c),null,2)),A=F(E);p({url:f,mime:"application/json",body:E,recordType:"resource",recordedAt:l,payloadDigest:A});let T=Ee(c,m),C=c.handle?`@${c.handle} captured post`:`Captured post ${m+1}`,H=D.encode(we(c,C)),P=F(H);p({url:T,mime:"application/http; msgtype=response",body:ne(H,"text/html; charset=utf-8",200),recordType:"response",recordedAt:l,payloadDigest:P},{url:T,timestamp:h,digest:P,mime:"text/html",status:200});let z=S(c.createdAt);d.push({url:T,ts:h,title:C,capturedAt:h,...z?{publishedAt:L(z)}:{}});for(let[_,b]of oe(c).entries()){let x=j(b,c.capturedAt),R=S(x.capturedAt)??l,O=L(R),g=q(x.sourceUrl),k=se(b);if(x.status==="captured-bytes"&&b.bytes instanceof Uint8Array){let N=F(b.bytes);if(g){let B=Ue(b.httpStatus);if(B!==null){let ge=ne(b.bytes,k,B,b.httpHeaders);p({url:g,mime:"application/http; msgtype=response",body:ge,recordType:"response",recordedAt:R,payloadDigest:N},{url:g,timestamp:O,digest:N,mime:k,status:B})}else p({url:g,mime:k,body:b.bytes,recordType:"resource",recordedAt:R,payloadDigest:N})}else{let B=re(m,_,b);p({url:B,mime:k,body:b.bytes,recordType:"resource",recordedAt:R,payloadDigest:N})}continue}p({url:g??re(m,_,b),mime:"application/json",body:JSON.stringify({generator:"Aviary",metadataOnly:!0,message:"The media body is not in this WARC; the manifest records whether it is retryable.",media:x}),recordType:"metadata",recordedAt:R})}}),{artifact:{filename:n,contentType:"application/warc",data:X(a,u)},index:o.sort(Ce),pages:He(d)}}function oe(e){return Array.isArray(e.media)?e.media:[]}function S(e){if(e==null)return;let t=e instanceof Date?new Date(e.getTime()):new Date(e);return Number.isNaN(t.getTime())?void 0:t}function L(e){return e.toISOString().replace(/\\.[0-9]{3}Z$/,"Z")}function se(e){return e.type?.includes("/")?e.type:e.type==="png"?"image/png":e.type==="webp"?"image/webp":e.kind==="video"?"video/mp4":e.kind==="audio"?"audio/mp4":e.kind==="subtitle"?"text/vtt":"image/jpeg"}function be(e){let t=se(e);return t==="image/png"?"png":t==="image/webp"?"webp":t==="video/mp4"?"mp4":t==="audio/mp4"?"m4a":t==="audio/mpeg"?"mp3":t==="text/vtt"?"vtt":t==="text/srt"?"srt":t==="application/ttml+xml"||t==="text/ttml"?"ttml":"jpg"}function Ae(e,t){let r=encodeURIComponent(e.tweetId?.trim()||`record-${t+1}`);return`https://aviary.invalid/records/${Z(t)}-${r}.json`}function Ee(e,t){let r=encodeURIComponent(e.tweetId?.trim()||`record-${t+1}`);return`https://aviary.invalid/pages/${Z(t)}-${r}.html`}function re(e,t,r){return`https://aviary.invalid/media/${Z(e)}-${Z(t)}.${be(r)}`}function Z(e){return String(e+1).padStart(6,"0")}function q(e){if(!e)return null;try{let t=new URL(e);return t.protocol!=="http:"&&t.protocol!=="https:"?null:(t.hash="",t.href)}catch{return null}}function we(e,t){let r=q(e.permalink),n=S(e.createdAt)??S(e.capturedAt),i=S(e.capturedAt),a=n?.toISOString()??"unknown",o=i?.toISOString()??"unknown",d=oe(e).map(s=>{let p=q(s.sourceUrl||s.url);if(!p)return"";let y=U(p);return s.kind==="video"?`<video controls preload="metadata" src="${y}"></video>`:s.kind==="audio"?`<audio controls preload="metadata" src="${y}"></audio>`:s.kind==="subtitle"?`<p><a href="${y}" rel="noreferrer">Captured captions${s.language?` (${U(s.language)})`:""}</a></p>`:`<img src="${y}" alt="${U(s.altText??"Captured post media")}">`}).join(""),u=r?`<a href="${U(r)}" rel="noreferrer">Original post</a>`:"";return`<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n<title>${U(t)}</title>\n<style>\n:root{color-scheme:dark;background:#07080a;color:#f2f4f7;font:16px/1.55 system-ui,sans-serif}\nbody{margin:0;padding:clamp(24px,6vw,72px)}main{max-width:680px;margin:auto}\narticle{background:#111318;border:1px solid #292d35;border-radius:12px;padding:24px;box-shadow:0 20px 60px #0008}\nheader{display:flex;justify-content:space-between;gap:16px;color:#aab2c0;font-size:14px}strong{color:#f2f4f7}\np{white-space:pre-wrap;font-size:18px}.media{display:grid;gap:10px;margin-top:18px}img,video{width:100%;border-radius:12px;background:#050506}\na{display:inline-block;margin-top:18px;color:#7dd3fc;text-underline-offset:3px}\n</style>\n</head>\n<body><main><article><header><strong>${U(e.handle?`@${e.handle}`:e.displayName??"Captured post")}</strong><span><time datetime="${U(a)}">Posted ${U(a)}</time><br><small>Captured ${U(o)}</small></span></header><p>${U(e.text??"")}</p>${d?`<div class="media">${d}</div>`:""}${u}</article></main></body>\n</html>`}function U(e){return e.replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll(\'"\',"&quot;").replaceAll("\'","&#39;")}function ne(e,t,r,n={}){let i=[`HTTP/1.1 ${r} ${r===200?"OK":"Captured"}`,...Object.entries(n).sort(([o],[d])=>o.localeCompare(d)).filter(([o])=>!/^(?:content-type|content-length|connection)$/i.test(o)).map(([o,d])=>`${ce(o)}: ${W(d)}`),`Content-Type: ${W(t)||"application/octet-stream"}`,`Content-Length: ${e.length}`,"Connection: close","",""],a=D.encode(i.join(`\\r\n`));return X([a,e],a.length+e.length)}function Ue(e){return typeof e!="number"||!Number.isInteger(e)||e<100||e>599?null:e}function W(e){return e.replace(/[\\u0000-\\u001f\\u007f]/g," ").replace(/\\s+/g," ").trim()}function Te(e){let t=e.recordType??"resource",r=L(S(e.recordedAt)??new Date),n=typeof e.body=="string"?D.encode(e.body):e.body,i=W(e.url??""),a=W(e.mime)||"application/octet-stream",o=F(n),d=W(e.recordId??Re({recordType:t,recordedAt:r,url:i,mime:a,blockDigest:o,occurrence:e.occurrence??0})),u=[ae,`WARC-Type: ${t}`,...t==="warcinfo"?[]:[`WARC-Target-URI: ${i||"urn:aviary:unknown"}`],`WARC-Date: ${r}`,`WARC-Record-ID: ${d.startsWith("<")?d:`<${d}>`}`,...Object.entries(e.extraHeaders??{}).map(([y,c])=>`${ce(y)}: ${W(c)}`),`WARC-Block-Digest: ${o}`,...e.payloadDigest?[`WARC-Payload-Digest: ${W(e.payloadDigest)}`]:[],`Content-Type: ${a}`,`Content-Length: ${n.length}`],s=D.encode(`${u.join(`\\r\n`)}\\r\n\\r\n`),p=D.encode(`\\r\n\\r\n`);return X([s,n,p],s.length+n.length+p.length)}function ce(e){return e.replace(/[^A-Za-z0-9-]/g,"")||"X-Aviary-Header"}function Re(e){let t=I(D.encode([e.recordType,e.recordedAt,e.url,e.mime,e.blockDigest,String(e.occurrence)].join(`\n`)));return`<urn:uuid:${`${t.slice(0,8)}-${t.slice(8,12)}-5${t.slice(13,16)}-8${t.slice(17,20)}-${t.slice(20,32)}`}>`}function F(e){return`sha256:${$e(I(e))}`}function $e(e){let t="ABCDEFGHIJKLMNOPQRSTUVWXYZ234567",r=0,n=0,i="";for(let a=0;a<e.length;a+=2){for(r=r<<8|Number.parseInt(e.slice(a,a+2),16),n+=8;n>=5;)i+=t[r>>>n-5&31],n-=5;r&=(1<<n)-1}return n>0&&(i+=t[r<<5-n&31]),i}function X(e,t){let r=new Uint8Array(t),n=0;for(let i of e)r.set(i,n),n+=i.length;return r}function Se(e){let t=e.replace(/[\\\\/:*?"<>|\\u0000-\\u001f]/g,"-").trim();return t.toLowerCase().endsWith(".warc")?t:`${t||"tweets"}.warc`}function Ce(e,t){return e.url.localeCompare(t.url)||e.timestamp.localeCompare(t.timestamp)||e.offset-t.offset}function He(e){let t=new Set;return e.filter(r=>{let n=`${r.url}\n${r.ts}`;return t.has(n)?!1:(t.add(n),!0)})}var Pe=(()=>{let e=new Uint32Array(256);for(let t=0;t<256;t++){let r=t;for(let n=0;n<8;n++)r=r&1?3988292384^r>>>1:r>>>1;e[t]=r>>>0}return e})();function ke(e){let t=4294967295;for(let r=0;r<e.length;r++)t=(Pe[(t^e[r])&255]^t>>>8)>>>0;return(t^4294967295)>>>0}var de=2048,V=65535,G=4294967295,ue=0;function pe(e){return Ie(e,e.map(()=>ue),e.map(t=>t.data))}function Ie(e,t,r){let n=new TextEncoder,i=[],a=[],o=0;if(e.length>V)throw new RangeError(`A zip holds at most ${V} entries without ZIP64; got ${e.length}.`);for(let[l,h]of e.entries()){let f=t[l]??ue,E=r[l]??h.data;if(E.length>G)throw new RangeError(`"${h.filename}" is ${h.data.length} bytes; a zip entry cannot exceed ${G} without ZIP64.`);let A=n.encode(h.filename);if(A.length>V)throw new RangeError(`"${h.filename}" has a name longer than ${V} bytes.`);let T=ke(E),C=E.length,H=h.data.length,P=h.date??new Date,z=We(P),_=De(P),b=new ArrayBuffer(30+A.length),x=new DataView(b);x.setUint32(0,67324752,!0),x.setUint16(4,20,!0),x.setUint16(6,de,!0),x.setUint16(8,f,!0),x.setUint16(10,_,!0),x.setUint16(12,z,!0),x.setUint32(14,T,!0),x.setUint32(18,H,!0),x.setUint32(22,C,!0),x.setUint16(26,A.length,!0),x.setUint16(28,0,!0);let R=new Uint8Array(b);R.set(A,30),i.push(R),i.push(h.data);let O=new ArrayBuffer(46+A.length),g=new DataView(O);g.setUint32(0,33639248,!0),g.setUint16(4,20,!0),g.setUint16(6,20,!0),g.setUint16(8,de,!0),g.setUint16(10,f,!0),g.setUint16(12,_,!0),g.setUint16(14,z,!0),g.setUint32(16,T,!0),g.setUint32(20,H,!0),g.setUint32(24,C,!0),g.setUint16(28,A.length,!0),g.setUint16(30,0,!0),g.setUint16(32,0,!0),g.setUint16(34,0,!0),g.setUint16(36,0,!0),g.setUint32(38,0,!0),g.setUint32(42,o,!0);let k=new Uint8Array(O);k.set(A,46),a.push(k),o+=R.length+h.data.length}let d=o,u=0;for(let l of a)u+=l.length;if(d>G||u>G)throw new RangeError(`The archive is too large for a non-ZIP64 zip (central directory at ${d}, size ${u}).`);let s=new Uint8Array(22),p=new DataView(s.buffer);p.setUint32(0,101010256,!0),p.setUint16(4,0,!0),p.setUint16(6,0,!0),p.setUint16(8,e.length,!0),p.setUint16(10,e.length,!0),p.setUint32(12,u,!0),p.setUint32(16,d,!0),p.setUint16(20,0,!0);let y=o+u+s.length,c=new Uint8Array(y),m=0;for(let l of i)c.set(l,m),m+=l.length;for(let l of a)c.set(l,m),m+=l.length;return c.set(s,m),c}function We(e){return(Math.max(e.getUTCFullYear()-1980,0)&127)<<9|(e.getUTCMonth()+1&15)<<5|e.getUTCDate()&31}function De(e){return(e.getUTCHours()&31)<<11|(e.getUTCMinutes()&63)<<5|Math.floor(e.getUTCSeconds()/2)&31}var M=new TextEncoder,ve="1.1.1";var Me="archive/aviary.warc",ze="indexes/index.cdxj",_e="pages/pages.jsonl";function le(e,t={}){return Y(K(e,t))}function K(e,t){let r=fe(t.generatedAt)??new Date,n=ie(e,{generatedAt:r,filename:"aviary.warc"}),i=M.encode(Be(n.index,"aviary.warc")),a=M.encode(Oe(n.pages)),o=[{filename:Me,data:n.artifact.data,date:r},{filename:ze,data:i,date:r},{filename:_e,data:a,date:r}],d={profile:"data-package",wacz_version:ve,title:Ne(e),description:je(e),created:r.toISOString(),modified:r.toISOString(),software:"Aviary",...n.pages[0]?{mainPageUrl:n.pages[0].url,mainPageDate:n.pages[0].ts}:{},resources:o.map(s=>({name:Ve(s.filename),path:s.filename,hash:`sha256:${I(s.data)}`,bytes:s.data.length}))},u=M.encode(`${JSON.stringify(d,null,2)}\n`);return{generatedAt:r,datapackageBytes:u,datapackageHash:`sha256:${I(u)}`,resourceEntries:o}}function Y(e,t){let r=M.encode(`${JSON.stringify({path:"datapackage.json",hash:e.datapackageHash,...t?{signedData:t}:{}},null,2)}\n`),n=pe([...e.resourceEntries,{filename:"datapackage.json",data:e.datapackageBytes,date:e.generatedAt},{filename:"datapackage-digest.json",data:r,date:e.generatedAt}]);return{filename:`aviary-${Ge(e.generatedAt)}.wacz`,contentType:"application/wacz",data:n}}function Be(e,t="aviary.warc"){let r=e.map(n=>`${Le(n.url)} ${Fe(n.timestamp)} ${JSON.stringify({url:n.url,digest:n.digest,mime:n.mime,status:n.status,filename:t,offset:n.offset,length:n.length})}`);return r.sort(Ze),r.length>0?`${r.join(`\n`)}\n`:""}function Le(e){let t=new URL(e),r=t.hostname.toLowerCase(),n=r.includes(":")?r:r.split(".").filter(Boolean).reverse().join(","),i=t.port?`:${t.port}`:"";return`${n}${i})${t.pathname||"/"}${t.search}`}function Oe(e){let t=[JSON.stringify({format:"json-pages-1.0",id:"pages",title:"All Pages"})];return e.forEach((r,n)=>{t.push(JSON.stringify({id:`page-${String(n+1).padStart(6,"0")}`,url:r.url,ts:r.ts,...r.title?{title:r.title}:{},...r.capturedAt?{capturedAt:r.capturedAt}:{},...r.publishedAt?{publishedAt:r.publishedAt}:{}}))}),`${t.join(`\n`)}\n`}function Ne(e){let t=e.length;return`Aviary archive, ${t} captured post${t===1?"":"s"}`}function je(e){let t=e.length,r=e.reduce((n,i)=>n+(Array.isArray(i.media)?i.media.length:0),0);return[`A local WACZ export generated by Aviary from ${t} X post${t===1?"":"s"}.`,`It includes replayable post pages and ${r} referenced media item${r===1?"":"s"} when their bytes were retained.`].join(`\n\n`)}function Fe(e){let t=fe(e);if(!t)throw new TypeError(`Invalid CDX timestamp: ${e}`);return t.toISOString().replace(/[-:T]/g,"").slice(0,14)}function Ze(e,t){let r=M.encode(e),n=M.encode(t),i=Math.min(r.length,n.length);for(let a=0;a<i;a+=1){let o=r[a]-n[a];if(o!==0)return o}return r.length-n.length}function Ve(e){return e.split("/").pop()??e}function Ge(e){return e.toISOString().replace(/[-:]/g,"").replace(/\\.[0-9]{3}Z$/,"Z")}function fe(e){if(e===void 0)return;let t=e instanceof Date?new Date(e.getTime()):new Date(e);return Number.isNaN(t.getTime())?void 0:t}var $=globalThis;$.onmessage=e=>{let t=e.data;if(!(!t||!Number.isSafeInteger(t.id)))try{let r=t.type??"build";if(r==="finish"){if(!t.prepared)throw new TypeError("WACZ worker is missing prepared archive data");$.postMessage({id:t.id,type:"progress",progress:.85});let a=Y(t.prepared,t.signedData);$.postMessage({id:t.id,type:"progress",progress:1}),$.postMessage({id:t.id,type:"complete",artifact:a},[a.data.buffer]);return}if(!Array.isArray(t.records))throw new TypeError("WACZ worker is missing records");let n={...t.options?.generatedAt?{generatedAt:new Date(t.options.generatedAt)}:{}};if($.postMessage({id:t.id,type:"progress",progress:.15}),r==="prepare"){let a=K(t.records,n);$.postMessage({id:t.id,type:"prepared",prepared:a},Je(a));return}let i=le(t.records,n);$.postMessage({id:t.id,type:"progress",progress:1}),$.postMessage({id:t.id,type:"complete",artifact:i},[i.data.buffer])}catch(r){$.postMessage({id:t.id,type:"error",error:String(r?.message??r)})}};function Je(e){return[e.datapackageBytes.buffer,...e.resourceEntries.map(t=>t.data.buffer)]}})();\n' : "";
+    const source = true ? '"use strict";(()=>{var be={includeProtected:!1,includeUnknown:!1};function G(e){return e==="public"||e==="protected"||e==="unknown"?e:"unknown"}function _(e){return{includeProtected:e?.includeProtected===!0,includeUnknown:e?.includeUnknown===!0}}function Ae(e){return G(e.audience)}function Z(e,t=be){return e.filter(r=>{let n=Ae(r);return n==="public"||n==="protected"&&t.includeProtected||n==="unknown"&&t.includeUnknown})}function V(e,t=null){let r=v(e.sourceUrl??e.url),n=e.bytes instanceof Uint8Array?e.bytes:null,i=/^https?:\\/\\//i.test(r),a=n?"captured-bytes":e.captureStatus==="missing"||!i?"missing":"remote-reference",o=n?n.byteLength:Ee(e.byteLength),c=n?ne(e.sha256)??D(n):ne(e.sha256),d=v(e.capturedAt??t)||null,s=v(e.captureError);return{status:a,sourceUrl:r,capturedAt:d,byteLength:o,sha256:c,retryable:a!=="captured-bytes"&&i,...a==="captured-bytes"&&v(e.assetPath)?{packagePath:v(e.assetPath)}:{},...s?{error:s}:{}}}function we(e,t=null){let r=V(e,t),n={kind:e.kind,url:e.url,capture:r};e.width!==void 0&&(n.width=e.width),e.height!==void 0&&(n.height=e.height),e.bitrate!==void 0&&(n.bitrate=e.bitrate),e.type!==void 0&&(n.type=e.type),e.altText!==void 0&&(n.altText=e.altText),e.language!==void 0&&(n.language=e.language),e.label!==void 0&&(n.label=e.label);let i=e.httpStatus;return typeof i=="number"&&Number.isInteger(i)&&i>=100&&i<=599&&(n.httpStatus=i),n}function Y(e){return{...e,audience:G(e.audience),media:ie(e).map(t=>we(t,e.capturedAt))}}function ae(e,t,r="",n=new Date().toISOString()){let i=[],a=0,o=0,c=0,d=0;return e.forEach((s,u)=>{ie(s).forEach(m=>{let l=V(m,s.capturedAt),f=l.packagePath?Ue(r,l.packagePath):void 0,g=f?{...l,packagePath:f}:l;i.push({recordIndex:u,recordId:s.tweetId,kind:m.kind,capture:g}),l.status==="captured-bytes"?a+=l.byteLength??0:l.status==="remote-reference"?o+=1:c+=1,l.retryable&&(d+=1)})}),{schemaVersion:1,generator:"Aviary",generatedAt:n,recordCount:e.length,files:t.map(s=>({...s})),media:i,summary:{capturedBytes:a,remoteReferences:o,missing:c,retryable:d},offlineReady:o===0&&c===0,networkRequiredToComplete:o>0||d>0}}function ie(e){return Array.isArray(e.media)?e.media:[]}function D(e){let t=Math.ceil((e.length+9)/64)*64,r=new Uint8Array(t);r.set(e),r[e.length]=128;let n=new DataView(r.buffer),i=e.length*8;n.setUint32(t-8,Math.floor(i/4294967296)),n.setUint32(t-4,i>>>0);let a=new Uint32Array([1779033703,3144134277,1013904242,2773480762,1359893119,2600822924,528734635,1541459225]),o=new Uint32Array(64);for(let c=0;c<r.length;c+=64){for(let p=0;p<16;p+=1)o[p]=n.getUint32(c+p*4);for(let p=16;p<64;p+=1){let E=A(o[p-15],7)^A(o[p-15],18)^o[p-15]>>>3,b=A(o[p-2],17)^A(o[p-2],19)^o[p-2]>>>10;o[p]=o[p-16]+E+o[p-7]+b>>>0}let d=a[0],s=a[1],u=a[2],m=a[3],l=a[4],f=a[5],g=a[6],y=a[7];for(let p=0;p<64;p+=1){let E=A(l,6)^A(l,11)^A(l,25),b=l&f^~l&g,P=y+E+b+ke[p]+o[p]>>>0,k=A(d,2)^A(d,13)^A(d,22),C=d&s^d&u^s&u,W=k+C>>>0;y=g,g=f,f=l,l=m+P>>>0,m=u,u=s,s=d,d=P+W>>>0}a[0]=a[0]+d>>>0,a[1]=a[1]+s>>>0,a[2]=a[2]+u>>>0,a[3]=a[3]+m>>>0,a[4]=a[4]+l>>>0,a[5]=a[5]+f>>>0,a[6]=a[6]+g>>>0,a[7]=a[7]+y>>>0}return Array.from(a,c=>c.toString(16).padStart(8,"0")).join("")}function A(e,t){return e>>>t|e<<32-t}function v(e){return typeof e=="string"?e.trim():""}function ne(e){let t=v(e).toLowerCase();return/^[0-9a-f]{64}$/.test(t)?t:null}function Ee(e){return typeof e=="number"&&Number.isFinite(e)&&e>=0?Math.trunc(e):null}function Ue(e,t){return e?`${e.replace(/\\/+$/g,"")}/${t}`:t}var ke=Uint32Array.from([1116352408,1899447441,3049323471,3921009573,961987163,1508970993,2453635748,2870763221,3624381080,310598401,607225278,1426881987,1925078388,2162078206,2614888103,3248222580,3835390401,4022224774,264347078,604807628,770255983,1249150122,1555081692,1996064986,2554220882,2821834349,2952996808,3210313671,3336571891,3584528711,113926993,338241895,666307205,773529912,1294757372,1396182291,1695183700,1986661051,2177026350,2456956037,2730485921,2820302411,3259730800,3345764771,3516065817,3600352804,4094571909,275423344,430227734,506948616,659060556,883997877,958139571,1322822218,1537002063,1747873779,1955562222,2024104815,2227730452,2361852424,2428436474,2756734187,3204031479,3329325298]),nt=Uint8Array.from([0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,4]);var M=new TextEncoder,ce="WARC/1.1";function de(e,t={}){let r=t.audience===void 0?[...e]:Z(e,_(t.audience)),n=T(t.generatedAt)??new Date,i=Ie(t.filename??"tweets.warc"),a=L(n),o=[],c=[],d=[],s=0,u=0,m=(f,g)=>{let y=Ce({...f,occurrence:u++});o.push(y),g&&c.push({...g,offset:s,length:y.length}),s+=y.length};m({mime:"application/warc-fields",body:["software: Aviary",`format: ${ce}`,"conformsTo: https://iipc.github.io/warc-specifications/specifications/warc-format/warc-1.1/"].join(`\\r\n`),recordType:"warcinfo",recordedAt:n,extraHeaders:{"WARC-Filename":i}});let l=ae(r,[],"",a);return m({url:"urn:aviary:export-metadata",mime:"application/json",body:JSON.stringify({generator:"Aviary",generatedAt:a,count:e.length,metadataOnly:!0,packageManifest:l}),recordType:"metadata",recordedAt:n}),r.forEach((f,g)=>{let y=T(f.capturedAt)??n,p=L(y),E=Se(f,g),b=M.encode(JSON.stringify(Y(f),null,2)),P=J(b);m({url:E,mime:"application/json",body:b,recordType:"resource",recordedAt:y,payloadDigest:P});let k=$e(f,g),C=f.handle?`@${f.handle} captured post`:`Captured post ${g+1}`,W=M.encode(Te(f,C)),B=J(W);m({url:k,mime:"application/http; msgtype=response",body:se(W,"text/html; charset=utf-8",200),recordType:"response",recordedAt:y,payloadDigest:B},{url:k,timestamp:p,digest:B,mime:"text/html",status:200});let O=T(f.createdAt);d.push({url:k,ts:p,title:C,capturedAt:p,...O?{publishedAt:L(O)}:{}});for(let[H,x]of ue(f).entries()){let R=V(x,f.capturedAt),S=T(R.capturedAt)??y,h=L(S),$=Q(R.sourceUrl),j=pe(x);if(R.status==="captured-bytes"&&x.bytes instanceof Uint8Array){let F=J(x.bytes);if($){let N=Pe(x.httpStatus);if(N!==null){let he=se(x.bytes,j,N,x.httpHeaders);m({url:$,mime:"application/http; msgtype=response",body:he,recordType:"response",recordedAt:S,payloadDigest:F},{url:$,timestamp:h,digest:F,mime:j,status:N})}else m({url:$,mime:j,body:x.bytes,recordType:"resource",recordedAt:S,payloadDigest:F})}else{let N=oe(g,H,x);m({url:N,mime:j,body:x.bytes,recordType:"resource",recordedAt:S,payloadDigest:F})}continue}m({url:$??oe(g,H,x),mime:"application/json",body:JSON.stringify({generator:"Aviary",metadataOnly:!0,message:"The media body is not in this WARC; the manifest records whether it is retryable.",media:R}),recordType:"metadata",recordedAt:S})}}),{artifact:{filename:i,contentType:"application/warc",data:ee(o,s)},index:c.sort(Me),pages:ve(d)}}function ue(e){return Array.isArray(e.media)?e.media:[]}function T(e){if(e==null)return;let t=e instanceof Date?new Date(e.getTime()):new Date(e);return Number.isNaN(t.getTime())?void 0:t}function L(e){return e.toISOString().replace(/\\.[0-9]{3}Z$/,"Z")}function pe(e){return e.type?.includes("/")?e.type:e.type==="png"?"image/png":e.type==="webp"?"image/webp":e.kind==="video"?"video/mp4":e.kind==="audio"?"audio/mp4":e.kind==="subtitle"?"text/vtt":"image/jpeg"}function Re(e){let t=pe(e);return t==="image/png"?"png":t==="image/webp"?"webp":t==="video/mp4"?"mp4":t==="audio/mp4"?"m4a":t==="audio/mpeg"?"mp3":t==="text/vtt"?"vtt":t==="text/srt"?"srt":t==="application/ttml+xml"||t==="text/ttml"?"ttml":"jpg"}function Se(e,t){let r=encodeURIComponent(e.tweetId?.trim()||`record-${t+1}`);return`https://aviary.invalid/records/${X(t)}-${r}.json`}function $e(e,t){let r=encodeURIComponent(e.tweetId?.trim()||`record-${t+1}`);return`https://aviary.invalid/pages/${X(t)}-${r}.html`}function oe(e,t,r){return`https://aviary.invalid/media/${X(e)}-${X(t)}.${Re(r)}`}function X(e){return String(e+1).padStart(6,"0")}function Q(e){if(!e)return null;try{let t=new URL(e);return t.protocol!=="http:"&&t.protocol!=="https:"?null:(t.hash="",t.href)}catch{return null}}function Te(e,t){let r=Q(e.permalink),n=T(e.createdAt)??T(e.capturedAt),i=T(e.capturedAt),a=n?.toISOString()??"unknown",o=i?.toISOString()??"unknown",c=ue(e).map(s=>{let u=Q(s.sourceUrl||s.url);if(!u)return"";let m=w(u);return s.kind==="video"?`<video controls preload="metadata" src="${m}"></video>`:s.kind==="audio"?`<audio controls preload="metadata" src="${m}"></audio>`:s.kind==="subtitle"?`<p><a href="${m}" rel="noreferrer">Captured captions${s.language?` (${w(s.language)})`:""}</a></p>`:`<img src="${m}" alt="${w(s.altText??"Captured post media")}">`}).join(""),d=r?`<a href="${w(r)}" rel="noreferrer">Original post</a>`:"";return`<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n<title>${w(t)}</title>\n<style>\n:root{color-scheme:dark;background:#07080a;color:#f2f4f7;font:16px/1.55 system-ui,sans-serif}\nbody{margin:0;padding:clamp(24px,6vw,72px)}main{max-width:680px;margin:auto}\narticle{background:#111318;border:1px solid #292d35;border-radius:12px;padding:24px;box-shadow:0 20px 60px #0008}\nheader{display:flex;justify-content:space-between;gap:16px;color:#aab2c0;font-size:14px}strong{color:#f2f4f7}\np{white-space:pre-wrap;font-size:18px}.media{display:grid;gap:10px;margin-top:18px}img,video{width:100%;border-radius:12px;background:#050506}\na{display:inline-block;margin-top:18px;color:#7dd3fc;text-underline-offset:3px}\n</style>\n</head>\n<body><main><article><header><strong>${w(e.handle?`@${e.handle}`:e.displayName??"Captured post")}</strong><span><time datetime="${w(a)}">Posted ${w(a)}</time><br><small>Captured ${w(o)}</small></span></header><p>${w(e.text??"")}</p>${c?`<div class="media">${c}</div>`:""}${d}</article></main></body>\n</html>`}function w(e){return e.replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll(\'"\',"&quot;").replaceAll("\'","&#39;")}function se(e,t,r,n={}){let i=[`HTTP/1.1 ${r} ${r===200?"OK":"Captured"}`,...Object.entries(n).sort(([o],[c])=>o.localeCompare(c)).filter(([o])=>!/^(?:content-type|content-length|connection)$/i.test(o)).map(([o,c])=>`${le(o)}: ${I(c)}`),`Content-Type: ${I(t)||"application/octet-stream"}`,`Content-Length: ${e.length}`,"Connection: close","",""],a=M.encode(i.join(`\\r\n`));return ee([a,e],a.length+e.length)}function Pe(e){return typeof e!="number"||!Number.isInteger(e)||e<100||e>599?null:e}function I(e){return e.replace(/[\\u0000-\\u001f\\u007f]/g," ").replace(/\\s+/g," ").trim()}function Ce(e){let t=e.recordType??"resource",r=L(T(e.recordedAt)??new Date),n=typeof e.body=="string"?M.encode(e.body):e.body,i=I(e.url??""),a=I(e.mime)||"application/octet-stream",o=J(n),c=I(e.recordId??We({recordType:t,recordedAt:r,url:i,mime:a,blockDigest:o,occurrence:e.occurrence??0})),d=[ce,`WARC-Type: ${t}`,...t==="warcinfo"?[]:[`WARC-Target-URI: ${i||"urn:aviary:unknown"}`],`WARC-Date: ${r}`,`WARC-Record-ID: ${c.startsWith("<")?c:`<${c}>`}`,...Object.entries(e.extraHeaders??{}).map(([m,l])=>`${le(m)}: ${I(l)}`),`WARC-Block-Digest: ${o}`,...e.payloadDigest?[`WARC-Payload-Digest: ${I(e.payloadDigest)}`]:[],`Content-Type: ${a}`,`Content-Length: ${n.length}`],s=M.encode(`${d.join(`\\r\n`)}\\r\n\\r\n`),u=M.encode(`\\r\n\\r\n`);return ee([s,n,u],s.length+n.length+u.length)}function le(e){return e.replace(/[^A-Za-z0-9-]/g,"")||"X-Aviary-Header"}function We(e){let t=D(M.encode([e.recordType,e.recordedAt,e.url,e.mime,e.blockDigest,String(e.occurrence)].join(`\n`)));return`<urn:uuid:${`${t.slice(0,8)}-${t.slice(8,12)}-5${t.slice(13,16)}-8${t.slice(17,20)}-${t.slice(20,32)}`}>`}function J(e){return`sha256:${De(D(e))}`}function De(e){let t="ABCDEFGHIJKLMNOPQRSTUVWXYZ234567",r=0,n=0,i="";for(let a=0;a<e.length;a+=2){for(r=r<<8|Number.parseInt(e.slice(a,a+2),16),n+=8;n>=5;)i+=t[r>>>n-5&31],n-=5;r&=(1<<n)-1}return n>0&&(i+=t[r<<5-n&31]),i}function ee(e,t){let r=new Uint8Array(t),n=0;for(let i of e)r.set(i,n),n+=i.length;return r}function Ie(e){let t=e.replace(/[\\\\/:*?"<>|\\u0000-\\u001f]/g,"-").trim();return t.toLowerCase().endsWith(".warc")?t:`${t||"tweets"}.warc`}function Me(e,t){return e.url.localeCompare(t.url)||e.timestamp.localeCompare(t.timestamp)||e.offset-t.offset}function ve(e){let t=new Set;return e.filter(r=>{let n=`${r.url}\n${r.ts}`;return t.has(n)?!1:(t.add(n),!0)})}var ze=(()=>{let e=new Uint32Array(256);for(let t=0;t<256;t++){let r=t;for(let n=0;n<8;n++)r=r&1?3988292384^r>>>1:r>>>1;e[t]=r>>>0}return e})();function Be(e){let t=4294967295;for(let r=0;r<e.length;r++)t=(ze[(t^e[r])&255]^t>>>8)>>>0;return(t^4294967295)>>>0}var fe=2048,q=65535,K=4294967295,ge=0;function me(e){return Oe(e,e.map(()=>ge),e.map(t=>t.data))}function Oe(e,t,r){let n=new TextEncoder,i=[],a=[],o=0;if(e.length>q)throw new RangeError(`A zip holds at most ${q} entries without ZIP64; got ${e.length}.`);for(let[g,y]of e.entries()){let p=t[g]??ge,E=r[g]??y.data;if(E.length>K)throw new RangeError(`"${y.filename}" is ${y.data.length} bytes; a zip entry cannot exceed ${K} without ZIP64.`);let b=n.encode(y.filename);if(b.length>q)throw new RangeError(`"${y.filename}" has a name longer than ${q} bytes.`);let P=Be(E),k=E.length,C=y.data.length,W=y.date??new Date,B=He(W),O=Ne(W),H=new ArrayBuffer(30+b.length),x=new DataView(H);x.setUint32(0,67324752,!0),x.setUint16(4,20,!0),x.setUint16(6,fe,!0),x.setUint16(8,p,!0),x.setUint16(10,O,!0),x.setUint16(12,B,!0),x.setUint32(14,P,!0),x.setUint32(18,C,!0),x.setUint32(22,k,!0),x.setUint16(26,b.length,!0),x.setUint16(28,0,!0);let R=new Uint8Array(H);R.set(b,30),i.push(R),i.push(y.data);let S=new ArrayBuffer(46+b.length),h=new DataView(S);h.setUint32(0,33639248,!0),h.setUint16(4,20,!0),h.setUint16(6,20,!0),h.setUint16(8,fe,!0),h.setUint16(10,p,!0),h.setUint16(12,O,!0),h.setUint16(14,B,!0),h.setUint32(16,P,!0),h.setUint32(20,C,!0),h.setUint32(24,k,!0),h.setUint16(28,b.length,!0),h.setUint16(30,0,!0),h.setUint16(32,0,!0),h.setUint16(34,0,!0),h.setUint16(36,0,!0),h.setUint32(38,0,!0),h.setUint32(42,o,!0);let $=new Uint8Array(S);$.set(b,46),a.push($),o+=R.length+y.data.length}let c=o,d=0;for(let g of a)d+=g.length;if(c>K||d>K)throw new RangeError(`The archive is too large for a non-ZIP64 zip (central directory at ${c}, size ${d}).`);let s=new Uint8Array(22),u=new DataView(s.buffer);u.setUint32(0,101010256,!0),u.setUint16(4,0,!0),u.setUint16(6,0,!0),u.setUint16(8,e.length,!0),u.setUint16(10,e.length,!0),u.setUint32(12,d,!0),u.setUint32(16,c,!0),u.setUint16(20,0,!0);let m=o+d+s.length,l=new Uint8Array(m),f=0;for(let g of i)l.set(g,f),f+=g.length;for(let g of a)l.set(g,f),f+=g.length;return l.set(s,f),l}function He(e){return(Math.max(e.getUTCFullYear()-1980,0)&127)<<9|(e.getUTCMonth()+1&15)<<5|e.getUTCDate()&31}function Ne(e){return(e.getUTCHours()&31)<<11|(e.getUTCMinutes()&63)<<5|Math.floor(e.getUTCSeconds()/2)&31}var z=new TextEncoder,Le="1.1.1";var je="archive/aviary.warc",Fe="indexes/index.cdxj",_e="pages/pages.jsonl";function xe(e,t={}){return re(te(e,t))}function te(e,t){let r=t.audience===void 0?[...e]:Z(e,_(t.audience)),n=ye(t.generatedAt)??new Date,i=de(r,{generatedAt:n,filename:"aviary.warc",audience:{includeProtected:!0,includeUnknown:!0}}),a=z.encode(Ze(i.index,"aviary.warc")),o=z.encode(Je(i.pages)),c=[{filename:je,data:i.artifact.data,date:n},{filename:Fe,data:a,date:n},{filename:_e,data:o,date:n}],d={profile:"data-package",wacz_version:Le,title:Xe(r),description:qe(r),created:n.toISOString(),modified:n.toISOString(),software:"Aviary",...i.pages[0]?{mainPageUrl:i.pages[0].url,mainPageDate:i.pages[0].ts}:{},resources:c.map(u=>({name:Ye(u.filename),path:u.filename,hash:`sha256:${D(u.data)}`,bytes:u.data.length}))},s=z.encode(`${JSON.stringify(d,null,2)}\n`);return{generatedAt:n,datapackageBytes:s,datapackageHash:`sha256:${D(s)}`,resourceEntries:c}}function re(e,t){let r=z.encode(`${JSON.stringify({path:"datapackage.json",hash:e.datapackageHash,...t?{signedData:t}:{}},null,2)}\n`),n=me([...e.resourceEntries,{filename:"datapackage.json",data:e.datapackageBytes,date:e.generatedAt},{filename:"datapackage-digest.json",data:r,date:e.generatedAt}]);return{filename:`aviary-${Qe(e.generatedAt)}.wacz`,contentType:"application/wacz",data:n}}function Ze(e,t="aviary.warc"){let r=e.map(n=>`${Ve(n.url)} ${Ke(n.timestamp)} ${JSON.stringify({url:n.url,digest:n.digest,mime:n.mime,status:n.status,filename:t,offset:n.offset,length:n.length})}`);return r.sort(Ge),r.length>0?`${r.join(`\n`)}\n`:""}function Ve(e){let t=new URL(e),r=t.hostname.toLowerCase(),n=r.includes(":")?r:r.split(".").filter(Boolean).reverse().join(","),i=t.port?`:${t.port}`:"";return`${n}${i})${t.pathname||"/"}${t.search}`}function Je(e){let t=[JSON.stringify({format:"json-pages-1.0",id:"pages",title:"All Pages"})];return e.forEach((r,n)=>{t.push(JSON.stringify({id:`page-${String(n+1).padStart(6,"0")}`,url:r.url,ts:r.ts,...r.title?{title:r.title}:{},...r.capturedAt?{capturedAt:r.capturedAt}:{},...r.publishedAt?{publishedAt:r.publishedAt}:{}}))}),`${t.join(`\n`)}\n`}function Xe(e){let t=e.length;return`Aviary archive, ${t} captured post${t===1?"":"s"}`}function qe(e){let t=e.length,r=e.reduce((n,i)=>n+(Array.isArray(i.media)?i.media.length:0),0);return[`A local WACZ export generated by Aviary from ${t} X post${t===1?"":"s"}.`,`It includes replayable post pages and ${r} referenced media item${r===1?"":"s"} when their bytes were retained.`].join(`\n\n`)}function Ke(e){let t=ye(e);if(!t)throw new TypeError(`Invalid CDX timestamp: ${e}`);return t.toISOString().replace(/[-:T]/g,"").slice(0,14)}function Ge(e,t){let r=z.encode(e),n=z.encode(t),i=Math.min(r.length,n.length);for(let a=0;a<i;a+=1){let o=r[a]-n[a];if(o!==0)return o}return r.length-n.length}function Ye(e){return e.split("/").pop()??e}function Qe(e){return e.toISOString().replace(/[-:]/g,"").replace(/\\.[0-9]{3}Z$/,"Z")}function ye(e){if(e===void 0)return;let t=e instanceof Date?new Date(e.getTime()):new Date(e);return Number.isNaN(t.getTime())?void 0:t}var U=globalThis;U.onmessage=e=>{let t=e.data;if(!(!t||!Number.isSafeInteger(t.id)))try{let r=t.type??"build";if(r==="finish"){if(!t.prepared)throw new TypeError("WACZ worker is missing prepared archive data");U.postMessage({id:t.id,type:"progress",progress:.85});let a=re(t.prepared,t.signedData);U.postMessage({id:t.id,type:"progress",progress:1}),U.postMessage({id:t.id,type:"complete",artifact:a},[a.data.buffer]);return}if(!Array.isArray(t.records))throw new TypeError("WACZ worker is missing records");let n={...t.options?.generatedAt?{generatedAt:new Date(t.options.generatedAt)}:{},...t.options?.audience?{audience:t.options.audience}:{}};if(U.postMessage({id:t.id,type:"progress",progress:.15}),r==="prepare"){let a=te(t.records,n);U.postMessage({id:t.id,type:"prepared",prepared:a},et(a));return}let i=xe(t.records,n);U.postMessage({id:t.id,type:"progress",progress:1}),U.postMessage({id:t.id,type:"complete",artifact:i},[i.data.buffer])}catch(r){U.postMessage({id:t.id,type:"error",error:String(r?.message??r)})}};function et(e){return[e.datapackageBytes.buffer,...e.resourceEntries.map(t=>t.data.buffer)]}})();\n' : "";
     if (!source) {
       await new Promise((resolve) => {
         setTimeout(resolve, 0);
@@ -24917,7 +25075,15 @@ ${entry.ts}`;
     ];
   }
   function buildOptions(options) {
-    return options.generatedAt ? { generatedAt: options.generatedAt.toISOString() } : {};
+    return {
+      ...options.generatedAt ? { generatedAt: options.generatedAt.toISOString() } : {},
+      ...options.audience ? {
+        audience: {
+          includeProtected: options.audience.includeProtected === true,
+          includeUnknown: options.audience.includeUnknown === true
+        }
+      } : {}
+    };
   }
   function throwIfAborted(signal) {
     if (signal?.aborted) throw abortError();
@@ -26362,7 +26528,8 @@ a.av-link-clean {
         capturedAt: now3,
         surface,
         media: [],
-        permalink: id ? `https://x.com/i/web/status/${id}` : null
+        permalink: id ? `https://x.com/i/web/status/${id}` : null,
+        audience: "unknown"
       };
       const conversationId = stringField(tweet, "conversation_id_str", "conversationId");
       const parentId = stringField(tweet, "in_reply_to_status_id_str", "inReplyToId", "in_reply_to_id");
@@ -26397,7 +26564,8 @@ a.av-link-clean {
         capturedAt: (/* @__PURE__ */ new Date()).toISOString(),
         surface: `${surface}.likes`,
         media: [],
-        permalink: id ? `https://x.com/i/web/status/${id}` : null
+        permalink: id ? `https://x.com/i/web/status/${id}` : null,
+        audience: "unknown"
       };
       const participants = mentionParticipants(like);
       if (participants.length > 0) record.participants = participants;
@@ -31914,6 +32082,7 @@ ${COLOR_CSS}`;
           return {
             jobCount: store6?.list().length ?? 0,
             knownQueries: queries ? Object.keys(queries.queries).length : 0,
+            audience: summarizeAudience(collectAllRecords(store6), exportAudienceSelection(ctx)),
             jobs: (store6?.list() ?? []).map((job) => ({
               jobId: job.jobId,
               status: job.status,
@@ -31935,7 +32104,8 @@ ${COLOR_CSS}`;
           return {
             records: result.records,
             filename: result.filename,
-            files: result.artifacts.length
+            files: result.artifacts.length,
+            audience: result.audience
           };
         },
         async rebuildThreads() {
@@ -32753,18 +32923,23 @@ ${COLOR_CSS}`;
           rebuildSearchIndex();
           const store6 = getCheckpointStore();
           const records = collectAllRecords(store6);
-          const artifact = buildWarcArchive(records);
+          const artifact = buildWarcArchive(records, { audience: exportAudienceSelection(ctx) });
           downloadBlob(artifact.data, artifact.filename, artifact.contentType);
           void ctx.auditLog.record("export.complete", { format: "warc", records: records.length });
           return { records: records.length };
         },
         getWaczEstimate() {
-          return estimateWaczBytes(collectAllRecords(getCheckpointStore()));
+          return estimateWaczBytes(collectAllRecords(getCheckpointStore()), {
+            audience: exportAudienceSelection(ctx)
+          });
         },
         async downloadWacz(options) {
           rebuildSearchIndex();
           const records = collectAllRecords(getCheckpointStore());
-          const artifact = await buildWaczArchiveOffThread(records, options);
+          const artifact = await buildWaczArchiveOffThread(records, {
+            ...options,
+            audience: exportAudienceSelection(ctx)
+          });
           downloadBlob(artifact.data, artifact.filename, artifact.contentType);
           void ctx.auditLog.record("export.complete", {
             format: "wacz",
@@ -32783,7 +32958,10 @@ ${COLOR_CSS}`;
         async downloadSignedWacz(options) {
           rebuildSearchIndex();
           const records = collectAllRecords(getCheckpointStore());
-          const artifact = await buildSignedWaczArchiveOffThread(records, waczSigning, options);
+          const artifact = await buildSignedWaczArchiveOffThread(records, waczSigning, {
+            ...options,
+            audience: exportAudienceSelection(ctx)
+          });
           downloadBlob(artifact.data, artifact.filename, artifact.contentType);
           void ctx.auditLog.record("export.complete", {
             format: "wacz",
@@ -32814,7 +32992,7 @@ ${COLOR_CSS}`;
           rebuildSearchIndex();
           const store6 = getCheckpointStore();
           const records = collectAllRecords(store6);
-          const rendered = renderForExternalTarget(target, records);
+          const rendered = renderForExternalTarget(target, records, { audience: exportAudienceSelection(ctx) });
           if (rendered.payload !== void 0) {
             await writeClipboard(rendered.payload);
             void ctx.auditLog.record("diagnostics.copy", { kind: "external", target });
@@ -33090,6 +33268,12 @@ ${COLOR_CSS}`;
       all.push(...store6.records(job.jobId));
     }
     return all;
+  }
+  function exportAudienceSelection(ctx) {
+    return {
+      includeProtected: ctx.settings.export.includeProtected,
+      includeUnknown: ctx.settings.export.includeUnknown
+    };
   }
   function matchingCapturedRecords(query) {
     const records = collectAllRecords(getCheckpointStore()).filter((record) => record.media.length > 0);
@@ -35140,6 +35324,7 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
     if (!tweetId || !looksLikeTweet2(value, legacy)) return null;
     const user = findUser2(value, legacy);
     const userLegacy = asRecord3(user?.legacy);
+    const audience = readAudience(user, userLegacy);
     const handle = cleanHandle3(
       user?.screen_name ?? user?.screenName ?? user?.username ?? userLegacy?.screen_name ?? userLegacy?.screenName ?? value.screen_name ?? value.username
     );
@@ -35166,11 +35351,16 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
       surface: `graphql:${safeOperation(operationName)}`,
       media: [],
       permalink: permalink2,
+      audience,
       ...conversationId ? { conversationId, rootId: conversationId } : {},
       ...parentId ? { parentId } : {},
       ...authorId ? { authorId } : {},
       ...createdAt ? { createdAt } : {}
     };
+  }
+  function readAudience(user, legacy) {
+    const protectedValue = user?.protected ?? legacy?.protected;
+    return typeof protectedValue === "boolean" ? protectedValue ? "protected" : "public" : "unknown";
   }
   function looksLikeTweet2(value, legacy) {
     if (legacy && (typeof legacy.full_text === "string" || typeof legacy.text === "string" || typeof legacy.conversation_id_str === "string" || typeof legacy.in_reply_to_status_id_str === "string")) return true;

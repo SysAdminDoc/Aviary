@@ -304,7 +304,7 @@ test("an export record says whose the quoted media is instead of listing it as i
   assert.equal(record.handle, "outer");
   assert.equal(record.media.length, 2);
   assert.equal(record.media[0].attribution, undefined, "the post's own photo needs no attribution");
-  assert.deepEqual(record.media[1].attribution, { scope: "quote", handle: "quoted" });
+  assert.deepEqual(record.media[1].attribution, { scope: "quote", handle: "quoted", audience: "unknown" });
   // The quote summary and the media attribution now come from one definition of "this is a quote";
   // they used to use different selectors, and this fixture matched only one of them.
   assert.deepEqual(record.quote, { handle: "quoted", text: "what the quoted account said" });

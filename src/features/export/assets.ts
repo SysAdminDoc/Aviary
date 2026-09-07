@@ -1,4 +1,5 @@
 import type { ExportMedia, ExportRecord, MediaCaptureStatus } from "./types.ts";
+import { normalizeAudience } from "./audience.ts";
 
 export interface ExportMediaManifest {
   status: MediaCaptureStatus;
@@ -138,6 +139,7 @@ export function serializeExportMedia(
 export function serializeExportRecord(record: ExportRecord): Record<string, unknown> {
   return {
     ...record,
+    audience: normalizeAudience(record.audience),
     media: mediaOf(record).map((media) => serializeExportMedia(media, record.capturedAt))
   };
 }

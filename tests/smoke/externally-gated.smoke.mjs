@@ -762,6 +762,7 @@ try {
   await clickAction(page, "export", "Copy diagnostics");
   await waitStatus(page, "Diagnostics copied to clipboard.");
   expect((await readClipboard(page)).includes("Aviary"), "diagnostics copy did not reach the browser-scoped clipboard");
+  await setToggle(page, "export", "Include unknown-audience posts in share exports", true);
   await clickAction(page, "export", "Copy as Markdown");
   await waitStatus(page, "Copied 1 records to clipboard.");
   expect((await readClipboard(page)).includes("An imported archive fixture record."), "Markdown export did not reach the clipboard");

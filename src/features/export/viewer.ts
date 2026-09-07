@@ -6,6 +6,7 @@ import {
   type ReconstructedThread
 } from "./thread-reconstruction.ts";
 import type { ExportRecord } from "./types.ts";
+import { filterShareRecords, normalizeAudienceSelection, type ExportAudienceSelection } from "./audience.ts";
 
 /**
  * The viewer's copy, in English, keyed by the id its markup uses.
@@ -72,9 +73,19 @@ const RTL_CODES: string[] = supportedLocales()
   .filter((locale) => locale.direction === "rtl")
   .map((locale) => locale.code);
 
-export function buildExportViewer(records: readonly ExportRecord[]): Uint8Array {
-  const data = safeJson(serializeExportRecords(records));
-  const threads = safeJson(serializeThreads(reconstructThreads(records)));
+export function buildExportViewer(
+  records: readonly ExportRecord[],
+  options: { audience?: Partial<ExportAudienceSelection> } = {}
+): Uint8Array {
+  // Direct callers that are assembling a diagnostic fixture may omit policy. The ZIP/export
+  // entry points always pass the user's explicit share selection, so a standalone viewer remains
+  // useful for legacy records while actual share packages stay fail-closed.
+  const audience = options.audience === undefined
+    ? { includeProtected: true, includeUnknown: true }
+    : normalizeAudienceSelection(options.audience);
+  const visibleRecords = filterShareRecords(records, audience);
+  const data = safeJson(serializeExportRecords(visibleRecords));
+  const threads = safeJson(serializeThreads(reconstructThreads(visibleRecords)));
   const labels = safeJson(buildViewerLabels());
   const script = viewerScript(labels, LOCALE_ORDER, RTL_CODES);
   const html = `<!doctype html>

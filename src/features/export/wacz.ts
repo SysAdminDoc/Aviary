@@ -1,5 +1,6 @@
 import { serializeExportRecord, sha256Hex } from "./assets.ts";
 import type { ExportArtifact, ExportRecord } from "./types.ts";
+import { filterShareRecords, normalizeAudienceSelection, type ExportAudienceSelection } from "./audience.ts";
 import { buildIndexedWarcArchive, type WarcIndexEntry } from "./warc.ts";
 import type { WaczDigestSigner, WaczSignatureData } from "./wacz-signing.ts";
 import { buildStoreZip, type ZipFileEntry } from "./zip-store.ts";
@@ -16,6 +17,7 @@ const PAGES_PATH = "pages/pages.jsonl";
 
 export interface WaczBuildOptions {
   generatedAt?: Date;
+  audience?: Partial<ExportAudienceSelection>;
 }
 
 export interface WaczEstimate {
@@ -54,10 +56,14 @@ export function prepareWaczArchive(
   records: readonly ExportRecord[],
   options: WaczBuildOptions
 ): PreparedWacz {
+  const selectedRecords = options.audience === undefined
+    ? [...records]
+    : filterShareRecords(records, normalizeAudienceSelection(options.audience));
   const generatedAt = validDate(options.generatedAt) ?? new Date();
-  const warc = buildIndexedWarcArchive(records, {
+  const warc = buildIndexedWarcArchive(selectedRecords, {
     generatedAt,
-    filename: "aviary.warc"
+    filename: "aviary.warc",
+    audience: { includeProtected: true, includeUnknown: true }
   });
   const indexBytes = ENCODER.encode(renderCdxj(warc.index, "aviary.warc"));
   const pagesBytes = ENCODER.encode(renderPages(warc.pages));
@@ -69,8 +75,8 @@ export function prepareWaczArchive(
   const datapackage = {
     profile: "data-package",
     wacz_version: WACZ_VERSION,
-    title: collectionTitle(records),
-    description: collectionDescription(records),
+    title: collectionTitle(selectedRecords),
+    description: collectionDescription(selectedRecords),
     created: generatedAt.toISOString(),
     modified: generatedAt.toISOString(),
     software: "Aviary",
@@ -115,9 +121,15 @@ export function finishWaczArchive(prepared: PreparedWacz, signedData?: WaczSigna
   };
 }
 
-export function estimateWaczBytes(records: readonly ExportRecord[]): WaczEstimate {
+export function estimateWaczBytes(
+  records: readonly ExportRecord[],
+  options: { audience?: Partial<ExportAudienceSelection> } = {}
+): WaczEstimate {
+  const selectedRecords = options.audience === undefined
+    ? records
+    : filterShareRecords(records, normalizeAudienceSelection(options.audience));
   let contentBytes = 12_000;
-  for (const record of records) {
+  for (const record of selectedRecords) {
     contentBytes += ENCODER.encode(JSON.stringify(serializeExportRecord(record))).length + 1_500;
     for (const media of Array.isArray(record.media) ? record.media : []) {
       const retainedBytes = media.bytes instanceof Uint8Array
@@ -129,7 +141,7 @@ export function estimateWaczBytes(records: readonly ExportRecord[]): WaczEstimat
     }
   }
   return {
-    records: records.length,
+    records: selectedRecords.length,
     estimatedBytes: contentBytes
   };
 }

@@ -165,6 +165,15 @@ tabs, fast scroll-through, detached nodes, and interrupted dwell do not count; a
 records its focal post immediately. **Forget seen posts** clears both the id-only seen ledger and
 the catch-up copies. Media references stay inert until you click a preview.
 
+## Audience-aware export
+
+Every captured record carries `public`, `protected`, or `unknown` audience state. GraphQL capture
+uses X's explicit protected flag; DOM-only, imported, and older rows stay unknown rather than being
+assumed public. The Export section shows the counts before a package is built. HTML, Markdown,
+WARC, WACZ, the standalone viewer, and external Markdown targets exclude protected and unknown rows
+by default, with separate controls for each group. JSON and CSV are archival formats: they retain all
+rows and include the audience field so a later sharing decision can be made from the saved data.
+
 ## One-click media
 
 The Control Center "Media" section exposes:

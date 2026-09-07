@@ -52,6 +52,7 @@ import type { StorageStatus } from "../platform/storage.ts";
 import type { LegacyAdoptionResult, ProfileStatus } from "../platform/profile.ts";
 import type { LibraryBackupPreview, LibraryBackupRestoreResult } from "../features/core/library-backup.ts";
 import type { IntegrationUsageStatus } from "../features/integrations/usage.ts";
+import type { ExportAudienceSummary } from "../features/export/audience.ts";
 import type { BisectStatus, BisectVerdict } from "../features/core/feature-bisect.ts";
 
 export interface MediaStatus {
@@ -92,6 +93,7 @@ export interface MediaStatus {
 export interface ExportStatus {
   jobCount: number;
   knownQueries: number;
+  audience?: ExportAudienceSummary;
   jobs?: Array<{
     jobId: string;
     status: "queued" | "running" | "paused" | "cancelled" | "failed" | "completed";
@@ -107,6 +109,7 @@ export interface ExportResultSummary {
   filename: string;
   /** How many ZIPs the run produced; more than one when media.zipChunkSize split it. */
   files?: number;
+  audience?: ExportAudienceSummary;
 }
 
 export interface CapturedThreadResultSummary {

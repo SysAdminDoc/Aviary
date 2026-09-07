@@ -14,7 +14,7 @@ interface WaczWorkerRequest {
   records?: ExportRecord[];
   prepared?: PreparedWacz;
   signedData?: WaczSignatureData;
-  options?: { generatedAt?: string };
+  options?: { generatedAt?: string; audience?: { includeProtected?: boolean; includeUnknown?: boolean } };
 }
 
 interface WorkerScope {
@@ -42,7 +42,8 @@ scope.onmessage = (event) => {
     }
     if (!Array.isArray(request.records)) throw new TypeError("WACZ worker is missing records");
     const options: WaczBuildOptions = {
-      ...(request.options?.generatedAt ? { generatedAt: new Date(request.options.generatedAt) } : {})
+      ...(request.options?.generatedAt ? { generatedAt: new Date(request.options.generatedAt) } : {}),
+      ...(request.options?.audience ? { audience: request.options.audience } : {})
     };
     scope.postMessage({ id: request.id, type: "progress", progress: 0.15 });
     if (type === "prepare") {

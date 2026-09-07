@@ -1,5 +1,6 @@
 import type { ExportArtifact, ExportRecord } from "./types.ts";
 import { describeMediaCapture, serializeExportRecords } from "./assets.ts";
+import { filterShareRecords, normalizeAudienceSelection, type ExportAudienceSelection } from "./audience.ts";
 
 const ENCODER = new TextEncoder();
 
@@ -13,15 +14,19 @@ export interface ExternalTargetResult {
 
 export function renderForExternalTarget(
   target: ExternalTargetId,
-  records: readonly ExportRecord[]
+  records: readonly ExportRecord[],
+  options: { audience?: Partial<ExportAudienceSelection> } = {}
 ): ExternalTargetResult {
+  const selected = options.audience === undefined
+    ? records
+    : filterShareRecords(records, normalizeAudienceSelection(options.audience));
   switch (target) {
     case "clipboard-markdown":
-      return { id: target, payload: toPlainMarkdown(records) };
+      return { id: target, payload: toPlainMarkdown(selected) };
     case "obsidian":
-      return { id: target, artifact: toObsidianArtifact(records) };
+      return { id: target, artifact: toObsidianArtifact(selected) };
     case "notion":
-      return { id: target, artifact: toNotionArtifact(records) };
+      return { id: target, artifact: toNotionArtifact(selected) };
     case "raw-json":
       return { id: target, artifact: toJsonArtifact(records) };
     default:

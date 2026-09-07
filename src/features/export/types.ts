@@ -1,3 +1,5 @@
+import type { ExportAudience } from "./audience.ts";
+
 export interface ExportRecord {
   tweetId: string | null;
   handle: string | null;
@@ -7,6 +9,8 @@ export interface ExportRecord {
   surface: string;
   media: ExportMedia[];
   permalink: string | null;
+  /** Audience state observed at capture time. Missing legacy records normalize to `unknown`. */
+  audience?: ExportAudience;
   poll?: ExportPoll;
   quote?: ExportQuoteSummary;
   article?: ExportArticleSummary;
@@ -62,7 +66,7 @@ export interface ExportMedia {
    * Present when the asset was inside the post but is not the post's own: a quoted post's media,
    * or a link card's preview. Absent means the record's own account published it.
    */
-  attribution?: { scope: "quote" | "card"; handle: string | null };
+  attribution?: { scope: "quote" | "card"; handle: string | null; audience?: ExportAudience };
   /** Transient bytes supplied to package/WARC builders; never serialized as a JSON object. */
   bytes?: Uint8Array;
   /** Relative path assigned by the package builder when `bytes` are present. */

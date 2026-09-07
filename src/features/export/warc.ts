@@ -5,6 +5,7 @@ import {
   sha256Hex
 } from "./assets.ts";
 import type { ExportArtifact, ExportMedia, ExportRecord } from "./types.ts";
+import { filterShareRecords, normalizeAudienceSelection, type ExportAudienceSelection } from "./audience.ts";
 
 const ENCODER = new TextEncoder();
 const WARC_VERSION = "WARC/1.1";
@@ -49,16 +50,23 @@ export interface IndexedWarcArchive {
 export interface WarcBuildOptions {
   generatedAt?: Date;
   filename?: string;
+  audience?: Partial<ExportAudienceSelection>;
 }
 
-export function buildWarcArchive(records: readonly ExportRecord[]): ExportArtifact {
-  return buildIndexedWarcArchive(records).artifact;
+export function buildWarcArchive(
+  records: readonly ExportRecord[],
+  options: WarcBuildOptions = {}
+): ExportArtifact {
+  return buildIndexedWarcArchive(records, options).artifact;
 }
 
 export function buildIndexedWarcArchive(
   records: readonly ExportRecord[],
   options: WarcBuildOptions = {}
 ): IndexedWarcArchive {
+  const selectedRecords = options.audience === undefined
+    ? [...records]
+    : filterShareRecords(records, normalizeAudienceSelection(options.audience));
   const generatedAt = validDate(options.generatedAt) ?? new Date();
   const filename = sanitizeFilename(options.filename ?? "tweets.warc");
   const generatedAtIso = toWarcDate(generatedAt);
@@ -87,7 +95,7 @@ export function buildIndexedWarcArchive(
     extraHeaders: { "WARC-Filename": filename }
   });
 
-  const packageManifest = buildExportPackageManifest(records, [], "", generatedAtIso);
+  const packageManifest = buildExportPackageManifest(selectedRecords, [], "", generatedAtIso);
   append({
     url: "urn:aviary:export-metadata",
     mime: "application/json",
@@ -102,7 +110,7 @@ export function buildIndexedWarcArchive(
     recordedAt: generatedAt
   });
 
-  records.forEach((record, recordIndex) => {
+  selectedRecords.forEach((record, recordIndex) => {
     const recordedAt = validDate(record.capturedAt) ?? generatedAt;
     const timestamp = toWarcDate(recordedAt);
     const summaryUrl = syntheticRecordUrl(record, recordIndex);

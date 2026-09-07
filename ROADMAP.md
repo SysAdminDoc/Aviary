@@ -144,14 +144,6 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
 
 ## Research-Driven Additions (2026-09-05)
 
-- [ ] F319, P1: Preserve protected and unknown audience state through export
-  Why: portable output currently cannot distinguish a public post from content captured while its author was protected, so a shareable package can expose follower-only material without warning.
-  Evidence: `src/features/export/types.ts` has no audience field; `src/features/export/thread-capture.ts` already reads `userLegacy` but drops its `protected` boolean; https://docs.x.com/x-api/fundamentals/data-dictionary and https://help.x.com/en/safety-and-security/public-and-protected-posts
-  Touches: `src/features/export/types.ts`, `src/features/export/thread-capture.ts`, `src/features/export/collector.ts`, export preview and formatters, WARC/WACZ metadata, static viewer, backup and migration tests
-  Acceptance: `ExportRecord` carries `audience: "public" | "protected" | "unknown"`; GraphQL capture maps a real boolean and DOM-only or old records remain `unknown`, never inferred public; local library backup retains all records unchanged; before HTML, Markdown, WARC, WACZ, ActivityStreams, or static share export, the preview reports public, protected, and unknown counts and excludes protected and unknown records until the user explicitly includes each group; JSON and CSV include the field and state their archival rather than share-oriented behavior; quoted-post media inherits its owning record's audience; round-trip tests cover all three states and an old record with no field.
-  Complexity: M
-  Depends: None for preservation-package validation. Extend F292 and F315 to consume the audience field when they land.
-
 - [ ] F320, P1: Stage large archive imports without whole-file base64 duplication
   Why: a 256 MiB import is encoded into roughly 341 MiB of base64, persisted, decoded into another complete byte array, and then parsed, creating avoidable quota and memory failures before useful work begins.
   Evidence: `src/features/library/archive-import-jobs.ts` (`MAX_SOURCE_BYTES`, `encodeBase64`, `source()`), `src/features/library/archive-import.ts` (`MAX_ARCHIVE_BYTES`); https://developer.mozilla.org/en-US/docs/Web/API/File_System_API/Origin_private_file_system and https://web.dev/articles/origin-private-file-system

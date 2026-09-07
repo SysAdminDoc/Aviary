@@ -31,7 +31,7 @@ interface WorkerRequest {
   records?: readonly ExportRecord[];
   prepared?: PreparedWacz;
   signedData?: WaczSignatureData;
-  options?: { generatedAt?: string };
+  options?: { generatedAt?: string; audience?: { includeProtected?: boolean; includeUnknown?: boolean } };
 }
 
 let requestSequence = 0;
@@ -40,7 +40,7 @@ export async function buildWaczArchiveOffThread(
   records: readonly ExportRecord[],
   options: WaczWorkerBuildOptions = {}
 ): Promise<ExportArtifact> {
-  const estimate = estimateWaczBytes(records);
+  const estimate = estimateWaczBytes(records, options);
   if (estimate.estimatedBytes > MAX_WACZ_EXPORT_BYTES) {
     throw new RangeError(
       `This WACZ is about ${formatMiB(estimate.estimatedBytes)} MiB. The safe export limit is ${formatMiB(MAX_WACZ_EXPORT_BYTES)} MiB.`
@@ -83,7 +83,7 @@ export async function buildSignedWaczArchiveOffThread(
   signer: WaczDigestSigner,
   options: WaczWorkerBuildOptions = {}
 ): Promise<ExportArtifact> {
-  const estimate = estimateWaczBytes(records);
+  const estimate = estimateWaczBytes(records, options);
   if (estimate.estimatedBytes > MAX_WACZ_EXPORT_BYTES) {
     throw new RangeError(
       `This WACZ is about ${formatMiB(estimate.estimatedBytes)} MiB. The safe export limit is ${formatMiB(MAX_WACZ_EXPORT_BYTES)} MiB.`
@@ -220,8 +220,19 @@ function preparedTransferables(prepared: PreparedWacz): Transferable[] {
   ];
 }
 
-function buildOptions(options: WaczBuildOptions): { generatedAt?: string } {
-  return options.generatedAt ? { generatedAt: options.generatedAt.toISOString() } : {};
+function buildOptions(options: WaczBuildOptions): {
+  generatedAt?: string;
+  audience?: { includeProtected: boolean; includeUnknown: boolean };
+} {
+  return {
+    ...(options.generatedAt ? { generatedAt: options.generatedAt.toISOString() } : {}),
+    ...(options.audience ? {
+      audience: {
+        includeProtected: options.audience.includeProtected === true,
+        includeUnknown: options.audience.includeUnknown === true
+      }
+    } : {})
+  };
 }
 
 function throwIfAborted(signal: AbortSignal | undefined): void {
