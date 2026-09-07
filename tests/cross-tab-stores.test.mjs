@@ -1034,6 +1034,33 @@ test("export checkpoints merge jobs and records while a stale append stays delet
   assert.equal(stored.jobs["job-b"].recordCount, 1, "the other tab's job was lost");
 });
 
+test("a stale checkpoint append preserves a newer progress total", async () => {
+  const mod = await load();
+  mod.setSettleDelay(2);
+  const current = new mod.CheckpointStore(mod.tab());
+  await current.start("job-total", "home", ["posts"], false);
+  const stale = new mod.CheckpointStore(mod.tab());
+  await stale.load();
+  await current.updateProgress("job-total", { completed: 0, total: 100 });
+  await stale.append("job-total", [
+    {
+      tweetId: "stale",
+      handle: "stale",
+      displayName: "Stale",
+      text: "stale",
+      capturedAt: "2026-09-06T00:00:00Z",
+      surface: "home",
+      media: [],
+      permalink: null
+    }
+  ]);
+  assert.equal(
+    mod.readShared(mod.CHECKPOINT_KEY).jobs["job-total"].progress.total,
+    100,
+    "a stale null total erased the newer progress metadata"
+  );
+});
+
 test("diagnostic records merge by event and clear is authoritative", async () => {
   const mod = await load();
   mod.setSettleDelay(2);

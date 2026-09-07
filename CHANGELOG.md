@@ -63,6 +63,9 @@
   export from a redacted backup.
 
 ### Changed
+- Browser download handoffs now retain terminal results for every waiting consumer. Fast completions
+  are reconciled before the response returns, and Resume checks the browser's retained download id
+  before retrying, so an in-progress or completed file is never downloaded twice.
 - Settings, profiles, media queue, export checkpoints and diagnostics now persist the change made
   inside the storage transaction. Two open X tabs keep non-conflicting additions and updates, and
   a clear cannot be undone by a stale snapshot.

@@ -20,7 +20,7 @@ export type DownloadWatchOutcome = DownloadTerminalState | "pending";
 /** Long enough for a large video on a slow connection; short enough not to be forever. */
 export const DOWNLOAD_TERMINAL_TIMEOUT_MS = 300_000;
 
-/** Bounded: one entry per download the page started and has not asked about yet. */
+/** Bounded: terminal results stay replayable without allowing an abandoned page to grow forever. */
 const MAX_BUFFERED = 64;
 
 interface Waiter {
@@ -65,12 +65,32 @@ export class DownloadWatcher {
 
   /** Also the entry point the background's message takes; exposed so tests can drive it. */
   settle(id: number, state: DownloadTerminalState): void {
+    // Chrome can emit the same terminal transition more than once when a worker wakes around an
+    // onChanged event. The first terminal state wins, and every consumer sees that same answer.
+    if (this.#settled.has(id)) {
+      return;
+    }
     const waiter = this.#waiting.get(id);
     if (waiter) {
       this.#waiting.delete(id);
+      this.#rememberSettled(id, state);
       waiter.resolve(state);
       return;
     }
+    this.#rememberSettled(id, state);
+  }
+
+  /**
+   * Drops a terminal result after the caller has finished all work derived from it.
+   *
+   * Most callers can leave the bounded replay buffer alone. This hook is useful for long-lived
+   * pages that explicitly know a download's queue, history, and UI consumers have all settled.
+   */
+  forget(id: number): void {
+    this.#settled.delete(id);
+  }
+
+  #rememberSettled(id: number, state: DownloadTerminalState): void {
     if (this.#settled.size >= MAX_BUFFERED) {
       const oldest = this.#settled.keys().next().value;
       if (oldest !== undefined) {
@@ -98,7 +118,6 @@ export class DownloadWatcher {
   terminal(id: number): Promise<DownloadWatchOutcome> {
     const already = this.#settled.get(id);
     if (already) {
-      this.#settled.delete(id);
       return Promise.resolve(already);
     }
     const existing = this.#waiting.get(id);

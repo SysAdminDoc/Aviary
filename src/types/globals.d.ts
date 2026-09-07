@@ -83,6 +83,11 @@ declare global {
     };
     downloads?: {
       download(options: { url: string; filename?: string; conflictAction?: "uniquify" | "overwrite" | "prompt" }): Promise<number>;
+      search?(query: { id?: number }): Promise<Array<{
+        id: number;
+        state?: "in_progress" | "interrupted" | "complete";
+        error?: string;
+      }>>;
       onChanged?: {
         addListener(
           listener: (delta: {

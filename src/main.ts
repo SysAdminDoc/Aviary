@@ -354,7 +354,12 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
       const normalized = normalizeSettings(cloneSettings(settings));
       const patch = diffKnownSettings(lastSavedSettings, normalized);
       await mutateStored<unknown>(storage, SETTINGS_KEY, undefined, (current) => {
-        if (current === undefined) return normalized;
+        if (current === undefined) {
+          // A missing key can mean another tab explicitly cleared settings. Rebuild from defaults
+          // and apply only this tab's changed leaves, so a stale snapshot cannot resurrect the
+          // cleared values or unrelated settings that were edited elsewhere.
+          return normalizeSettings(applyKnownSettingsPatch(cloneSettings(DEFAULT_SETTINGS), patch));
+        }
         const envelope = readSettingsEnvelope(current);
         if (envelope.fromFuture && envelope.future) {
           return applyKnownSettingsPatch(envelope.future, patch);

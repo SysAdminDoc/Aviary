@@ -4,7 +4,11 @@ import {
   syncDynamicAdRule,
   type ExtensionAdRuleApi
 } from "../extension/ad-rule.ts";
-import { DOWNLOAD_STATE_MESSAGE } from "../extension/download-state.ts";
+import {
+  DOWNLOAD_STATE_MESSAGE,
+  isDownloadQueryMessage,
+  type DownloadQueryResponse
+} from "../extension/download-state.ts";
 import {
   MEDIA_CONTEXT_DOWNLOAD_MESSAGE,
   MEDIA_CONTEXT_MENU_ID,
@@ -52,6 +56,15 @@ interface TrackedDownload {
 }
 
 const trackedDownloads = new Map<number, TrackedDownload>();
+/** Terminal events can beat the async tracking write by one event-loop turn. */
+const terminalBeforeTracking = new Map<number, { state: "complete" | "interrupted"; error?: string }>();
+/** Prevent duplicate onChanged/search reports after a worker has already finalized an id. */
+const handledTerminalIds = new Set<number>();
+const terminalWork = new Map<number, Promise<void>>();
+/** Keeps a terminal event from racing the storage write that records its tab and fallback list. */
+const trackingWork = new Map<number, Promise<void>>();
+/** Serializes read-modify-write tracking updates for concurrent downloads in one worker. */
+let trackingStoreTail: Promise<void> = Promise.resolve();
 
 /** Returned to the content script when `downloads` has not been granted yet. */
 export const DOWNLOAD_PERMISSION_CODE = "downloads-permission-missing";
@@ -114,10 +127,13 @@ contextMenus?.onClicked?.addListener((info, tab) => {
 
 globalThis.chrome?.downloads?.onChanged?.addListener((delta) => {
   if (delta.state?.current === "complete") {
-    settleBackgroundTask(finishDownload(delta.id, "complete"), "download completion");
+    settleBackgroundTask(
+      settleDownloadOnce(delta.id, () => finishDownload(delta.id, "complete")),
+      "download completion"
+    );
   } else if (delta.state?.current === "interrupted") {
     settleBackgroundTask(
-      retryDownloadFallback(delta.id, delta.error?.current),
+      settleDownloadOnce(delta.id, () => retryDownloadFallback(delta.id, delta.error?.current)),
       "download fallback"
     );
   }
@@ -163,6 +179,14 @@ runtime?.onMessage?.addListener((message, sender, sendResponse) => {
     hasDownloadPermission().then(
       (granted) => sendResponse({ ok: true, granted }),
       () => sendResponse({ ok: true, granted: false })
+    );
+    return true;
+  }
+  if (isDownloadQueryMessage(message)) {
+    queryDownload(message.id).then(
+      (response) => sendResponse(response),
+      (error: unknown) =>
+        sendResponse({ ok: false, id: message.id, error: errorMessage(error) })
     );
     return true;
   }
@@ -312,6 +336,9 @@ async function handleDownload(
         fallbackUrls: candidates.slice(index + 1),
         filename: message.filename
       });
+      // A very fast transfer can reach a terminal state before the handoff response leaves this
+      // worker. Reconcile after the durable tracking record exists so that event is not lost.
+      await queryDownload(id);
       // `pending` is the whole point: the browser has taken the request, and nothing yet knows
       // whether the bytes arrive. The tab waits for AVIARY_DOWNLOAD_STATE before saying Saved.
       return { ok: true, id, pending: true };
@@ -330,12 +357,14 @@ async function handleDownload(
  * candidates left reports it interrupted rather than leaving the button spinning forever.
  */
 async function retryDownloadFallback(downloadId: number, error?: string): Promise<void> {
+  await waitForTracking(downloadId);
   const pending = await readTrackedDownload(downloadId);
-  await clearTrackedDownload(downloadId);
   const downloads = globalThis.chrome?.downloads;
   if (!pending) {
+    rememberTerminalBeforeTracking(downloadId, "interrupted", error);
     return;
   }
+  await clearTrackedDownload(downloadId);
   if (downloads) {
     for (let index = 0; index < pending.fallbackUrls.length; index += 1) {
       const url = pending.fallbackUrls[index]!;
@@ -361,10 +390,115 @@ async function retryDownloadFallback(downloadId: number, error?: string): Promis
 }
 
 async function finishDownload(downloadId: number, state: "complete"): Promise<void> {
+  await waitForTracking(downloadId);
   const tracked = await readTrackedDownload(downloadId);
+  if (!tracked) {
+    rememberTerminalBeforeTracking(downloadId, state);
+    return;
+  }
   await clearTrackedDownload(downloadId);
-  if (tracked) {
-    await reportDownloadState(tracked, state);
+  await reportDownloadState(tracked, state);
+}
+
+/** Serializes the onChanged path with the post-handoff/search reconciliation path. */
+function settleDownloadOnce(downloadId: number, task: () => Promise<void>): Promise<void> {
+  if (handledTerminalIds.has(downloadId)) {
+    return Promise.resolve();
+  }
+  const existing = terminalWork.get(downloadId);
+  if (existing) {
+    return existing;
+  }
+  const work = task()
+    .then(() => {
+      if (!terminalBeforeTracking.has(downloadId)) {
+        rememberHandledTerminal(downloadId);
+      }
+    })
+    .finally(() => {
+      terminalWork.delete(downloadId);
+    });
+  terminalWork.set(downloadId, work);
+  return work;
+}
+
+function rememberHandledTerminal(downloadId: number): void {
+  handledTerminalIds.add(downloadId);
+  while (handledTerminalIds.size > DOWNLOAD_TRACKING_LIMIT * 2) {
+    const oldest = handledTerminalIds.values().next().value;
+    if (oldest === undefined) break;
+    handledTerminalIds.delete(oldest);
+  }
+}
+
+function rememberTerminalBeforeTracking(
+  downloadId: number,
+  state: "complete" | "interrupted",
+  error?: string
+): void {
+  if (handledTerminalIds.has(downloadId)) return;
+  if (!terminalBeforeTracking.has(downloadId)) {
+    terminalBeforeTracking.set(downloadId, { state, ...(error ? { error } : {}) });
+  }
+  while (terminalBeforeTracking.size > DOWNLOAD_TRACKING_LIMIT) {
+    const oldest = terminalBeforeTracking.keys().next().value;
+    if (oldest === undefined) break;
+    terminalBeforeTracking.delete(oldest);
+  }
+}
+
+/** Reads Chrome/Firefox's retained record without relying on the worker's memory. */
+async function queryDownload(downloadId: number): Promise<DownloadQueryResponse> {
+  const downloads = globalThis.chrome?.downloads;
+  if (!downloads?.search) {
+    // Both Chrome and Firefox expose downloads.search. A lightweight test double or an older
+    // embedded host cannot prove what happened, so the content page will keep the job paused
+    // rather than guessing and creating a duplicate transfer.
+    return { ok: false, id: downloadId, error: "downloads.search is unavailable" };
+  }
+  const records = await downloads.search({ id: downloadId });
+  const record = records.find((item) => item.id === downloadId);
+  if (!record) {
+    await clearTrackedDownload(downloadId);
+    return { ok: true, id: downloadId, state: "missing" };
+  }
+  if (record.state === "complete") {
+    await reconcileDownload(downloadId, "complete");
+    return { ok: true, id: downloadId, state: "complete" };
+  }
+  if (record.state === "interrupted") {
+    await reconcileDownload(downloadId, "interrupted", record.error);
+    // The background fallback keeps reporting the original id. Once it has started, the retained
+    // queue entry must keep waiting on that id instead of launching a duplicate primary request.
+    if (await hasTrackedReport(downloadId)) {
+      return { ok: true, id: downloadId, state: "in_progress" };
+    }
+    return {
+      ok: true,
+      id: downloadId,
+      state: "interrupted",
+      ...(record.error ? { error: record.error } : {})
+    };
+  }
+  return { ok: true, id: downloadId, state: "in_progress" };
+}
+
+async function reconcileDownload(
+  downloadId: number,
+  state?: "complete" | "interrupted",
+  error?: string
+): Promise<void> {
+  const early = terminalBeforeTracking.get(downloadId);
+  if (early) {
+    terminalBeforeTracking.delete(downloadId);
+    state ??= early.state;
+    error ??= early.error;
+  }
+  if (state === "complete") {
+    await settleDownloadOnce(downloadId, () => finishDownload(downloadId, "complete"));
+  } else if (state === "interrupted") {
+    const reason = error;
+    await settleDownloadOnce(downloadId, () => retryDownloadFallback(downloadId, reason));
   }
 }
 
@@ -406,14 +540,49 @@ async function trackDownload(downloadId: number, pending: TrackedDownload): Prom
   trackedDownloads.set(downloadId, pending);
   const storage = globalThis.chrome?.storage?.local;
   if (!storage) {
+    await reconcileDownload(downloadId);
     return;
+  }
+  const write = enqueueTrackingMutation(async () => {
+    try {
+      const stored = await readStoredDownloadTracking();
+      stored[String(downloadId)] = pending;
+      await storage.set({ [DOWNLOAD_TRACKING_KEY]: capTracking(stored) });
+    } catch {
+      // The in-memory entry still covers the current service-worker lifetime.
+    }
+  });
+  trackingWork.set(downloadId, write);
+  try {
+    await write;
+  } finally {
+    if (trackingWork.get(downloadId) === write) {
+      trackingWork.delete(downloadId);
+    }
+  }
+  // Do not await an already-running terminal task here. That task may be waiting for this write to
+  // finish, and awaiting it would form a cycle. The handoff caller reconciles after this returns.
+  if (terminalBeforeTracking.has(downloadId)) {
+    void reconcileDownload(downloadId);
+  }
+}
+
+async function waitForTracking(downloadId: number): Promise<void> {
+  const pending = trackingWork.get(downloadId);
+  if (pending) {
+    await pending;
+  }
+}
+
+async function hasTrackedReport(reportId: number): Promise<boolean> {
+  for (const pending of trackedDownloads.values()) {
+    if (pending.reportId === reportId) return true;
   }
   try {
     const stored = await readStoredDownloadTracking();
-    stored[String(downloadId)] = pending;
-    await storage.set({ [DOWNLOAD_TRACKING_KEY]: capTracking(stored) });
+    return Object.values(stored).some((pending) => pending.reportId === reportId);
   } catch {
-    // The in-memory entry still covers the current service-worker lifetime.
+    return false;
   }
 }
 
@@ -435,21 +604,30 @@ async function readTrackedDownload(downloadId: number): Promise<TrackedDownload 
 }
 
 async function clearTrackedDownload(downloadId: number): Promise<void> {
+  await waitForTracking(downloadId);
   trackedDownloads.delete(downloadId);
   const storage = globalThis.chrome?.storage?.local;
   if (!storage) {
     return;
   }
-  try {
-    const stored = await readStoredDownloadTracking();
-    if (stored[String(downloadId)] === undefined) {
-      return;
+  await enqueueTrackingMutation(async () => {
+    try {
+      const stored = await readStoredDownloadTracking();
+      if (stored[String(downloadId)] === undefined) {
+        return;
+      }
+      delete stored[String(downloadId)];
+      await storage.set({ [DOWNLOAD_TRACKING_KEY]: stored });
+    } catch {
+      // Cleanup is best effort; entries are bounded by explicit user downloads.
     }
-    delete stored[String(downloadId)];
-    await storage.set({ [DOWNLOAD_TRACKING_KEY]: stored });
-  } catch {
-    // Cleanup is best effort; entries are bounded by explicit user downloads.
-  }
+  });
+}
+
+function enqueueTrackingMutation(task: () => Promise<void>): Promise<void> {
+  const write = trackingStoreTail.then(task);
+  trackingStoreTail = write.catch(() => undefined);
+  return write;
 }
 
 /** Oldest first, so a browser that never reports a terminal state cannot grow this without end. */

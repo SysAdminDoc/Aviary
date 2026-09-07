@@ -7,13 +7,19 @@ import { importSourceModule } from "./source-import.mjs";
  * service-worker restart is reproduced -- the new worker has no memory of anything except what was
  * written to `storage.local`, which is the whole reason the download tracking is persisted.
  */
-export async function loadBackground({ stored = {}, granted = true } = {}) {
+export async function loadBackground({
+  stored = {},
+  granted = true,
+  downloadStates = {},
+  nextId: initialNextId = 1,
+  onCreateState
+} = {}) {
   const downloads = [];
   const tabMessages = [];
   const pending = new Set();
   let onMessage;
   let onDownloadChanged;
-  let nextId = 1;
+  let nextId = initialNextId;
 
   globalThis.chrome = {
     runtime: {
@@ -38,8 +44,18 @@ export async function loadBackground({ stored = {}, granted = true } = {}) {
     },
     downloads: {
       async download(options) {
+        const id = nextId++;
         downloads.push(options);
-        return nextId++;
+        downloadStates[id] ??= { id, state: "in_progress" };
+        if (onCreateState) {
+          downloadStates[id] = { id, state: onCreateState };
+          onDownloadChanged?.({ id, state: { current: onCreateState } });
+        }
+        return id;
+      },
+      async search(query) {
+        const record = downloadStates[query?.id];
+        return record ? [structuredClone(record)] : [];
       },
       onChanged: { addListener(listener) { onDownloadChanged = listener; } }
     },
@@ -59,6 +75,13 @@ export async function loadBackground({ stored = {}, granted = true } = {}) {
     stored,
     onDownloadChanged: (delta) => {
       const before = tabMessages.length;
+      if (typeof delta?.id === "number" && delta.state?.current) {
+        downloadStates[delta.id] = {
+          id: delta.id,
+          state: delta.state.current,
+          ...(delta.error?.current ? { error: delta.error.current } : {})
+        };
+      }
       onDownloadChanged(delta);
       pending.add(before);
     },

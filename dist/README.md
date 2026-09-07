@@ -50,7 +50,9 @@ keep their own separate Save control, filed under the account that actually publ
 they belong to somebody else. History is stored as hashed media identities rather than source URLs,
 so it catches alternate X image sizes and exact byte matches without keeping a list of what you
 looked at. Batch downloads re-check queued video targets after pacing, so a higher-quality URL
-observed before handoff is the one persisted and requested.
+observed before handoff is the one persisted and requested. If a tab or service worker restarts,
+Resume checks the browser's retained transfer before retrying, so an active or completed file is
+not duplicated.
 
 That's the whole default surface. Themes, layout cleanup, filters, offscreen video pausing and the
 broader analytics refusal all start off. Outside the download controls, the only thing Aviary adds

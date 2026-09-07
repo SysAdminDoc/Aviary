@@ -14474,6 +14474,17 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     return typeof entry.gid === "string" && typeof entry.url === "string" && typeof entry.filename === "string" && (entry.status === "queued" || entry.status === "complete") && typeof entry.queuedAt === "string" && (entry.completedAt === void 0 || typeof entry.completedAt === "string");
   }
 
+  // src/extension/download-state.ts
+  var DOWNLOAD_STATE_MESSAGE = "AVIARY_DOWNLOAD_STATE";
+  var DOWNLOAD_QUERY_MESSAGE = "AVIARY_DOWNLOAD_QUERY";
+  function isDownloadStateMessage(value) {
+    if (typeof value !== "object" || value === null) {
+      return false;
+    }
+    const candidate = value;
+    return candidate.type === DOWNLOAD_STATE_MESSAGE && typeof candidate.id === "number" && (candidate.state === "complete" || candidate.state === "interrupted") && (candidate.error === void 0 || typeof candidate.error === "string");
+  }
+
   // src/features/media/downloader.ts
   var MEDIA_FINGERPRINT_TIMEOUT_MS = 1500;
   var DOWNLOAD_PERMISSION_CODE = "downloads-permission-missing";
@@ -14589,6 +14600,32 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       this.name = "DownloadPermissionError";
     }
   };
+  async function queryExtensionDownload(id) {
+    if (!Number.isSafeInteger(id) || id < 0) {
+      return void 0;
+    }
+    const runtime = globalThis.chrome?.runtime;
+    if (!runtime?.sendMessage) {
+      return void 0;
+    }
+    try {
+      const response = await runtime.sendMessage({
+        type: DOWNLOAD_QUERY_MESSAGE,
+        id
+      });
+      if (response?.ok !== true || response.id !== id || !isDownloadQueryState(response.state)) {
+        return void 0;
+      }
+      return {
+        ok: true,
+        id,
+        state: response.state,
+        ...typeof response.error === "string" ? { error: response.error } : {}
+      };
+    } catch {
+      return void 0;
+    }
+  }
   function createDownloader(options = {}) {
     return async (request) => {
       if (options.integrations) {
@@ -14727,6 +14764,9 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
   }
   function downloadCandidates(request) {
     return [request.url, ...request.fallbackUrls ?? []].filter((url, index, all) => /^https?:\/\//i.test(url) && all.indexOf(url) === index).slice(0, 4);
+  }
+  function isDownloadQueryState(value) {
+    return value === "in_progress" || value === "complete" || value === "interrupted" || value === "missing";
   }
   async function requestDownloadPermissionSurface() {
     const runtime = globalThis.chrome?.runtime;
@@ -15307,16 +15347,6 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     return typeof value === "object" && value !== null && !Array.isArray(value);
   }
 
-  // src/extension/download-state.ts
-  var DOWNLOAD_STATE_MESSAGE = "AVIARY_DOWNLOAD_STATE";
-  function isDownloadStateMessage(value) {
-    if (typeof value !== "object" || value === null) {
-      return false;
-    }
-    const candidate = value;
-    return candidate.type === DOWNLOAD_STATE_MESSAGE && typeof candidate.id === "number" && (candidate.state === "complete" || candidate.state === "interrupted") && (candidate.error === void 0 || typeof candidate.error === "string");
-  }
-
   // src/features/media/download-watch.ts
   var DOWNLOAD_TERMINAL_TIMEOUT_MS = 3e5;
   var MAX_BUFFERED = 64;
@@ -15353,12 +15383,28 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     }
     /** Also the entry point the background's message takes; exposed so tests can drive it. */
     settle(id, state2) {
+      if (this.#settled.has(id)) {
+        return;
+      }
       const waiter = this.#waiting.get(id);
       if (waiter) {
         this.#waiting.delete(id);
+        this.#rememberSettled(id, state2);
         waiter.resolve(state2);
         return;
       }
+      this.#rememberSettled(id, state2);
+    }
+    /**
+     * Drops a terminal result after the caller has finished all work derived from it.
+     *
+     * Most callers can leave the bounded replay buffer alone. This hook is useful for long-lived
+     * pages that explicitly know a download's queue, history, and UI consumers have all settled.
+     */
+    forget(id) {
+      this.#settled.delete(id);
+    }
+    #rememberSettled(id, state2) {
       if (this.#settled.size >= MAX_BUFFERED) {
         const oldest = this.#settled.keys().next().value;
         if (oldest !== void 0) {
@@ -15384,7 +15430,6 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     terminal(id) {
       const already = this.#settled.get(id);
       if (already) {
-        this.#settled.delete(id);
         return Promise.resolve(already);
       }
       const existing = this.#waiting.get(id);
@@ -16192,6 +16237,15 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       job.downloadId = downloadId;
       this.#persist({ kind: "update", id: jobId, set: { downloadId } });
       this.#notify();
+    }
+    /** Clears a retained browser id after reconciliation says the transfer is gone or failed. */
+    forgetDownload(jobId) {
+      const job = this.#jobs.find((entry) => entry.id === jobId);
+      if (!job || job.downloadId === void 0) return false;
+      delete job.downloadId;
+      this.#persist({ kind: "update", id: jobId, set: {}, remove: ["downloadId"] });
+      this.#notify();
+      return true;
     }
     pause(jobId) {
       const job = this.#jobs.find((entry) => entry.id === jobId);
@@ -18103,7 +18157,10 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
         const retained = policy.maxRecordsPerJob > 0 ? records.slice(-policy.maxRecordsPerJob) : records;
         state2.records[change.jobId] = retained;
         job.recordCount = retained.length;
-        job.progress = { completed: retained.length, total: change.total };
+        job.progress = {
+          completed: retained.length,
+          total: job.progress.total ?? change.total
+        };
         job.updatedAt = change.updatedAt;
       }
     } else if (change.kind === "update") {
@@ -26857,6 +26914,44 @@ a.av-link-clean {
         if (control.cancelled || needsDownloadPermission) break;
         await waitForBatch(control);
         if (control.cancelled) break;
+        if (job.downloadId !== void 0) {
+          const retained = await queryExtensionDownload(job.downloadId);
+          if (!retained) {
+            queue2.mark(job.id, "paused", "The browser download could not be verified; try resume again.");
+            progress.failed += 1;
+            ctx.diagnostics.warn("Could not reconcile retained media transfer", {
+              filename: job.filename,
+              downloadId: job.downloadId
+            });
+            continue;
+          }
+          if (retained?.state === "in_progress") {
+            queue2.resume(job.id);
+            queue2.mark(job.id, "running");
+            progress.started += 1;
+            watchRetainedDownload(ctx, queue2, history2, job, job.downloadId);
+            continue;
+          }
+          if (retained?.state === "complete") {
+            queue2.mark(job.id, "completed");
+            const fingerprint3 = retainedFingerprint(job);
+            if (ctx.settings.media.downloadHistory && history2 && fingerprint3) {
+              await history2.record(fingerprint3);
+            }
+            saveSidecarOrWarn2(ctx, job.sidecar, job.filename);
+            progress.downloaded += 1;
+            void ctx.auditLog.record("media.download", {
+              filename: job.filename,
+              batch: true,
+              resumed: true,
+              reconciled: true
+            });
+            continue;
+          }
+          if (retained?.state === "interrupted" || retained?.state === "missing") {
+            queue2.forgetDownload(job.id);
+          }
+        }
         queue2.resume(job.id);
         let fingerprint2;
         let reservationToken2 = null;
@@ -27021,6 +27116,41 @@ a.av-link-clean {
     } finally {
       finishBatch(control);
     }
+  }
+  function retainedFingerprint(job) {
+    return job.kind ? { identityHash: mediaIdentityHash(job.kind, job.url, job.mediaId ?? null) } : void 0;
+  }
+  function watchRetainedDownload(ctx, queue2, history2, job, downloadId) {
+    const fingerprint2 = retainedFingerprint(job);
+    void sharedDownloadWatcher().terminal(downloadId).then(async (terminal) => {
+      if (terminal === "complete") {
+        queue2?.mark(job.id, "completed");
+        if (ctx.settings.media.downloadHistory && history2 && fingerprint2) {
+          await history2.record(fingerprint2);
+        }
+        saveSidecarOrWarn2(ctx, job.sidecar, job.filename);
+        void ctx.auditLog.record("media.download", {
+          filename: job.filename,
+          batch: true,
+          resumed: true,
+          reconciled: true
+        });
+      } else if (terminal === "interrupted") {
+        queue2?.mark(job.id, "failed", "the browser interrupted this transfer");
+        void ctx.auditLog.record("media.download.failed", {
+          filename: job.filename,
+          batch: true,
+          resumed: true,
+          reconciled: true
+        });
+      }
+    }).catch((error) => {
+      queue2?.mark(job.id, "failed", "the browser result could not be confirmed");
+      ctx.diagnostics.warn("Could not confirm retained media transfer", {
+        filename: job.filename,
+        error: String(error?.message ?? error)
+      });
+    });
   }
   function saveSidecarOrWarn2(ctx, request, mediaFilename) {
     if (!request || saveMediaSidecar(request)) return;
@@ -38577,7 +38707,9 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
         const normalized = normalizeSettings(cloneSettings(settings));
         const patch = diffKnownSettings(lastSavedSettings, normalized);
         await mutateStored(storage, SETTINGS_KEY, void 0, (current) => {
-          if (current === void 0) return normalized;
+          if (current === void 0) {
+            return normalizeSettings(applyKnownSettingsPatch(cloneSettings(DEFAULT_SETTINGS), patch));
+          }
           const envelope = readSettingsEnvelope(current);
           if (envelope.fromFuture && envelope.future) {
             return applyKnownSettingsPatch(envelope.future, patch);

@@ -9,7 +9,16 @@
  */
 export const DOWNLOAD_STATE_MESSAGE = "AVIARY_DOWNLOAD_STATE";
 
+/**
+ * A content page can outlive the service worker that accepted its download. This request lets it
+ * reconcile a retained browser id before starting a retry, so a worker restart never creates a
+ * second copy of a transfer that is still running or already complete.
+ */
+export const DOWNLOAD_QUERY_MESSAGE = "AVIARY_DOWNLOAD_QUERY";
+
 export type DownloadTerminalState = "complete" | "interrupted";
+
+export type DownloadQueryState = "in_progress" | DownloadTerminalState | "missing";
 
 export interface DownloadStateMessage {
   type: typeof DOWNLOAD_STATE_MESSAGE;
@@ -18,6 +27,24 @@ export interface DownloadStateMessage {
   state: DownloadTerminalState;
   error?: string;
 }
+
+export interface DownloadQueryMessage {
+  type: typeof DOWNLOAD_QUERY_MESSAGE;
+  id: number;
+}
+
+export type DownloadQueryResponse =
+  | {
+      ok: true;
+      id: number;
+      state: DownloadQueryState;
+      error?: string;
+    }
+  | {
+      ok: false;
+      id: number;
+      error: string;
+    };
 
 export function isDownloadStateMessage(value: unknown): value is DownloadStateMessage {
   if (typeof value !== "object" || value === null) {
@@ -29,5 +56,18 @@ export function isDownloadStateMessage(value: unknown): value is DownloadStateMe
     typeof candidate.id === "number" &&
     (candidate.state === "complete" || candidate.state === "interrupted") &&
     (candidate.error === undefined || typeof candidate.error === "string")
+  );
+}
+
+export function isDownloadQueryMessage(value: unknown): value is DownloadQueryMessage {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+  const candidate = value as { type?: unknown; id?: unknown };
+  return (
+    candidate.type === DOWNLOAD_QUERY_MESSAGE &&
+    typeof candidate.id === "number" &&
+    Number.isSafeInteger(candidate.id) &&
+    candidate.id >= 0
   );
 }

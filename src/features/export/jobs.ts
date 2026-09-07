@@ -371,7 +371,12 @@ function applyCheckpointChange(
         : records;
       state.records[change.jobId] = retained;
       job.recordCount = retained.length;
-      job.progress = { completed: retained.length, total: change.total };
+      // Preserve a total already written by another context. A stale append often carries
+      // `null`, and letting it win would erase useful progress metadata while the records merge.
+      job.progress = {
+        completed: retained.length,
+        total: job.progress.total ?? change.total
+      };
       job.updatedAt = change.updatedAt;
     }
   } else if (change.kind === "update") {

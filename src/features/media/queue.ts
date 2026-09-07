@@ -221,6 +221,16 @@ export class DownloadQueue {
     this.#notify();
   }
 
+  /** Clears a retained browser id after reconciliation says the transfer is gone or failed. */
+  forgetDownload(jobId: string): boolean {
+    const job = this.#jobs.find((entry) => entry.id === jobId);
+    if (!job || job.downloadId === undefined) return false;
+    delete job.downloadId;
+    this.#persist({ kind: "update", id: jobId, set: {}, remove: ["downloadId"] });
+    this.#notify();
+    return true;
+  }
+
   pause(jobId: string): boolean {
     const job = this.#jobs.find((entry) => entry.id === jobId);
     if (!job || job.status === "completed" || job.status === "failed" || job.status === "opened" || job.status === "duplicate" || job.status === "cancelled") return false;

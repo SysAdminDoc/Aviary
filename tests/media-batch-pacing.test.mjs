@@ -45,6 +45,7 @@ before(async () => {
     [
       `export { resumePendingMediaJobs, runMediaBatch, runCapturedMediaBatch } from ${JSON.stringify(abs("src/features/media/batch-downloader.ts"))};`,
       `export { mediaButtonsFeature, getMediaQueue, ingestMediaMetadata } from ${JSON.stringify(abs("src/features/media/media-buttons.ts"))};`,
+      `export { sharedDownloadWatcher } from ${JSON.stringify(abs("src/features/media/download-watch.ts"))};`,
       `export { DownloadPermissionError, createDownloader } from ${JSON.stringify(abs("src/features/media/downloader.ts"))};`,
       `export { TokenBucket } from ${JSON.stringify(abs("src/platform/rate-limit.ts"))};`,
       `export { DEFAULT_SETTINGS, cloneSettings } from ${JSON.stringify(abs("src/platform/settings.ts"))};`
@@ -734,4 +735,86 @@ test("resumed jobs retain fallback URLs and save sidecars only after completion"
   assert.deepEqual(observed.sidecars, ["resume.txt"]);
   assert.equal(observed.job.status, "completed");
   assert.equal(observed.result.downloaded, 1);
+});
+
+test("resuming a retained browser transfer does not create a duplicate download", async () => {
+  const observed = await page.evaluate(async () => {
+    const settings = AviaryBatch.cloneSettings(AviaryBatch.DEFAULT_SETTINGS);
+    settings.media.downloadHistory = false;
+    const stored = new Map([[
+      "aviary.media.queue.v1",
+      {
+        sequence: 4,
+        jobs: [{
+          id: "job-4",
+          url: "https://pbs.twimg.com/media/retained?format=mp4&name=orig",
+          filename: "retained.mp4",
+          kind: "video",
+          mediaId: "retained",
+          status: "running",
+          downloadId: 701,
+          resumeOnBoot: true
+        }]
+      }
+    ]]);
+    const storage = {
+      async get(key, fallback) {
+        return stored.has(key) ? structuredClone(stored.get(key)) : structuredClone(fallback);
+      },
+      async set(key, value) {
+        stored.set(key, structuredClone(value));
+      },
+      async remove(key) {
+        stored.delete(key);
+      }
+    };
+    const listeners = new Set();
+    const messages = [];
+    globalThis.chrome = {
+      runtime: {
+        onMessage: {
+          addListener(listener) { listeners.add(listener); },
+          removeListener(listener) { listeners.delete(listener); }
+        },
+        async sendMessage(message) {
+          messages.push(message);
+          if (message?.type === "AVIARY_DOWNLOAD_QUERY") {
+            return { ok: true, id: 701, state: "in_progress" };
+          }
+          return { ok: true };
+        }
+      }
+    };
+    const ctx = {
+      settings,
+      route: { surface: "home", path: "/home" },
+      storage,
+      limiter: { async waitForToken() {} },
+      auditLog: { async record() {} },
+      diagnostics: { info() {}, warn() {}, error() {} }
+    };
+    await AviaryBatch.mediaButtonsFeature.init(ctx);
+    const result = await AviaryBatch.resumePendingMediaJobs(ctx);
+    const before = structuredClone(AviaryBatch.getMediaQueue().snapshot().recent.at(-1));
+    for (const listener of [...listeners]) {
+      listener({ type: "AVIARY_DOWNLOAD_STATE", id: 701, state: "complete" }, {}, () => {});
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    const after = AviaryBatch.getMediaQueue().snapshot().recent.at(-1);
+    await AviaryBatch.mediaButtonsFeature.destroy(ctx);
+    return {
+      result,
+      before,
+      after,
+      queries: messages.filter((message) => message.type === "AVIARY_DOWNLOAD_QUERY").length,
+      downloads: messages.filter((message) => message.type === "AVIARY_DOWNLOAD").length
+    };
+  });
+
+  assert.equal(observed.result.started, 1);
+  assert.equal(observed.result.downloaded, 0);
+  assert.equal(observed.queries, 1);
+  assert.equal(observed.downloads, 0, "an in-progress retained id was downloaded again");
+  assert.equal(observed.before.status, "running");
+  assert.equal(observed.after.status, "completed");
 });

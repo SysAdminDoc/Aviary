@@ -11,6 +11,7 @@ import {
   createDownloader,
   DownloadPermissionError,
   fingerprintMediaDownload,
+  queryExtensionDownload,
   requestDownloadPermissionSurface,
   type Downloader,
   type DownloaderResult
@@ -588,6 +589,51 @@ async function runPersistedJobs(
       if (control.cancelled || needsDownloadPermission) break;
       await waitForBatch(control);
       if (control.cancelled) break;
+
+      // A queue entry can retain the browser id that was handed off before this tab or its
+      // service worker restarted. Ask the background about that id before creating another file.
+      if (job.downloadId !== undefined) {
+        const retained = await queryExtensionDownload(job.downloadId);
+        if (!retained) {
+          // A retained id is an extension handoff. If the background cannot answer, do not guess
+          // that the file is gone and create a duplicate. Leave it paused for a later retry.
+          queue.mark(job.id, "paused", "The browser download could not be verified; try resume again.");
+          progress.failed += 1;
+          ctx.diagnostics.warn("Could not reconcile retained media transfer", {
+            filename: job.filename,
+            downloadId: job.downloadId
+          });
+          continue;
+        }
+        if (retained?.state === "in_progress") {
+          queue.resume(job.id);
+          queue.mark(job.id, "running");
+          progress.started += 1;
+          watchRetainedDownload(ctx, queue, history, job, job.downloadId);
+          continue;
+        }
+        if (retained?.state === "complete") {
+          queue.mark(job.id, "completed");
+          const fingerprint = retainedFingerprint(job);
+          if (ctx.settings.media.downloadHistory && history && fingerprint) {
+            await history.record(fingerprint);
+          }
+          saveSidecarOrWarn(ctx, job.sidecar, job.filename);
+          progress.downloaded += 1;
+          void ctx.auditLog.record("media.download", {
+            filename: job.filename,
+            batch: true,
+            resumed: true,
+            reconciled: true
+          });
+          continue;
+        }
+        if (retained?.state === "interrupted" || retained?.state === "missing") {
+          // The old browser record is no longer a transfer we can wait on. Let the normal path
+          // retry the member once, with its original quality-ordered candidates.
+          queue.forgetDownload(job.id);
+        }
+      }
       queue.resume(job.id);
       let fingerprint: MediaFingerprint | undefined;
       let reservationToken: string | null = null;
@@ -760,6 +806,54 @@ async function runPersistedJobs(
   } finally {
     finishBatch(control);
   }
+}
+
+function retainedFingerprint(job: DownloadJob): MediaFingerprint | undefined {
+  return job.kind
+    ? { identityHash: mediaIdentityHash(job.kind, job.url, job.mediaId ?? null) }
+    : undefined;
+}
+
+function watchRetainedDownload(
+  ctx: FeatureContext,
+  queue: ReturnType<typeof getMediaQueue>,
+  history: ReturnType<typeof getMediaHistory>,
+  job: DownloadJob,
+  downloadId: number
+): void {
+  const fingerprint = retainedFingerprint(job);
+  void sharedDownloadWatcher()
+    .terminal(downloadId)
+    .then(async (terminal) => {
+      if (terminal === "complete") {
+        queue?.mark(job.id, "completed");
+        if (ctx.settings.media.downloadHistory && history && fingerprint) {
+          await history.record(fingerprint);
+        }
+        saveSidecarOrWarn(ctx, job.sidecar, job.filename);
+        void ctx.auditLog.record("media.download", {
+          filename: job.filename,
+          batch: true,
+          resumed: true,
+          reconciled: true
+        });
+      } else if (terminal === "interrupted") {
+        queue?.mark(job.id, "failed", "the browser interrupted this transfer");
+        void ctx.auditLog.record("media.download.failed", {
+          filename: job.filename,
+          batch: true,
+          resumed: true,
+          reconciled: true
+        });
+      }
+    })
+    .catch((error) => {
+      queue?.mark(job.id, "failed", "the browser result could not be confirmed");
+      ctx.diagnostics.warn("Could not confirm retained media transfer", {
+        filename: job.filename,
+        error: String((error as Error)?.message ?? error)
+      });
+    });
 }
 
 function saveSidecarOrWarn(

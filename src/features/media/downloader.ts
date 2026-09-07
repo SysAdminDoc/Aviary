@@ -13,6 +13,11 @@ import {
   shouldHandoffToAria2
 } from "../integrations/aria2.ts";
 import { NETWORK_TIMEOUTS, withNetworkTimeout } from "../../platform/network.ts";
+import {
+  DOWNLOAD_QUERY_MESSAGE,
+  type DownloadQueryResponse,
+  type DownloadQueryState
+} from "../../extension/download-state.ts";
 
 export interface DownloadRequest {
   url: string;
@@ -230,6 +235,44 @@ export interface DownloaderOptions {
 
 export type Downloader = (request: DownloadRequest) => Promise<DownloaderResult>;
 
+/**
+ * Reconciles a browser download id retained by the durable media queue. A missing response means
+ * this page is running without Aviary's extension background, so callers can use their normal
+ * downloader fallback instead of treating the query itself as a failed save.
+ */
+export async function queryExtensionDownload(
+  id: number
+): Promise<Extract<DownloadQueryResponse, { ok: true }> | undefined> {
+  if (!Number.isSafeInteger(id) || id < 0) {
+    return undefined;
+  }
+  const runtime = globalThis.chrome?.runtime;
+  if (!runtime?.sendMessage) {
+    return undefined;
+  }
+  try {
+    const response = (await runtime.sendMessage({
+      type: DOWNLOAD_QUERY_MESSAGE,
+      id
+    })) as { ok?: unknown; id?: unknown; state?: unknown; error?: unknown } | undefined;
+    if (
+      response?.ok !== true ||
+      response.id !== id ||
+      !isDownloadQueryState(response.state)
+    ) {
+      return undefined;
+    }
+    return {
+      ok: true,
+      id,
+      state: response.state,
+      ...(typeof response.error === "string" ? { error: response.error } : {})
+    };
+  } catch {
+    return undefined;
+  }
+}
+
 type GlobalWithDownload = typeof globalThis & {
   GM_download?: (options: GmDownloadOptions) => unknown;
 };
@@ -411,6 +454,10 @@ function downloadCandidates(request: Pick<DownloadRequest, "url" | "fallbackUrls
   return [request.url, ...(request.fallbackUrls ?? [])]
     .filter((url, index, all) => /^https?:\/\//i.test(url) && all.indexOf(url) === index)
     .slice(0, 4);
+}
+
+function isDownloadQueryState(value: unknown): value is DownloadQueryState {
+  return value === "in_progress" || value === "complete" || value === "interrupted" || value === "missing";
 }
 
 /** Asks the background worker to open the options page, where the grant button lives. */

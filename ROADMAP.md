@@ -10,14 +10,6 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
 
 ### P1, Next
 
-- [ ] F277, P1: Retain terminal download results and reconcile browser IDs before resume
-  Why: a fast completion is consumed before the button starts waiting, leaving it disabled for 300 seconds; after reload, Resume can also duplicate a retained browser transfer.
-  Evidence: `src/features/media/media-buttons.ts:1185`, `src/features/media/download-watch.ts:82-98`, `src/features/media/queue.ts:69-90`, `src/features/media/batch-downloader.ts:549-633`; deterministic `settle -> terminal -> wait` reproduction returned complete then pending; https://developer.chrome.com/docs/extensions/reference/api/downloads
-  Touches: extension background download query/completion messages, download watcher, post buttons, queue, batch downloader, history, ordering and reload tests
-  Acceptance: terminal state is replayable to every consumer without double consumption; complete and interrupted events before the handoff response, between watcher calls, and afterward settle promptly without the five-minute timeout; completion/history is recorded once; a background query uses `downloads.search({ id })` to distinguish in-progress, complete, interrupted, and missing retained IDs; Resume never duplicates an in-progress or completed file and retries only failed or missing members; deterministic event-order tests and Chrome/Firefox restart tests cover all states.
-  Complexity: M
-  Depends: None. F327 supplies installed-extension lifecycle proof.
-
 - [ ] F278, P1: Make legacy-profile adoption retry-convergent
   Why: adoption writes the profile-scoped destination before deleting the legacy key. A failure between the two leaves a destination that every later run skips, so the legacy key is never retired.
   Evidence: `src/platform/profile.ts:173-192`

@@ -64,6 +64,11 @@ so a closed tab or restarted worker can retry without reviving old data. Setting
 queue entries, export checkpoints and diagnostics also write only their transaction-local change,
 which keeps non-conflicting edits from two open X tabs and makes clears authoritative.
 
+Browser media handoffs keep their terminal state replayable to the post control and queue. A fast
+completion is reconciled before the handoff response returns, and queue Resume asks the extension
+background about retained browser ids before retrying, so active or completed files are not
+duplicated after a reload.
+
 AI and embedding calls are opt-in and show the destination, fields, estimated size, retention
 notice, network status, and budget before provider work begins. Per-request and daily UTF-8 byte
 limits are configurable in Integrations; profile-scoped usage history stores counters only, never

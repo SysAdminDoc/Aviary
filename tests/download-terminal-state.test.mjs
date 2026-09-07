@@ -312,13 +312,14 @@ test("a terminal state that arrives before anyone waits for it is not lost", asy
   const outcomes = await page.evaluate(() => {
     const watcher = new AviaryDownloads.DownloadWatcher();
     watcher.settle(9, "complete");
-    // And is consumed once: a second wait on the same id has nothing left to collect.
+    // Both the button and the queue can ask about the same id. A terminal result is replayable,
+    // rather than consumed by whichever consumer happens to ask first.
     return Promise.all([watcher.wait(9, 50), watcher.wait(9, 50)]);
   });
 
   // A small file completes while the caller is still awaiting the handoff response. Dropping that
   // message would leave the button on Started for a file that is already on disk.
-  assert.deepEqual(outcomes, ["complete", "pending"]);
+  assert.deepEqual(outcomes, ["complete", "complete"]);
 });
 
 test("the background reports the terminal state to the tab that asked, after a restart", async () => {
@@ -341,6 +342,100 @@ test("the background reports the terminal state to the tab that asked, after a r
     { tabId: 77, message: { type: "AVIARY_DOWNLOAD_STATE", id: 1, state: "complete" } }
   ]);
   assert.deepEqual(stored["aviary.downloadTracking.v2"], {});
+});
+
+test("a retained terminal result is reconciled before the handoff response returns", async () => {
+  const stored = {};
+  const background = await loadBackground({
+    stored,
+    onCreateState: "complete"
+  });
+
+  const response = await background.send(
+    { type: "AVIARY_DOWNLOAD", url: "https://pbs.twimg.com/media/fast?name=orig", filename: "fast.jpg" },
+    { tab: { id: 91 } }
+  );
+  await background.settled();
+
+  assert.deepEqual(response, { ok: true, id: 1, pending: true });
+  assert.deepEqual(background.tabMessages, [
+    { tabId: 91, message: { type: "AVIARY_DOWNLOAD_STATE", id: 1, state: "complete" } }
+  ]);
+  assert.deepEqual(stored["aviary.downloadTracking.v2"], {});
+});
+
+test("a restarted worker distinguishes in-progress, completed, interrupted, and missing ids", async () => {
+  const stored = {};
+  const first = await loadBackground({ stored });
+  await first.send(
+    { type: "AVIARY_DOWNLOAD", url: "https://pbs.twimg.com/media/restart?name=orig", filename: "restart.jpg" },
+    { tab: { id: 92 } }
+  );
+
+  const running = await loadBackground({
+    stored,
+    downloadStates: { 1: { id: 1, state: "in_progress" } }
+  });
+  assert.deepEqual(await running.send({ type: "AVIARY_DOWNLOAD_QUERY", id: 1 }), {
+    ok: true,
+    id: 1,
+    state: "in_progress"
+  });
+  assert.deepEqual(stored["aviary.downloadTracking.v2"]["1"].reportId, 1);
+
+  const complete = await loadBackground({
+    stored,
+    downloadStates: { 1: { id: 1, state: "complete" } }
+  });
+  assert.deepEqual(await complete.send({ type: "AVIARY_DOWNLOAD_QUERY", id: 1 }), {
+    ok: true,
+    id: 1,
+    state: "complete"
+  });
+  await complete.settled();
+  assert.deepEqual(complete.tabMessages, [
+    { tabId: 92, message: { type: "AVIARY_DOWNLOAD_STATE", id: 1, state: "complete" } }
+  ]);
+
+  const missing = await loadBackground({ stored });
+  assert.deepEqual(await missing.send({ type: "AVIARY_DOWNLOAD_QUERY", id: 1 }), {
+    ok: true,
+    id: 1,
+    state: "missing"
+  });
+  assert.deepEqual(stored["aviary.downloadTracking.v2"], {});
+});
+
+test("an interrupted retained id keeps waiting on the original report id while fallback runs", async () => {
+  const stored = {};
+  const first = await loadBackground({ stored });
+  await first.send(
+    {
+      type: "AVIARY_DOWNLOAD",
+      url: "https://pbs.twimg.com/media/retry?name=orig",
+      fallbackUrls: ["https://pbs.twimg.com/media/retry?name=4096x4096"],
+      filename: "retry.jpg"
+    },
+    { tab: { id: 93 } }
+  );
+
+  const restarted = await loadBackground({
+    stored,
+    downloadStates: { 1: { id: 1, state: "interrupted", error: "NETWORK_FAILED" } },
+    nextId: 2
+  });
+  assert.deepEqual(await restarted.send({ type: "AVIARY_DOWNLOAD_QUERY", id: 1 }), {
+    ok: true,
+    id: 1,
+    state: "in_progress"
+  });
+  assert.equal(restarted.downloads.length, 1, "the fallback should be the only new browser request");
+  assert.deepEqual(stored["aviary.downloadTracking.v2"]["2"], {
+    reportId: 1,
+    tabId: 93,
+    filename: "retry.jpg",
+    fallbackUrls: []
+  });
 });
 
 test("a transfer with no candidates left is reported interrupted, not left waiting", async () => {
