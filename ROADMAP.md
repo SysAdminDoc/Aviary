@@ -153,11 +153,3 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
 ### P1, Next
 
 ### P2, Later
-
-- [ ] F336, P2: Preserve persisted storage status across the background bridge
-  Why: the background estimate can report persisted true, but the content adapter drops it and the UI shows unknown.
-  Evidence: `src/extension/durable-storage-api.ts:150-158`; adapter reproduction transformed usage 123, quota 456, persisted true into only usage and quota
-  Touches: estimate message type, extension durable-storage adapter, Advanced status rendering, bridge and persistence lifecycle tests
-  Acceptance: true, false, and unavailable traverse the actual background client without coercion; status text distinguishes all three and never promises backup or uninstall protection; tests cover initial boot, content reload, and background restart, plus unsupported storage APIs; screenshot normalization is not accepted as state proof, and the visible status matches an independently read backend result.
-  Complexity: S
-  Depends: None. F314 reuses this result.

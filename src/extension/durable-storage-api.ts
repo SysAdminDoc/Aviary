@@ -224,7 +224,8 @@ export class ExtensionDurableStorageBackend implements DurableStorageBackend {
     }));
     return {
       ...(typeof result.usage === "number" ? { usage: result.usage } : {}),
-      ...(typeof result.quota === "number" ? { quota: result.quota } : {})
+      ...(typeof result.quota === "number" ? { quota: result.quota } : {}),
+      ...(typeof result.persisted === "boolean" ? { persisted: result.persisted } : {})
     };
   }
 

@@ -54,6 +54,25 @@ test("content and options share one background profile across a worker restart",
   );
 });
 
+test("the runtime estimate keeps true, false, and unavailable persistence across the bridge", async () => {
+  const api = await importSourceModule("src/extension/durable-storage-api.ts");
+  for (const persisted of [true, false, undefined]) {
+    const backend = new MemoryBackend();
+    backend.persisted = persisted;
+    const client = new api.ExtensionDurableStorageBackend((message) =>
+      api.handleDurableStorageRequest(message, backend)
+    );
+    const estimate = await client.estimate();
+    assert.deepEqual(
+      estimate,
+      persisted === undefined
+        ? { usage: 0, quota: 1024 * 1024 }
+        : { usage: 0, quota: 1024 * 1024, persisted },
+      `persisted=${persisted} must cross the background bridge without coercion`
+    );
+  }
+});
+
 test("the background protocol stages and atomically commits fallback values and tombstones", async () => {
   const api = await importSourceModule("src/extension/durable-storage-api.ts");
   const backend = new MemoryBackend();
@@ -238,6 +257,7 @@ class MemoryBackend {
   values = new Map();
   pending = new Map();
   meta = undefined;
+  persisted = undefined;
 
   async get(key) {
     return this.values.has(key) ? structuredClone(this.values.get(key)) : undefined;
@@ -281,7 +301,11 @@ class MemoryBackend {
   }
 
   async estimate() {
-    return { usage: this.values.size * 128, quota: 1024 * 1024 };
+    return {
+      usage: this.values.size * 128,
+      quota: 1024 * 1024,
+      ...(typeof this.persisted === "boolean" ? { persisted: this.persisted } : {})
+    };
   }
 }
 

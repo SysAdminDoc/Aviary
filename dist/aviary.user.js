@@ -40659,7 +40659,8 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       }));
       return {
         ...typeof result.usage === "number" ? { usage: result.usage } : {},
-        ...typeof result.quota === "number" ? { quota: result.quota } : {}
+        ...typeof result.quota === "number" ? { quota: result.quota } : {},
+        ...typeof result.persisted === "boolean" ? { persisted: result.persisted } : {}
       };
     }
     async migrateHostEntries(entries) {

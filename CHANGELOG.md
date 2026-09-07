@@ -45,6 +45,9 @@
   lock contention, interrupted restore recovery, stale fences, and durable values after restart.
   The older browser lanes are named model adapters so their Map-backed coverage is not mistaken for
   manager installation coverage.
+- Persisted storage status now survives the extension background bridge. The Advanced readout can
+  distinguish an eviction exemption, best-effort storage, and a browser that did not answer instead
+  of showing an unknown state after a content reload or worker restart.
 - Trust now attributes serialized mutation apply work to each feature with bounded local timing
   samples, full or incremental pass counts, and maximum duration. Long Animation Frame timing is
   correlated when the browser exposes it, and unsupported browsers say so. The reset action clears
