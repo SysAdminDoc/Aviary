@@ -389,7 +389,9 @@ later working tree.
 - **Bookmark library**, tags, folders, reminders, and due-time queries stored locally.
 - **Unified local search**, ranks exact handles, quoted phrases, and rare terms across captured posts,
   likes, bookmarks, notes, tags, folders, snapshots, and imported archive metadata. Filters and text
-  ranking run entirely in the browser. A quoted phrase must occur inside one indexed field.
+  ranking run entirely in the browser. Thai, Lao, Khmer, and Myanmar use browser word boundaries
+  when available and a deterministic bigram fallback otherwise. A quoted phrase must occur inside
+  one indexed field, and a tokenizer version change rebuilds the local index safely.
 - **Composer snippets**, a Snippets button next to the post toolbar opens a popover and inserts via `document.execCommand("insertText")`. No keyboard simulation, no hotkeys.
 - **XLSX export**, added to the Export format list. The writer reuses the STORE-only ZIP encoder, so there's still no external runtime dependency.
 - **WARC export**, emits ISO-28500 WARC/1.1 records for archival research tooling. Captured media

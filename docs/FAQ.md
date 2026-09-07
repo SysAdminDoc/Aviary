@@ -346,7 +346,7 @@ Every control Aviary offers, by Control Center page. 90 controls across 12 pages
 
 | Control | What it does |
 | --- | --- |
-| Show the AI button on posts | Adds a button to every post that builds a Translate, Summarize, Explain or Fact-check prompt. Each command includes an accessible hint without a hover tooltip. Without an AI provider configured it copies the prompt to your clipboard; nothing is sent anywhere. |
+| Show the AI button on posts | Adds a button to every post that builds a Translate, Summarize, Explain or Fact-check prompt. Without an AI provider configured it copies the prompt to your clipboard; nothing is sent anywhere. |
 | Unshorten t.co links | Replace short `t.co` redirects with the destination from aria-labels and titles. |
 | Clean tracking from links | Strips share tokens and campaign parameters (utm_*, fbclid, and X's own t/s) from links in the timeline, so what you copy is the plain address. |
 | Copy post links as | Choose one: X (x.com), fxtwitter.com, vxtwitter.com, fixupx.com, xcancel.com. |

@@ -217,3 +217,71 @@ test("lexical and semantic results are fused and report both contributing signal
   assert.equal(fused.find((hit) => hit.document.id === semanticOnly.id)?.mode, "semantic");
   assert.equal(fused.filter((hit) => hit.document.account === "alice").length, 1, "shared posts must deduplicate");
 });
+
+test("Intl.Segmenter finds words in unspaced scripts and the deterministic fallback stays searchable", async () => {
+  const {
+    OfflineQueryIndex,
+    OFFLINE_QUERY_INDEX_VERSION,
+    setSearchTokenizerTestSeams,
+    tokenizeSearchText
+  } = await importSourceModule("src/features/library/query-model.ts");
+  const samples = [
+    ["วันนี้อากาศดี", "อากาศ"],
+    ["ສະບາຍດີໂລກ", "ໂລກ"],
+    ["សួស្តីពិភពលោក", "ពិភពលោក"],
+    ["မြန်မာစာကောင်း", "စာ"]
+  ];
+
+  for (const [text, word] of samples) {
+    assert.ok(tokenizeSearchText(text).includes(word), `native segmentation missed ${word}`);
+  }
+
+  setSearchTokenizerTestSeams(null);
+  try {
+    const fallback = new OfflineQueryIndex();
+    fallback.rebuild(samples.map(([text], index) => ({
+      id: `fallback-${index}`,
+      collection: "posts",
+      account: "reader",
+      text,
+      tags: [],
+      folder: null,
+      capturedAt: "2026-09-07T00:00:00Z",
+      mediaCount: 0
+    })));
+    for (const [, word] of samples) {
+      assert.ok(fallback.search(word).length > 0, `fallback segmentation missed ${word}`);
+    }
+  } finally {
+    setSearchTokenizerTestSeams();
+  }
+
+  const documents = samples.slice(0, 2).map(([text], index) => ({
+    id: `resume-${index}`,
+    collection: "posts",
+    account: "reader",
+    text,
+    tags: [],
+    folder: null,
+    capturedAt: "2026-09-07T00:00:00Z",
+    mediaCount: 0
+  }));
+  const index = new OfflineQueryIndex();
+  assert.equal(index.version, OFFLINE_QUERY_INDEX_VERSION);
+  let checks = 0;
+  let state = index.rebuildResumable(documents, {
+    batchSize: 2,
+    shouldContinue: () => checks++ < 1
+  });
+  assert.deepEqual(state, { version: OFFLINE_QUERY_INDEX_VERSION, nextDocument: 1, complete: false });
+  state = index.rebuildResumable(documents, { state, batchSize: 2 });
+  assert.deepEqual(state, { version: OFFLINE_QUERY_INDEX_VERSION, nextDocument: 2, complete: true });
+  assert.equal(index.search("อากาศ")[0]?.document.id, "resume-0");
+
+  const stale = index.rebuildResumable(documents, {
+    state: { version: OFFLINE_QUERY_INDEX_VERSION - 1, nextDocument: documents.length, complete: true },
+    batchSize: 1
+  });
+  assert.equal(stale.nextDocument, 1, "an old tokenizer version must rebuild from the first document");
+  assert.equal(stale.complete, false);
+});

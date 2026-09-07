@@ -46,6 +46,9 @@
 - AI command hints now use unique hidden DOM descriptions referenced with `aria-describedby`. The
   menu keeps its compact visible labels, exposes the hint to assistive technology, and removes every
   description with the menu during light-dismiss and teardown.
+- Local search now uses feature-detected `Intl.Segmenter` word boundaries for Thai, Lao, Khmer, and
+  Myanmar. The deterministic bigram tokenizer remains the fallback, and the versioned index builder
+  can resume a current build after interruption while restarting safely for an older schema.
 - Large X archive imports now stage a File in fixed 3 MiB base64 chunks. Extension chunks stay in
   the background-owned durable store, userscript values stay under manager limits, and the ZIP
   reader consumes bounded source ranges instead of decoding a second full archive. Paused,

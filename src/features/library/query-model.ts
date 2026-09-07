@@ -17,6 +17,42 @@ export type OfflineCollection =
 
 export const OFFLINE_QUERY_MAX_LENGTH = 512;
 export const OFFLINE_QUERY_RESULT_LIMIT = 5_000;
+/** Bump when token boundaries change so a persisted or resumable build cannot mix schemas. */
+export const OFFLINE_QUERY_INDEX_VERSION = 2;
+
+interface WordSegment {
+  segment: string;
+  isWordLike?: boolean;
+}
+
+interface WordSegmenter {
+  segment(value: string): Iterable<WordSegment>;
+}
+
+interface WordSegmenterConstructor {
+  new (locales?: string | string[], options?: { granularity: "word" }): WordSegmenter;
+}
+
+export interface OfflineQueryIndexBuildState {
+  version: number;
+  nextDocument: number;
+  complete: boolean;
+}
+
+export interface OfflineQueryIndexBuildOptions {
+  state?: OfflineQueryIndexBuildState;
+  batchSize?: number;
+  shouldContinue?: () => boolean;
+}
+
+let segmenterOverride: WordSegmenter | null | undefined;
+let cachedSegmenter: WordSegmenter | null | undefined;
+
+/** Test seam for exercising browsers without Intl.Segmenter without changing global Intl. */
+export function setSearchTokenizerTestSeams(segmenter?: WordSegmenter | null): void {
+  segmenterOverride = segmenter;
+  cachedSegmenter = undefined;
+}
 
 export interface OfflineQueryDocument {
   id: string;
@@ -179,15 +215,48 @@ export class OfflineQueryIndex {
   readonly #phraseSequences = new Map<string, string[][]>();
   readonly #documentFrequencies = new Map<string, number>();
   #totalDocumentLength = 0;
+  #buildVersion: number | null = null;
+  #buildDocumentCount = 0;
+  #buildSource: readonly OfflineQueryDocument[] | null = null;
 
   rebuild(documents: readonly OfflineQueryDocument[]): void {
-    this.#documents.length = 0;
-    this.#tokens.clear();
-    this.#tokenSequences.clear();
-    this.#phraseSequences.clear();
-    this.#documentFrequencies.clear();
-    this.#totalDocumentLength = 0;
-    for (const document of documents) this.add(document);
+    this.rebuildResumable(documents, { batchSize: documents.length });
+  }
+
+  /**
+   * Build in bounded batches. A state from an older tokenizer version starts a clean build; a
+   * state from an interrupted current build resumes only when this instance still contains the
+   * exact prefix it acknowledged, otherwise it safely rebuilds from the beginning.
+   */
+  rebuildResumable(
+    documents: readonly OfflineQueryDocument[],
+    options: OfflineQueryIndexBuildOptions = {}
+  ): OfflineQueryIndexBuildState {
+    const state = options.state;
+    const canResume = state?.version === OFFLINE_QUERY_INDEX_VERSION &&
+      this.#buildVersion === OFFLINE_QUERY_INDEX_VERSION &&
+      this.#buildDocumentCount === state.nextDocument &&
+      this.#buildSource === documents &&
+      state.nextDocument >= 0 && state.nextDocument <= documents.length;
+    const start = canResume ? state.nextDocument : 0;
+    if (!canResume) this.clear();
+    this.#buildSource = documents;
+    const requestedBatch = options.batchSize ?? documents.length;
+    const batchSize = Math.max(1, Math.min(documents.length || 1, Math.floor(requestedBatch)));
+    let nextDocument = start;
+    const end = Math.min(documents.length, start + batchSize);
+    while (nextDocument < end) {
+      if (options.shouldContinue && !options.shouldContinue()) break;
+      this.add(documents[nextDocument]!);
+      nextDocument += 1;
+    }
+    this.#buildVersion = OFFLINE_QUERY_INDEX_VERSION;
+    this.#buildDocumentCount = nextDocument;
+    return {
+      version: OFFLINE_QUERY_INDEX_VERSION,
+      nextDocument,
+      complete: nextDocument >= documents.length
+    };
   }
 
   add(document: OfflineQueryDocument): void {
@@ -205,6 +274,24 @@ export class OfflineQueryIndex {
     for (const term of frequencies.keys()) {
       this.#documentFrequencies.set(term, (this.#documentFrequencies.get(term) ?? 0) + 1);
     }
+    this.#buildVersion = OFFLINE_QUERY_INDEX_VERSION;
+    this.#buildDocumentCount = this.#documents.length;
+  }
+
+  get version(): number {
+    return OFFLINE_QUERY_INDEX_VERSION;
+  }
+
+  private clear(): void {
+    this.#documents.length = 0;
+    this.#tokens.clear();
+    this.#tokenSequences.clear();
+    this.#phraseSequences.clear();
+    this.#documentFrequencies.clear();
+    this.#totalDocumentLength = 0;
+    this.#buildVersion = null;
+    this.#buildDocumentCount = 0;
+    this.#buildSource = null;
   }
 
   size(): number {
@@ -332,11 +419,24 @@ export function fuseOfflineHits(
 export function tokenizeSearchText(value: string): string[] {
   const normalized = value.normalize("NFC").toLocaleLowerCase();
   const words = normalized
-    .split(/[^\p{L}\p{N}_@]+/u)
+    .split(/[^\p{L}\p{N}\p{M}_@]+/u)
     .map((token) => token.replace(/^@/, ""))
     .filter((token) => token.length > 0 && token.length <= 40);
   const tokens: string[] = [];
   for (const word of words) {
+    if (SEGMENTER_SCRIPT.test(word)) {
+      const segmenter = getWordSegmenter();
+      if (segmenter) {
+        const segmented = [...segmenter.segment(word)]
+          .filter((part) => part.isWordLike !== false)
+          .map((part) => part.segment.normalize("NFC").toLocaleLowerCase())
+          .filter((part) => part.length > 0 && part.length <= 40);
+        if (segmented.length > 0) {
+          tokens.push(...segmented);
+          continue;
+        }
+      }
+    }
     if (UNSPACED_SCRIPT.test(word)) {
       if (word.length === 1) {
         tokens.push(word);
@@ -348,6 +448,24 @@ export function tokenizeSearchText(value: string): string[] {
     if (word.length >= 2) tokens.push(word);
   }
   return tokens;
+}
+
+function getWordSegmenter(): WordSegmenter | null {
+  if (segmenterOverride !== undefined) return segmenterOverride;
+  if (cachedSegmenter !== undefined) return cachedSegmenter;
+  const constructor = (globalThis.Intl as typeof globalThis.Intl & {
+    Segmenter?: WordSegmenterConstructor;
+  }).Segmenter;
+  if (typeof constructor !== "function") {
+    cachedSegmenter = null;
+    return cachedSegmenter;
+  }
+  try {
+    cachedSegmenter = new constructor(undefined, { granularity: "word" });
+  } catch {
+    cachedSegmenter = null;
+  }
+  return cachedSegmenter;
 }
 
 export function documentFromExportRecord(record: ExportRecord): OfflineQueryDocument {
@@ -656,4 +774,5 @@ function snippetFor(text: string): string {
 }
 
 /** Han, Hiragana, Katakana and Hangul: written without spaces between words. */
-const UNSPACED_SCRIPT = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u;
+const SEGMENTER_SCRIPT = /[\p{Script=Thai}\p{Script=Lao}\p{Script=Khmer}\p{Script=Myanmar}]/u;
+const UNSPACED_SCRIPT = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}\p{Script=Thai}\p{Script=Lao}\p{Script=Khmer}\p{Script=Myanmar}]/u;

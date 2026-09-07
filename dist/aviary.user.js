@@ -28501,6 +28501,9 @@ a.av-link-clean {
   // src/features/library/query-model.ts
   var OFFLINE_QUERY_MAX_LENGTH = 512;
   var OFFLINE_QUERY_RESULT_LIMIT = 5e3;
+  var OFFLINE_QUERY_INDEX_VERSION = 2;
+  var segmenterOverride;
+  var cachedSegmenter;
   var EMPTY_FILTERS = () => ({
     collections: [],
     account: null,
@@ -28604,14 +28607,39 @@ a.av-link-clean {
     #phraseSequences = /* @__PURE__ */ new Map();
     #documentFrequencies = /* @__PURE__ */ new Map();
     #totalDocumentLength = 0;
+    #buildVersion = null;
+    #buildDocumentCount = 0;
+    #buildSource = null;
     rebuild(documents) {
-      this.#documents.length = 0;
-      this.#tokens.clear();
-      this.#tokenSequences.clear();
-      this.#phraseSequences.clear();
-      this.#documentFrequencies.clear();
-      this.#totalDocumentLength = 0;
-      for (const document2 of documents) this.add(document2);
+      this.rebuildResumable(documents, { batchSize: documents.length });
+    }
+    /**
+     * Build in bounded batches. A state from an older tokenizer version starts a clean build; a
+     * state from an interrupted current build resumes only when this instance still contains the
+     * exact prefix it acknowledged, otherwise it safely rebuilds from the beginning.
+     */
+    rebuildResumable(documents, options = {}) {
+      const state2 = options.state;
+      const canResume = state2?.version === OFFLINE_QUERY_INDEX_VERSION && this.#buildVersion === OFFLINE_QUERY_INDEX_VERSION && this.#buildDocumentCount === state2.nextDocument && this.#buildSource === documents && state2.nextDocument >= 0 && state2.nextDocument <= documents.length;
+      const start = canResume ? state2.nextDocument : 0;
+      if (!canResume) this.clear();
+      this.#buildSource = documents;
+      const requestedBatch = options.batchSize ?? documents.length;
+      const batchSize = Math.max(1, Math.min(documents.length || 1, Math.floor(requestedBatch)));
+      let nextDocument = start;
+      const end = Math.min(documents.length, start + batchSize);
+      while (nextDocument < end) {
+        if (options.shouldContinue && !options.shouldContinue()) break;
+        this.add(documents[nextDocument]);
+        nextDocument += 1;
+      }
+      this.#buildVersion = OFFLINE_QUERY_INDEX_VERSION;
+      this.#buildDocumentCount = nextDocument;
+      return {
+        version: OFFLINE_QUERY_INDEX_VERSION,
+        nextDocument,
+        complete: nextDocument >= documents.length
+      };
     }
     add(document2) {
       const normalized = normalizeDocument(document2);
@@ -28628,6 +28656,22 @@ a.av-link-clean {
       for (const term of frequencies.keys()) {
         this.#documentFrequencies.set(term, (this.#documentFrequencies.get(term) ?? 0) + 1);
       }
+      this.#buildVersion = OFFLINE_QUERY_INDEX_VERSION;
+      this.#buildDocumentCount = this.#documents.length;
+    }
+    get version() {
+      return OFFLINE_QUERY_INDEX_VERSION;
+    }
+    clear() {
+      this.#documents.length = 0;
+      this.#tokens.clear();
+      this.#tokenSequences.clear();
+      this.#phraseSequences.clear();
+      this.#documentFrequencies.clear();
+      this.#totalDocumentLength = 0;
+      this.#buildVersion = null;
+      this.#buildDocumentCount = 0;
+      this.#buildSource = null;
     }
     size() {
       return this.#documents.length;
@@ -28720,9 +28764,19 @@ a.av-link-clean {
   }
   function tokenizeSearchText(value) {
     const normalized = value.normalize("NFC").toLocaleLowerCase();
-    const words = normalized.split(/[^\p{L}\p{N}_@]+/u).map((token) => token.replace(/^@/, "")).filter((token) => token.length > 0 && token.length <= 40);
+    const words = normalized.split(/[^\p{L}\p{N}\p{M}_@]+/u).map((token) => token.replace(/^@/, "")).filter((token) => token.length > 0 && token.length <= 40);
     const tokens = [];
     for (const word of words) {
+      if (SEGMENTER_SCRIPT.test(word)) {
+        const segmenter = getWordSegmenter();
+        if (segmenter) {
+          const segmented = [...segmenter.segment(word)].filter((part) => part.isWordLike !== false).map((part) => part.segment.normalize("NFC").toLocaleLowerCase()).filter((part) => part.length > 0 && part.length <= 40);
+          if (segmented.length > 0) {
+            tokens.push(...segmented);
+            continue;
+          }
+        }
+      }
       if (UNSPACED_SCRIPT.test(word)) {
         if (word.length === 1) {
           tokens.push(word);
@@ -28734,6 +28788,21 @@ a.av-link-clean {
       if (word.length >= 2) tokens.push(word);
     }
     return tokens;
+  }
+  function getWordSegmenter() {
+    if (segmenterOverride !== void 0) return segmenterOverride;
+    if (cachedSegmenter !== void 0) return cachedSegmenter;
+    const constructor = globalThis.Intl.Segmenter;
+    if (typeof constructor !== "function") {
+      cachedSegmenter = null;
+      return cachedSegmenter;
+    }
+    try {
+      cachedSegmenter = new constructor(void 0, { granularity: "word" });
+    } catch {
+      cachedSegmenter = null;
+    }
+    return cachedSegmenter;
   }
   function documentFromExportRecord(record) {
     const collection = record.surface.includes("likes") ? "likes" : "posts";
@@ -29005,7 +29074,8 @@ a.av-link-clean {
     const normalized = text.replace(/\s+/g, " ").trim();
     return normalized.length > 220 ? `${normalized.slice(0, 217)}\u2026` : normalized;
   }
-  var UNSPACED_SCRIPT = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u;
+  var SEGMENTER_SCRIPT = /[\p{Script=Thai}\p{Script=Lao}\p{Script=Khmer}\p{Script=Myanmar}]/u;
+  var UNSPACED_SCRIPT = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}\p{Script=Thai}\p{Script=Lao}\p{Script=Khmer}\p{Script=Myanmar}]/u;
 
   // src/features/library/local-search.ts
   var LocalSearchIndex = class {
