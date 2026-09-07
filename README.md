@@ -163,6 +163,11 @@ Provider calls, when you've enabled one, show you the destination, the fields, a
 retention notice and your remaining budget before any work begins. Per-request and daily byte limits
 stop a call before it leaves the browser.
 
+Passive capture only observes bounded responses that X already requested. It does not start an
+authenticated timeline or profile discovery request and it never copies X cookies or authorization
+headers. X can still make its own requests when you use X controls, so this is a boundary on Aviary's
+actions, not a promise of account safety or legal compliance.
+
 Support diagnostics are copied only when you ask. The report keeps stable event ids, severity,
 timestamps, operation codes, and detail-key names, while leaving out URLs, filenames, provider
 text, exception strings, and credentials.

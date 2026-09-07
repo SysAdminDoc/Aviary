@@ -20,6 +20,10 @@ An explicit opt-in or user action can make Aviary contact a destination you conf
 These integrations are disabled by default. The Control Center shows their configuration and
 recent errors; [PRIVACY.md](PRIVACY.md) lists the data sent by each path.
 
+Passive capture is different from an integration. It listens to bounded responses that X already
+requested and does not discover a profile, timeline, or GraphQL endpoint on its own. Using X's
+buttons can still make X fetch data, and Aviary cannot promise account safety or legal compliance.
+
 ## How does Library search rank results?
 
 Text search is local and always available. It gives extra weight to exact handles, quoted phrases,

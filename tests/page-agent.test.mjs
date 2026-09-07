@@ -196,6 +196,43 @@ test("startup captures direct video metadata while elective hooks remain off", a
   }
 });
 
+test("passive page observation never starts a request or copies X credentials", async () => {
+  const { installPageAgent, PAGE_CHANNEL } = await importSourceModule("src/page/page-agent.ts");
+  let originalCalls = 0;
+  const target = fakeWindow(async (_url, init) => {
+    originalCalls += 1;
+    assert.equal(init?.headers?.authorization, "Bearer page-token", "the original page request owns its auth header");
+    return new Response("{}", { status: 200 });
+  });
+  const events = [];
+  const uninstall = installPageAgent(target, (envelope) => events.push(envelope));
+  try {
+    assert.equal(originalCalls, 0, "install must not discover X by making a request");
+    const nonce = "passive-boundary-session-1234";
+    target.postMessage({ channel: PAGE_CHANNEL, kind: "hello", nonce });
+    target.postMessage({
+      channel: PAGE_CHANNEL,
+      kind: "config",
+      nonce,
+      payload: { blockAds: false, blockBeacons: false, captureGraphql: true, captureMediaMetadata: false, forceVideoQuality: false }
+    });
+    assert.equal(originalCalls, 0, "handshake and configuration must stay passive");
+
+    await target.fetch("https://x.com/i/api/graphql/abc/HomeTimeline", {
+      headers: { authorization: "Bearer page-token", cookie: "ct0=page-cookie" }
+    });
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    assert.equal(originalCalls, 1, "only the simulated X request may reach the page fetch");
+    const graphql = events.find((event) => event.kind === "graphql");
+    assert.ok(graphql, "the response observation should be reported");
+    assert.deepEqual(Object.keys(graphql.payload).sort(), ["at", "body", "bytes", "operation", "status", "url"]);
+    assert.equal("authorization" in graphql.payload, false);
+    assert.equal("cookie" in graphql.payload, false);
+  } finally {
+    uninstall();
+  }
+});
+
 test("an enabled beacon hook refuses telemetry and reports it, without disturbing the timeline", async () => {
   const { installPageAgent, PAGE_CHANNEL } = await importSourceModule("src/page/page-agent.ts");
 

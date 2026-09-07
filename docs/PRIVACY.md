@@ -14,6 +14,12 @@ their rendering but cannot truthfully claim those bytes were absent. Optional pa
 only observes bounded first-party GraphQL responses across X's `fetch` and `XMLHttpRequest`
 transports after you enable the relevant capture setting.
 
+Passive capture does not start a timeline, profile, search, or GraphQL request. It watches a request
+X already made, keeps bounded response metadata, and never reads request cookies or authorization
+headers. Clicking X's own controls can still make X request data, because that is ordinary site
+behavior. Aviary cannot promise that an account is risk-free or that any use complies with X's
+rules; it only limits the requests Aviary itself starts.
+
 These are the only Aviary-triggered network paths:
 
 | Feature | When it leaves the browser | Destination and data |

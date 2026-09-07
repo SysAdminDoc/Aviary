@@ -35,6 +35,9 @@
   than blocking Aviary startup or deleting them.
 
 ### Fixed
+- Passive request boundaries are now exercised directly: page-world capture stays idle until X
+  makes the request, reports only bounded response fields, and keeps account-risk language clear
+  about X-triggered navigation and the limits of any safety claim.
 - OpenAI-compatible AI requests now negotiate `max_completion_tokens` and `max_tokens` once per
   endpoint, retry a supported parameter without double-charging the local usage budget, and show
   a bounded provider reason when neither parameter is accepted.

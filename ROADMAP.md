@@ -91,14 +91,6 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
 
 ### P1, Next
 
-- [ ] F309, P1: Test passive request boundaries and state account-risk limits accurately
-  Why: direct network guards do not prove a UI action cannot trigger X's own requests, and passive observation does not establish an exemption from X's automation policy.
-  Evidence: `src/platform/network.ts`, `src/page/page-agent.ts`, `src/features/media/downloader.ts`, `src/features/layout/force-following.ts`; https://help.x.com/en/rules-and-policies/x-automation; https://github.com/insin/control-panel-for-twitter/issues/931
-  Touches: README, privacy/FAQ, page-agent and network-shield tests, outbound-boundary fixtures, controls that operate X's UI
-  Acceptance: enumerate fetch/XHR/beacon call sites and exercise boot, media, route controls, and optional integrations with an observable network log; unconfigured integrations and passive capture originate no authenticated X discovery request and extract no session cookie or bearer token; tests distinguish Aviary's own requests from requests caused by operating X controls, explicitly classifying existing intentional navigation before promising a boundary; unrequested fetch-driving actions are removed or made explicit; disclosure distinguishes local observation, user-triggered CDN/helper transfers, optional transmission, and remaining policy risk, without guaranteeing account safety or legality.
-  Complexity: M
-  Depends: None. Keep F307's fail-closed startup guard separate.
-
 ### P2, Later
 
 - [ ] F310, P2: Separate video quality, codec evidence, and compatibility output
