@@ -34078,8 +34078,14 @@ ${text}`
       item.className = "av-ai-option";
       item.setAttribute("role", "menuitem");
       item.tabIndex = -1;
-      item.setAttribute("aria-description", ft(ctx, command.hint));
-      item.textContent = aiEnabled ? `${ft(ctx, command.label)} \xB7 ${ft(ctx, "Run with provider")}` : ft(ctx, command.label);
+      const description = document.createElement("span");
+      description.id = `${menu.id}-description-${command.id}`;
+      description.className = "av-ai-option-description";
+      description.textContent = ft(ctx, command.hint);
+      description.setAttribute("data-av-ai-description", "1");
+      item.setAttribute("aria-describedby", description.id);
+      item.append(description);
+      setOptionLabel(item, aiEnabled ? `${ft(ctx, command.label)} \xB7 ${ft(ctx, "Run with provider")}` : ft(ctx, command.label));
       item.addEventListener("click", async (event) => {
         event.stopPropagation();
         event.preventDefault();
@@ -34099,7 +34105,7 @@ ${text}`
             }
           }
           item.disabled = true;
-          item.textContent = `${ft(ctx, command.label)} \xB7 ${ft(ctx, "running\u2026")}`;
+          setOptionLabel(item, `${ft(ctx, command.label)} \xB7 ${ft(ctx, "running\u2026")}`);
           try {
             const result = await runAiPrompt(
               ctx.settings.integrations.ai,
@@ -34139,7 +34145,7 @@ ${text}`
             showFeatureToast(`${ft(ctx, command.label)}: ${message}`, { tone: "error", ctx });
           } finally {
             item.disabled = false;
-            item.textContent = `${ft(ctx, command.label)} \xB7 ${ft(ctx, "Run with provider")}`;
+            setOptionLabel(item, `${ft(ctx, command.label)} \xB7 ${ft(ctx, "Run with provider")}`);
             closeOpenMenu();
           }
         } else {
@@ -34313,6 +34319,15 @@ ${text}`
     const below = rect.bottom + 6;
     menu.style.top = viewportHeight > 0 && below + height > viewportHeight - 12 ? `${Math.max(12, rect.top - height - 6)}px` : `${Math.max(12, below)}px`;
   }
+  function setOptionLabel(item, text) {
+    let label = item.querySelector(".av-ai-option-label");
+    if (!label) {
+      label = document.createElement("span");
+      label.className = "av-ai-option-label";
+      item.prepend(label);
+    }
+    label.textContent = text;
+  }
   async function copyToClipboard(text) {
     const clipboard = globalThis.navigator?.clipboard;
     if (clipboard?.writeText) {
@@ -34393,6 +34408,18 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
   font-family: inherit;
   text-align: start;
   cursor: pointer;
+}
+
+.av-ai-option-description {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .av-ai-option:hover,

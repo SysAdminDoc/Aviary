@@ -200,10 +200,16 @@ function openMenu(article: Element, trigger: HTMLElement, ctx: FeatureContext): 
     item.className = "av-ai-option";
     item.setAttribute("role", "menuitem");
     item.tabIndex = -1;
-    item.setAttribute("aria-description", ft(ctx, command.hint));
-    item.textContent = aiEnabled
+    const description = document.createElement("span");
+    description.id = `${menu.id}-description-${command.id}`;
+    description.className = "av-ai-option-description";
+    description.textContent = ft(ctx, command.hint);
+    description.setAttribute("data-av-ai-description", "1");
+    item.setAttribute("aria-describedby", description.id);
+    item.append(description);
+    setOptionLabel(item, aiEnabled
       ? `${ft(ctx, command.label)} · ${ft(ctx, "Run with provider")}`
-      : ft(ctx, command.label);
+      : ft(ctx, command.label));
     item.addEventListener("click", async (event) => {
       event.stopPropagation();
       event.preventDefault();
@@ -223,7 +229,7 @@ function openMenu(article: Element, trigger: HTMLElement, ctx: FeatureContext): 
           }
         }
         item.disabled = true;
-        item.textContent = `${ft(ctx, command.label)} · ${ft(ctx, "running…")}`;
+        setOptionLabel(item, `${ft(ctx, command.label)} · ${ft(ctx, "running…")}`);
         try {
           const result = await runAiPrompt(
             ctx.settings.integrations.ai,
@@ -263,7 +269,7 @@ function openMenu(article: Element, trigger: HTMLElement, ctx: FeatureContext): 
           showFeatureToast(`${ft(ctx, command.label)}: ${message}`, { tone: "error", ctx });
         } finally {
           item.disabled = false;
-          item.textContent = `${ft(ctx, command.label)} · ${ft(ctx, "Run with provider")}`;
+          setOptionLabel(item, `${ft(ctx, command.label)} · ${ft(ctx, "Run with provider")}`);
           closeOpenMenu();
         }
       } else {
@@ -463,6 +469,16 @@ function positionMenu(menu: HTMLElement, trigger: HTMLElement): void {
     : `${Math.max(12, below)}px`;
 }
 
+function setOptionLabel(item: HTMLButtonElement, text: string): void {
+  let label = item.querySelector<HTMLElement>(".av-ai-option-label");
+  if (!label) {
+    label = document.createElement("span");
+    label.className = "av-ai-option-label";
+    item.prepend(label);
+  }
+  label.textContent = text;
+}
+
 async function copyToClipboard(text: string): Promise<void> {
   const clipboard = globalThis.navigator?.clipboard;
   if (clipboard?.writeText) {
@@ -545,6 +561,18 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
   font-family: inherit;
   text-align: start;
   cursor: pointer;
+}
+
+.av-ai-option-description {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .av-ai-option:hover,

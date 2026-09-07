@@ -147,9 +147,9 @@ The full reference lives in [docs/FEATURES.md](docs/FEATURES.md). The short vers
   off by default and makes zero requests until you enable it and supply your own credentials.
 - **Local AI command menu (off by default).** Enable it in Integrations and each post's action row
   gains an AI button offering Translate, Summarize, Explain or Fact-check. On its own it only builds
-  a prompt and copies it to your clipboard, with no network call and no API key. Configuring the
-  separate provider runner is what lets the same menu POST a prompt, and only after an explicit
-  per-request disclosure.
+  a prompt and copies it to your clipboard, with no network call and no API key. Each command also
+  carries an accessible hint without adding a hover tooltip. Configuring the separate provider
+  runner is what lets the same menu POST a prompt, and only after an explicit per-request disclosure.
 
 ## Privacy
 

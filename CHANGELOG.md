@@ -43,6 +43,9 @@
   Viewer, WARC, WACZ, and external Markdown targets cannot emit protected or unknown rows without
   an explicit selection. Staged archive reads also stop at the pause callback, and seen-post dwell
   accepts 200 visible CSS pixels for any post rather than only posts taller than the viewport.
+- AI command hints now use unique hidden DOM descriptions referenced with `aria-describedby`. The
+  menu keeps its compact visible labels, exposes the hint to assistive technology, and removes every
+  description with the menu during light-dismiss and teardown.
 - Large X archive imports now stage a File in fixed 3 MiB base64 chunks. Extension chunks stay in
   the background-owned durable store, userscript values stay under manager limits, and the ZIP
   reader consumes bounded source ranges instead of decoding a second full archive. Paused,

@@ -146,15 +146,6 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
 
 ### P2, Later
 
-- [ ] F322, P2: Replace draft `aria-description` with a real referenced description
-  Why: the AI command menu's only item hints use an attribute absent from the WAI-ARIA 1.2 Recommendation, while a hidden DOM description works without adding visible hover help.
-  Evidence: `src/features/ai/command-menu.ts:203`; https://www.w3.org/TR/wai-aria-1.2/ and https://w3c.github.io/aria/#aria-description
-  Touches: `src/features/ai/command-menu.ts`, command-menu styles, accessibility behavior and axe tests
-  Acceptance: every command menu item owns a unique hidden description element and references it with `aria-describedby`; no `aria-description`, `title`, visual tooltip, duplicate ID, or orphaned description remains after the menu closes; Playwright's accessibility snapshot exposes the command name and hint; mouse, touch, and focus behavior remain unchanged; a test opening and closing the menu repeatedly proves complete cleanup.
-  Complexity: S
-  Depends: None.
-  Research update 2026-09-06: Basic accessibility snapshots already exist in the pinned Playwright release. This item can land independently of the 1.63.0 update; use the available description assertion API and verify the referenced DOM node.
-
 - [ ] F323, P2: Segment local search with `Intl.Segmenter`
   Why: whitespace tokenization plus a CJK bigram fallback leaves Thai, Lao, Khmer, and Myanmar queries as oversized tokens, even though supported browsers provide locale-aware word boundaries.
   Evidence: `src/features/library/query-model.ts` (`tokenizeSearchText`); https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/Segmenter, https://tc39.es/ecma402/#sec-intl-segmenter-constructor, https://www.unicode.org/reports/tr29/

@@ -179,6 +179,17 @@ test("AI and snippet popovers expose controlled menus and restore focus", async 
       aiTrigger: aiTrigger.getAttribute("title"),
       aiOption: aiMenu.querySelector('[role="menuitem"]')?.getAttribute("title") ?? null
     };
+    const aiDescriptions = [...aiMenu.querySelectorAll('[role="menuitem"]')].map((item) => {
+      const id = item.getAttribute("aria-describedby");
+      const description = id ? document.getElementById(id) : null;
+      return {
+        describedBy: id,
+        legacyDescription: item.getAttribute("aria-description"),
+        targetExists: Boolean(description),
+        hiddenClass: description?.classList.contains("av-ai-option-description") ?? false,
+        text: description?.textContent ?? ""
+      };
+    });
     aiMenu.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
     const aiMoved = document.activeElement?.className;
     aiMenu.hidePopover();
@@ -214,7 +225,7 @@ test("AI and snippet popovers expose controlled menus and restore focus", async 
 
     Aviary.aiCommandMenuFeature.destroy(context);
     Aviary.composerSnippetsFeature.destroy(context);
-    return { aiOpen, aiMoved, aiClosed, snippetOpen, snippetMoved, snippetClosed, hoverTitles };
+    return { aiOpen, aiMoved, aiClosed, snippetOpen, snippetMoved, snippetClosed, hoverTitles, aiDescriptions };
   });
 
   assert.deepEqual(state.aiOpen, {
@@ -241,6 +252,12 @@ test("AI and snippet popovers expose controlled menus and restore focus", async 
     snippetTrigger: null,
     snippetOption: null
   });
+  assert.equal(state.aiDescriptions.length, 4);
+  assert.equal(new Set(state.aiDescriptions.map((entry) => entry.describedBy)).size, 4);
+  assert.ok(state.aiDescriptions.every((entry) => entry.targetExists));
+  assert.ok(state.aiDescriptions.every((entry) => entry.hiddenClass));
+  assert.ok(state.aiDescriptions.every((entry) => entry.text.length > 0));
+  assert.ok(state.aiDescriptions.every((entry) => entry.legacyDescription === null));
 });
 
 test("coarse-pointer page controls keep 44px hit targets and visible prompts", async () => {
