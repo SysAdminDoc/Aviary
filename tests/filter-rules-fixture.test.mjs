@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { captureUrl } from "./helpers/synthetic-capture.mjs";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -37,8 +38,8 @@ export { extractTweetSignal } from ${JSON.stringify(abs("src/features/filtering/
 
   browser = await chromium.launch({ headless: true });
   page = await browser.newPage();
-  // The captured home timeline is the only ground truth for X's DOM in this repository.
-  await page.goto(`file://${abs("_decoded/home.html")}`);
+  // The generated home timeline, built from the recorded DOM schema.
+  await page.goto(await captureUrl("home"));
   await page.addScriptTag({ path: bundle });
 });
 

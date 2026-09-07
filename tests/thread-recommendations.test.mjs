@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { captureHtml } from "./helpers/synthetic-capture.mjs";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { after, before, test } from "node:test";
@@ -155,8 +156,8 @@ test("a post whose own text says discover more is not a boundary", async () => {
   }
 });
 
-test("the captured status page still contains the heading this contract depends on", async () => {
-  const capture = await readFile(path.join(root, "_decoded/status.html"), "utf8");
+test("the generated status page still contains the heading this contract depends on", async () => {
+  const capture = await captureHtml("status");
   assert.match(
     capture,
     /Discover more/,

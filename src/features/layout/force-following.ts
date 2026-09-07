@@ -21,7 +21,7 @@ let degradedForHref: string | null = null;
  * The tab is identified by **position, not label**: X localises the tab text, so matching
  * "Following" would only work for English readers. On `/home` the first two tabs are For you and
  * Following in that order in every locale, with any pinned Lists following them -- verified
- * against `_decoded/home.html`, which has exactly those two.
+ * against the recorded Home tab strip in `_decoded/dom-schema.json`, which has exactly those two.
  */
 export function findFollowingTab(root: ParentNode): HTMLElement | null {
   const list =

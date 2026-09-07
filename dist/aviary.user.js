@@ -1742,7 +1742,7 @@ html.av-hide-count-views article[data-testid="tweet"] a[href$="/analytics"] [dat
 /* Row dividers live on the first child of the virtualizer cell, styled by a generated atomic
    class (r-qklmqi in the captured CSS). Anchor on the structure, not the generated name. The
    column's own left/right rules are the other half of the "borderless" look. Verified against
-   _decoded/home.html with its captured stylesheets: 10/10 cells carry a 1px bottom border. */
+   the 2026-05-19 home capture with its stylesheets: 10/10 cells carry a 1px bottom border. */
 html.av-hide-borders [data-testid="cellInnerDiv"] > div {
   border-bottom-width: 0 !important;
 }
@@ -15333,10 +15333,13 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       if (bytes.byteLength > maxBytes) {
         throw new RangeError(`Media response exceeds the ${maxBytes}-byte capture limit.`);
       }
-      const sha256 = await sha256HexAsync(bytes);
+      await new Promise((resolve) => {
+        setTimeout(resolve, 0);
+      });
       if (signal.aborted) {
         throw signal.reason;
       }
+      const sha256 = await sha256HexAsync(bytes);
       return {
         bytes,
         contentType: response.headers.get("content-type")?.split(";", 1)[0]?.trim() || "application/octet-stream",
@@ -37705,7 +37708,7 @@ html.av-hide-nav-more [data-testid="AppTabBar_More_Menu"] {
   var MARKER4 = "data-av-thread-recommendation";
   var HEADING_MARKER = "data-av-thread-recommendation-heading";
   var HEADING_LABELS = /* @__PURE__ */ new Set([
-    // Verified in _decoded/status.html (2026-08-14 capture).
+    // Verified in the conversation capture (2026-05-19 observation, recorded in dom-schema.json).
     "discover more"
   ]);
   var threadRecommendationsFeature = {

@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
+import { captureUrl } from "./helpers/synthetic-capture.mjs";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { after, before, test } from "node:test";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 import { build } from "esbuild";
 import { chromium } from "playwright";
 
@@ -51,7 +52,7 @@ before(async () => {
   // Requests are blocked so the test never actually fetches from pbs.twimg.com; the assertions
   // are about the attribute the browser would fetch, not about the bytes.
   await page.route("**://pbs.twimg.com/**", (route) => route.abort());
-  await page.goto(pathToFileURL(path.join(root, "_decoded/home.html")).href);
+  await page.goto(await captureUrl("home"));
   await page.addScriptTag({ path: bundle });
 });
 

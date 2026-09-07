@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { captureUrl } from "./helpers/synthetic-capture.mjs";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -59,7 +60,7 @@ after(async () => {
 
 /** Loads a saved capture and installs the helpers each test drives the engine through. */
 async function openCapture(name, surface) {
-  await page.goto(`file://${abs(`_decoded/${name}.html`)}`);
+  await page.goto(await captureUrl(name));
   await page.addScriptTag({ path: bundle });
   await page.evaluate((route) => {
     window.run = (mutate) => {

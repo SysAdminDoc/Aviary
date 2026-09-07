@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { captureHtml } from "./helpers/synthetic-capture.mjs";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { after, before, test } from "node:test";
@@ -88,10 +89,10 @@ test("a missing lang attribute does not cry wolf", async () => {
   assert.equal(result.supported, true);
 });
 
-test("the captured pages carry the lang attribute this reads", async () => {
-  for (const capture of ["_decoded/home.html", "_decoded/status.html"]) {
-    const html = await readFile(path.join(root, capture), "utf8");
-    assert.match(html, /<html[^>]*lang="/, `${capture} must expose a lang attribute`);
+test("the generated pages carry the lang attribute this reads", async () => {
+  for (const route of ["home", "status"]) {
+    const html = await captureHtml(route);
+    assert.match(html, /<html[^>]*lang="/, `${route} must expose a lang attribute`);
   }
 });
 

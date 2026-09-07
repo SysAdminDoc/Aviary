@@ -1,5 +1,10 @@
-// Turn a browser-saved MHTML capture of X into the scrubbed `_decoded/<name>.html` that this
-// repository proves its selectors against.
+// Turn a browser-saved MHTML capture of X into a scrubbed HTML page the operator can measure
+// into `_decoded/dom-schema.json`.
+//
+// The decoded page is written outside the repository on purpose. It is an authenticated page
+// carrying a real handle, display name and post bodies, and it used to be committed: read it,
+// record what it shows in the schema, and delete it. The schema is what selectors are proved
+// against, and it is what ages.
 //
 // Refreshing the capture set used to be an undocumented manual chore, which is why it never
 // happened after the initial commit and the fixtures sat three months stale while every gate
@@ -10,11 +15,10 @@
 // What it does NOT do: log in, fetch anything, or contact X. It reads a file the operator already
 // saved. Capture is theirs; decoding and scrubbing is ours.
 
-import { readFile, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 /**
  * Values that must never enter a tracked fixture. A capture is taken from a real signed-in session,
@@ -164,16 +168,18 @@ async function main() {
   const { html: scrubbed, removed } = scrub(html);
   assertScrubbed(scrubbed);
 
-  const target = path.join(root, "_decoded", `${name}.html`);
+  const directory = await mkdtemp(path.join(tmpdir(), "aviary-capture-decode-"));
+  const target = path.join(directory, `${name}.html`);
   await writeFile(target, scrubbed, "utf8");
 
   const today = new Date().toISOString().slice(0, 10);
-  console.log(`Wrote _decoded/${name}.html (${scrubbed.length} chars).`);
+  console.log(`Wrote ${target} (${scrubbed.length} chars).`);
   console.log(`Scrub applied to ${removed.length} pattern(s).`);
   console.log("");
-  console.log("Now update _decoded/captures.json:");
-  console.log(`  set this capture's "capturedOn" to "${today}" and record its route and source file,`);
-  console.log("  then re-run every \"measured: 0 hits\" claim in Roadmap_Blocked.md against it.");
+  console.log("This file is outside the repository and must stay that way. Now:");
+  console.log(`  1. Measure it into _decoded/dom-schema.json and set derivedFrom.capturedOn to "${today}".`);
+  console.log("  2. Re-run every \"measured: 0 hits\" claim in Roadmap_Blocked.md against it.");
+  console.log("  3. Delete the decoded page.");
 }
 
 if (import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith("capture-decode.mjs")) {

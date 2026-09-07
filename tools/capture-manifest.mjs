@@ -1,7 +1,11 @@
-// Reads `_decoded/captures.json` and reports how old the evidence is.
+// Reads `_decoded/dom-schema.json` and reports how old the observation behind it is.
 //
 // Kept separate from capture-decode.mjs so importing it cannot run a CLI, and separate from
 // preflight so the test suite can assert the same numbers the release gate enforces.
+//
+// The thing that ages is the observation, not the markup. Fixtures are generated fresh on every
+// run from the schema, so the only date that means anything is `derivedFrom.capturedOn` -- the day
+// an operator actually looked at X. Regenerating documents must never move it.
 
 import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
@@ -9,7 +13,7 @@ import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
-export const MANIFEST_PATH = path.join(root, "_decoded", "captures.json");
+export const MANIFEST_PATH = path.join(root, "_decoded", "dom-schema.json");
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -25,32 +29,51 @@ function parseDay(value, label) {
 }
 
 export async function readCaptureManifest() {
-  const manifest = JSON.parse(await readFile(MANIFEST_PATH, "utf8"));
-  if (!Array.isArray(manifest.captures) || manifest.captures.length === 0) {
-    throw new Error("captures.json must list at least one capture");
+  const schema = JSON.parse(await readFile(MANIFEST_PATH, "utf8"));
+  if (!Number.isInteger(schema.ceilingDays) || schema.ceilingDays <= 0) {
+    throw new Error("dom-schema.json must declare a positive integer ceilingDays");
   }
-  if (!Number.isInteger(manifest.ceilingDays) || manifest.ceilingDays <= 0) {
-    throw new Error("captures.json must declare a positive integer ceilingDays");
+  if (!schema.derivedFrom || !Array.isArray(schema.derivedFrom.sources) || schema.derivedFrom.sources.length === 0) {
+    throw new Error("dom-schema.json must record what the schema was derived from");
   }
-  for (const capture of manifest.captures) {
-    if (typeof capture.file !== "string" || capture.file.length === 0) {
-      throw new Error("every capture needs a file name");
-    }
-    parseDay(capture.capturedOn, `capture ${capture.file} capturedOn`);
-  }
-  if (manifest.acknowledgedStaleUntil !== undefined) {
-    parseDay(manifest.acknowledgedStaleUntil, "acknowledgedStaleUntil");
-    if (typeof manifest.acknowledgedReason !== "string" || manifest.acknowledgedReason.length < 20) {
+  parseDay(schema.derivedFrom.capturedOn, "derivedFrom.capturedOn");
+  if (schema.acknowledgedStaleUntil !== undefined) {
+    parseDay(schema.acknowledgedStaleUntil, "acknowledgedStaleUntil");
+    if (typeof schema.acknowledgedReason !== "string" || schema.acknowledgedReason.length < 20) {
       throw new Error("acknowledgedStaleUntil requires an acknowledgedReason explaining the waiver");
     }
   }
-  return manifest;
+  // Reported as one dated observation so the age report, and every test written against it, keeps
+  // working on the same shape it always had.
+  return {
+    ceilingDays: schema.ceilingDays,
+    warnDays: schema.warnDays,
+    acknowledgedStaleUntil: schema.acknowledgedStaleUntil,
+    acknowledgedReason: schema.acknowledgedReason,
+    captures: [
+      {
+        file: "dom-schema.json",
+        capturedOn: schema.derivedFrom.capturedOn,
+        route: Object.values(schema.routes)
+          .map((route) => route.route)
+          .join(", "),
+        source: schema.derivedFrom.sources.join("; "),
+        notes: schema.derivedFrom.notes ?? ""
+      }
+    ]
+  };
 }
 
-/** Every `.html` fixture on disk must be accounted for, so a new one cannot arrive undated. */
+/**
+ * Saved pages that found their way back into `_decoded/`.
+ *
+ * Fixtures are generated from the schema on every run, so there is nothing here to keep. A saved
+ * capture is an authenticated page carrying a real handle, display name and post bodies: it is
+ * decoded, measured into the schema, and thrown away. Anything left behind is a mistake.
+ */
 export async function listFixtureFiles() {
   const entries = await readdir(path.join(root, "_decoded"));
-  return entries.filter((name) => name.endsWith(".html")).sort();
+  return entries.filter((name) => /\.(html|mhtml)$/i.test(name)).sort();
 }
 
 /**

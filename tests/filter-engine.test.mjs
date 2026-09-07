@@ -1,11 +1,7 @@
 import { importSourceModule } from "./helpers/source-import.mjs";
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
-import path from "node:path";
+import { captureHtml } from "./helpers/synthetic-capture.mjs";
 import { test } from "node:test";
-import { fileURLToPath } from "node:url";
-
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 test("compileFilters lowercases keywords, sanitizes regex flags, and seeds whitelist", async () => {
   const { compileFilters } = await importSourceModule("src/features/filtering/predicates.ts");
@@ -163,7 +159,7 @@ test("profile collection subroutes keep profile-scoped features active", async (
 });
 
 test("home fixture exposes verified, photo, and video markers required by the filter engine", async () => {
-  const html = await readFile(path.join(root, "_decoded/home.html"), "utf8");
+  const html = await captureHtml("home");
 
   assert.match(html, /data-testid="icon-verified"/);
   assert.match(html, /data-testid="tweetPhoto"/);

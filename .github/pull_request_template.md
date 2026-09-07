@@ -5,11 +5,12 @@
 ## Evidence
 
 <!--
-Selector or DOM work needs a capture that contains the thing it matches. `_decoded/home.html` and
-`_decoded/status.html` are the ground truth; a rule written from a screenshot or a forum post is a
-guess, and this repository keeps those in Roadmap_Blocked.md instead of shipping them.
+Selector or DOM work needs an observation that contains the thing it matches.
+`_decoded/dom-schema.json` is the ground truth, and the generated fixtures come from it; a rule
+written from a screenshot or a forum post is a guess, and this repository keeps those in
+Roadmap_Blocked.md instead of shipping them.
 
-Name the capture and the marker, or state that this change touches no selector.
+Name the schema surface and the marker, or state that this change touches no selector.
 -->
 
 ## Checks

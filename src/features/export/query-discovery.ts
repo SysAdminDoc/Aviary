@@ -21,7 +21,7 @@ export async function discoverQueryIds(storage: StorageGateway): Promise<QueryRe
   if (typeof document !== "undefined") {
     // Only inline script text is scanned. The full-document `outerHTML` serialisation this used
     // to do cost several megabytes of string allocation at boot and found nothing: measured
-    // against both captures (`_decoded/home.html`, 315KB, and `status.html`, 263KB, of real X
+    // against both 2026-05-19 captures (315KB of Home and 263KB of a conversation, of real X
     // markup) this pattern matches 0 times. X's query IDs live inside the bundled JS, which is
     // referenced by URL and never inlined, so there is nothing in the served HTML to find.
     const scripts = Array.from(document.querySelectorAll<HTMLScriptElement>("script"));

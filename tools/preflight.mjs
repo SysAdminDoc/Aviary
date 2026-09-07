@@ -315,10 +315,12 @@ function readPngDimensions(data) {
 }
 
 /**
- * Every selector this project ships is proved against a captured DOM, which makes the capture the
- * authority — and an authority with no expiry is how "measured: 0 hits, blocked" quietly turns into
- * a statement about a version of X that no longer exists. The ceiling and the waiver both live in
- * `_decoded/captures.json`, so the repository states its own tolerance instead of drifting into one.
+ * Every selector this project ships is proved against an observation of X's DOM, which makes that
+ * observation the authority — and an authority with no expiry is how "measured: 0 hits, blocked"
+ * quietly turns into a statement about a version of X that no longer exists. What ages is the
+ * observation, not the generated markup: fixtures are rebuilt from `_decoded/dom-schema.json` on
+ * every run, so regenerating them proves nothing about how current they are. The ceiling and the
+ * waiver live in that schema, so the repository states its own tolerance instead of drifting.
  */
 async function checkCaptureFreshness() {
   let manifest;
@@ -337,21 +339,22 @@ async function checkCaptureFreshness() {
   const age = report.stale.length > 0 ? describe(report.stale) : describe([report.newest]);
   if (report.blocking) {
     failures.push(
-      `stale DOM captures: ${age}, past the ${manifest.ceilingDays}-day ceiling this ` +
-        "repository declares. Refresh it — save an authenticated X page as MHTML, then " +
-        "`npm run capture:decode -- \"<saved.mhtml>\" <name>` — or record a dated " +
-        "acknowledgedStaleUntil in _decoded/captures.json saying why not."
+      `stale DOM observation: ${age}, past the ${manifest.ceilingDays}-day ceiling this ` +
+        "repository declares. Refresh it — save an authenticated X page as MHTML, run " +
+        "`npm run capture:decode -- \"<saved.mhtml>\" <name>`, measure the decoded page into " +
+        "_decoded/dom-schema.json and delete it — or record a dated acknowledgedStaleUntil in " +
+        "that schema saying why not."
     );
     return;
   }
   if (report.overCeiling) {
     warnings.push(
-      `stale DOM captures: ${age}, past the ${manifest.ceilingDays}-day ceiling; ` +
+      `stale DOM observation: ${age}, past the ${manifest.ceilingDays}-day ceiling; ` +
         `waived until ${report.waiverUntil}, after which preflight fails`
     );
   } else if (report.overWarn) {
     warnings.push(
-      `ageing DOM captures: ${describe(report.ages.filter((item) => item.overWarn))}; ` +
+      `ageing DOM observation: ${describe(report.ages.filter((item) => item.overWarn))}; ` +
         `the ceiling is ${manifest.ceilingDays} days`
     );
   }

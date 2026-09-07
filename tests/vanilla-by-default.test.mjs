@@ -1,10 +1,11 @@
 import { importSourceModule } from "./helpers/source-import.mjs";
 import assert from "node:assert/strict";
+import { captureUrl } from "./helpers/synthetic-capture.mjs";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 import { build } from "esbuild";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -88,9 +89,7 @@ test("default styles leave organic timeline surfaces unchanged and collapse ads"
   const browser = await chromium.launch({ headless: true });
   try {
     const page = await browser.newPage();
-    await page.goto(pathToFileURL(path.join(root, "_decoded/home.html")).href, {
-      waitUntil: "domcontentloaded"
-    });
+    await page.goto(await captureUrl("home"), { waitUntil: "domcontentloaded" });
 
     const before = await snapshot(page);
 

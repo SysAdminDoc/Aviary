@@ -98,7 +98,7 @@ export function applyTheme(settings: AviarySettings): void {
  *
  * X sets `color-scheme: dark` inline on `<html>` on its own. Writing `""` unconditionally --
  * which is what "reset it" looks like -- deletes X's value along with ours and flips the page to
- * `normal`, silently overriding the user's own X setting. Measured on `_decoded/home.html`:
+ * `normal`, silently overriding the user's own X setting. Measured on the 2026-05-19 capture:
  * clearing the property moves `<html>` from `dark` to `normal`, so the marker is what makes this
  * reversible rather than destructive.
  */
@@ -810,7 +810,7 @@ html.av-hide-count-views article[data-testid="tweet"] a[href$="/analytics"] [dat
 /* Row dividers live on the first child of the virtualizer cell, styled by a generated atomic
    class (r-qklmqi in the captured CSS). Anchor on the structure, not the generated name. The
    column's own left/right rules are the other half of the "borderless" look. Verified against
-   _decoded/home.html with its captured stylesheets: 10/10 cells carry a 1px bottom border. */
+   the 2026-05-19 home capture with its stylesheets: 10/10 cells carry a 1px bottom border. */
 html.av-hide-borders [data-testid="cellInnerDiv"] > div {
   border-bottom-width: 0 !important;
 }

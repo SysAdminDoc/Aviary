@@ -54,15 +54,6 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
 
 ### P2, Later
 
-- [ ] F306, P2: Generate synthetic capture fixtures so selector proof is not one operator session
-  Why: every selector claim in the project rests on two `_decoded/` files dated 2026-05-19, which are 110 days old on 2026-09-06 against a 90-day ceiling and pass only on a waiver expiring 2026-09-30. After that `preflight` fails and takes `verify` with it, blocking releases unrelated to selectors. The same files carry a named account's handle and body text and are in git history, which is what F184 is about. A generator turns both problems into one.
-  Evidence: `_decoded/captures.json` (`ceilingDays: 90`, `acknowledgedStaleUntil: "2026-09-30"`, both captures `capturedOn: "2026-05-19"`), `tools/capture-decode.mjs`, `src/platform/selectors.ts:12-22` (each surface names its owning feature), `.github/pull_request_template.md` (a capture is required as evidence for selector work), `Roadmap_Blocked.md` F134, F184, F237
-  Touches: a new generator under `tools/`, a shape schema file beside `_decoded/captures.json`, `tools/preflight.mjs`, `tests/fixtures.test.mjs`, `tests/declutter-current-x.test.mjs`, the fixture helpers
-  Acceptance: a schema records, per surface, the container nesting, test ids, roles, aria attributes, and repetition counts that Aviary depends on, and carries the capture date it was derived from; the generator produces deterministic synthetic Home and conversation documents from that schema with no real handle, display name, post body, image URL, or numeric id; every selector test that currently reads `_decoded/` passes against the generated documents; preflight ages the schema rather than the MHTML, so a refreshed capture updates the schema and is then discarded; a deliberately renamed test id in the schema makes the owning surface report missing, proving the fixtures can still fail; the real captures can be deleted from the working tree without any test losing coverage, which is the precondition F184 is waiting on.
-  Complexity: L
-  Depends: None. Reduces F134, F201, and F237 to a schema refresh and makes F184's history rewrite safe to sequence.
-  Research update 2026-09-06: The capture age is 110 days on 2026-09-06. Regenerating synthetic markup must not refresh the source-observation date; keep authentic freshness and privacy cleanup distinct, so the generator cannot silently extend the 2026-09-30 waiver.
-
 ### P3, Under Consideration
 
 - [ ] F307, P3: Make the outbound network policy fail closed

@@ -1,11 +1,7 @@
 import { importSourceModule } from "./helpers/source-import.mjs";
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
-import path from "node:path";
+import { captureHtml } from "./helpers/synthetic-capture.mjs";
 import { test } from "node:test";
-import { fileURLToPath } from "node:url";
-
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 test("derivePostKey prefers the status id and falls back to a handle+text signature", async () => {
   const { derivePostKey } = await importSourceModule("src/features/filtering/hidden-posts.ts");
@@ -201,7 +197,7 @@ test("hidden settings normalize with their own defaults and a clamped cap", asyn
 });
 
 test("home fixture exposes the anchors the hide button and collapse rely on", async () => {
-  const html = await readFile(path.join(root, "_decoded/home.html"), "utf8");
+  const html = await captureHtml("home");
 
   assert.match(html, /data-testid="cellInnerDiv"/);
   assert.match(html, /data-testid="caret"/);

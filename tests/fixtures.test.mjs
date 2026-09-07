@@ -1,22 +1,23 @@
 import { importSourceModule } from "./helpers/source-import.mjs";
+import { captureHtml, captureSchema, captureUrl } from "./helpers/synthetic-capture.mjs";
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
+import { build } from "esbuild";
 import { chromium } from "playwright";
 
 import { captureAgeReport, listFixtureFiles, readCaptureManifest } from "../tools/capture-manifest.mjs";
 import { assertScrubbed, extractHtml, scrub } from "../tools/capture-decode.mjs";
+import { generateCaptureDocument, readDomSchema } from "../tools/fixture-generator.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
-for (const [name, fixture] of [
-  ["home", "_decoded/home.html"],
-  ["status", "_decoded/status.html"]
-]) {
+for (const name of ["home", "status"]) {
   test(`${name} fixture exposes stable X surfaces`, async () => {
-    const html = await readFile(path.join(root, fixture), "utf8");
+    const html = await captureHtml(name);
 
     assert.match(html, /id="react-root"/);
     assert.match(html, /data-testid="primaryColumn"/);
@@ -34,20 +35,26 @@ function count(value, pattern) {
 }
 
 // --- capture provenance -------------------------------------------------------------------------
-// The fixtures are the authority every selector is proved against, so they need a date. Without
-// one, a blocked item's "measured: 0 hits" silently means "0 hits as X was on the capture date",
-// which is how three months of drift stayed invisible until 2026-08-15.
+// The schema is the authority every selector is proved against, so it needs a date. Without one, a
+// blocked item's "measured: 0 hits" silently means "0 hits as X was on the observation date", which
+// is how three months of drift stayed invisible until 2026-08-15. Regenerating markup from the
+// schema does not make the observation newer, which is the whole reason the date lives on
+// `derivedFrom` and not on the generated files.
 
-test("every fixture on disk is registered with a capture date", async () => {
+test("the schema records the observation date, and no saved page is left in the tree", async () => {
   const manifest = await readCaptureManifest();
-  const registered = new Set(manifest.captures.map((capture) => capture.file));
-  for (const file of await listFixtureFiles()) {
-    assert.ok(registered.has(file), `_decoded/${file} is not registered in captures.json`);
-  }
-  for (const capture of manifest.captures) {
-    await readFile(path.join(root, "_decoded", capture.file), "utf8");
-    assert.ok(capture.route, `${capture.file} must record the route it was captured from`);
-  }
+  assert.equal(manifest.captures.length, 1);
+  assert.equal(manifest.captures[0].file, "dom-schema.json");
+  assert.ok(manifest.captures[0].route, "the schema must record the routes it was derived from");
+  assert.ok(manifest.captures[0].source, "the schema must record what it was derived from");
+
+  // A saved authenticated page carries a real handle, display name and post bodies. It is decoded,
+  // measured into the schema, and discarded; one left behind is a mistake, not a fixture.
+  assert.deepEqual(
+    await listFixtureFiles(),
+    [],
+    "a saved capture came back into _decoded/ — decode it into dom-schema.json and delete it"
+  );
 });
 
 test("the age report fails past the declared ceiling, and a waiver only defers it", () => {
@@ -102,7 +109,7 @@ test("the age report fails past the declared ceiling, and a waiver only defers i
   assert.deepEqual(report.stale.map((item) => item.file), ["stale.html"], "and be named");
 });
 
-test("a capture manifest missing its dates or ceiling is rejected", async () => {
+test("a schema missing its observation date or ceiling is rejected", async () => {
   const manifest = await readCaptureManifest();
   assert.ok(manifest.ceilingDays > 0);
   // The waiver is only honoured when it explains itself, so it cannot be a silent permanent bypass.
@@ -114,11 +121,56 @@ test("a capture manifest missing its dates or ceiling is rejected", async () => 
   }
 });
 
-test("the capture decoder extracts and scrubs a real saved MHTML", async () => {
-  const source = path.join(root, "_decoded", "Home _ X.mhtml");
-  const html = extractHtml(await readFile(source, "utf8"));
+test("regenerating the fixtures cannot move the observation date", async () => {
+  // The failure this exists to prevent: someone regenerates markup, sees a fresh file, and treats
+  // the selector evidence as fresh too. Generation reads the date; nothing about it writes one.
+  const before = await readCaptureManifest();
+  const first = await captureHtml("home");
+  const second = generateCaptureDocument(await readDomSchema(), "home");
+  const after = await readCaptureManifest();
+
+  assert.equal(first, second, "the generator must be deterministic");
+  assert.equal(after.captures[0].capturedOn, before.captures[0].capturedOn);
+  assert.equal(before.captures[0].capturedOn, "2026-05-19", "the recorded observation, not today");
+});
+
+test("the generated documents carry no real identity", async () => {
+  // The reason the saved captures could not stay: a handle, a display name, a post body and a
+  // media id belonging to a person who did not agree to be in this repository.
+  for (const route of ["home", "status"]) {
+    const html = await captureHtml(route);
+    for (const handle of html.matchAll(/@([A-Za-z0-9_]+)/g)) {
+      assert.match(handle[1], /^fixture_/, `${route} carries a handle that is not synthetic`);
+    }
+    for (const media of html.matchAll(/pbs\.twimg\.com\/[a-z_]+\/([A-Za-z0-9_-]+)/g)) {
+      assert.match(media[1], /^AviaryFixture|^1900000000000000/, `${route} carries a media id that is not synthetic`);
+    }
+    for (const id of html.matchAll(/\/status\/(\d+)/g)) {
+      assert.match(id[1], /^1900000000000000/, `${route} carries a post id that is not synthetic`);
+    }
+  }
+});
+
+test("the capture decoder extracts and scrubs a saved MHTML", async () => {
+  // The decoder still runs, on the operator's machine, on a page that is never committed. It is
+  // exercised against a synthetic MHTML for exactly that reason.
+  const page = [
+    "<html><head></head><body>",
+    '<div data-testid="primaryColumn"><article data-testid="tweet">fixture</article></div>',
+    "</body></html>"
+  ].join("");
+  const mhtml = [
+    'Content-Type: multipart/related; boundary="B"; type="text/html"',
+    "",
+    "--B",
+    "Content-Type: text/html",
+    "",
+    page,
+    "--B--"
+  ].join("\r\n");
+
+  const html = extractHtml(mhtml);
   assert.match(html, /data-testid="primaryColumn"/, "decoded output should be the page itself");
-  assert.ok(html.length > 100_000, `expected a full page, got ${html.length} chars`);
 
   const planted = html.replace(
     "<head>",
@@ -130,11 +182,6 @@ test("the capture decoder extracts and scrubs a real saved MHTML", async () => {
   assert.ok(!cleaned.includes("abcdef0123456789abcdef"), "ct0 value survived the scrub");
   assert.ok(!cleaned.includes("deadbeefdeadbeef"), "auth_token survived the scrub");
 });
-
-// Watching only the ten foundational surfaces meant a rename anywhere else silently disabled its
-// owning feature with no diagnostic — the exact failure the fixture discipline exists to prevent,
-// happening outside the fixture's reach. These keep the expanded registry honest without a browser:
-// the health pass itself is exercised against a live DOM in the Trust selector-health tests.
 
 // --- capture decoder: the two defects that would have poisoned a refreshed capture ------------
 // Quoted-printable carries bytes, not characters, and the first version mapped each octet through
@@ -154,7 +201,7 @@ test("quoted-printable decoding survives multibyte text", () => {
   assert.match(html, /an em—dash/, "an em-dash must decode as one character, not three");
   assert.match(html, /日本語/, "CJK must survive");
   assert.match(html, /عربي/, "Arabic must survive");
-  assert.doesNotMatch(html, /â/, "mojibake signature must not appear");
+  assert.doesNotMatch(html, /â/, "mojibake signature must not appear");
 });
 
 test("a soft line break inside a multibyte escape sequence still decodes", () => {
@@ -223,25 +270,84 @@ test("every registered surface declares a selector, a fallback, a note and its o
   assert.deepEqual(incomplete, []);
 });
 
-test("the surfaces features depend on are present in a capture, not invented", async () => {
+test("the surfaces features depend on are present in the schema, not invented", async () => {
   const { SURFACE_SELECTORS } = await importSourceModule("src/platform/selectors.ts");
-  const home = await readFile(path.join(root, "_decoded/home.html"), "utf8");
-  const status = await readFile(path.join(root, "_decoded/status.html"), "utf8");
-  const captures = home + status;
+  const schema = await captureSchema();
+  const documents = (await captureHtml("home")) + (await captureHtml("status"));
 
-  // Every test id the registry claims as a *stable* anchor has to exist in the ground truth. A
-  // selector nobody can point at in a capture is exactly what this project refuses to ship.
-  // Fallbacks are exempt: they exist for the shape X has not shipped yet.
+  // Every test id the registry claims as a *stable* anchor has to be a test id the schema records
+  // as observed, and has to survive into the generated documents. A selector nobody can point at
+  // in an observation is exactly what this project refuses to ship. Fallbacks are exempt: they
+  // exist for the shape X has not shipped yet.
   const claimed = new Set();
   for (const entry of SURFACE_SELECTORS) {
-    for (const match of entry.stable.matchAll(/data-testid="([A-Za-z0-9_-]+)"/g)) {
+    for (const match of entry.stable.matchAll(/data-testid="([A-Za-z0-9_.-]+)"/g)) {
       claimed.add(match[1]);
     }
   }
   assert.ok(claimed.size >= 10, `only ${claimed.size} test ids were read from the registry`);
 
-  const missing = [...claimed].filter((id) => !captures.includes(`data-testid="${id}"`));
-  assert.deepEqual(missing, [], `the registry claims test ids no capture contains: ${missing.join(", ")}`);
+  const recorded = new Set(Object.values(schema.testIds));
+  const unrecorded = [...claimed].filter((id) => !recorded.has(id));
+  assert.deepEqual(unrecorded, [], `the registry claims test ids the schema does not record: ${unrecorded.join(", ")}`);
+
+  const missing = [...claimed].filter((id) => !documents.includes(`data-testid="${id}"`));
+  assert.deepEqual(missing, [], `the registry claims test ids no generated document contains: ${missing.join(", ")}`);
+});
+
+test("a renamed test id in the schema makes the owning surface report missing", async () => {
+  // The proof that the generated fixtures can still fail. Without it, "every surface is healthy"
+  // could mean the documents happen to contain everything, or it could mean the check is inert.
+  // "Who to follow" is the surface chosen because its fallback does not match a generated
+  // document either, so a renamed test id has nowhere left to degrade to.
+  const schema = await readDomSchema();
+  const renamed = structuredClone(schema);
+  renamed.testIds.userCell = "UserCell_renamed_by_x";
+
+  const temp = await mkdtemp(path.join(tmpdir(), "aviary-selector-health-"));
+  const bundle = path.join(temp, "selectors.js");
+  await build({
+    entryPoints: [path.join(root, "src/platform/selectors.ts")],
+    outfile: bundle,
+    bundle: true,
+    format: "iife",
+    globalName: "AviarySelectors",
+    platform: "browser",
+    target: "es2022",
+    logLevel: "silent"
+  });
+
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const report = async (source) => {
+      const page = await browser.newPage();
+      await page.setContent(generateCaptureDocument(source, "home"));
+      await page.addScriptTag({ path: bundle });
+      const health = await page.evaluate(() =>
+        AviarySelectors.getSelectorHealthForRoute(document, "home").map((entry) => ({
+          surface: entry.surface,
+          matched: entry.matched,
+          feature: entry.feature
+        }))
+      );
+      await page.close();
+      return health;
+    };
+
+    const healthy = (await report(schema)).find((entry) => entry.surface === "Who to follow");
+    assert.equal(healthy.matched, "stable", "control: the recorded test id must match on a generated document");
+
+    const broken = (await report(renamed)).find((entry) => entry.surface === "Who to follow");
+    assert.equal(broken.matched, "missing", "a renamed test id must report its surface missing");
+    assert.equal(
+      broken.feature,
+      "Hide follow suggestions",
+      `the report must name the feature that stops working, saw ${broken.feature}`
+    );
+  } finally {
+    await browser.close();
+    await rm(temp, { recursive: true, force: true });
+  }
 });
 
 test("the dated upstream selector comparison is complete for adopted equivalents", async () => {
@@ -274,3 +380,38 @@ test("the dated upstream selector comparison is complete for adopted equivalents
     await browser.close();
   }
 });
+
+test("every generated route reaches the browser and matches its recorded surface counts", async () => {
+  const schema = await captureSchema();
+  const browser = await chromium.launch({ headless: true });
+  try {
+    for (const route of Object.keys(schema.routes)) {
+      const page = await browser.newPage({ viewport: { width: 1400, height: 900 } });
+      await page.goto(await captureUrl(route));
+      const measured = await page.evaluate((ids) => {
+        const n = (selector) => document.querySelectorAll(selector).length;
+        return {
+          posts: n(`[data-testid="${ids.post}"]`),
+          postTexts: n(`[data-testid="${ids.postText}"]`),
+          photos: n(`[data-testid="${ids.photo}"]`),
+          videoPlayers: n(`[data-testid="${ids.videoPlayer}"]`),
+          videoComponents: n(`[data-testid="${ids.videoComponent}"]`),
+          verifiedIcons: n(`[data-testid="${ids.verifiedIcon}"]`),
+          authorNames: n(`[data-testid="${ids.authorName}"]`),
+          placements: n(`[data-testid="${ids.placement}"]`),
+          userCells: n(`[data-testid="${ids.userCell}"]`),
+          trends: n(`[data-testid="${ids.trend}"]`),
+          carets: n(`[data-testid="${ids.caret}"]`)
+        };
+      }, schema.testIds);
+      const observed = schema.routes[route].observedCounts;
+      for (const [key, value] of Object.entries(measured)) {
+        assert.equal(value, observed[key], `${route} ${key}: generated ${value}, schema recorded ${observed[key]}`);
+      }
+      await page.close();
+    }
+  } finally {
+    await browser.close();
+  }
+});
+

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { captureHtml } from "./helpers/synthetic-capture.mjs";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { after, before, test } from "node:test";
@@ -131,7 +132,7 @@ test("the swapped icon is self-contained and needs no network request", async ()
   assert.ok(href.length < 4000, `the inlined mark should stay small, saw ${href.length} chars`);
 });
 
-test("the captured page still carries the icon link this feature swaps", async () => {
-  const capture = await readFile(path.join(root, "_decoded/home.html"), "utf8");
+test("the generated page still carries the icon link this feature swaps", async () => {
+  const capture = await captureHtml("home");
   assert.match(capture, /<link rel="shortcut icon"/, "X still ships a shortcut icon link");
 });

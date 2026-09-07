@@ -1,0 +1,334 @@
+{
+  "$comment": [
+    "The shape of X's DOM that Aviary depends on, recorded as data instead of as a saved page.",
+    "",
+    "Every selector in this repository used to be proved against two authenticated captures. That",
+    "made the captures the authority, and an authority that carries a real account's handle, display",
+    "name, post text and media URLs cannot be published, while one that ages cannot be kept. The",
+    "schema below is the part the tests actually needed: which test ids exist, how they nest, which",
+    "roles and aria attributes carry them, and how many of each a route renders. tools/fixture-",
+    "generator.mjs turns it into deterministic synthetic Home and conversation documents with no real",
+    "identity in them.",
+    "",
+    "derivedFrom.capturedOn is the date the observation was made, not the date the schema was",
+    "written. Regenerating markup does not make the observation newer, so preflight ages this field",
+    "exactly the way it aged the captures. A refreshed capture updates this file and is then thrown",
+    "away."
+  ],
+  "ceilingDays": 90,
+  "warnDays": 30,
+  "acknowledgedStaleUntil": "2026-09-30",
+  "acknowledgedReason": "Refreshing the observation requires an authenticated save-as-MHTML that only the operator can produce; tracked in Roadmap_Blocked.md. Generating fresh markup from this schema does not make the observation newer, so the waiver still expires and the gate still returns.",
+  "derivedFrom": {
+    "capturedOn": "2026-05-19",
+    "sources": [
+      "Authenticated https://x.com/home, saved as MHTML and decoded",
+      "Authenticated conversation route, saved as MHTML and decoded"
+    ],
+    "notes": "Counts and nesting were measured in headless Chromium against the decoded documents. No repost, sensitive-media, Article, or relationship-indicator surface was present in either capture, which is why none of them appears here."
+  },
+  "testIds": {
+    "appRoot": "react-root",
+    "primaryColumn": "primaryColumn",
+    "sidebarColumn": "sidebarColumn",
+    "post": "tweet",
+    "postText": "tweetText",
+    "composer": "tweetTextarea_0",
+    "photo": "tweetPhoto",
+    "videoPlayer": "videoPlayer",
+    "videoComponent": "videoComponent",
+    "cell": "cellInnerDiv",
+    "toolBar": "toolBar",
+    "metricContainer": "app-text-transition-container",
+    "authorName": "User-Name",
+    "avatar": "Tweet-User-Avatar",
+    "verifiedIcon": "icon-verified",
+    "caret": "caret",
+    "reply": "reply",
+    "repost": "retweet",
+    "like": "like",
+    "bookmark": "bookmark",
+    "trend": "trend",
+    "newsSidebar": "news_sidebar",
+    "userCell": "UserCell",
+    "homeTabLink": "AppTabBar_Home_Link",
+    "exploreTabLink": "AppTabBar_Explore_Link",
+    "composeButton": "SideNav_NewTweet_Button",
+    "searchInput": "SearchBox_Search_Input",
+    "placement": "placementTracking",
+    "grokDrawer": "GrokDrawer",
+    "grokImageGen": "grokImgGen",
+    "tabStrip": "ScrollSnap-List"
+  },
+  "roles": {
+    "post": "article",
+    "banner": "banner",
+    "navigation": "navigation",
+    "main": "main",
+    "timeline": "region",
+    "actionGroup": "group",
+    "tabStrip": "tablist",
+    "tab": "tab",
+    "link": "link",
+    "button": "button",
+    "heading": "heading",
+    "searchBox": "combobox"
+  },
+  "aria": {
+    "postLabelledBy": "aria-labelledby",
+    "quoteBoundaryTabIndex": "0",
+    "verifiedLabel": "Verified account",
+    "photoLabel": "Image",
+    "videoLabel": "Embedded video",
+    "caretLabel": "More",
+    "grokActionsLabel": "Grok actions",
+    "shareLabel": "Share post",
+    "bookmarkLabel": "Bookmark",
+    "analyticsLabelSuffix": "views. View post analytics",
+    "replyLabelSuffix": "Replies. Reply",
+    "repostLabelSuffix": "reposts. Repost",
+    "likeLabelSuffix": "Likes. Like",
+    "hiddenSeparator": "aria-hidden"
+  },
+  "nesting": {
+    "shellDepthAboveMain": 2,
+    "mainToPrimaryColumn": 3,
+    "cellToArticle": 2,
+    "articleToBody": 2,
+    "timelineToCell": 2,
+    "authorNameToHandleLink": 2,
+    "mediaToPhoto": 5,
+    "actionGroupToButton": 1
+  },
+  "layout": {
+    "$comment": "Computed values read from the capture with X's own stylesheets attached, at a 1400px viewport. The generator turns these into the minimal stylesheet the width tests measure against, so the timeline-width feature is still checked against observed geometry rather than against nothing.",
+    "appRootInlineStyle": "height:100%;display:flex;",
+    "bodyInlineStyle": "background-color: rgb(0, 0, 0); color-scheme: dark;",
+    "viewportWidth": 1400,
+    "navColumnWidth": 342,
+    "sidebarColumnWidth": 350,
+    "primaryColumnMaxWidth": 600,
+    "primaryColumnFlex": "1 0 auto",
+    "primaryColumnDisplay": "flex",
+    "primaryColumnDirection": "column",
+    "columnRowJustify": "space-between",
+    "mainFlex": "1 1 auto",
+    "mainAlignItems": "flex-start",
+    "sidebarFlex": "0 0 auto"
+  },
+  "routes": {
+    "home": {
+      "route": "https://x.com/home",
+      "lang": "en",
+      "title": "Home / X",
+      "timelineLabel": "Timeline: Your Home Timeline",
+      "primaryHeading": "Your Home Timeline",
+      "hasComposer": true,
+      "hasNewsSidebar": true,
+      "hasGrokImageGen": true,
+      "tabs": [
+        { "label": "For you", "selected": true },
+        { "label": "Following", "selected": false }
+      ],
+      "sidebarHeadings": ["Today's News", "Trending now", "What's happening", "Who to follow"],
+      "observedCounts": {
+        "$note": "Measured in the capture on the derivedFrom date. The generated document reproduces every surface these counts describe; it does not reproduce the total length of a scrolled timeline, so cell and container totals can be lower.",
+        "cells": 10,
+        "posts": 9,
+        "postTexts": 10,
+        "photos": 3,
+        "videoPlayers": 1,
+        "videoComponents": 1,
+        "verifiedIcons": 10,
+        "authorNames": 10,
+        "placements": 2,
+        "userCells": 3,
+        "trends": 4,
+        "carets": 13,
+        "metricContainers": 36
+      },
+      "cells": [
+        {
+          "kind": "post",
+          "media": "none",
+          "verified": true,
+          "quote": false,
+          "promoted": false,
+          "counts": { "replies": 52, "reposts": 655, "likes": 11636, "views": 219435 }
+        },
+        {
+          "kind": "post",
+          "media": "photo",
+          "verified": true,
+          "quote": false,
+          "promoted": false,
+          "counts": { "replies": 23, "reposts": 248, "likes": 4175, "views": 150937 }
+        },
+        {
+          "kind": "post",
+          "media": "video",
+          "verified": true,
+          "quote": false,
+          "promoted": false,
+          "counts": { "replies": 156, "reposts": 1427, "likes": 17939, "views": 402118 }
+        },
+        {
+          "kind": "post",
+          "media": "photo",
+          "verified": true,
+          "quote": true,
+          "quotedVerified": true,
+          "promoted": false,
+          "counts": { "replies": 8, "reposts": 30, "likes": 248, "views": 9042 }
+        },
+        {
+          "kind": "post",
+          "media": "none",
+          "verified": true,
+          "quote": false,
+          "promoted": true,
+          "counts": { "replies": 3, "reposts": 5, "likes": 92, "views": 4410 }
+        },
+        {
+          "kind": "post",
+          "media": "none",
+          "verified": true,
+          "quote": false,
+          "promoted": false,
+          "counts": { "replies": 120, "reposts": 210, "likes": 3402, "views": 88014 }
+        },
+        {
+          "kind": "post",
+          "media": "photo",
+          "verified": true,
+          "quote": false,
+          "promoted": false,
+          "counts": { "replies": 310, "reposts": 980, "likes": 21507, "views": 517220 }
+        },
+        {
+          "kind": "post",
+          "media": "none",
+          "verified": true,
+          "quote": false,
+          "promoted": true,
+          "counts": { "replies": 15, "reposts": 60, "likes": 655, "views": 20118 }
+        },
+        {
+          "kind": "post",
+          "media": "none",
+          "verified": true,
+          "quote": false,
+          "promoted": false,
+          "counts": { "replies": 44, "reposts": 88, "likes": 1120, "views": 33907 }
+        },
+        { "kind": "whoToFollow", "userCells": 3 }
+      ]
+    },
+    "status": {
+      "route": "https://x.com/<handle>/status/<id>",
+      "lang": "en",
+      "title": "Conversation / X",
+      "timelineLabel": "Timeline: Conversation",
+      "primaryHeading": "Conversation",
+      "hasComposer": true,
+      "hasNewsSidebar": false,
+      "hasGrokImageGen": false,
+      "tabs": [],
+      "sidebarHeadings": ["Relevant people", "Trending now", "What's happening"],
+      "observedCounts": {
+        "$note": "Measured in the capture on the derivedFrom date. The generated document reproduces every surface these counts describe; it does not reproduce the total length of a scrolled timeline, so cell and container totals can be lower.",
+        "cells": 17,
+        "posts": 9,
+        "postTexts": 11,
+        "photos": 2,
+        "videoPlayers": 1,
+        "videoComponents": 1,
+        "verifiedIcons": 8,
+        "authorNames": 11,
+        "placements": 1,
+        "userCells": 1,
+        "trends": 4,
+        "carets": 13,
+        "metricContainers": 37
+      },
+      "cells": [
+        {
+          "kind": "post",
+          "media": "photo",
+          "verified": true,
+          "quote": false,
+          "promoted": false,
+          "counts": { "replies": 214, "reposts": 512, "likes": 8842, "views": 260311 }
+        },
+        {
+          "kind": "post",
+          "media": "none",
+          "verified": true,
+          "quote": false,
+          "promoted": false,
+          "counts": { "replies": 0, "reposts": 3, "likes": 41, "views": 1904 }
+        },
+        {
+          "kind": "post",
+          "media": "none",
+          "verified": true,
+          "quote": true,
+          "quotedVerified": false,
+          "promoted": false,
+          "counts": { "replies": 0, "reposts": 1, "likes": 12, "views": 806 }
+        },
+        {
+          "kind": "post",
+          "media": "video",
+          "verified": true,
+          "quote": false,
+          "promoted": false,
+          "counts": { "replies": 2, "reposts": 0, "likes": 30, "views": 1122 }
+        },
+        { "kind": "heading", "text": "Discover more" },
+        {
+          "kind": "post",
+          "media": "none",
+          "verified": true,
+          "quote": false,
+          "promoted": false,
+          "counts": { "replies": 5, "reposts": 9, "likes": 260, "views": 7719 }
+        },
+        {
+          "kind": "post",
+          "media": "photo",
+          "verified": true,
+          "quote": false,
+          "promoted": true,
+          "counts": { "replies": 1, "reposts": 0, "likes": 77, "views": 3011 }
+        },
+        {
+          "kind": "post",
+          "media": "none",
+          "verified": false,
+          "quote": false,
+          "promoted": false,
+          "counts": { "replies": 0, "reposts": 2, "likes": 19, "views": 640 }
+        },
+        {
+          "kind": "post",
+          "media": "none",
+          "verified": true,
+          "quote": true,
+          "quotedVerified": false,
+          "promoted": false,
+          "counts": { "replies": 3, "reposts": 1, "likes": 55, "views": 2208 }
+        },
+        {
+          "kind": "post",
+          "media": "none",
+          "verified": true,
+          "quote": false,
+          "promoted": false,
+          "counts": { "replies": 8, "reposts": 4, "likes": 130, "views": 4317 }
+        },
+        { "kind": "whoToFollow", "userCells": 1 }
+      ]
+    }
+  }
+}

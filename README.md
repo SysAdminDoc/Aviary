@@ -288,18 +288,24 @@ callbacks, lock contention, interrupted restore recovery, stale fences, and pers
 browser or manager restart. A missing manager package, browser, editor, or lifecycle control fails
 explicitly, so the suite cannot silently fall back to a simulated store.
 
-## Selector captures
+## Selector observations
 
-`_decoded/*.html` is the only ground truth for X's DOM in this repository. A selector ships when a
-capture proves it, which makes those files the authority, and an authority needs a date.
-`_decoded/captures.json` records each capture's date, route and provenance and declares a ceiling in
-days. Preflight warns, then fails, once a capture is past it.
+`_decoded/dom-schema.json` is the ground truth for X's DOM in this repository. It records, per
+surface, the test ids, roles, aria attributes, nesting depths, repetition counts and column geometry
+Aviary depends on, along with the date an operator observed them. `tools/fixture-generator.mjs`
+turns that into deterministic synthetic Home and conversation documents, and every selector test
+runs against those. Rename a test id in the schema and the surface that owns it reports missing.
+
+The schema is what ages, not the generated markup. Regenerating fixtures proves nothing about how
+current they are, so preflight warns and then fails on `derivedFrom.capturedOn` passing the ceiling
+the schema declares.
 
 Refreshing needs a signed-in operator saving the page as MHTML. Nothing in this repository logs in
-or fetches anything. The decode step scrubs `ct0`, Bearer and `auth_token` shaped values in both
-cookie and JSON form, and refuses to write a file that still trips its own leak guard. The captures
-are tracked, so anything left in them is published to anyone who can read the repository. Scope them
-to what a selector needs.
+or fetches anything. `npm run capture:decode` scrubs `ct0`, Bearer and `auth_token` shaped values in
+both cookie and JSON form, refuses to write a file that still trips its own leak guard, and writes
+outside the repository. Read the decoded page, record what changed in the schema, delete the page.
+No saved capture is committed: a real account's handle, display name and post bodies have no place
+in a public repository.
 
 ## Roadmap
 

@@ -108,9 +108,9 @@ test("a time without a usable datetime is left alone", async () => {
   assert.deepEqual(applied, ["just now", "2h"]);
 });
 
-test("the captured home timeline carries the datetime this feature reads", async () => {
-  const { readFile } = await import("node:fs/promises");
-  const capture = await readFile(path.join(root, "_decoded/home.html"), "utf8");
+test("the generated home timeline carries the datetime this feature reads", async () => {
+  const { captureHtml } = await import("./helpers/synthetic-capture.mjs");
+  const capture = await captureHtml("home");
   const times = capture.match(/<time datetime="[^"]+"/g) ?? [];
   assert.ok(times.length > 0, "the capture must contain time elements with datetime attributes");
 });

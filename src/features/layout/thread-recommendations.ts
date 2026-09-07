@@ -18,7 +18,7 @@ const HEADING_MARKER = "data-av-thread-recommendation-heading";
  * rather than risking a wrong collapse. Add a locale only with a capture that proves its copy.
  */
 const HEADING_LABELS = new Set([
-  // Verified in _decoded/status.html (2026-08-14 capture).
+  // Verified in the conversation capture (2026-05-19 observation, recorded in dom-schema.json).
   "discover more"
 ]);
 

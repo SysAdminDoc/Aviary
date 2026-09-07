@@ -369,16 +369,17 @@ so in `docs/INSTALL.md`, which already states the 404 plainly.
 
 ## F184, Remove real-user captures from the fixture set and its history
 
-`_decoded/` is tracked and contains a full MHTML capture of a named account's post, handle and body
-text, against the standard this repository enforces on its own synthetic fixtures. The scrub itself
-is ordinary work, but it is in history, so removing it means a `git-filter-repo` rewrite and a force
-push over branch protection on the only copy of the project's history, and the selectors currently
-proved against those files have to be re-proved against a replacement capture that does not exist
-yet.
+The working-tree half is done. F306 replaced the saved captures with `_decoded/dom-schema.json` and
+a generator, and the MHTML, decoded HTML and extracted stylesheets were deleted on 2026-09-07. No
+test reads a saved page any more, and `tests/fixtures.test.mjs` fails if one comes back.
 
-Re-entry condition: sequence with F134's operator capture session. Scrub `tools/capture-decode.mjs`
-first so a fresh capture cannot reintroduce identifying content, take the new capture, re-prove the
-selectors against it, and only then rewrite history, one rewrite rather than two.
+What remains is history. The captures of a named account's post, handle and body text are still in
+every commit before that deletion, so removing them means a `git-filter-repo` rewrite and a force
+push over branch protection on the only copy of the project's history.
+
+Re-entry condition: the rewrite itself, on a quiet tree, with the backup bundle under
+`_claude-backups/Aviary-prepublic-2026-09-06/` verified first. It no longer has to wait for a
+replacement capture, because no selector is proved against those files.
 
 ## F201, Re-verify batch media download against X's Photos/Videos split
 
@@ -395,20 +396,25 @@ Re-entry condition: verify during F134's authenticated capture session rather th
 one, open the current Photos and Videos tabs with the built artifact loaded and exercise the batch
 action.
 
-## F237, The `_decoded/` captures expire on 2026-09-30 and the build gate fails with them
+## F237, The DOM observation expires on 2026-09-30 and the build gate fails with it
 
-`npm run preflight` passes today with a warning: `home.html` and `status.html` were captured on
-2026-05-19, are 95 days old against a 90-day ceiling, and are waived only until 2026-09-30. After
-that the gate fails, and until the captures are refreshed no selector claim in the project can be
-re-measured against anything -- these two files are the only ground truth there is.
+`npm run preflight` passes today with a warning: `_decoded/dom-schema.json` records an observation
+made on 2026-05-19, 111 days old against a 90-day ceiling, waived only until 2026-09-30. After that
+the gate fails, and until the observation is refreshed no selector claim in the project can be
+re-measured against anything.
+
+F306 changed what the failure costs, not whether it happens. The fixtures are generated now, so a
+stale schema no longer means stale files in the tree, and regenerating them deliberately does not
+move the date. The observation itself is still 111 days old.
 
 Nothing here can be fixed from this machine. The capture half of the procedure in CLAUDE.md needs a
 signed-in X session, which is the same blocker as F134 and F201.
 
 Re-entry condition: take it in the same operator capture session as F134 and F201 rather than
-booking a third. Scrub `tools/capture-decode.mjs` first, take the captures, then re-run every
-"measured: N hits" claim in this file against them and record the new date, including the claims
-that stay blocked. Do it before 2026-09-30, not at a release.
+booking a third. Take the captures, measure them into `dom-schema.json`, set
+`derivedFrom.capturedOn`, then re-run every "measured: N hits" claim in this file against them and
+record the new date, including the claims that stay blocked. Delete the decoded pages afterwards.
+Do it before 2026-09-30, not at a release.
 
 ## The Firefox packaged smoke lane cannot run on this machine
 

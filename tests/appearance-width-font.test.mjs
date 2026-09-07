@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { captureUrl } from "./helpers/synthetic-capture.mjs";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { after, before, test } from "node:test";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 import { build } from "esbuild";
 import { chromium } from "playwright";
 
@@ -61,7 +62,7 @@ before(async () => {
   page = await browser.newPage({ viewport: { width: 1400, height: 900 } });
   await page.route("**://pbs.twimg.com/**", (route) => route.abort());
   await page.route("**://abs.twimg.com/**", (route) => route.abort());
-  await page.goto(pathToFileURL(path.join(root, "_decoded/home.html")).href);
+  await page.goto(await captureUrl("home"));
   await page.addScriptTag({ path: bundle });
   await page.evaluate(() => {
     const style = document.createElement("style");
@@ -69,12 +70,10 @@ before(async () => {
     document.head.append(style);
   });
 
+  // The same document with the column geometry the schema recorded from X's own stylesheets, so
+  // the width tiers are still measured against observed flex values rather than against nothing.
   currentPage = await browser.newPage({ viewport: { width: 1400, height: 900 } });
-  const currentCapture = decodeMhtml(await readFile(path.join(root, "_decoded", "Home _ X.mhtml"), "utf8"));
-  await currentPage.setContent(currentCapture.html);
-  for (const css of currentCapture.css) {
-    await currentPage.addStyleTag({ content: css });
-  }
+  await currentPage.goto(await captureUrl("home-layout"));
   await currentPage.addScriptTag({ path: bundle });
 });
 
@@ -255,31 +254,3 @@ test("destroy clears both new hooks off the document element", async () => {
   assert.equal(after.dataWidth, null);
   assert.equal(after.chirpClass, false);
 });
-
-function decodeMhtml(source) {
-  const boundary = /boundary="([^"]+)"/.exec(source)?.[1];
-  assert.ok(boundary, "current X capture has no MIME boundary");
-  const parts = source
-    .split(`--${boundary}`)
-    .map((part) => part.trim())
-    .filter((part) => part.length > 0 && part !== "--")
-    .map((part) => {
-      const divider = part.indexOf("\n\n");
-      const headers = (divider >= 0 ? part.slice(0, divider) : part).toLowerCase();
-      const body = divider >= 0 ? part.slice(divider + 2) : "";
-      return { headers, body: decodeQuotedPrintable(body) };
-    });
-  const html = parts.find((part) => part.headers.includes("content-type: text/html"))?.body;
-  assert.ok(html, "current X capture has no HTML part");
-  const css = parts
-    .filter((part) => part.headers.includes("content-type: text/css"))
-    .map((part) => part.body)
-    .filter((body) => body.length > 0);
-  return { html, css };
-}
-
-function decodeQuotedPrintable(value) {
-  return value
-    .replace(/=\r?\n/g, "")
-    .replace(/=([0-9A-F]{2})/gi, (_, hex) => String.fromCharCode(Number.parseInt(hex, 16)));
-}

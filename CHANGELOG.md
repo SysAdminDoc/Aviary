@@ -202,6 +202,12 @@
   export from a redacted backup.
 
 ### Changed
+- Selector evidence is now a recorded schema instead of two saved pages. `_decoded/dom-schema.json`
+  holds the test ids, roles, aria attributes, nesting, counts and column geometry Aviary depends on,
+  with the date they were observed, and the Home and conversation fixtures are generated from it on
+  every run. The saved authenticated captures, which carried a real account's handle, display name
+  and post bodies, are gone from the working tree, and the freshness gate now ages the observation
+  rather than the markup, so regenerating fixtures cannot make stale evidence look current.
 - Preflight now fails on an exported name in `src/` that nothing in `src/`, `tests/`, or `tools/`
   refers to. Sixteen abandoned entry points were deleted, the shared restore-lock name moved to the
   module that actually uses it, and the check reports the export count it scanned so a broken walk
