@@ -144,14 +144,6 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
 
 ## Research-Driven Additions (2026-09-05)
 
-- [ ] F320, P1: Stage large archive imports without whole-file base64 duplication
-  Why: a 256 MiB import is encoded into roughly 341 MiB of base64, persisted, decoded into another complete byte array, and then parsed, creating avoidable quota and memory failures before useful work begins.
-  Evidence: `src/features/library/archive-import-jobs.ts` (`MAX_SOURCE_BYTES`, `encodeBase64`, `source()`), `src/features/library/archive-import.ts` (`MAX_ARCHIVE_BYTES`); https://developer.mozilla.org/en-US/docs/Web/API/File_System_API/Origin_private_file_system and https://web.dev/articles/origin-private-file-system
-  Touches: archive import job and parser, ZIP reader, extension background storage API, userscript storage adapter, import progress and recovery UI, large-input and restart tests
-  Acceptance: the extension stages source bytes in extension-owned OPFS or chunked IndexedDB through the background, never in X-origin storage; the userscript path stores fixed-size manager chunks; no chunk exceeds 4 MiB and no full-source base64 string is created; ZIP entries are consumed incrementally with compressed, per-entry inflated, and total inflated limits checked before allocation; pause, reload, browser-background restart, resume, cancel, success, and failure retain or remove chunks exactly as their job state requires; a deterministic 256 MiB boundary fixture completes or refuses before allocation with a specific limit reason; an allocator seam proves no parser allocation exceeds 8 MiB; imports at the current 256 MiB limit remain portable between Tampermonkey, Violentmonkey, Chrome, and Firefox through the existing export and re-import path.
-  Complexity: L
-  Depends: F288 for the large-library and restart harness and F328 for fenced background-owned coordination.
-
 - [ ] F321, P1: Preserve post language and bidirectional isolation end to end
   Why: X exposes post language, but `ExportRecord` drops it, exported HTML hardcodes English, and mixed RTL content can reorder punctuation, handles, and links in portable output.
   Evidence: `src/features/export/types.ts`, `src/features/export/collector.ts`, `src/features/export/thread-capture.ts`, `src/features/export/formatters.ts` (`<html lang="en">`), `src/features/export/warc.ts`; https://www.w3.org/International/questions/qa-html-language-declarations.html and https://www.w3.org/International/articles/inline-bidi-markup/

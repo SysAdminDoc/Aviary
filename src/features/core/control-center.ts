@@ -73,7 +73,10 @@ import { SemanticIndex } from "../integrations/semantic-search.ts";
 import { isLocalOnly } from "../integrations/network-policy.ts";
 import { defaultAiBudget, defaultEmbeddingBudget } from "../integrations/usage.ts";
 import { recentIntegrationErrors } from "./integration-errors.ts";
-import { importOfficialArchive, MAX_ARCHIVE_BYTES } from "../library/archive-import.ts";
+import {
+  importOfficialArchiveFromSource,
+  MAX_ARCHIVE_BYTES
+} from "../library/archive-import.ts";
 import {
   ArchiveImportJobStore,
   type ArchiveImportJobActionResult
@@ -840,10 +843,9 @@ export const controlCenterFeature: FeatureModule = {
         if (typeof file.size === "number" && file.size > MAX_ARCHIVE_BYTES) {
           throw new Error("Archive exceeds the 256 MiB input limit.");
         }
-        const buffer = new Uint8Array(await file.arrayBuffer());
         const jobs = archiveImportJobs ?? new ArchiveImportJobStore(ctx.storage);
         archiveImportJobs = jobs;
-        const job = await jobs.start(file.name, buffer);
+        const job = await jobs.startBlob(file.name, file);
         return processArchiveImport(ctx, jobs, job.jobId);
       },
       getArchiveImportStatus() {
@@ -1355,7 +1357,7 @@ async function processArchiveImport(
   participantIdsResolved: number;
   participantIdsUnresolved: number;
 }> {
-  const source = await jobs.source(jobId);
+  const source = await jobs.sourceReader(jobId);
   if (!source) {
     const message = "The durable archive source is unavailable or corrupted.";
     await jobs.fail(jobId, message);
@@ -1374,10 +1376,16 @@ async function processArchiveImport(
   }
   await jobs.markRunning(jobId);
   try {
-    const result = await importOfficialArchive(
+    const result = await importOfficialArchiveFromSource(
       source,
       "archive",
-      collectAllRecords(getCheckpointStore())
+      collectAllRecords(getCheckpointStore()),
+      {
+        shouldContinue: () => {
+          const current = jobs.get(jobId);
+          return current?.status !== "cancelled" && current?.status !== "paused";
+        }
+      }
     );
     const state = jobs.get(jobId);
     // Pause/cancel is checked after parsing because ZIP inflation is a single asynchronous

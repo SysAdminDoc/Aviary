@@ -35,6 +35,10 @@
   than blocking Aviary startup or deleting them.
 
 ### Fixed
+- Large X archive imports now stage a File in fixed 3 MiB base64 chunks. Extension chunks stay in
+  the background-owned durable store, userscript values stay under manager limits, and the ZIP
+  reader consumes bounded source ranges instead of decoding a second full archive. Paused,
+  cancelled, failed, resumed, and completed jobs retain or release their chunks deliberately.
 - Export records now carry an audience state from GraphQL when X provides one. DOM-only, imported,
   and legacy rows remain `unknown`; share-oriented HTML, Markdown, WARC, WACZ, viewer, and external
   exports exclude protected and unknown rows until their explicit controls are enabled, while JSON

@@ -52,15 +52,17 @@ const DELIVERY_BUDGETS = [
   // changes to make another explicit size decision.
   // F319 adds audience provenance to every export path and two share-safety controls. The
   // generated single-file and lazy panel artifacts need only a few kilobytes of measured headroom.
-  { file: "aviary.user.js", maxBytes: 2_485_000 },
+  // F320 adds the staged archive source reader and its recovery surface. Keep the headroom narrow
+  // and explicit so a future archive feature cannot quietly inflate the document-start bundle.
+  { file: "aviary.user.js", maxBytes: 2_505_000 },
   { file: "aviary.meta.js", maxBytes: 4_000 },
   // F298 keeps the document-start bootstrap below half of the previous 2.42 MB ceiling. The
   // panel, archive, WACZ worker, viewer, and translated catalog live in the separately budgeted
   // web-accessible chunk below.
   { file: "extension-chrome/content.js", maxBytes: 1_210_000 },
   { file: "extension-firefox/content.js", maxBytes: 1_210_000 },
-  { file: "extension-chrome/chunks/extension-panel.js", maxBytes: 2_060_000 },
-  { file: "extension-firefox/chunks/extension-panel.js", maxBytes: 2_060_000 },
+  { file: "extension-chrome/chunks/extension-panel.js", maxBytes: 2_080_000 },
+  { file: "extension-firefox/chunks/extension-panel.js", maxBytes: 2_080_000 },
   { file: `aviary-source-v${pkg.version}.zip`, maxBytes: 10_000_000 }
 ];
 

@@ -1,4 +1,4 @@
-import { canInflate, readZip } from "../export/zip-reader.ts";
+import { canInflate, readZip, readZipSource, type ZipByteSource } from "../export/zip-reader.ts";
 import type { ExportRecord } from "../export/types.ts";
 import {
   emptyArchiveCollections,
@@ -56,6 +56,58 @@ export async function importOfficialArchive(
   surface = "archive",
   localCorpus: readonly ExportRecord[] = []
 ): Promise<ArchiveImportResult> {
+  if (buffer.byteLength > MAX_ARCHIVE_BYTES) {
+    return archiveImportError("Archive exceeds the 256 MiB input limit.");
+  }
+  try {
+    return importArchiveEntries(await readZip(buffer), surface, localCorpus);
+  } catch (error) {
+    return archiveImportError((error as Error).message);
+  }
+}
+
+/** Import a staged archive through bounded random reads rather than a whole-file byte array. */
+export async function importOfficialArchiveFromSource(
+  source: ZipByteSource,
+  surface = "archive",
+  localCorpus: readonly ExportRecord[] = [],
+  options: { shouldContinue?: () => boolean | Promise<boolean> } = {}
+): Promise<ArchiveImportResult> {
+  if (source.size > MAX_ARCHIVE_BYTES) {
+    return archiveImportError("Archive exceeds the 256 MiB input limit.");
+  }
+  try {
+    return importArchiveEntries(
+      await readZipSource(source),
+      surface,
+      localCorpus,
+      options.shouldContinue
+    );
+  } catch (error) {
+    return archiveImportError((error as Error).message);
+  }
+}
+
+function archiveImportError(message: string): ArchiveImportResult {
+  return {
+    records: [],
+    collections: emptyArchiveCollections(),
+    warnings: [],
+    errors: [message],
+    filesParsed: [],
+    recognizedFiles: [],
+    skippedFiles: [],
+    malformedFiles: [],
+    repairs: emptyArchiveRepairSummary()
+  };
+}
+
+async function importArchiveEntries(
+  entries: Awaited<ReturnType<typeof readZip>>,
+  surface: string,
+  localCorpus: readonly ExportRecord[],
+  shouldContinue?: () => boolean | Promise<boolean>
+): Promise<ArchiveImportResult> {
   const warnings: string[] = [];
   const errors: string[] = [];
   const filesParsed: string[] = [];
@@ -66,17 +118,6 @@ export async function importOfficialArchive(
   const malformedFiles: string[] = [];
   const repairIndex = new ArchiveRepairIndex(localCorpus);
   let repairs = emptyArchiveRepairSummary();
-  if (buffer.byteLength > MAX_ARCHIVE_BYTES) {
-    errors.push("Archive exceeds the 256 MiB input limit.");
-    return { records, collections, warnings, errors, filesParsed, recognizedFiles, skippedFiles, malformedFiles, repairs };
-  }
-  let entries;
-  try {
-    entries = await readZip(buffer);
-  } catch (error) {
-    errors.push((error as Error).message);
-    return { records, collections, warnings, errors, filesParsed, recognizedFiles, skippedFiles, malformedFiles, repairs };
-  }
   if (entries.length === 0) {
     errors.push(
       canInflate()
@@ -87,6 +128,7 @@ export async function importOfficialArchive(
   }
 
   for (const entry of entries) {
+    if (shouldContinue && !(await shouldContinue())) break;
     const lower = entry.filename.toLowerCase();
     const collection = classifyArchiveFile(lower);
     if (!collection) {

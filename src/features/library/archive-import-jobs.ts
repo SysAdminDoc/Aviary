@@ -4,27 +4,37 @@ import { replaceStored } from "../../platform/storage-lock.ts";
 export const ARCHIVE_IMPORT_JOBS_KEY = "aviary.archive.imports.v1";
 
 /**
- * Each archive's bytes live under their own key rather than inside the job record. The record is
- * rewritten on every progress tick, and a 250 MiB import carries a ~333 MiB base64 string -- so
- * keeping the two together meant re-serialising the whole archive (and every other retained job's
- * archive) several times a second.
- *
- * Versioned, despite these being transient payloads rather than a durable store. The intent behind
- * leaving the `.vN` off was to keep them out of migration and backup, but that is not what decides
- * it: those two registries are explicit allow-lists and a key absent from them is excluded either
- * way. What the suffix actually decides is `DurableStorageGateway.#isDurable`, which routes on it.
- * Without it a 256 MiB archive was routed to `chrome.storage.local`, whose quota is 10 MB without
- * `unlimitedStorage`, which the manifest does not request -- so the write would have failed near a
- * 7 MB ZIP while the panel promised 256 MiB.
+ * Archive sources are staged as fixed-size manager-safe chunks. Versioned keys are intentional:
+ * DurableStorageGateway routes every `aviary.*.vN` key to the extension-owned IndexedDB backend,
+ * while the userscript gateway keeps each base64 value well below its per-value manager limit.
  */
 export const archiveSourceKey = (jobId: string): string =>
   `aviary.archive.import.source.${jobId}.v1`;
+
+export const archiveSourceChunkKey = (jobId: string, index: number): string =>
+  `aviary.archive.import.source.${jobId}.chunk.${index}.v1`;
+
+export const ARCHIVE_SOURCE_CHUNK_BYTES = 3 * 1024 * 1024;
+export const ARCHIVE_SOURCE_MAX_CHUNK_BYTES = 4 * 1024 * 1024;
+export const MAX_SOURCE_BYTES = 256 * 1024 * 1024;
+
+interface ArchiveSourceManifest {
+  version: 1;
+  encoding: "base64-chunks";
+  sourceBytes: number;
+  chunkBytes: number;
+  chunkCount: number;
+}
+
+export interface ArchiveByteSource {
+  readonly size: number;
+  read(offset: number, length: number): Promise<Uint8Array>;
+}
 
 /** Where an in-flight job's bytes were written before the key was versioned. */
 const legacyArchiveSourceKey = (jobId: string): string =>
   `aviary.archive.import.source.${jobId}`;
 const MAX_RETAINED_JOBS = 12;
-const MAX_SOURCE_BYTES = 256 * 1024 * 1024;
 /** Base64 costs four characters per three bytes. */
 const BASE64_INFLATION = 4 / 3;
 
@@ -52,8 +62,11 @@ export interface ArchiveImportJob {
   createdAt: string;
   updatedAt: string;
   resumeOnBoot: boolean;
-  /** Base64 keeps the source portable across IndexedDB, GM storage, and localStorage fallbacks. */
+  /** Empty for new jobs. Older jobs may still carry their legacy inline base64 source. */
   source: string;
+  /** Number of fixed-size source chunks for jobs staged by the current build. */
+  sourceChunks?: number;
+  sourceChunkBytes?: number;
   error?: string;
 }
 
@@ -108,21 +121,52 @@ export class ArchiveImportJobStore {
   }
 
   async start(filename: string, source: Uint8Array): Promise<ArchiveImportJob> {
+    return this.#startWithReader(filename, source.byteLength, async (offset, length) =>
+      source.slice(offset, offset + length)
+    );
+  }
+
+  /** Stage a File/Blob without ever materialising the complete input in the page. */
+  async startBlob(filename: string, source: Blob): Promise<ArchiveImportJob> {
+    if (!source || typeof source.size !== "number") {
+      throw new Error("Archive source is not readable.");
+    }
+    if (typeof source.slice !== "function" || typeof source.arrayBuffer !== "function") {
+      throw new Error("Archive source does not support chunked reads.");
+    }
+    return this.#startWithReader(filename, source.size, async (offset, length) => {
+      const chunk = source.slice(offset, offset + length);
+      return new Uint8Array(await chunk.arrayBuffer());
+    });
+  }
+
+  async #startWithReader(
+    filename: string,
+    sourceBytes: number,
+    read: (offset: number, length: number) => Promise<Uint8Array>
+  ): Promise<ArchiveImportJob> {
     await this.load();
     const ceiling = this.#sourceCeiling();
-    if (source.byteLength > ceiling) {
+    if (!Number.isInteger(sourceBytes) || sourceBytes < 0) {
+      throw new Error("Archive source has an invalid byte length.");
+    }
+    if (sourceBytes > MAX_SOURCE_BYTES) {
+      throw new Error("Archive exceeds the 256 MiB input limit before staging.");
+    }
+    if (sourceBytes > ceiling) {
       // Named in the message. Refusing a file with a limit the reader cannot reconcile against
       // what the panel promised is only marginally better than the quota error it replaces.
       throw new Error(
-        `Archive is ${formatMiB(source.byteLength)}, over the ${formatMiB(ceiling)} this browser ` +
+        `Archive is ${formatMiB(sourceBytes)}, over the ${formatMiB(ceiling)} this browser ` +
           `profile can store.`
       );
     }
+    const chunkCount = Math.ceil(sourceBytes / ARCHIVE_SOURCE_CHUNK_BYTES);
     const now = new Date().toISOString();
     const job: ArchiveImportJob = {
       jobId: `archive-${Date.now()}-${++this.#state.sequence}`,
       filename: filename || "archive.zip",
-      sourceBytes: source.byteLength,
+      sourceBytes,
       status: "queued",
       filesParsed: 0,
       recordCount: 0,
@@ -131,12 +175,35 @@ export class ArchiveImportJobStore {
       createdAt: now,
       updatedAt: now,
       resumeOnBoot: true,
-      source: ""
+      source: "",
+      sourceChunks: chunkCount,
+      sourceChunkBytes: ARCHIVE_SOURCE_CHUNK_BYTES
     };
-    this.#state.jobs[job.jobId] = job;
-    await this.#storage.set(archiveSourceKey(job.jobId), encodeBase64(source));
-    await this.#trim();
-    await this.#persist();
+    const manifest: ArchiveSourceManifest = {
+      version: 1,
+      encoding: "base64-chunks",
+      sourceBytes,
+      chunkBytes: ARCHIVE_SOURCE_CHUNK_BYTES,
+      chunkCount
+    };
+    try {
+      await this.#storage.set(archiveSourceKey(job.jobId), manifest);
+      for (let index = 0; index < chunkCount; index += 1) {
+        const offset = index * ARCHIVE_SOURCE_CHUNK_BYTES;
+        const expected = Math.min(ARCHIVE_SOURCE_CHUNK_BYTES, sourceBytes - offset);
+        const chunk = await read(offset, expected);
+        if (chunk.byteLength !== expected || chunk.byteLength > ARCHIVE_SOURCE_CHUNK_BYTES) {
+          throw new Error("Archive source changed while it was being staged.");
+        }
+        await this.#storage.set(archiveSourceChunkKey(job.jobId, index), encodeBase64(chunk));
+      }
+      this.#state.jobs[job.jobId] = job;
+      await this.#trim();
+      await this.#persist();
+    } catch (error) {
+      await this.#releaseSource(job.jobId, chunkCount);
+      throw error;
+    }
     return cloneJob(job);
   }
 
@@ -157,21 +224,93 @@ export class ArchiveImportJobStore {
   }
 
   async source(jobId: string): Promise<Uint8Array | null> {
+    const reader = await this.sourceReader(jobId);
+    if (!reader) return null;
+    const bytes = new Uint8Array(reader.size);
+    for (let offset = 0; offset < reader.size; offset += ARCHIVE_SOURCE_CHUNK_BYTES) {
+      const length = Math.min(ARCHIVE_SOURCE_CHUNK_BYTES, reader.size - offset);
+      bytes.set(await reader.read(offset, length), offset);
+    }
+    return bytes;
+  }
+
+  /** Returns bounded random reads for the ZIP parser. New jobs never decode the whole source. */
+  async sourceReader(jobId: string): Promise<ArchiveByteSource | null> {
+    await this.load();
     const job = this.#state.jobs[jobId];
     if (!job) return null;
-    // Pre-split records carried the payload inline; read it from wherever it actually is.
-    // Pre-versioned jobs wrote to the unversioned key; a resumable import must survive the upgrade.
-    const encoded =
-      job.source ||
-      (await this.#storage.get<string>(archiveSourceKey(jobId), "")) ||
-      (await this.#storage.get<string>(legacyArchiveSourceKey(jobId), ""));
-    if (!encoded) return null;
+    if (job.source) {
+      try {
+        const bytes = decodeBase64(job.source);
+        return bytes.byteLength === job.sourceBytes ? byteSourceFromBytes(bytes) : null;
+      } catch {
+        return null;
+      }
+    }
+    const manifestValue = await this.#storage.get<unknown>(archiveSourceKey(jobId), null);
+    const manifest = normalizeManifest(manifestValue, job);
+    if (manifest) {
+      return {
+        size: manifest.sourceBytes,
+        read: async (offset, length) => this.#readChunkRange(jobId, manifest, offset, length)
+      };
+    }
+    // Pre-versioned jobs wrote one base64 value under the old key. Keep those imports resumable.
+    const legacyEncoded =
+      typeof manifestValue === "string"
+        ? manifestValue
+        : await this.#storage.get<string>(legacyArchiveSourceKey(jobId), "");
+    if (!legacyEncoded) return null;
     try {
-      const bytes = decodeBase64(encoded);
-      return bytes.byteLength === job.sourceBytes ? bytes : null;
+      const bytes = decodeBase64(legacyEncoded);
+      return bytes.byteLength === job.sourceBytes ? byteSourceFromBytes(bytes) : null;
     } catch {
       return null;
     }
+  }
+
+  async #readChunkRange(
+    jobId: string,
+    manifest: ArchiveSourceManifest,
+    offset: number,
+    length: number
+  ): Promise<Uint8Array> {
+    if (
+      !Number.isInteger(offset) ||
+      !Number.isInteger(length) ||
+      offset < 0 ||
+      length < 0 ||
+      length > ARCHIVE_SOURCE_CHUNK_BYTES ||
+      offset + length > manifest.sourceBytes
+    ) {
+      throw new Error("Archive source read is outside the staged byte range.");
+    }
+    const output = new Uint8Array(length);
+    let written = 0;
+    while (written < length) {
+      const absolute = offset + written;
+      const chunkIndex = Math.floor(absolute / manifest.chunkBytes);
+      const chunkOffset = absolute % manifest.chunkBytes;
+      const encoded = await this.#storage.get<string>(
+        archiveSourceChunkKey(jobId, chunkIndex),
+        ""
+      );
+      if (!encoded) throw new Error("The durable archive source is unavailable or corrupted.");
+      let chunk: Uint8Array;
+      try {
+        chunk = decodeBase64(encoded);
+      } catch {
+        throw new Error("The durable archive source is unavailable or corrupted.");
+      }
+      const expected = Math.min(manifest.chunkBytes, manifest.sourceBytes - chunkIndex * manifest.chunkBytes);
+      if (chunk.byteLength !== expected) {
+        throw new Error("The durable archive source is unavailable or corrupted.");
+      }
+      const copy = Math.min(chunk.byteLength - chunkOffset, length - written);
+      output.set(chunk.subarray(chunkOffset, chunkOffset + copy), written);
+      written += copy;
+    }
+    return output;
   }
 
   async markRunning(jobId: string): Promise<boolean> {
@@ -210,9 +349,10 @@ export class ArchiveImportJobStore {
       job.recordCount = nonNegative(update.recordCount, job.recordCount);
       job.warningCount = nonNegative(update.warningCount, job.warningCount);
       job.errorCount = nonNegative(update.errorCount, job.errorCount);
-      // Completed imports no longer need the original ZIP; dropping it prevents a successful
-      // 250 MiB import from pinning another 333 MiB base64 copy in local storage forever.
+      // Completed imports no longer need the original ZIP. Drop the manifest and all chunks.
       job.source = "";
+      delete job.sourceChunks;
+      delete job.sourceChunkBytes;
       delete job.error;
       return true;
     });
@@ -227,8 +367,14 @@ export class ArchiveImportJobStore {
    * `retry` replays from exactly this payload -- releasing on every terminal state would quietly
    * delete a shipped feature. Eviction below is what bounds the space instead.
    */
-  async #releaseSource(jobId: string): Promise<void> {
+  async #releaseSource(jobId: string, knownChunkCount = 0): Promise<void> {
     try {
+      const manifestValue = await this.#storage.get<unknown>(archiveSourceKey(jobId), null);
+      const manifest = normalizeManifest(manifestValue);
+      const chunkCount = Math.max(knownChunkCount, manifest?.chunkCount ?? 0);
+      for (let index = 0; index < chunkCount; index += 1) {
+        await this.#storage.remove(archiveSourceChunkKey(jobId, index));
+      }
       await this.#storage.remove(archiveSourceKey(jobId));
       await this.#storage.remove(legacyArchiveSourceKey(jobId));
     } catch {
@@ -270,7 +416,7 @@ export class ArchiveImportJobStore {
     await this.load();
     // The payload lives under its own key now, so availability is a storage question rather than a
     // field on the record. Ask before promising a retry that would immediately fail.
-    const available = (await this.source(jobId)) !== null;
+    const available = (await this.sourceReader(jobId)) !== null;
     return this.#action(jobId, (job) => {
       if (job.status !== "failed" && job.status !== "cancelled") return "Import is not failed or cancelled";
       if (!available) return "The original archive source is no longer available";
@@ -371,6 +517,10 @@ function normalizeJob(value: unknown, fallbackId: string): ArchiveImportJob | nu
     updatedAt: typeof raw.updatedAt === "string" ? raw.updatedAt : startedAt,
     resumeOnBoot: status === "running" || (status === "paused" && raw.resumeOnBoot === true),
     source: raw.source,
+    ...(typeof raw.sourceChunks === "number" ? { sourceChunks: nonNegative(raw.sourceChunks, 0) } : {}),
+    ...(typeof raw.sourceChunkBytes === "number"
+      ? { sourceChunkBytes: nonNegative(raw.sourceChunkBytes, ARCHIVE_SOURCE_CHUNK_BYTES) }
+      : {}),
     ...(typeof raw.error === "string" && raw.error.length > 0 ? { error: raw.error } : {})
   };
 }
@@ -411,4 +561,37 @@ function decodeBase64(value: string): Uint8Array {
     bytes[index] = binary.charCodeAt(index);
   }
   return bytes;
+}
+
+function normalizeManifest(value: unknown, job?: ArchiveImportJob): ArchiveSourceManifest | null {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+  const raw = value as Partial<ArchiveSourceManifest>;
+  const sourceBytes = nonNegative(raw.sourceBytes, job?.sourceBytes ?? 0);
+  const chunkBytes = nonNegative(raw.chunkBytes, job?.sourceChunkBytes ?? ARCHIVE_SOURCE_CHUNK_BYTES);
+  const chunkCount = nonNegative(raw.chunkCount, job?.sourceChunks ?? 0);
+  if (
+    raw.version !== 1 ||
+    raw.encoding !== "base64-chunks" ||
+    sourceBytes > MAX_SOURCE_BYTES ||
+    chunkBytes <= 0 ||
+    chunkBytes > ARCHIVE_SOURCE_CHUNK_BYTES ||
+    chunkCount !== Math.ceil(sourceBytes / chunkBytes)
+  ) {
+    return null;
+  }
+  return { version: 1, encoding: "base64-chunks", sourceBytes, chunkBytes, chunkCount };
+}
+
+function byteSourceFromBytes(bytes: Uint8Array): ArchiveByteSource {
+  return {
+    size: bytes.byteLength,
+    async read(offset, length) {
+      if (!Number.isInteger(offset) || !Number.isInteger(length) || offset < 0 || length < 0 || offset + length > bytes.byteLength) {
+        throw new Error("Archive source read is outside the staged byte range.");
+      }
+      return bytes.slice(offset, offset + length);
+    }
+  };
 }

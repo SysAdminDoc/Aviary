@@ -25675,6 +25675,8 @@ ${entry.ts}`;
   }
 
   // src/features/export/zip-reader.ts
+  var ZIP_SOURCE_READ_BYTES = 4 * 1024 * 1024;
+  var ZIP_MAX_ALLOCATOR_BYTES = 8 * 1024 * 1024;
   var LOCAL_HEADER = 67324752;
   var CENTRAL_HEADER = 33639248;
   var EOCD_SIGNATURE = 101010256;
@@ -25683,6 +25685,8 @@ ${entry.ts}`;
   var METHOD_DEFLATE2 = 8;
   var ZIP_LIMITS = {
     maxEntries: 4096,
+    maxCentralDirectoryBytes: 4 * 1024 * 1024,
+    maxEntryCompressedBytes: 25 * 1024 * 1024,
     maxEntryUncompressedBytes: 25 * 1024 * 1024,
     maxTotalUncompressedBytes: 100 * 1024 * 1024
   };
@@ -25699,29 +25703,71 @@ ${entry.ts}`;
       this.name = "ZipLimitError";
     }
   };
-  async function readZip(data) {
+  async function readZipSource(source, options = {}) {
+    if (!Number.isInteger(source.size) || source.size < 0) {
+      throw new ZipLimitError("ZIP source has an invalid byte length.");
+    }
+    const tailLength = Math.min(source.size, 65535 + 22);
+    const tail = await readSourceRange(source, source.size - tailLength, tailLength);
+    const tailView = new DataView(tail.buffer, tail.byteOffset, tail.byteLength);
+    const eocd = locateEOCD(tailView, tail.byteLength);
+    if (eocd === -1) return [];
+    const entryCount = tailView.getUint16(eocd + 10, true);
+    if (entryCount > ZIP_LIMITS.maxEntries) {
+      throw new ZipLimitError(`ZIP contains more than ${ZIP_LIMITS.maxEntries} entries.`);
+    }
+    const centralSize = tailView.getUint32(eocd + 12, true);
+    const centralOffset = tailView.getUint32(eocd + 16, true);
+    if (centralSize > ZIP_LIMITS.maxCentralDirectoryBytes) {
+      throw new ZipLimitError("ZIP central directory exceeds the 4 MiB parser allocation limit.");
+    }
+    if (centralOffset + centralSize > source.size) {
+      throw new ZipLimitError("ZIP central directory is outside the archive.");
+    }
+    const central = await readSourceRange(source, centralOffset, centralSize);
+    const centralView = new DataView(central.buffer, central.byteOffset, central.byteLength);
+    const entries = parseSourceEntries(centralView, central.byteLength, entryCount);
     const results = [];
     let totalUncompressed = 0;
-    for (const entry of parseEntries(data)) {
+    for (const entry of entries) {
+      if (options.shouldContinue && !await options.shouldContinue()) break;
+      if (entry.compressedSize > ZIP_LIMITS.maxEntryCompressedBytes) {
+        throw new ZipLimitError(
+          `ZIP entry "${entry.filename}" exceeds the ${ZIP_LIMITS.maxEntryCompressedBytes / (1024 * 1024)} MiB compressed limit.`
+        );
+      }
+      if (entry.uncompressedSize > ZIP_LIMITS.maxEntryUncompressedBytes) {
+        throw new ZipLimitError(
+          `ZIP entry exceeds the ${ZIP_LIMITS.maxEntryUncompressedBytes / (1024 * 1024)} MiB entry limit.`
+        );
+      }
+      if (totalUncompressed + entry.uncompressedSize > ZIP_LIMITS.maxTotalUncompressedBytes) {
+        throw new ZipLimitError("ZIP expands beyond the 100 MiB archive limit.");
+      }
+      const localHeader = await readSourceRange(source, entry.localOffset, 30);
+      const localView = new DataView(localHeader.buffer, localHeader.byteOffset, localHeader.byteLength);
+      if (localView.getUint32(0, true) !== LOCAL_HEADER) continue;
+      const localNameLength = localView.getUint16(26, true);
+      const localExtraLength = localView.getUint16(28, true);
+      const fileStart = entry.localOffset + 30 + localNameLength + localExtraLength;
+      if (fileStart < 0 || fileStart + entry.compressedSize > source.size) continue;
+      const compressed = await readSourceBlob(source, fileStart, entry.compressedSize);
       if (entry.method === METHOD_STORE2) {
-        totalUncompressed += entry.raw.length;
-        if (totalUncompressed > ZIP_LIMITS.maxTotalUncompressedBytes) {
-          throw new ZipLimitError("ZIP expands beyond the 100 MiB archive limit.");
-        }
-        results.push(finish(entry, entry.raw));
+        const data = await blobToBytes(compressed, entry.filename);
+        totalUncompressed += data.length;
+        results.push(finish({ ...entry, raw: data }, data));
         continue;
       }
       if (entry.method !== METHOD_DEFLATE2) {
         throw new UnsupportedZipMethodError(entry.method, entry.filename);
       }
-      const remaining = ZIP_LIMITS.maxTotalUncompressedBytes - totalUncompressed;
       const inflated = await inflateRaw(
-        entry.raw,
+        compressed,
         entry.filename,
-        Math.min(entry.uncompressedSize, remaining)
+        Math.min(entry.uncompressedSize, ZIP_LIMITS.maxTotalUncompressedBytes - totalUncompressed)
       );
       totalUncompressed += inflated.length;
-      results.push(finish(entry, inflated));
+      results.push(finish({ ...entry, raw: inflated }, inflated));
     }
     return results;
   }
@@ -25732,7 +25778,7 @@ ${entry.ts}`;
     if (!canInflate()) {
       throw new UnsupportedZipMethodError(METHOD_DEFLATE2, filename);
     }
-    const stream = new Blob([new Uint8Array(bytes)]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
+    const stream = new Blob([bytes instanceof Blob ? bytes : new Uint8Array(bytes)]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
     const reader = stream.getReader();
     const chunks = [];
     let total = 0;
@@ -25768,63 +25814,61 @@ ${entry.ts}`;
       crcOk: crc32(data) === entry.declaredCrc && data.length === entry.uncompressedSize
     };
   }
-  function parseEntries(data) {
-    const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
-    const eocd = locateEOCD(view, data.length);
-    if (eocd === -1) {
-      return [];
-    }
-    const entryCount = view.getUint16(eocd + 10, true);
-    if (entryCount > ZIP_LIMITS.maxEntries) {
-      throw new ZipLimitError(`ZIP contains more than ${ZIP_LIMITS.maxEntries} entries.`);
-    }
-    const centralOffset = view.getUint32(eocd + 16, true);
+  function parseSourceEntries(view, length, entryCount) {
     const results = [];
-    let cursor = centralOffset;
-    for (let i = 0; i < entryCount; i++) {
-      if (cursor + 46 > data.length || view.getUint32(cursor, true) !== CENTRAL_HEADER) {
-        break;
-      }
+    let cursor = 0;
+    for (let i = 0; i < entryCount; i += 1) {
+      if (cursor + 46 > length || view.getUint32(cursor, true) !== CENTRAL_HEADER) break;
       const entryStart = cursor;
       const method = view.getUint16(entryStart + 10, true);
       const declaredCrc = view.getUint32(entryStart + 16, true);
       const compressedSize = view.getUint32(entryStart + 20, true);
       const uncompressedSize = view.getUint32(entryStart + 24, true);
-      if (uncompressedSize > ZIP_LIMITS.maxEntryUncompressedBytes) {
-        throw new ZipLimitError(
-          `ZIP entry exceeds the ${ZIP_LIMITS.maxEntryUncompressedBytes / (1024 * 1024)} MiB entry limit.`
-        );
-      }
       const nameLength = view.getUint16(entryStart + 28, true);
       const extraLength = view.getUint16(entryStart + 30, true);
       const commentLength = view.getUint16(entryStart + 32, true);
       const localOffset = view.getUint32(entryStart + 42, true);
-      const filename = TEXT_DECODER.decode(
-        data.subarray(entryStart + 46, entryStart + 46 + nameLength)
-      );
-      cursor = entryStart + 46 + nameLength + extraLength + commentLength;
-      if (filename.endsWith("/")) {
-        continue;
-      }
-      if (localOffset + 30 > data.length || view.getUint32(localOffset, true) !== LOCAL_HEADER) {
-        continue;
-      }
-      const localNameLength = view.getUint16(localOffset + 26, true);
-      const localExtraLength = view.getUint16(localOffset + 28, true);
-      const fileStart = localOffset + 30 + localNameLength + localExtraLength;
-      const fileEnd = Math.min(fileStart + compressedSize, data.length);
-      results.push({
-        filename,
-        method,
-        uncompressedSize,
-        declaredCrc,
-        raw: data.subarray(fileStart, fileEnd)
-      });
+      const end = entryStart + 46 + nameLength + extraLength + commentLength;
+      if (end > length) break;
+      const filename = TEXT_DECODER.decode(view.buffer instanceof ArrayBuffer ? new Uint8Array(view.buffer, view.byteOffset + entryStart + 46, nameLength) : new Uint8Array(0));
+      cursor = end;
+      if (filename.endsWith("/")) continue;
+      results.push({ filename, method, compressedSize, uncompressedSize, declaredCrc, localOffset });
     }
     return results;
   }
+  async function readSourceRange(source, offset, length) {
+    if (length < 0 || offset < 0 || offset + length > source.size) {
+      throw new ZipLimitError("ZIP source range is outside the archive.");
+    }
+    if (length > ZIP_SOURCE_READ_BYTES) {
+      throw new ZipLimitError("ZIP parser requested a range larger than its 4 MiB read window.");
+    }
+    const bytes = await source.read(offset, length);
+    if (bytes.byteLength !== length) throw new ZipLimitError("ZIP source returned a short read.");
+    return bytes;
+  }
+  async function readSourceBlob(source, offset, length) {
+    const chunks = [];
+    let cursor = offset;
+    let remaining = length;
+    while (remaining > 0) {
+      const nextLength = Math.min(remaining, ZIP_SOURCE_READ_BYTES);
+      chunks.push(await readSourceRange(source, cursor, nextLength));
+      cursor += nextLength;
+      remaining -= nextLength;
+    }
+    return new Blob(chunks.map((chunk) => Uint8Array.from(chunk)));
+  }
+  async function blobToBytes(blob, filename) {
+    if (blob.size > ZIP_LIMITS.maxEntryUncompressedBytes) {
+      throw new ZipLimitError(`ZIP entry "${filename}" exceeds its size limit.`);
+    }
+    return new Uint8Array(await blob.arrayBuffer());
+  }
   function locateEOCD(view, length) {
     for (let i = length - 22; i >= Math.max(0, length - 65535 - 22); i--) {
+      if (i < 0 || i + 4 > length) continue;
       if (view.getUint32(i, true) === EOCD_SIGNATURE) {
         return i;
       }
@@ -26248,7 +26292,35 @@ a.av-link-clean {
   // src/features/library/archive-import.ts
   var TEXT_DECODER2 = new TextDecoder();
   var MAX_ARCHIVE_BYTES = 256 * 1024 * 1024;
-  async function importOfficialArchive(buffer, surface = "archive", localCorpus = []) {
+  async function importOfficialArchiveFromSource(source, surface = "archive", localCorpus = [], options = {}) {
+    if (source.size > MAX_ARCHIVE_BYTES) {
+      return archiveImportError("Archive exceeds the 256 MiB input limit.");
+    }
+    try {
+      return importArchiveEntries(
+        await readZipSource(source),
+        surface,
+        localCorpus,
+        options.shouldContinue
+      );
+    } catch (error) {
+      return archiveImportError(error.message);
+    }
+  }
+  function archiveImportError(message) {
+    return {
+      records: [],
+      collections: emptyArchiveCollections(),
+      warnings: [],
+      errors: [message],
+      filesParsed: [],
+      recognizedFiles: [],
+      skippedFiles: [],
+      malformedFiles: [],
+      repairs: emptyArchiveRepairSummary()
+    };
+  }
+  async function importArchiveEntries(entries, surface, localCorpus, shouldContinue) {
     const warnings = [];
     const errors = [];
     const filesParsed = [];
@@ -26259,17 +26331,6 @@ a.av-link-clean {
     const malformedFiles = [];
     const repairIndex = new ArchiveRepairIndex(localCorpus);
     let repairs = emptyArchiveRepairSummary();
-    if (buffer.byteLength > MAX_ARCHIVE_BYTES) {
-      errors.push("Archive exceeds the 256 MiB input limit.");
-      return { records, collections, warnings, errors, filesParsed, recognizedFiles, skippedFiles, malformedFiles, repairs };
-    }
-    let entries;
-    try {
-      entries = await readZip(buffer);
-    } catch (error) {
-      errors.push(error.message);
-      return { records, collections, warnings, errors, filesParsed, recognizedFiles, skippedFiles, malformedFiles, repairs };
-    }
     if (entries.length === 0) {
       errors.push(
         canInflate() ? "Archive contained no readable entries." : "This browser cannot decompress archives (DecompressionStream is unavailable)."
@@ -26277,6 +26338,7 @@ a.av-link-clean {
       return { records, collections, warnings, errors, filesParsed, recognizedFiles, skippedFiles, malformedFiles, repairs };
     }
     for (const entry of entries) {
+      if (shouldContinue && !await shouldContinue()) break;
       const lower = entry.filename.toLowerCase();
       const collection = classifyArchiveFile(lower);
       if (!collection) {
@@ -26617,9 +26679,12 @@ a.av-link-clean {
   // src/features/library/archive-import-jobs.ts
   var ARCHIVE_IMPORT_JOBS_KEY = "aviary.archive.imports.v1";
   var archiveSourceKey = (jobId) => `aviary.archive.import.source.${jobId}.v1`;
+  var archiveSourceChunkKey = (jobId, index) => `aviary.archive.import.source.${jobId}.chunk.${index}.v1`;
+  var ARCHIVE_SOURCE_CHUNK_BYTES = 3 * 1024 * 1024;
+  var ARCHIVE_SOURCE_MAX_CHUNK_BYTES = 4 * 1024 * 1024;
+  var MAX_SOURCE_BYTES = 256 * 1024 * 1024;
   var legacyArchiveSourceKey = (jobId) => `aviary.archive.import.source.${jobId}`;
   var MAX_RETAINED_JOBS = 12;
-  var MAX_SOURCE_BYTES = 256 * 1024 * 1024;
   var BASE64_INFLATION = 4 / 3;
   function formatMiB2(bytes) {
     return `${Math.max(1, Math.round(bytes / (1024 * 1024)))} MiB`;
@@ -26659,18 +26724,45 @@ a.av-link-clean {
       return job ? cloneJob3(job) : void 0;
     }
     async start(filename, source) {
+      return this.#startWithReader(
+        filename,
+        source.byteLength,
+        async (offset, length) => source.slice(offset, offset + length)
+      );
+    }
+    /** Stage a File/Blob without ever materialising the complete input in the page. */
+    async startBlob(filename, source) {
+      if (!source || typeof source.size !== "number") {
+        throw new Error("Archive source is not readable.");
+      }
+      if (typeof source.slice !== "function" || typeof source.arrayBuffer !== "function") {
+        throw new Error("Archive source does not support chunked reads.");
+      }
+      return this.#startWithReader(filename, source.size, async (offset, length) => {
+        const chunk = source.slice(offset, offset + length);
+        return new Uint8Array(await chunk.arrayBuffer());
+      });
+    }
+    async #startWithReader(filename, sourceBytes, read) {
       await this.load();
       const ceiling = this.#sourceCeiling();
-      if (source.byteLength > ceiling) {
+      if (!Number.isInteger(sourceBytes) || sourceBytes < 0) {
+        throw new Error("Archive source has an invalid byte length.");
+      }
+      if (sourceBytes > MAX_SOURCE_BYTES) {
+        throw new Error("Archive exceeds the 256 MiB input limit before staging.");
+      }
+      if (sourceBytes > ceiling) {
         throw new Error(
-          `Archive is ${formatMiB2(source.byteLength)}, over the ${formatMiB2(ceiling)} this browser profile can store.`
+          `Archive is ${formatMiB2(sourceBytes)}, over the ${formatMiB2(ceiling)} this browser profile can store.`
         );
       }
+      const chunkCount = Math.ceil(sourceBytes / ARCHIVE_SOURCE_CHUNK_BYTES);
       const now3 = (/* @__PURE__ */ new Date()).toISOString();
       const job = {
         jobId: `archive-${Date.now()}-${++this.#state.sequence}`,
         filename: filename || "archive.zip",
-        sourceBytes: source.byteLength,
+        sourceBytes,
         status: "queued",
         filesParsed: 0,
         recordCount: 0,
@@ -26679,12 +26771,35 @@ a.av-link-clean {
         createdAt: now3,
         updatedAt: now3,
         resumeOnBoot: true,
-        source: ""
+        source: "",
+        sourceChunks: chunkCount,
+        sourceChunkBytes: ARCHIVE_SOURCE_CHUNK_BYTES
       };
-      this.#state.jobs[job.jobId] = job;
-      await this.#storage.set(archiveSourceKey(job.jobId), encodeBase642(source));
-      await this.#trim();
-      await this.#persist();
+      const manifest = {
+        version: 1,
+        encoding: "base64-chunks",
+        sourceBytes,
+        chunkBytes: ARCHIVE_SOURCE_CHUNK_BYTES,
+        chunkCount
+      };
+      try {
+        await this.#storage.set(archiveSourceKey(job.jobId), manifest);
+        for (let index = 0; index < chunkCount; index += 1) {
+          const offset = index * ARCHIVE_SOURCE_CHUNK_BYTES;
+          const expected = Math.min(ARCHIVE_SOURCE_CHUNK_BYTES, sourceBytes - offset);
+          const chunk = await read(offset, expected);
+          if (chunk.byteLength !== expected || chunk.byteLength > ARCHIVE_SOURCE_CHUNK_BYTES) {
+            throw new Error("Archive source changed while it was being staged.");
+          }
+          await this.#storage.set(archiveSourceChunkKey(job.jobId, index), encodeBase642(chunk));
+        }
+        this.#state.jobs[job.jobId] = job;
+        await this.#trim();
+        await this.#persist();
+      } catch (error) {
+        await this.#releaseSource(job.jobId, chunkCount);
+        throw error;
+      }
       return cloneJob3(job);
     }
     /**
@@ -26703,16 +26818,75 @@ a.av-link-clean {
       return Math.min(MAX_SOURCE_BYTES, Math.floor(quota * 0.6 / BASE64_INFLATION));
     }
     async source(jobId) {
+      const reader = await this.sourceReader(jobId);
+      if (!reader) return null;
+      const bytes = new Uint8Array(reader.size);
+      for (let offset = 0; offset < reader.size; offset += ARCHIVE_SOURCE_CHUNK_BYTES) {
+        const length = Math.min(ARCHIVE_SOURCE_CHUNK_BYTES, reader.size - offset);
+        bytes.set(await reader.read(offset, length), offset);
+      }
+      return bytes;
+    }
+    /** Returns bounded random reads for the ZIP parser. New jobs never decode the whole source. */
+    async sourceReader(jobId) {
+      await this.load();
       const job = this.#state.jobs[jobId];
       if (!job) return null;
-      const encoded = job.source || await this.#storage.get(archiveSourceKey(jobId), "") || await this.#storage.get(legacyArchiveSourceKey(jobId), "");
-      if (!encoded) return null;
+      if (job.source) {
+        try {
+          const bytes = decodeBase642(job.source);
+          return bytes.byteLength === job.sourceBytes ? byteSourceFromBytes(bytes) : null;
+        } catch {
+          return null;
+        }
+      }
+      const manifestValue = await this.#storage.get(archiveSourceKey(jobId), null);
+      const manifest = normalizeManifest(manifestValue, job);
+      if (manifest) {
+        return {
+          size: manifest.sourceBytes,
+          read: async (offset, length) => this.#readChunkRange(jobId, manifest, offset, length)
+        };
+      }
+      const legacyEncoded = typeof manifestValue === "string" ? manifestValue : await this.#storage.get(legacyArchiveSourceKey(jobId), "");
+      if (!legacyEncoded) return null;
       try {
-        const bytes = decodeBase642(encoded);
-        return bytes.byteLength === job.sourceBytes ? bytes : null;
+        const bytes = decodeBase642(legacyEncoded);
+        return bytes.byteLength === job.sourceBytes ? byteSourceFromBytes(bytes) : null;
       } catch {
         return null;
       }
+    }
+    async #readChunkRange(jobId, manifest, offset, length) {
+      if (!Number.isInteger(offset) || !Number.isInteger(length) || offset < 0 || length < 0 || length > ARCHIVE_SOURCE_CHUNK_BYTES || offset + length > manifest.sourceBytes) {
+        throw new Error("Archive source read is outside the staged byte range.");
+      }
+      const output = new Uint8Array(length);
+      let written = 0;
+      while (written < length) {
+        const absolute = offset + written;
+        const chunkIndex = Math.floor(absolute / manifest.chunkBytes);
+        const chunkOffset = absolute % manifest.chunkBytes;
+        const encoded = await this.#storage.get(
+          archiveSourceChunkKey(jobId, chunkIndex),
+          ""
+        );
+        if (!encoded) throw new Error("The durable archive source is unavailable or corrupted.");
+        let chunk;
+        try {
+          chunk = decodeBase642(encoded);
+        } catch {
+          throw new Error("The durable archive source is unavailable or corrupted.");
+        }
+        const expected = Math.min(manifest.chunkBytes, manifest.sourceBytes - chunkIndex * manifest.chunkBytes);
+        if (chunk.byteLength !== expected) {
+          throw new Error("The durable archive source is unavailable or corrupted.");
+        }
+        const copy2 = Math.min(chunk.byteLength - chunkOffset, length - written);
+        output.set(chunk.subarray(chunkOffset, chunkOffset + copy2), written);
+        written += copy2;
+      }
+      return output;
     }
     async markRunning(jobId) {
       return this.#set(jobId, (job) => {
@@ -26743,6 +26917,8 @@ a.av-link-clean {
         job.warningCount = nonNegative(update.warningCount, job.warningCount);
         job.errorCount = nonNegative(update.errorCount, job.errorCount);
         job.source = "";
+        delete job.sourceChunks;
+        delete job.sourceChunkBytes;
         delete job.error;
         return true;
       });
@@ -26756,8 +26932,14 @@ a.av-link-clean {
      * `retry` replays from exactly this payload -- releasing on every terminal state would quietly
      * delete a shipped feature. Eviction below is what bounds the space instead.
      */
-    async #releaseSource(jobId) {
+    async #releaseSource(jobId, knownChunkCount = 0) {
       try {
+        const manifestValue = await this.#storage.get(archiveSourceKey(jobId), null);
+        const manifest = normalizeManifest(manifestValue);
+        const chunkCount = Math.max(knownChunkCount, manifest?.chunkCount ?? 0);
+        for (let index = 0; index < chunkCount; index += 1) {
+          await this.#storage.remove(archiveSourceChunkKey(jobId, index));
+        }
         await this.#storage.remove(archiveSourceKey(jobId));
         await this.#storage.remove(legacyArchiveSourceKey(jobId));
       } catch {
@@ -26792,7 +26974,7 @@ a.av-link-clean {
     }
     async retry(jobId) {
       await this.load();
-      const available2 = await this.source(jobId) !== null;
+      const available2 = await this.sourceReader(jobId) !== null;
       return this.#action(jobId, (job) => {
         if (job.status !== "failed" && job.status !== "cancelled") return "Import is not failed or cancelled";
         if (!available2) return "The original archive source is no longer available";
@@ -26882,6 +27064,8 @@ a.av-link-clean {
       updatedAt: typeof raw.updatedAt === "string" ? raw.updatedAt : startedAt,
       resumeOnBoot: status === "running" || status === "paused" && raw.resumeOnBoot === true,
       source: raw.source,
+      ...typeof raw.sourceChunks === "number" ? { sourceChunks: nonNegative(raw.sourceChunks, 0) } : {},
+      ...typeof raw.sourceChunkBytes === "number" ? { sourceChunkBytes: nonNegative(raw.sourceChunkBytes, ARCHIVE_SOURCE_CHUNK_BYTES) } : {},
       ...typeof raw.error === "string" && raw.error.length > 0 ? { error: raw.error } : {}
     };
   }
@@ -26915,6 +27099,30 @@ a.av-link-clean {
       bytes[index] = binary.charCodeAt(index);
     }
     return bytes;
+  }
+  function normalizeManifest(value, job) {
+    if (!value || typeof value !== "object") {
+      return null;
+    }
+    const raw = value;
+    const sourceBytes = nonNegative(raw.sourceBytes, job?.sourceBytes ?? 0);
+    const chunkBytes = nonNegative(raw.chunkBytes, job?.sourceChunkBytes ?? ARCHIVE_SOURCE_CHUNK_BYTES);
+    const chunkCount = nonNegative(raw.chunkCount, job?.sourceChunks ?? 0);
+    if (raw.version !== 1 || raw.encoding !== "base64-chunks" || sourceBytes > MAX_SOURCE_BYTES || chunkBytes <= 0 || chunkBytes > ARCHIVE_SOURCE_CHUNK_BYTES || chunkCount !== Math.ceil(sourceBytes / chunkBytes)) {
+      return null;
+    }
+    return { version: 1, encoding: "base64-chunks", sourceBytes, chunkBytes, chunkCount };
+  }
+  function byteSourceFromBytes(bytes) {
+    return {
+      size: bytes.byteLength,
+      async read(offset, length) {
+        if (!Number.isInteger(offset) || !Number.isInteger(length) || offset < 0 || length < 0 || offset + length > bytes.byteLength) {
+          throw new Error("Archive source read is outside the staged byte range.");
+        }
+        return bytes.slice(offset, offset + length);
+      }
+    };
   }
 
   // src/features/library/archive-library.ts
@@ -32590,10 +32798,9 @@ ${COLOR_CSS}`;
           if (typeof file.size === "number" && file.size > MAX_ARCHIVE_BYTES) {
             throw new Error("Archive exceeds the 256 MiB input limit.");
           }
-          const buffer = new Uint8Array(await file.arrayBuffer());
           const jobs = archiveImportJobs ?? new ArchiveImportJobStore(ctx.storage);
           archiveImportJobs = jobs;
-          const job = await jobs.start(file.name, buffer);
+          const job = await jobs.startBlob(file.name, file);
           return processArchiveImport(ctx, jobs, job.jobId);
         },
         getArchiveImportStatus() {
@@ -33050,7 +33257,7 @@ ${COLOR_CSS}`;
     }
   };
   async function processArchiveImport(ctx, jobs, jobId) {
-    const source = await jobs.source(jobId);
+    const source = await jobs.sourceReader(jobId);
     if (!source) {
       const message = "The durable archive source is unavailable or corrupted.";
       await jobs.fail(jobId, message);
@@ -33069,10 +33276,16 @@ ${COLOR_CSS}`;
     }
     await jobs.markRunning(jobId);
     try {
-      const result = await importOfficialArchive(
+      const result = await importOfficialArchiveFromSource(
         source,
         "archive",
-        collectAllRecords(getCheckpointStore())
+        collectAllRecords(getCheckpointStore()),
+        {
+          shouldContinue: () => {
+            const current = jobs.get(jobId);
+            return current?.status !== "cancelled" && current?.status !== "paused";
+          }
+        }
       );
       const state2 = jobs.get(jobId);
       if (state2?.status === "cancelled" || state2?.status === "paused") {
