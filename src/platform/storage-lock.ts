@@ -5,6 +5,10 @@ import {
   withStorageFenceContext,
   type StorageLockFence
 } from "./storage-fence.ts";
+import {
+  sendStorageLockRegister,
+  STORAGE_LOCK_REGISTER_MESSAGE
+} from "./storage-lock-register.ts";
 
 /**
  * Coordination for the stores two X tabs share.
@@ -42,8 +46,8 @@ interface StorageGateRequest {
 interface SharedLockRegisterStore {
   kind: "extension" | "userscript";
   entries(prefix: string): Promise<Array<[string, unknown]>>;
-  write(key: string, value: SharedLockContender): Promise<void>;
-  remove(key: string): Promise<void>;
+  write(prefix: string, key: string, value: SharedLockContender): Promise<void>;
+  remove(prefix: string, key: string): Promise<void>;
 }
 
 interface SharedLockContender {
@@ -255,7 +259,7 @@ async function runUnderRegisterLock<T>(
     mode,
     expiresAt: Date.now() + SHARED_LOCK_LEASE_MS
   };
-  await store.write(key, contender);
+  await store.write(prefix, key, contender);
 
   try {
     const initial = await readLockContenders(store, prefix, owner);
@@ -265,7 +269,7 @@ async function runUnderRegisterLock<T>(
       ticket: Math.max(0, ...initial.map((entry) => entry.ticket)) + 1,
       expiresAt: Date.now() + SHARED_LOCK_LEASE_MS
     };
-    await store.write(key, contender);
+    await store.write(prefix, key, contender);
 
     while (!(await lockCanEnter(store, prefix, contender))) {
       await waitForLockPoll();
@@ -332,7 +336,7 @@ async function runUnderRegisterLock<T>(
       }
     }
   } finally {
-    await store.remove(key);
+    await store.remove(prefix, key);
   }
 }
 
@@ -357,9 +361,9 @@ async function readLockContenders(
 ): Promise<SharedLockContender[]> {
   const now = Date.now();
   const contenders: SharedLockContender[] = [];
-  for (const [key, value] of await store.entries(`${prefix}.`)) {
+  for (const [key, value] of await store.entries(prefix)) {
     if (!isSharedLockContender(value) || value.expiresAt <= now) {
-      await store.remove(key);
+      await store.remove(prefix, key);
       continue;
     }
     if (value.owner !== owner) contenders.push(value);
@@ -374,7 +378,7 @@ async function renewLockContender(
 ): Promise<SharedLockContender> {
   if (contender.expiresAt - Date.now() > SHARED_LOCK_RENEW_MS * 2) return contender;
   const renewed = { ...contender, expiresAt: Date.now() + SHARED_LOCK_LEASE_MS };
-  await store.write(key, renewed);
+  await store.write(prefixFromRegisterKey(key), key, renewed);
   return renewed;
 }
 
@@ -412,26 +416,40 @@ function waitForLockPoll(): Promise<void> {
 }
 
 function sharedLockRegisterStore(): SharedLockRegisterStore | undefined {
-  const extensionStorage = globalThis.chrome?.runtime?.id
-    ? globalThis.chrome.storage?.local
+  const runtime = globalThis.chrome?.runtime;
+  const extensionStorage = runtime?.id && typeof runtime.getManifest === "function"
+    ? runtime.sendMessage
     : undefined;
-  if (
-    extensionStorage &&
-    typeof extensionStorage.get === "function" &&
-    typeof extensionStorage.set === "function" &&
-    typeof extensionStorage.remove === "function"
-  ) {
+  if (typeof extensionStorage === "function") {
     return {
       kind: "extension",
       async entries(prefix) {
-        const values = await extensionStorage.get(null);
-        return Object.entries(values).filter(([key]) => key.startsWith(prefix));
+        const response = await sendStorageLockRegister({
+          type: STORAGE_LOCK_REGISTER_MESSAGE,
+          version: 1,
+          operation: "entries",
+          prefix
+        });
+        return response.entries ?? [];
       },
-      async write(key, value) {
-        await extensionStorage.set({ [key]: value });
+      async write(prefix, key, value) {
+        await sendStorageLockRegister({
+          type: STORAGE_LOCK_REGISTER_MESSAGE,
+          version: 1,
+          operation: "write",
+          prefix,
+          key,
+          value
+        });
       },
-      async remove(key) {
-        await extensionStorage.remove(key);
+      async remove(prefix, key) {
+        await sendStorageLockRegister({
+          type: STORAGE_LOCK_REGISTER_MESSAGE,
+          version: 1,
+          operation: "remove",
+          prefix,
+          key
+        });
       }
     };
   }
@@ -445,21 +463,105 @@ function sharedLockRegisterStore(): SharedLockRegisterStore | undefined {
     return {
       kind: "userscript",
       async entries(prefix) {
-        const keys = (await globalThis.GM_listValues!()).filter((key) => key.startsWith(prefix));
-        return Promise.all(keys.map(async (key) => [
-          key,
-          await globalThis.GM_getValue!(key, undefined)
-        ] as [string, unknown]));
+        const raw = await ensureUserscriptRoster(prefix);
+        return readUserscriptRoster(prefix, raw);
       },
-      async write(key, value) {
-        await globalThis.GM_setValue!(key, value);
+      async write(prefix, key, value) {
+        await updateUserscriptRoster(prefix, key, value);
       },
-      async remove(key) {
-        await globalThis.GM_deleteValue!(key);
+      async remove(prefix, key) {
+        await updateUserscriptRoster(prefix, key, undefined, true);
       }
     };
   }
   return undefined;
+}
+
+function prefixFromRegisterKey(key: string): string {
+  const separator = key.lastIndexOf(".");
+  return separator > 0 ? key.slice(0, separator) : key;
+}
+
+const USERSCRIPT_ROSTER_VERSION = 1;
+const migratedUserscriptRosterPrefixes = new Set<string>();
+
+function lockRosterKey(prefix: string): string {
+  return `${SHARED_LOCK_PREFIX}.roster.${encodeURIComponent(prefix)}`;
+}
+
+function readUserscriptRoster(prefix: string, raw: unknown): Array<[string, unknown]> {
+  if (!raw || typeof raw !== "object") return [];
+  const value = raw as { version?: unknown; prefix?: unknown; entries?: unknown };
+  if (value.version !== USERSCRIPT_ROSTER_VERSION || value.prefix !== prefix || !Array.isArray(value.entries)) {
+    return [];
+  }
+  return value.entries.filter(
+    (entry): entry is [string, unknown] =>
+      Array.isArray(entry) &&
+      entry.length === 2 &&
+      typeof entry[0] === "string" &&
+      entry[0].startsWith(`${prefix}.`)
+  );
+}
+
+async function migrateUserscriptRoster(prefix: string): Promise<void> {
+  if (typeof globalThis.GM_listValues !== "function") return;
+  const keys = (await globalThis.GM_listValues()).filter((key) => key.startsWith(`${prefix}.`));
+  const entries = await Promise.all(keys.map(async (key) => [
+    key,
+    await globalThis.GM_getValue!(key, undefined)
+  ] as [string, unknown]));
+  await globalThis.GM_setValue!(lockRosterKey(prefix), {
+    version: USERSCRIPT_ROSTER_VERSION,
+    prefix,
+    entries
+  });
+  migratedUserscriptRosterPrefixes.add(prefix);
+}
+
+async function ensureUserscriptRoster(prefix: string): Promise<unknown> {
+  const key = lockRosterKey(prefix);
+  const current = await globalThis.GM_getValue!(key, undefined);
+  if (current !== undefined) return current;
+  if (migratedUserscriptRosterPrefixes.has(prefix)) return undefined;
+  await migrateUserscriptRoster(prefix);
+  return globalThis.GM_getValue!(key, undefined);
+}
+
+async function updateUserscriptRoster(
+  prefix: string,
+  key: string,
+  value: unknown,
+  remove = false
+): Promise<void> {
+  const rosterKey = lockRosterKey(prefix);
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const raw = await ensureUserscriptRoster(prefix);
+    const entries = new Map(readUserscriptRoster(prefix, raw));
+    if (remove) entries.delete(key);
+    else entries.set(key, value);
+    if (entries.size === 0) {
+      await globalThis.GM_deleteValue!(rosterKey);
+      migratedUserscriptRosterPrefixes.add(prefix);
+      return;
+    }
+    await globalThis.GM_setValue!(rosterKey, {
+      version: USERSCRIPT_ROSTER_VERSION,
+      prefix,
+      entries: [...entries.entries()]
+    });
+    const confirmed = new Map(readUserscriptRoster(prefix, await globalThis.GM_getValue!(rosterKey, undefined)));
+    if (remove ? !confirmed.has(key) : valuesEqual(confirmed.get(key), value)) return;
+  }
+  throw new Error("The userscript lock roster did not settle");
+}
+
+function valuesEqual(left: unknown, right: unknown): boolean {
+  try {
+    return JSON.stringify(left) === JSON.stringify(right);
+  } catch {
+    return false;
+  }
 }
 
 /**

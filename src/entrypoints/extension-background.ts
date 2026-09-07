@@ -36,6 +36,10 @@ import {
   ExtensionStorageFenceAuthority,
   isExtensionStorageFenceRequest
 } from "../extension/storage-fence.ts";
+import {
+  isStorageLockRegisterRequest,
+  StorageLockRegisterAuthority
+} from "../platform/storage-lock-register.ts";
 
 const runtime = globalThis.chrome?.runtime;
 const extensionApi = globalThis.chrome as unknown as ExtensionAdRuleApi | undefined;
@@ -53,6 +57,7 @@ const scripting = (globalThis.chrome as typeof globalThis.chrome & {
 // protocol above, so their host/extension documents never open a second storage authority.
 const durableStorageBackend = createIndexedDbStorageBackend();
 const storageFenceAuthority = new ExtensionStorageFenceAuthority();
+const storageLockRegisterAuthority = new StorageLockRegisterAuthority();
 const DOWNLOAD_TRACKING_KEY = "aviary.downloadTracking.v2";
 const DOWNLOAD_TERMINAL_KEY = "aviary.downloadTerminal.v1";
 /** Bounded: every entry is one explicit user download, and each is cleared at its terminal state. */
@@ -210,6 +215,13 @@ globalThis.chrome?.downloads?.onChanged?.addListener((delta) => {
 });
 
 runtime?.onMessage?.addListener((message, sender, sendResponse) => {
+  if (isStorageLockRegisterRequest(message)) {
+    storageLockRegisterAuthority.handle(message).then(
+      (response) => sendResponse(response),
+      (error: unknown) => sendResponse({ ok: false, error: errorMessage(error) })
+    );
+    return true;
+  }
   if (isExtensionStorageFenceRequest(message)) {
     storageFenceAuthority.handle(message).then(
       (response) => sendResponse(response),

@@ -12717,7 +12717,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
   }
   function hasExtensionFenceTransport() {
     return Boolean(
-      globalThis.chrome?.runtime?.id && typeof globalThis.chrome.runtime.sendMessage === "function"
+      globalThis.chrome?.runtime?.id && typeof globalThis.chrome.runtime.getManifest === "function" && typeof globalThis.chrome.runtime.sendMessage === "function"
     );
   }
   async function sendStorageFenceControl(operation, fence) {
@@ -12794,6 +12794,43 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
   }
   function isRecord3(value) {
     return Boolean(value && typeof value === "object" && !Array.isArray(value));
+  }
+
+  // src/platform/storage-lock-register.ts
+  var STORAGE_LOCK_REGISTER_MESSAGE = "AVIARY_STORAGE_LOCK_REGISTER";
+  async function sendStorageLockRegister(request) {
+    const runtime = globalThis.chrome?.runtime;
+    if (typeof runtime?.sendMessage !== "function") {
+      throw new Error("The extension lock register authority is unavailable.");
+    }
+    const response = await new Promise((resolve, reject) => {
+      let settled = false;
+      const finish2 = (value, error) => {
+        if (settled) return;
+        settled = true;
+        if (error) reject(error);
+        else resolve(value);
+      };
+      try {
+        const pending = runtime.sendMessage(request, (value) => {
+          const error = runtime.lastError?.message;
+          finish2(value, error ? new Error(`Storage lock register message failed: ${error}`) : void 0);
+        });
+        if (pending && typeof pending.then === "function") {
+          pending.then(
+            (value) => finish2(value),
+            (error) => finish2(void 0, error)
+          );
+        }
+      } catch (error) {
+        finish2(void 0, error);
+      }
+    });
+    if (!response || typeof response !== "object" || response.ok !== true) {
+      const message = response && typeof response === "object" && typeof response.error === "string" ? response.error : "The extension lock register rejected the request.";
+      throw new Error(message);
+    }
+    return response;
   }
 
   // src/platform/storage-lock.ts
@@ -12927,7 +12964,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       mode,
       expiresAt: Date.now() + SHARED_LOCK_LEASE_MS
     };
-    await store6.write(key, contender);
+    await store6.write(prefix, key, contender);
     try {
       const initial = await readLockContenders(store6, prefix, owner);
       contender = {
@@ -12936,7 +12973,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
         ticket: Math.max(0, ...initial.map((entry) => entry.ticket)) + 1,
         expiresAt: Date.now() + SHARED_LOCK_LEASE_MS
       };
-      await store6.write(key, contender);
+      await store6.write(prefix, key, contender);
       while (!await lockCanEnter(store6, prefix, contender)) {
         await waitForLockPoll();
         contender = await renewLockContender(store6, key, contender);
@@ -12991,7 +13028,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
         }
       }
     } finally {
-      await store6.remove(key);
+      await store6.remove(prefix, key);
     }
   }
   async function lockCanEnter(store6, prefix, contender) {
@@ -13006,9 +13043,9 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
   async function readLockContenders(store6, prefix, owner) {
     const now4 = Date.now();
     const contenders = [];
-    for (const [key, value] of await store6.entries(`${prefix}.`)) {
+    for (const [key, value] of await store6.entries(prefix)) {
       if (!isSharedLockContender(value) || value.expiresAt <= now4) {
-        await store6.remove(key);
+        await store6.remove(prefix, key);
         continue;
       }
       if (value.owner !== owner) contenders.push(value);
@@ -13018,7 +13055,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
   async function renewLockContender(store6, key, contender) {
     if (contender.expiresAt - Date.now() > SHARED_LOCK_RENEW_MS * 2) return contender;
     const renewed = { ...contender, expiresAt: Date.now() + SHARED_LOCK_LEASE_MS };
-    await store6.write(key, renewed);
+    await store6.write(prefixFromRegisterKey(key), key, renewed);
     return renewed;
   }
   function compareLockContenders(left, right) {
@@ -13039,19 +13076,38 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     });
   }
   function sharedLockRegisterStore() {
-    const extensionStorage = globalThis.chrome?.runtime?.id ? globalThis.chrome.storage?.local : void 0;
-    if (extensionStorage && typeof extensionStorage.get === "function" && typeof extensionStorage.set === "function" && typeof extensionStorage.remove === "function") {
+    const runtime = globalThis.chrome?.runtime;
+    const extensionStorage = runtime?.id && typeof runtime.getManifest === "function" ? runtime.sendMessage : void 0;
+    if (typeof extensionStorage === "function") {
       return {
         kind: "extension",
         async entries(prefix) {
-          const values = await extensionStorage.get(null);
-          return Object.entries(values).filter(([key]) => key.startsWith(prefix));
+          const response = await sendStorageLockRegister({
+            type: STORAGE_LOCK_REGISTER_MESSAGE,
+            version: 1,
+            operation: "entries",
+            prefix
+          });
+          return response.entries ?? [];
         },
-        async write(key, value) {
-          await extensionStorage.set({ [key]: value });
+        async write(prefix, key, value) {
+          await sendStorageLockRegister({
+            type: STORAGE_LOCK_REGISTER_MESSAGE,
+            version: 1,
+            operation: "write",
+            prefix,
+            key,
+            value
+          });
         },
-        async remove(key) {
-          await extensionStorage.remove(key);
+        async remove(prefix, key) {
+          await sendStorageLockRegister({
+            type: STORAGE_LOCK_REGISTER_MESSAGE,
+            version: 1,
+            operation: "remove",
+            prefix,
+            key
+          });
         }
       };
     }
@@ -13059,21 +13115,88 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       return {
         kind: "userscript",
         async entries(prefix) {
-          const keys = (await globalThis.GM_listValues()).filter((key) => key.startsWith(prefix));
-          return Promise.all(keys.map(async (key) => [
-            key,
-            await globalThis.GM_getValue(key, void 0)
-          ]));
+          const raw = await ensureUserscriptRoster(prefix);
+          return readUserscriptRoster(prefix, raw);
         },
-        async write(key, value) {
-          await globalThis.GM_setValue(key, value);
+        async write(prefix, key, value) {
+          await updateUserscriptRoster(prefix, key, value);
         },
-        async remove(key) {
-          await globalThis.GM_deleteValue(key);
+        async remove(prefix, key) {
+          await updateUserscriptRoster(prefix, key, void 0, true);
         }
       };
     }
     return void 0;
+  }
+  function prefixFromRegisterKey(key) {
+    const separator = key.lastIndexOf(".");
+    return separator > 0 ? key.slice(0, separator) : key;
+  }
+  var USERSCRIPT_ROSTER_VERSION = 1;
+  var migratedUserscriptRosterPrefixes = /* @__PURE__ */ new Set();
+  function lockRosterKey(prefix) {
+    return `${SHARED_LOCK_PREFIX}.roster.${encodeURIComponent(prefix)}`;
+  }
+  function readUserscriptRoster(prefix, raw) {
+    if (!raw || typeof raw !== "object") return [];
+    const value = raw;
+    if (value.version !== USERSCRIPT_ROSTER_VERSION || value.prefix !== prefix || !Array.isArray(value.entries)) {
+      return [];
+    }
+    return value.entries.filter(
+      (entry) => Array.isArray(entry) && entry.length === 2 && typeof entry[0] === "string" && entry[0].startsWith(`${prefix}.`)
+    );
+  }
+  async function migrateUserscriptRoster(prefix) {
+    if (typeof globalThis.GM_listValues !== "function") return;
+    const keys = (await globalThis.GM_listValues()).filter((key) => key.startsWith(`${prefix}.`));
+    const entries = await Promise.all(keys.map(async (key) => [
+      key,
+      await globalThis.GM_getValue(key, void 0)
+    ]));
+    await globalThis.GM_setValue(lockRosterKey(prefix), {
+      version: USERSCRIPT_ROSTER_VERSION,
+      prefix,
+      entries
+    });
+    migratedUserscriptRosterPrefixes.add(prefix);
+  }
+  async function ensureUserscriptRoster(prefix) {
+    const key = lockRosterKey(prefix);
+    const current = await globalThis.GM_getValue(key, void 0);
+    if (current !== void 0) return current;
+    if (migratedUserscriptRosterPrefixes.has(prefix)) return void 0;
+    await migrateUserscriptRoster(prefix);
+    return globalThis.GM_getValue(key, void 0);
+  }
+  async function updateUserscriptRoster(prefix, key, value, remove = false) {
+    const rosterKey = lockRosterKey(prefix);
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      const raw = await ensureUserscriptRoster(prefix);
+      const entries = new Map(readUserscriptRoster(prefix, raw));
+      if (remove) entries.delete(key);
+      else entries.set(key, value);
+      if (entries.size === 0) {
+        await globalThis.GM_deleteValue(rosterKey);
+        migratedUserscriptRosterPrefixes.add(prefix);
+        return;
+      }
+      await globalThis.GM_setValue(rosterKey, {
+        version: USERSCRIPT_ROSTER_VERSION,
+        prefix,
+        entries: [...entries.entries()]
+      });
+      const confirmed = new Map(readUserscriptRoster(prefix, await globalThis.GM_getValue(rosterKey, void 0)));
+      if (remove ? !confirmed.has(key) : valuesEqual(confirmed.get(key), value)) return;
+    }
+    throw new Error("The userscript lock roster did not settle");
+  }
+  function valuesEqual(left, right) {
+    try {
+      return JSON.stringify(left) === JSON.stringify(right);
+    } catch {
+      return false;
+    }
   }
   async function mutateStored(storage, key, fallback, mutate, options = {}) {
     return withStorageLock(key, async (fence) => {

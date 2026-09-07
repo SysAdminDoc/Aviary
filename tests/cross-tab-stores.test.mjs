@@ -768,21 +768,47 @@ test("merging the same archive twice changes nothing the second time", async () 
 async function loadLockModule(store) {
   const { importSourceModule } = await import("./helpers/source-import.mjs");
   const previousChrome = globalThis.chrome;
-  globalThis.chrome = {
-    runtime: { id: "fixture-extension" },
-    storage: {
-      local: {
-        async get(request) {
-          if (request === null) return Object.fromEntries(store);
-          return {};
-        },
-        async set(entry) {
-          for (const [key, value] of Object.entries(entry)) store.set(key, structuredClone(value));
-        },
-        async remove(key) {
-          store.delete(key);
-        }
+  const { StorageLockRegisterAuthority, isStorageLockRegisterRequest } = await importSourceModule(
+    "src/platform/storage-lock-register.ts",
+    { fresh: true }
+  );
+  const { ExtensionStorageFenceAuthority, isExtensionStorageFenceRequest } = await importSourceModule(
+    "src/extension/storage-fence.ts",
+    { fresh: true }
+  );
+  const storage = {
+    async get(request) {
+      if (typeof request === "string") return store.has(request) ? { [request]: structuredClone(store.get(request)) } : {};
+      if (Array.isArray(request)) {
+        return Object.fromEntries(request.filter((key) => store.has(key)).map((key) => [key, structuredClone(store.get(key))]));
       }
+      if (request === null) return Object.fromEntries(store);
+      return {};
+    },
+    async set(entry) {
+      for (const [key, value] of Object.entries(entry)) store.set(key, structuredClone(value));
+    },
+    async remove(keys) {
+      for (const key of Array.isArray(keys) ? keys : [keys]) store.delete(key);
+    }
+  };
+  const registerAuthority = new StorageLockRegisterAuthority(storage);
+  const fenceAuthority = new ExtensionStorageFenceAuthority(storage);
+  globalThis.chrome = {
+    runtime: {
+      id: "fixture-extension",
+      getManifest: () => ({ manifest_version: 3 }),
+      sendMessage(message, callback) {
+        const pending = isStorageLockRegisterRequest(message)
+          ? registerAuthority.handle(message)
+          : isExtensionStorageFenceRequest(message)
+            ? fenceAuthority.handle(message)
+            : Promise.resolve({ ok: false, error: "unknown fixture message" });
+        if (callback) pending.then(callback);
+        return pending;
+      }
+    },
+    storage: { local: storage
     }
   };
   const mod = await importSourceModule("src/platform/storage-lock.ts", { fresh: true });
@@ -805,6 +831,26 @@ async function loadLockModule(store) {
  */
 function peerKey(name, owner) {
   return `aviary.lock.v1.${encodeURIComponent(`aviary.${name}`)}.${owner}`;
+}
+
+function peerRosterKey(name) {
+  const prefix = `aviary.lock.v1.${encodeURIComponent(`aviary.${name}`)}`;
+  return `aviary.lock.v1.roster.${encodeURIComponent(prefix)}`;
+}
+
+function setPeer(store, name, owner, value) {
+  const prefix = `aviary.lock.v1.${encodeURIComponent(`aviary.${name}`)}`;
+  const key = peerKey(name, owner);
+  const roster = store.get(peerRosterKey(name)) ?? { version: 1, prefix, entries: [] };
+  const entries = new Map(roster.entries);
+  entries.set(key, structuredClone(value));
+  store.set(peerRosterKey(name), { ...roster, entries: [...entries.entries()] });
+}
+
+function getPeer(store, name, owner) {
+  const key = peerKey(name, owner);
+  const roster = store.get(peerRosterKey(name));
+  return roster?.entries?.find(([candidate]) => candidate === key)?.[1];
 }
 
 test("the lease, renew and poll intervals hold the contract the register depends on", async () => {
@@ -837,7 +883,7 @@ test("a live peer keeps the lock and an expired one loses it", async () => {
   try {
     const name = "aviary.media.history.v1";
     // A peer that is still renewing: earlier ticket, exclusive, lease well in the future.
-    store.set(peerKey(name, "peer-live"), {
+    setPeer(store, name, "peer-live", {
       version: 1,
       owner: "peer-live",
       phase: "waiting",
@@ -864,8 +910,8 @@ test("a live peer keeps the lock and an expired one loses it", async () => {
       assert.equal(entered, false, "a peer whose lease is still valid must keep the lock");
 
       // The peer stops renewing. Its entry stays behind, exactly as a killed tab would leave it.
-      store.set(peerKey(name, "peer-live"), {
-        ...store.get(peerKey(name, "peer-live")),
+      setPeer(store, name, "peer-live", {
+        ...getPeer(store, name, "peer-live"),
         expiresAt: Date.now() - 1
       });
     } finally {
@@ -877,7 +923,7 @@ test("a live peer keeps the lock and an expired one loses it", async () => {
     assert.equal(await pending, "done", "an expired lease must be reclaimed, not waited on forever");
     assert.equal(entered, true, "and the waiting transaction must actually run");
     assert.equal(
-      store.has(peerKey(name, "peer-live")),
+      getPeer(store, name, "peer-live") !== undefined,
       false,
       "the dead peer's register entry must be swept, not left to be re-read every poll"
     );
@@ -925,7 +971,7 @@ test("a lock survives losing every scrap of in-memory state", async () => {
   try {
     // A holder that acquired the lock and then had its context torn down mid-transaction. Its
     // register entry is all that is left of it, and it is still inside its lease.
-    store.set(peerKey(name, "worker-before-suspend"), {
+    setPeer(store, name, "worker-before-suspend", {
       version: 1,
       owner: "worker-before-suspend",
       phase: "waiting",
@@ -952,8 +998,8 @@ test("a lock survives losing every scrap of in-memory state", async () => {
       "a woken worker must read the lease out of storage, not assume the lock is free"
     );
 
-    store.set(peerKey(name, "worker-before-suspend"), {
-      ...store.get(peerKey(name, "worker-before-suspend")),
+    setPeer(store, name, "worker-before-suspend", {
+      ...getPeer(store, name, "worker-before-suspend"),
       expiresAt: Date.now() - 1
     });
     assert.equal(await attempt, "ran", "and must proceed once that lease actually expires");

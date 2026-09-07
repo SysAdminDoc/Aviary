@@ -166,6 +166,7 @@ export function inferStorageFence(key: string): StorageLockFence | undefined {
 export function hasExtensionFenceTransport(): boolean {
   return Boolean(
     globalThis.chrome?.runtime?.id &&
+      typeof globalThis.chrome.runtime.getManifest === "function" &&
       typeof globalThis.chrome.runtime.sendMessage === "function"
   );
 }

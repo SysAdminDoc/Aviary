@@ -100,6 +100,10 @@
 - Minimal now has an independent **Hide For You tab** control. On Home it selects Following and
   collapses only the first tab by position, leaves other route tablists alone, reports a short Home
   strip to Trust, and restores the original tab styles immediately when disabled.
+- Lock polling now reads a background-owned per-lock roster key instead of deserializing the whole
+  extension storage area. The manager path uses the same bounded roster shape, and concurrent roster
+  updates retain every contender. Browser timing fixtures label the shared-map model separately from
+  extension and manager lanes.
 
 ### Added
 - **Dated selector evidence.** Aviary now keeps a checked-in comparison of its selector registry

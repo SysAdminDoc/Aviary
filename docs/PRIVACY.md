@@ -82,7 +82,9 @@ in one locked `chrome.storage.local` journal. Recovery stages that operation in 
 commits the value or removal with marker cleanup in one IndexedDB transaction. The journal is
 cleared only after every receipt matches, so interruption leaves a retry path instead of stale data.
 Lock registers live in extension or manager storage, so x.com, twitter.com, and pro.x.com share one
-restore and journal authority.
+restore and journal authority. Extension pages ask the background for one known per-lock roster key
+instead of enumerating unrelated `chrome.storage.local` values; userscript managers keep the same
+bounded roster under one manager key.
 
 | Key | Data | Purpose and user control |
 |---|---|---|

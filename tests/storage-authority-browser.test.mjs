@@ -310,7 +310,9 @@ async function createLaneSession(lane) {
     faultTarget: null,
     faultTriggered: false,
     pause: null,
-    order: []
+    order: [],
+    registerChains: new Map(),
+    fences: new Map()
   };
   await context.exposeBinding("__aviarySharedStore", async (_source, request) =>
     handleSharedStore(state, control, request)
@@ -341,9 +343,22 @@ async function createLaneSession(lane) {
           await call({ operation: "remove", keys: Array.isArray(keys) ? keys : [keys] });
         }
       };
+      const runtime = {
+        id: "aviary-storage-authority-test",
+        getManifest: () => ({ manifest_version: 3 }),
+        async sendMessage(message) {
+          if (message?.type === "AVIARY_STORAGE_LOCK_REGISTER") {
+            return call({ operation: "lock-register", request: message });
+          }
+          if (message?.type === "AVIARY_STORAGE_FENCE") {
+            return call({ operation: "fence", request: message });
+          }
+          return { ok: false, error: "unsupported test message" };
+        }
+      };
       Object.defineProperty(globalThis, "chrome", {
         configurable: true,
-        value: { runtime: { id: "aviary-storage-authority-test" }, storage: { local } }
+        value: { runtime, storage: { local } }
       });
       return;
     }
@@ -602,8 +617,12 @@ async function createBackupPayload(page, values) {
   }, values);
 }
 
-function handleSharedStore(state, control, request) {
+async function handleSharedStore(state, control, request) {
   switch (request.operation) {
+    case "lock-register":
+      return handleLockRegister(state, control, request.request);
+    case "fence":
+      return handleFence(state, control, request.request);
     case "all":
       return Object.fromEntries([...state].map(([key, value]) => [key, structuredClone(value)]));
     case "list":
@@ -628,6 +647,69 @@ function handleSharedStore(state, control, request) {
     default:
       throw new Error(`unknown shared-store operation: ${request.operation}`);
   }
+}
+
+async function handleLockRegister(state, control, request) {
+  const prefix = request?.prefix;
+  if (typeof prefix !== "string" || prefix.length === 0) {
+    return { ok: false, error: "malformed lock register request" };
+  }
+  const previous = control.registerChains.get(prefix) ?? Promise.resolve();
+  const action = previous.then(async () => {
+    const rosterKey = `aviary.lock.v1.roster.${encodeURIComponent(prefix)}`;
+    const raw = state.get(rosterKey);
+    const entries = new Map(
+      Array.isArray(raw?.entries)
+        ? raw.entries.filter((entry) => Array.isArray(entry) && entry.length === 2)
+        : []
+    );
+    if (request.operation === "entries") {
+      return { ok: true, entries: [...entries.entries()] };
+    }
+    if (request.operation === "remove") entries.delete(request.key);
+    else entries.set(request.key, request.value);
+    if (entries.size === 0) state.delete(rosterKey);
+    else state.set(rosterKey, { version: 1, prefix, entries: [...entries.entries()] });
+    return { ok: true };
+  });
+  const settled = action.then(() => undefined, () => undefined);
+  control.registerChains.set(prefix, settled);
+  return action;
+}
+
+async function handleFence(state, control, request) {
+  const fence = request?.fence;
+  if (!fence?.name || !fence.owner) return { ok: false, error: "malformed storage fence" };
+  const current = control.fences.get(fence.name);
+  if (request.operation === "acquire") {
+    if (current && current.expiresAt > Date.now() && current.owner !== fence.owner) {
+      return { ok: false, code: "storage-fence-lost", error: "Another owner still holds this storage fence." };
+    }
+    const next = { ...fence, generation: Math.max(current?.generation ?? 0, fence.generation) + 1 };
+    control.fences.set(fence.name, next);
+    return { ok: true, result: next };
+  }
+  if (!current || current.owner !== fence.owner || current.generation !== fence.generation || current.expiresAt <= Date.now()) {
+    return { ok: false, code: "storage-fence-lost", error: "The storage lease changed." };
+  }
+  if (request.operation === "renew") {
+    const next = { ...current, expiresAt: fence.expiresAt };
+    control.fences.set(fence.name, next);
+    return { ok: true, result: next };
+  }
+  if (request.operation === "release") {
+    control.fences.delete(fence.name);
+    return { ok: true, result: null };
+  }
+  if (request.operation === "set") {
+    await setSharedValue(state, control, request.key, request.value);
+    return { ok: true, result: null };
+  }
+  if (request.operation === "remove") {
+    removeSharedValue(state, control, request.key);
+    return { ok: true, result: null };
+  }
+  return { ok: false, error: "unknown storage fence operation" };
 }
 
 async function setSharedValue(state, control, key, value) {
@@ -686,6 +768,8 @@ function resetSession(session) {
   session.control.faultTriggered = false;
   session.control.pause = null;
   session.control.order = [];
+  session.control.registerChains.clear();
+  session.control.fences.clear();
 }
 
 function assertNoLockResidue(session) {

@@ -200,6 +200,7 @@ test("extension authority cannot commit a paused old owner after a fresh authori
 test("shared restore writers do not contend for one exclusive background fence", async () => {
   const values = new Map();
   const fences = new Map();
+  const rosters = new Map();
   const previousChrome = globalThis.chrome;
   const storage = {
     async get(key) {
@@ -214,6 +215,16 @@ test("shared restore writers do not contend for one exclusive background fence",
     }
   };
   const respondToFence = async (message) => {
+    if (message?.type === "AVIARY_STORAGE_LOCK_REGISTER") {
+      const prefix = message.prefix;
+      const entries = new Map(rosters.get(prefix) ?? []);
+      if (message.operation === "entries") return { ok: true, entries: [...entries.entries()] };
+      if (message.operation === "remove") entries.delete(message.key);
+      else entries.set(message.key, message.value);
+      if (entries.size === 0) rosters.delete(prefix);
+      else rosters.set(prefix, [...entries.entries()]);
+      return { ok: true };
+    }
     const current = fences.get(message.fence.name);
     if (message.operation === "acquire") {
       if (current && current.expiresAt > Date.now() && current.owner !== message.fence.owner) {
@@ -244,6 +255,7 @@ test("shared restore writers do not contend for one exclusive background fence",
   globalThis.chrome = {
     runtime: {
       id: "fixture-extension",
+      getManifest: () => ({ manifest_version: 3 }),
       sendMessage: respondToFence
     },
     storage: { local: storage }

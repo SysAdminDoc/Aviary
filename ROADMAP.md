@@ -146,14 +146,6 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
 
 ### P2, Later
 
-- [ ] F326, P2: Stop reading unrelated storage on every lock poll
-  Why: sharedLockRegisterStore().entries uses chrome.storage.local.get(null) at a 12 ms poll interval, deserializing the whole storage area to find a small register.
-  Evidence: `src/platform/storage-lock.ts:357`, `SHARED_LOCK_POLL_MS`, `tests/storage-authority-browser.test.mjs`; https://developer.chrome.com/docs/extensions/reference/api/storage
-  Touches: lock register discovery, storage authority, cross-tab tests, browser-model performance harness
-  Acceptance: contender discovery reads only a safely coordinated per-lock roster or authority-owned index; replacing get(null) with getKeys() alone does not qualify because it still enumerates unrelated keys; a deterministic adapter seeded with 10,000 unrelated keys proves identical keys/values transferred per poll to an empty store, and repeated browser measurements report timing and variance; no lost or hidden contenders under concurrent index updates; correctness tests remain intact and realistic manager/extension measurements are labeled separately from shared-Map models.
-  Complexity: M
-  Depends: F328 so indexing cannot preserve the unfenced write defect.
-
 ### P1, Next
 
 - [ ] F327, P1: Exercise real extension storage across worker termination and page freezing
