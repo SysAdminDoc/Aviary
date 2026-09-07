@@ -86,6 +86,9 @@
   the next attempt verifies the matching destination and finishes the delete; different values are
   reported as conflicts and are never overwritten. The Control Center separates moved,
   retry-completed, skipped, conflicted, and failed stores.
+- Both extension packages now declare `incognito: not_allowed`, so private windows do not receive
+  Aviary's content scripts or write its local records. Userscript private-mode persistence still
+  follows the manager because browsers expose no standard userscript signal for that mode.
 - A userscript manager that grants only part of Aviary's storage API is now refused by name at
   startup instead of quietly falling back to page storage. Aviary lists its own keys to coordinate
   writes across x.com, twitter.com and pro.x.com, so a manager without `GM_listValues` cannot keep

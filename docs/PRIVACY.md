@@ -43,7 +43,9 @@ and owns only the exact promoted logger rule; shipped builds omit diagnostic fee
 `webRequest`, and `<all_urls>` access. Optional permissions are `downloads` and direct media-host access for
 `pbs.twimg.com` and `video.twimg.com`. They are requested only from the options page and can be
 revoked there; the userscript declares the equivalent `GM_download`/`@connect` surfaces in its
-metadata.
+metadata. Both extension manifests set `incognito` to `not_allowed`, so private windows cannot
+run the content scripts or write Aviary records. A userscript has no standard private-window
+signal; its private-mode persistence follows the manager and is reported as unknown.
 
 ## Data stored locally
 

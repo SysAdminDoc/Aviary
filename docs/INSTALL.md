@@ -35,7 +35,9 @@ writing and is refused with a visible capacity error above 16 MiB, instead of fa
 How long those records survive is the manager's decision, not Aviary's. The extension can ask the
 browser not to evict its database and does; a userscript has no equivalent request to make, so
 Trust reports its persistence as unknown and the 16 MiB per-value ceiling is the only limit Aviary
-can enforce for you. Export a library backup periodically.
+can enforce for you. Export a library backup periodically. Private-mode persistence follows the
+userscript manager too, because browsers do not expose a standard private-window signal to a
+userscript. The extension packages declare `incognito: not_allowed` and do not run in private windows.
 
 No permission prompt is needed for the local prompt builder, snapshots, bookmarks, notes, archive
 import, Under the Hood JSON reader, or local export formats. Provider integrations remain disabled

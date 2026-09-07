@@ -407,10 +407,17 @@ test("smoke spec scaffold ships with explicit setup instructions", async () => {
   }
   assert.match(dnrChromium, /routeHits/);
   assert.match(dnrFirefox, /CONNECT x\.com:443/);
+  const incognito = await readFile(
+    path.join(root, "tests/smoke/incognito-chromium.smoke.mjs"),
+    "utf8"
+  );
+  assert.match(incognito, /not_allowed/);
+  assert.match(incognito, /newContext/);
+  assert.match(incognito, /indexedDB\.databases/);
   const pkg = JSON.parse(await readFile(path.join(root, "package.json"), "utf8"));
   assert.equal(
     pkg.scripts.smoke,
-    "node tests/smoke/dnr-chromium.smoke.mjs && node tests/smoke/dnr-firefox.smoke.mjs && node tests/smoke/aviary.smoke.mjs && node tests/smoke/externally-gated.smoke.mjs"
+    "node tests/smoke/dnr-chromium.smoke.mjs && node tests/smoke/dnr-firefox.smoke.mjs && node tests/smoke/aviary.smoke.mjs && node tests/smoke/incognito-chromium.smoke.mjs && node tests/smoke/externally-gated.smoke.mjs"
   );
 });
 

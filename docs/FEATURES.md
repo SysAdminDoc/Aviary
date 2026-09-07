@@ -63,6 +63,9 @@ share one journal. The background applies each operation and removes its marker 
 so a closed tab or restarted worker can retry without reviving old data. Settings, profiles, media
 queue entries, export checkpoints and diagnostics also write only their transaction-local change,
 which keeps non-conflicting edits from two open X tabs and makes clears authoritative.
+Both extension manifests set `incognito` to `not_allowed`, so private windows receive no Aviary
+content script or storage write. Userscript private-mode persistence remains the manager's decision
+because there is no standard userscript signal for a private window.
 
 When an older install still has unassigned stores, the Control Center offers an explicit adoption
 action. Each store gets a durable SHA-256 receipt with its source hash, destination profile, and

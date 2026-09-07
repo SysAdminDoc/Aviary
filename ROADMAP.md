@@ -10,14 +10,6 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
 
 ### P1, Next
 
-- [ ] F279, P1: Disallow persistent private-browsing sessions
-  Why: both extension manifests omit an incognito policy, so a user-enabled private session can write captured posts, notes, URLs, and integration state into shared persistent storage.
-  Evidence: `src/extension/manifest.chrome.json`, `src/extension/manifest.firefox.json`; https://developer.chrome.com/docs/extensions/reference/manifest/incognito; https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/manifest.json/incognito
-  Touches: both extension manifests, manifest contract tests, install and privacy documentation
-  Acceptance: both packages declare `"incognito": "not_allowed"`; Chromium and Firefox manifest tests fail if it is removed; an isolated private-window smoke check shows the extension unavailable and no Aviary key changes; userscript documentation states that private-mode persistence depends on the manager until a standard signal exists.
-  Complexity: S
-  Depends: None.
-
 - [ ] F280, P1: Scope the network shield to the tab that enabled it
   Why: the control is profile-scoped, but `src/extension/ad-rule.ts` replaces one extension-global dynamic rule. Two tabs with opposing profiles race and the last message changes both tabs.
   Evidence: `src/extension/ad-rule.ts`, `src/main.ts:161-300`; https://developer.chrome.com/docs/extensions/reference/api/declarativeNetRequest; https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/declarativeNetRequest/updateSessionRules

@@ -99,6 +99,7 @@ test("both manifests declare the options page that hosts the permission grant", 
   for (const name of ["manifest.chrome.json", "manifest.firefox.json"]) {
     const manifest = JSON.parse(await readFile(path.join(root, "src/extension", name), "utf8"));
     assert.deepEqual(manifest.options_ui, { page: "options.html", open_in_tab: true }, name);
+    assert.equal(manifest.incognito, "not_allowed", name);
     assert.ok(manifest.optional_permissions.includes("downloads"), name);
     assert.ok(manifest.permissions.includes("contextMenus"), name);
   }

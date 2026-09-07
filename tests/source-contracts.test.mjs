@@ -223,6 +223,7 @@ test("MV3 manifests keep permissions narrow", async () => {
   for (const manifestPath of manifests) {
     const manifest = JSON.parse(await readFile(path.join(root, manifestPath), "utf8"));
     assert.equal(manifest.manifest_version, 3);
+    assert.equal(manifest.incognito, "not_allowed", `${manifestPath} must not persist in private windows`);
     assert.deepEqual(manifest.icons, expectedIcons);
     assert.deepEqual(manifest.action.default_icon, expectedIcons);
     // Exact, so both directions are contract: nothing may be added quietly, and nothing may be
