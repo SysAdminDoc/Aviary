@@ -50,6 +50,7 @@ const AVIARY_VERSION = typeof __AVIARY_VERSION__ === "undefined" ? "dev" : __AVI
 import type { DiagnosticEvent } from "../platform/diagnostics.ts";
 import type { PerformanceMetricsSnapshot } from "../platform/performance-diagnostics.ts";
 import type { StorageStatus } from "../platform/storage.ts";
+import type { DurableStorageBreakdown } from "../platform/durable-storage.ts";
 import type { LegacyAdoptionResult, ProfileStatus } from "../platform/profile.ts";
 import type { LibraryBackupPreview, LibraryBackupRestoreResult } from "../features/core/library-backup.ts";
 import type { IntegrationUsageStatus } from "../features/integrations/usage.ts";
@@ -181,6 +182,14 @@ export interface ControlCenterOptions {
   getPerformanceMetrics?: () => PerformanceMetricsSnapshot;
   resetPerformanceMetrics?: () => void;
   getStorageStatus?: () => StorageStatus;
+  /**
+   * The measured library breakdown, or `null` where the backend cannot weigh itself.
+   *
+   * Read synchronously from a value the panel refreshes, because a row builder cannot await.
+   * `undefined` means "not measured yet" and `null` means "this backend does not know"; the two
+   * render differently on purpose.
+   */
+  getLibraryStorage?: () => DurableStorageBreakdown | null | undefined;
   onChange: () => Promise<void>;
   onError: (message: string, error: unknown) => void;
   getProfileStatus?: () => ProfileStatus;
@@ -1244,6 +1253,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     button,
     presetIcon,
     coverageRow: () => coverageRow(),
+    libraryStorage: () => options.getLibraryStorage?.(),
     storageHealthRow: () => storageHealthRow(),
     storageStatusRow: () => storageStatusRow(),
     beaconRows: () => beaconRows(),

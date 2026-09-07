@@ -64,15 +64,22 @@ const DELIVERY_BUDGETS = [
   // handoff client. The single-file userscript carries the client, while the lazy panel carries
   // the settings controls. The measured increase is explicit here rather than weakening all
   // artifact checks.
-  { file: "aviary.user.js", maxBytes: 2_575_000 },
+  // F314 adds the Library storage view, the soft cap, and the two capture-size controls. Most of
+  // the increase is not code: F283 shipped 28 panel strings that were never translated, and F314
+  // adds 24 more, so 416 translations entered the catalog at once. Measured 2.62 MB against the
+  // 2.575 MB that stood before; the new ceiling is 30 kB above the measurement, which is the same
+  // narrow headroom every entry above it keeps.
+  { file: "aviary.user.js", maxBytes: 2_655_000 },
   { file: "aviary.meta.js", maxBytes: 4_000 },
   // F298 keeps the document-start bootstrap below half of the previous 2.42 MB ceiling. The
   // panel, archive, WACZ worker, viewer, and translated catalog live in the separately budgeted
   // web-accessible chunk below.
   { file: "extension-chrome/content.js", maxBytes: 1_210_000 },
   { file: "extension-firefox/content.js", maxBytes: 1_210_000 },
-  { file: "extension-chrome/chunks/extension-panel.js", maxBytes: 2_135_000 },
-  { file: "extension-firefox/chunks/extension-panel.js", maxBytes: 2_135_000 },
+  // Same F314 catalog growth as the userscript above, in the chunk that carries the panel and its
+  // translations. Measured 2.18 MB against the 2.135 MB that stood before.
+  { file: "extension-chrome/chunks/extension-panel.js", maxBytes: 2_210_000 },
+  { file: "extension-firefox/chunks/extension-panel.js", maxBytes: 2_210_000 },
   { file: `aviary-source-v${pkg.version}.zip`, maxBytes: 10_000_000 }
 ];
 

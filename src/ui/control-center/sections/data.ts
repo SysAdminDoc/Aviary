@@ -402,8 +402,108 @@ export function buildSnapshotRows(ctx: PanelContext): HTMLElement[] {
   return rows;
 }
 
+/**
+ * What the local library occupies, measured rather than estimated.
+ *
+ * Two numbers that are not the same number. The measured total is the sum of Aviary's own stored
+ * collections; the browser's usage figure counts index overhead, uncompacted tombstones and every
+ * other store on this origin, and the Storage Standard calls it approximate. Printing one as the
+ * other would be a filesystem claim this cannot make.
+ */
+function libraryStorageRows(ctx: PanelContext): HTMLElement[] {
+  const breakdown = ctx.libraryStorage();
+  if (breakdown === undefined) {
+    return [ctx.readonlyRow("Library storage", "Measuring…")];
+  }
+  if (breakdown === null) {
+    return [
+      ctx.readonlyRow(
+        "Library storage",
+        "This browser store cannot be weighed from here, so Aviary does not report a size for it."
+      )
+    ];
+  }
+
+  const rows: HTMLElement[] = [
+    ctx.dataRow(
+      "Library storage",
+      `${ctx.formatBytes(breakdown.totalBytes)} ${ctx.t("across")} ${breakdown.collections.length} ${ctx.t("collections")}`
+    )
+  ];
+
+  for (const entry of breakdown.collections.slice(0, 8)) {
+    rows.push(
+      ctx.dataRow(
+        entry.key,
+        `${ctx.formatBytes(entry.bytes)} · ${entry.records} ${entry.records === 1 ? ctx.t("record") : ctx.t("records")}`
+      )
+    );
+  }
+
+  rows.push(
+    breakdown.usageDetails
+      ? ctx.dataRow(
+          "Browser storage report",
+          Object.entries(breakdown.usageDetails)
+            .map(([name, bytes]) => `${name}: ${ctx.formatBytes(bytes)}`)
+            .join(" · ")
+        )
+      : ctx.readonlyRow(
+          "Browser storage report",
+          "This browser does not break its storage report down by type, so only Aviary's own measurement is shown."
+        )
+  );
+  return rows;
+}
+
+/** The soft cap and the two capture-size controls, which change the next capture and nothing else. */
+function libraryCaptureSizeRows(ctx: PanelContext): HTMLElement[] {
+  const settings = ctx.options.settings.export;
+  const megabytes = Math.round(settings.storageCapBytes / 1_000_000);
+  return [
+    ctx.integerInputRow(
+      "Storage cap warning",
+      "Warn before a capture takes the local library past this many megabytes. 0 turns the warning off. Aviary never deletes anything to stay under it; removal is chosen in the cleanup preview.",
+      megabytes,
+      async (value) => {
+        settings.storageCapBytes = value <= 0 ? 0 : value * 1_000_000;
+        await ctx.save(value <= 0 ? "Storage cap warning off." : "Storage cap warning saved.");
+      },
+      { min: 0, max: 1_000_000 }
+    ),
+    ctx.selectRow(
+      "Downscale captured images",
+      String(settings.captureImageScale),
+      [
+        ["1", "Keep the original"],
+        ["0.75", "Three quarters"],
+        ["0.5", "Half"],
+        ["0.25", "Quarter"]
+      ],
+      async (value) => {
+        settings.captureImageScale = Number(value);
+        await ctx.save(
+          settings.captureImageScale === 1
+            ? "Captured images keep their original size."
+            : "Captured images will be downscaled."
+        );
+      },
+      "Applies to captures from here on. Nothing already stored changes, and each reduced record says it was reduced."
+    ),
+    ctx.toggleRow(
+      "Video poster frames only",
+      "Store the still X serves for a video instead of the video itself. The record says the video was left out, so a later export cannot present the still as the whole post.",
+      settings.capturePosterFramesOnly,
+      async (checked) => {
+        settings.capturePosterFramesOnly = checked;
+        await ctx.save(checked ? "Videos will be captured as poster frames." : "Videos will be captured in full.");
+      }
+    )
+  ];
+}
+
 export function buildLibraryRows(ctx: PanelContext): HTMLElement[] {
-  const rows: HTMLElement[] = [];
+  const rows: HTMLElement[] = [...libraryStorageRows(ctx), ...libraryCaptureSizeRows(ctx)];
 
   if (ctx.options.getUnderTheHoodStatus && ctx.options.importUnderTheHood) {
     const status = ctx.options.getUnderTheHoodStatus();

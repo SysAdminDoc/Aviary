@@ -50,6 +50,7 @@ export function collectExportRecords(
           url: isSaveableVariantUrl(url) ? url : "",
           type: item.video.preferred.type
         };
+        if (item.video.poster) entry.poster = item.video.poster;
         if (item.video.preferred.width !== null) entry.width = item.video.preferred.width;
         if (item.video.preferred.height !== null) entry.height = item.video.preferred.height;
         if (item.video.preferred.bitrate !== null) entry.bitrate = item.video.preferred.bitrate;

@@ -10,6 +10,11 @@ export interface CleanupCandidate {
   permalink: string | null;
   reason: string;
   protected: boolean;
+  /**
+   * Stored bytes this record's captured media occupies, summed from the byte lengths the capture
+   * recorded. Zero where nothing was byte-captured, which is most of a text library.
+   */
+  storedBytes: number;
 }
 
 export interface CleanupPreview {
@@ -17,6 +22,15 @@ export interface CleanupPreview {
   candidates: CleanupCandidate[];
   byBucket: Record<CleanupBucket, number>;
   protectedCount: number;
+  /**
+   * What removing the unprotected candidates would free, and which of them are the heavy ones.
+   *
+   * "Delete 4,812 posts" is not a decision anybody can make. "These twelve hold 1.4 GB between
+   * them" is, and it is usually a much smaller deletion.
+   */
+  storedBytes: number;
+  freeableBytes: number;
+  largest: CleanupCandidate[];
 }
 
 export interface CleanupPreviewOptions {
@@ -24,6 +38,19 @@ export interface CleanupPreviewOptions {
   protectedTweetIds?: readonly string[];
   minLikeThreshold?: number;
   bucketHint?: CleanupBucket;
+  /** How many of the heaviest records to name. */
+  largestCount?: number;
+}
+
+/** Stored bytes one record's captured media occupies. Reference-only media weighs nothing here. */
+export function recordStoredBytes(record: ExportRecord): number {
+  let total = 0;
+  for (const entry of record.media ?? []) {
+    if (entry.captureStatus !== "captured-bytes") continue;
+    const bytes = entry.byteLength;
+    if (typeof bytes === "number" && Number.isFinite(bytes) && bytes > 0) total += Math.round(bytes);
+  }
+  return total;
 }
 
 export function previewCleanup(
@@ -63,11 +90,28 @@ export function previewCleanup(
       text: record.text,
       permalink: record.permalink,
       reason: explain(bucket, record, wasInferred(bucket, record, options.bucketHint)),
-      protected: isProtected
+      protected: isProtected,
+      storedBytes: recordStoredBytes(record)
     });
   }
 
+  const storedBytes = candidates.reduce((total, entry) => total + entry.storedBytes, 0);
+  // Only the unprotected ones can be freed. Counting a protected record's bytes as recoverable
+  // would promise space that this preview refuses to touch.
+  const freeableBytes = candidates
+    .filter((entry) => !entry.protected)
+    .reduce((total, entry) => total + entry.storedBytes, 0);
+  const largest = [...candidates]
+    .filter((entry) => entry.storedBytes > 0)
+    .sort((left, right) =>
+      right.storedBytes - left.storedBytes ||
+      (left.tweetId ?? "").localeCompare(right.tweetId ?? ""))
+    .slice(0, Math.max(0, options.largestCount ?? 10));
+
   return {
+    storedBytes,
+    freeableBytes,
+    largest,
     generatedAt: new Date().toISOString(),
     candidates,
     byBucket,

@@ -75,6 +75,12 @@ export function removeFeatureToast(): void {
     clearTimeout(dismissTimer);
     dismissTimer = undefined;
   }
+  // The same guard `showFeatureToast` carries. A feature's `destroy` runs in contexts with no
+  // document -- a worker, a unit test -- and taking a toast down that could never have been shown
+  // is not an error worth throwing out of teardown.
+  if (typeof document === "undefined") {
+    return;
+  }
   const host = document.getElementById(TOAST_HOST_ID);
   const card = host?.shadowRoot?.querySelector<HTMLElement>(".av-ftoast");
   if (card) {

@@ -1,4 +1,5 @@
 import { storageValueBytes } from "./storage-value-hash.ts";
+import type { DurableStorageBreakdown } from "./durable-storage.ts";
 import {
   hasExtensionFenceTransport,
   inferStorageFence,
@@ -16,6 +17,14 @@ export interface StorageGateway {
   remove(key: string, fence?: StorageLockFence): Promise<void>;
   keys?(): Promise<string[]>;
   getStatus?(): StorageStatus;
+  /**
+   * Measured bytes per stored collection, or `null` where this backend cannot weigh itself.
+   *
+   * Optional because a userscript manager stores values behind an API with no cursor. A caller
+   * that needs a total has to handle "the backend does not know", which is a different answer
+   * from zero and has to read as one.
+   */
+  measureCollections?(): Promise<DurableStorageBreakdown | null>;
 }
 
 export interface StorageStatus {

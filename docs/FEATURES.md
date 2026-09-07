@@ -335,6 +335,21 @@ The audit log lives entirely in local storage. It never leaves the browser unles
 
 The Control Center "Library" section exposes:
 
+- **Library storage**, the measured size of each stored collection and their total. This is Aviary's
+  own measurement, taken by weighing every stored value; it is not the browser's usage figure, which
+  counts index overhead and every other store on the origin and which the Storage Standard describes
+  as approximate. Where the browser publishes a per-type split it is shown beside the measurement,
+  and where it does not, the row says so rather than printing a zero. A store this cannot enumerate,
+  such as a userscript manager's, reports no size at all.
+- **Storage cap warning**, a soft ceiling in megabytes. Crossing it raises a notice before the
+  capture runs and changes nothing else. Aviary never deletes stored bytes to stay under a number:
+  this library is frequently the only copy of what is in it, so removal stays a decision made item
+  by item in the cleanup preview, which names the heaviest records and what removing them frees.
+- **Downscale captured images** and **Video poster frames only**, both off by default. They decide
+  what the *next* capture keeps and never touch a record that is already stored. A reduced record
+  carries what was done to it, so a later export cannot present a downscaled image or a poster frame
+  as the original. Where the browser has no image decoder the downscale does not run and no
+  reduction is claimed, because a wrong number on a record is worse than a larger file.
 - **Copy post links as**, pick an alternate X front-end (fxtwitter, vxtwitter, fixupx, xcancel) and
   each post grows a **Copy link** control that writes that post's address on that host. Copy-time
   rewriting, never redirection: the links X rendered are left exactly as they are, no navigation is

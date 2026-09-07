@@ -1,4 +1,5 @@
 import { supportedLocales } from "../../platform/i18n.ts";
+import type { DurableStorageBreakdown } from "../../platform/durable-storage.ts";
 import { AVIARY_VERSION } from "../../platform/build-version.ts";
 import { redactDiagnosticEvent, type DiagnosticEvent } from "../../platform/diagnostics.ts";
 import type { ProfileStatus } from "../../platform/profile.ts";
@@ -156,6 +157,8 @@ import {
 } from "../library/under-the-hood.ts";
 
 let controlCenter: ControlCenterHandle | undefined;
+/** `undefined` until the first measurement returns; `null` when the backend cannot weigh itself. */
+let libraryStorage: DurableStorageBreakdown | null | undefined;
 const searchIndex = new LocalSearchIndex();
 let cleanupQueue: CleanupQueue | undefined;
 let semanticIndex: SemanticIndex | undefined;
@@ -195,11 +198,26 @@ export const controlCenterFeature: FeatureModule = {
       underTheHoodStore = new UnderTheHoodStore(ctx.storage);
       await underTheHoodStore.load();
     }
+    const refreshLibraryStorage = (): void => {
+      void ctx.storage
+        .measureCollections?.()
+        .then((measured) => {
+          libraryStorage = measured;
+          controlCenter?.refresh?.();
+        })
+        .catch(() => {
+          libraryStorage = null;
+        });
+    };
+    refreshLibraryStorage();
     controlCenter = mountControlCenter({
       settings: ctx.settings,
       diagnostics: () => ctx.diagnostics.snapshot(),
       getPerformanceMetrics: () => ctx.registry?.performanceMetrics() ?? emptyPerformanceMetrics(),
       resetPerformanceMetrics: () => ctx.registry?.resetPerformanceMetrics(),
+      // Measured once when the panel mounts and again after a save, because a row builder cannot
+      // await. `undefined` until the first measurement returns, which the row renders as such.
+      getLibraryStorage: () => libraryStorage,
       getStorageStatus: () => ctx.storage.getStatus?.() ?? {
         backend: "legacy",
         schemaVersion: 0,
@@ -212,6 +230,7 @@ export const controlCenterFeature: FeatureModule = {
       },
       async onChange() {
         await ctx.saveSettings();
+        refreshLibraryStorage();
         // Keep the panel's committed state aligned with live features before reporting the save
         // complete. Async feature applies otherwise leave a short window where a just-enabled
         // diagnostic still renders as disabled.

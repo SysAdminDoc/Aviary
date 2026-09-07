@@ -201,9 +201,14 @@ test("the options page is localized without importing the whole catalog", async 
   if (existsSync(packaged)) {
     const shipped = await readFile(packaged, "utf8");
     const bytes = Buffer.byteLength(shipped, "utf8");
+    // The byte ceiling is a proxy; the catalog check below is the exact one. The proxy moves for
+    // measured feature growth, and only with the measurement written down: 114.7KB before F314,
+    // 117.5KB after, from the storage measurement bridge and the capture-size settings the options
+    // page pulls in with the rest of the storage module. The panel catalog is 240KB, so a ceiling
+    // this side of 128KB still cannot hide one.
     assert.ok(
-      bytes < 120_000,
-      `the options bundle is ${Math.round(bytes / 1024)}KB — the whole catalog looks to be in it`
+      bytes < 128_000,
+      `the options bundle is ${Math.round(bytes / 1024)}KB — too large for a page that ships a few KB`
     );
     // The subset is defined in, so the strings are there while the panel's own catalog is not.
     assert.ok(shipped.includes("Grant download access"), "the options subset did not reach the bundle");

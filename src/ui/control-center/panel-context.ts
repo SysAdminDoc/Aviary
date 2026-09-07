@@ -5,6 +5,7 @@ import type {
   MediaLayout,
   ReduceMotionMode
 } from "../../platform/settings.ts";
+import type { DurableStorageBreakdown } from "../../platform/durable-storage.ts";
 import type { LibraryBackupPreview } from "../../features/core/library-backup.ts";
 import type { RuleSetImportPreview } from "../../features/filtering/rules.ts";
 import type { ControlCenterOptions } from "../control-center.ts";
@@ -113,6 +114,8 @@ export interface PanelContext {
   readonly coerceFilterAction: (value: string) => FilterAction;
   readonly coerceLayout: (value: string) => MediaLayout;
   readonly formatBytes: (value: number) => string;
+  /** The measured library breakdown for the Library storage view. */
+  readonly libraryStorage: () => DurableStorageBreakdown | null | undefined;
   readonly defaultAiEndpoint: (provider: string) => string;
   readonly isThemeId: (value: string) => value is AviarySettings["appearance"]["theme"];
   readonly el: <K extends keyof HTMLElementTagNameMap>(

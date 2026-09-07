@@ -12,6 +12,7 @@ import {
   type DurablePendingWriteReceipt,
   type DurableStorageRead,
   type DurableStorageBackend,
+  type DurableStorageBreakdown,
   type DurableStorageEstimate,
   type DurableStorageMeta
 } from "../platform/durable-storage.ts";
@@ -54,6 +55,7 @@ type DurableStorageRequest =
       meta: DurableStorageMeta;
     }
   | { type: typeof DURABLE_STORAGE_MESSAGE; operation: "estimate" }
+  | { type: typeof DURABLE_STORAGE_MESSAGE; operation: "measure" }
   | {
       type: typeof DURABLE_STORAGE_MESSAGE;
       operation: "stage-pending";
@@ -225,7 +227,42 @@ export class ExtensionDurableStorageBackend implements DurableStorageBackend {
     return {
       ...(typeof result.usage === "number" ? { usage: result.usage } : {}),
       ...(typeof result.quota === "number" ? { quota: result.quota } : {}),
-      ...(typeof result.persisted === "boolean" ? { persisted: result.persisted } : {})
+      ...(typeof result.persisted === "boolean" ? { persisted: result.persisted } : {}),
+      ...(isByteMap(result.usageDetails) ? { usageDetails: result.usageDetails } : {})
+    };
+  }
+
+  /**
+   * The background owns the database, so the page cannot weigh it directly.
+   *
+   * Every field is re-validated on arrival rather than trusted: this crosses a message boundary,
+   * and a malformed reply must produce an empty breakdown rather than a NaN total on a page that
+   * then tells the reader their library occupies "NaN bytes".
+   */
+  async measure(): Promise<DurableStorageBreakdown> {
+    const result = asRecord(await this.#call({
+      type: DURABLE_STORAGE_MESSAGE,
+      operation: "measure"
+    }));
+    const collections = Array.isArray(result.collections)
+      ? result.collections
+          .map((entry) => asRecord(entry))
+          .filter((entry) =>
+            typeof entry.key === "string" &&
+            typeof entry.bytes === "number" &&
+            Number.isFinite(entry.bytes) &&
+            typeof entry.records === "number" &&
+            Number.isFinite(entry.records))
+          .map((entry) => ({
+            key: entry.key as string,
+            bytes: Math.max(0, Math.round(entry.bytes as number)),
+            records: Math.max(0, Math.round(entry.records as number))
+          }))
+      : [];
+    return {
+      totalBytes: collections.reduce((total, entry) => total + entry.bytes, 0),
+      collections,
+      usageDetails: isByteMap(result.usageDetails) ? result.usageDetails : null
     };
   }
 
@@ -309,7 +346,13 @@ export function isDurableStorageRequest(message: unknown): message is DurableSto
   if (request.type !== DURABLE_STORAGE_MESSAGE || typeof request.operation !== "string") {
     return false;
   }
-  if (request.operation === "get-meta" || request.operation === "estimate") return true;
+  if (
+    request.operation === "get-meta" ||
+    request.operation === "estimate" ||
+    request.operation === "measure"
+  ) {
+    return true;
+  }
   if (
     request.operation === "get" ||
     request.operation === "read" ||
@@ -381,6 +424,13 @@ export async function handleDurableStorageRequest(
         return { ok: true, result: null };
       case "estimate":
         return { ok: true, result: await backend.estimate() };
+      case "measure":
+        return {
+          ok: true,
+          result: typeof backend.measure === "function"
+            ? await backend.measure()
+            : { totalBytes: 0, collections: [], usageDetails: null }
+        };
       case "stage-pending":
         await runFencedMutation(authority, request.fence, () => backend.stagePendingWrite(request.write, request.fence));
         return { ok: true, result: null };
@@ -699,4 +749,12 @@ function asRecord(value: unknown): Record<string, unknown> {
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+/** A `{ name: bytes }` map that survived a message boundary with every value still a real count. */
+function isByteMap(value: unknown): value is Record<string, number> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  return Object.values(value as Record<string, unknown>).every(
+    (entry) => typeof entry === "number" && Number.isFinite(entry) && entry >= 0
+  );
 }

@@ -48,6 +48,16 @@ export interface ExportExpandedUrl {
   source: "archive" | "local-corpus";
 }
 
+/** What a capture-size setting did to one asset, recorded on the asset. */
+export interface MediaCaptureReduction {
+  /** The fraction of the original pixel dimensions kept. Absent when the image was not rescaled. */
+  imageScale?: number;
+  /** True when a video's poster frame was stored in place of the video. */
+  posterFrameOnly?: true;
+  /** What the host served, so the size of the reduction is legible without the original. */
+  originalByteLength?: number;
+}
+
 export interface ExportMedia {
   kind: "photo" | "video" | "thumbnail" | "audio" | "subtitle";
   url: string;
@@ -65,6 +75,15 @@ export interface ExportMedia {
   captureStatus?: MediaCaptureStatus;
   captureError?: string;
   /**
+   * How this capture was reduced before it was stored, when it was.
+   *
+   * Absent means the bytes are what the host served. A record with a reduction is not the
+   * original, and an export that presents it as one is wrong about its own contents -- which is
+   * the whole reason a capture-size setting has to leave a trace on each record rather than only
+   * in the settings that were live when it ran.
+   */
+  reduction?: MediaCaptureReduction;
+  /**
    * Present when the asset was inside the post but is not the post's own: a quoted post's media,
    * or a link card's preview. Absent means the record's own account published it.
    */
@@ -77,6 +96,13 @@ export interface ExportMedia {
   height?: number;
   bitrate?: number;
   type?: string;
+  /**
+   * The still X serves for a video, when it serves one.
+   *
+   * It is the only part of a video a capture can keep cheaply, and until now the export dropped
+   * it, so a record with the video bytes left out had no picture at all.
+   */
+  poster?: string;
   altText?: string;
   language?: string;
   label?: string;

@@ -355,6 +355,24 @@ export interface AviarySettings {
     captureMediaBytes: boolean;
     includeProtected: boolean;
     includeUnknown: boolean;
+    /**
+     * Warn before a capture would take the local library past this many bytes. `0` is off.
+     *
+     * A warning, never a deletion. A cap that quietly evicts is a cap that loses the one copy of
+     * something, and this library is often the only copy; the cleanup preview is where removal is
+     * chosen deliberately.
+     */
+    storageCapBytes: number;
+    /**
+     * Store captured images at this fraction of their pixel dimensions. `1` keeps the original.
+     *
+     * Applies to bytes captured from here on. Nothing already stored is touched by changing it,
+     * and the reduction is written onto the record so a later export can say what was reduced
+     * rather than presenting a downscaled image as the original.
+     */
+    captureImageScale: number;
+    /** Store a video's poster frame instead of its bytes. Off keeps the video. */
+    capturePosterFramesOnly: boolean;
   };
   links: {
     cleanShareButtons: boolean;
@@ -511,7 +529,10 @@ export const DEFAULT_SETTINGS: AviarySettings = {
     autoDiscoverQueryIds: true,
     captureMediaBytes: false,
     includeProtected: false,
-    includeUnknown: false
+    includeUnknown: false,
+    storageCapBytes: 0,
+    captureImageScale: 1,
+    capturePosterFramesOnly: false
   },
   links: {
     cleanShareButtons: false,
@@ -946,6 +967,14 @@ export function normalizeSettings(input: unknown): AviarySettings {
       includeUnknown: booleanValue(
         exportSettings.includeUnknown,
         DEFAULT_SETTINGS.export.includeUnknown
+      ),
+      // A cap below a megabyte would warn on the first capture of anything, which trains a reader
+      // to ignore it. Zero stays zero, and means off.
+      storageCapBytes: capBytesValue(exportSettings.storageCapBytes),
+      captureImageScale: imageScaleValue(exportSettings.captureImageScale),
+      capturePosterFramesOnly: booleanValue(
+        exportSettings.capturePosterFramesOnly,
+        DEFAULT_SETTINGS.export.capturePosterFramesOnly
       )
     },
     links: {
@@ -1360,6 +1389,31 @@ function surfaceArray(
     }
   }
   return seen.size > 0 || allowEmpty ? [...seen] : [...fallback];
+}
+
+/** Off, or a real ceiling between one megabyte and a terabyte. Anything else is off. */
+function capBytesValue(value: unknown): number {
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
+    return DEFAULT_SETTINGS.export.storageCapBytes;
+  }
+  const rounded = Math.round(value);
+  return rounded < 1_000_000 || rounded > 1_000_000_000_000
+    ? DEFAULT_SETTINGS.export.storageCapBytes
+    : rounded;
+}
+
+/**
+ * A fraction of the original dimensions, quantised to the values the panel offers.
+ *
+ * A free-form number would let a restored backup ask for 0.03 and store an image nobody can read
+ * while the record still claims it is a capture of that post.
+ */
+function imageScaleValue(value: unknown): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return DEFAULT_SETTINGS.export.captureImageScale;
+  }
+  const allowed = [1, 0.75, 0.5, 0.25];
+  return allowed.includes(value) ? value : DEFAULT_SETTINGS.export.captureImageScale;
 }
 
 function integerValue(value: unknown, fallback: number, min: number, max: number): number {

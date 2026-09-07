@@ -290,7 +290,7 @@ test("the optional helper produces a remux, and never offers it as the original"
   assert.equal(ADAPTIVE_HANDOFF_OUTPUT.losslessRemux, true);
   assert.equal(ADAPTIVE_HANDOFF_OUTPUT.transcoded, false);
   assert.equal(ADAPTIVE_HANDOFF_OUTPUT.qualityCost, null);
-  assert.notEqual(ADAPTIVE_HANDOFF_OUTPUT.label, "original");
+  assert.notEqual(ADAPTIVE_HANDOFF_OUTPUT.receiptLabel, "original");
 
   const command = buildYtDlpCommand({
     manifestUrl: "https://video.twimg.com/amplify_video/1/pl/playlist.m3u8",
@@ -304,7 +304,7 @@ test("the optional helper produces a remux, and never offers it as the original"
   // And the label the receipt carries says what the file is, so history cannot read it as the
   // rendition X served.
   const { normalizeDownloadQuality } = await importSourceModule("src/extension/download-state.ts");
-  const receipt = normalizeDownloadQuality({ label: ADAPTIVE_HANDOFF_OUTPUT.label, mime: "video/mp4" });
+  const receipt = normalizeDownloadQuality({ label: ADAPTIVE_HANDOFF_OUTPUT.receiptLabel, mime: "video/mp4" });
   assert.equal(receipt.label, "adaptive-remux");
   assert.notEqual(receipt.label, "original");
 });

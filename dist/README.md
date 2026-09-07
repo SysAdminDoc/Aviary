@@ -153,7 +153,10 @@ The full reference lives in [docs/FEATURES.md](docs/FEATURES.md). The short vers
 - **Library.** Local bookmarks with tags and folders, per-handle account notes, t.co unshortening
   with no network call, snapshots, and X archive import staged in resumable chunks. One search ranks
   across all of it, including word-aware matching for Thai, Lao, Khmer, and Myanmar when the browser
-  provides it.
+  provides it. The section reports what the library actually occupies, measured per collection, and
+  offers a soft cap that warns before a capture crosses it. Nothing is ever deleted to stay under a
+  number: removal is chosen item by item in the cleanup preview, which names the heaviest records
+  and what removing them frees.
 - **Backups.** One versioned envelope covering every profile, not just the one you have open.
   Credentials are excluded unless you explicitly ask for them, and schema 1 and 2 files remain
   readable under their historical checksum rules.

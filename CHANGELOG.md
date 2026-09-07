@@ -201,6 +201,21 @@
   that API keys and the WACZ signing identity are included, and the audit record distinguishes that
   export from a redacted backup.
 
+### Added
+- **Library storage, a soft cap, and capture-size controls.** The Library section now reports what
+  the local library occupies, measured per stored collection, beside the browser's own approximate
+  figure and its per-type split where the browser publishes one. A soft cap warns before a capture
+  crosses it and never deletes anything; the cleanup preview names the heaviest records and what
+  removing them frees. Captures can downscale images or keep only a video's poster frame, both off
+  by default, both recorded on the record so a later export cannot present a reduced capture as the
+  original. Nothing already stored is changed by either setting.
+- Export records now carry a video's poster URL, which the export used to drop entirely.
+
+### Fixed
+- The panel's Spanish, Portuguese, French, German, Japanese, Korean, Arabic and Hebrew catalogs were
+  missing 28 strings that shipped with the yt-dlp handoff. They were showing English in every
+  locale, and the coverage gate could not see it because the string manifest had not been rebuilt.
+
 ### Changed
 - The accessibility suite now covers the three WCAG 2.2 criteria axe cannot check. Every control on
   every destination is focused at two viewport heights and must not end up entirely behind the

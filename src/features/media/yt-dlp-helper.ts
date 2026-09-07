@@ -24,7 +24,9 @@ export const YTDLP_MERGE_POLICY = "mp4/mkv";
  * transcode, this is where its cost would be named, and the label would stop saying remux.
  */
 export const ADAPTIVE_HANDOFF_OUTPUT = {
-  label: "adaptive-remux",
+  // `receiptLabel`, not `label`: the i18n extractor harvests every `label:` line as user copy, and
+  // this is a receipt value the panel never shows.
+  receiptLabel: "adaptive-remux",
   losslessRemux: true,
   transcoded: false,
   qualityCost: null

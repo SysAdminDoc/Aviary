@@ -6,7 +6,7 @@ import {
   type MediaFingerprint,
   type MediaFingerprintKind
 } from "../export/assets.ts";
-import type { ExportMedia, ExportRecord } from "../export/types.ts";
+import type { ExportMedia, ExportRecord, MediaCaptureReduction } from "../export/types.ts";
 import {
   addUriToAria2,
   Aria2History,
@@ -189,26 +189,48 @@ export async function fingerprintMediaDownload(
   return { identityHash };
 }
 
+/**
+ * How much of each asset to keep. Both default to keeping everything the host served.
+ *
+ * They apply from here on and never touch a record that is already stored: a capture setting is a
+ * decision about the next capture, not a retroactive edit of a library.
+ */
+export interface CaptureSizeOptions {
+  /** Fraction of the original pixel dimensions to keep for an image. `1` keeps the original. */
+  imageScale?: number;
+  /** Store a video's poster frame instead of its bytes. */
+  posterFrameOnly?: boolean;
+}
+
 /** Captures each asset explicitly and retains a retryable remote-reference on failure. */
 export async function captureExportRecordMedia(
   record: ExportRecord,
-  options: CaptureMediaOptions = {}
+  options: CaptureMediaOptions & CaptureSizeOptions = {}
 ): Promise<ExportRecord> {
   const media = await Promise.all(record.media.map(async (entry): Promise<ExportMedia> => {
-    const sourceUrl = (entry.sourceUrl ?? entry.url).trim();
+    const posterOnly = options.posterFrameOnly === true && entry.kind === "video";
+    // The poster is a still the host already serves, so this is a different asset rather than a
+    // shrunken version of the same one. Saying so on the record is what stops a later export from
+    // presenting a thumbnail as the video.
+    const posterUrl = posterOnly ? (entry.poster ?? "").trim() : "";
+    const sourceUrl = posterOnly && posterUrl
+      ? posterUrl
+      : (entry.sourceUrl ?? entry.url).trim();
     try {
       const captured = await captureMediaBytes(sourceUrl, options);
+      const reduced = await applyCaptureSize(captured, options, posterOnly && Boolean(posterUrl));
       return {
         ...entry,
         sourceUrl: captured.sourceUrl,
         capturedAt: captured.capturedAt,
-        byteLength: captured.byteLength,
-        sha256: captured.sha256,
-        bytes: captured.bytes,
+        byteLength: reduced.bytes.byteLength,
+        sha256: reduced.sha256,
+        bytes: reduced.bytes,
         httpStatus: captured.httpStatus,
         httpHeaders: captured.httpHeaders,
-        type: entry.type?.includes("/") ? entry.type : captured.contentType,
-        captureStatus: "captured-bytes"
+        type: reduced.contentType || (entry.type?.includes("/") ? entry.type : captured.contentType),
+        captureStatus: "captured-bytes",
+        ...(reduced.reduction ? { reduction: reduced.reduction } : {})
       };
     } catch (error) {
       return {
@@ -221,6 +243,83 @@ export async function captureExportRecordMedia(
     }
   }));
   return { ...record, media };
+}
+
+/**
+ * Applies the capture-size settings to bytes that were already fetched.
+ *
+ * A downscale that cannot run -- no `createImageBitmap`, no `OffscreenCanvas`, a format the
+ * decoder refuses -- keeps the original bytes and records no reduction. Claiming a reduction that
+ * did not happen would put a wrong number on the record, which is worse than storing the original.
+ */
+async function applyCaptureSize(
+  captured: CapturedMediaBytes,
+  options: CaptureSizeOptions,
+  posterFrameOnly: boolean
+): Promise<{ bytes: Uint8Array; sha256: string; contentType: string; reduction?: MediaCaptureReduction }> {
+  const scale = options.imageScale ?? 1;
+  const isImage = captured.contentType.startsWith("image/");
+  const wantsScale = isImage && Number.isFinite(scale) && scale > 0 && scale < 1;
+
+  const reduction: MediaCaptureReduction = {};
+  if (posterFrameOnly) reduction.posterFrameOnly = true;
+
+  if (!wantsScale) {
+    if (posterFrameOnly) reduction.originalByteLength = captured.byteLength;
+    return {
+      bytes: captured.bytes,
+      sha256: captured.sha256,
+      contentType: captured.contentType,
+      ...(posterFrameOnly ? { reduction } : {})
+    };
+  }
+
+  const rescaled = await downscaleImageBytes(captured.bytes, captured.contentType, scale);
+  if (!rescaled) {
+    return {
+      bytes: captured.bytes,
+      sha256: captured.sha256,
+      contentType: captured.contentType,
+      ...(posterFrameOnly ? { reduction: { ...reduction, originalByteLength: captured.byteLength } } : {})
+    };
+  }
+  return {
+    bytes: rescaled.bytes,
+    sha256: await sha256HexAsync(rescaled.bytes),
+    contentType: rescaled.contentType,
+    reduction: { ...reduction, imageScale: scale, originalByteLength: captured.byteLength }
+  };
+}
+
+/** Decodes, redraws at a fraction of the size, and re-encodes. Returns null if any step is absent. */
+async function downscaleImageBytes(
+  bytes: Uint8Array,
+  contentType: string,
+  scale: number
+): Promise<{ bytes: Uint8Array; contentType: string } | null> {
+  const decode = globalThis.createImageBitmap;
+  const Canvas = globalThis.OffscreenCanvas;
+  if (typeof decode !== "function" || typeof Canvas !== "function") return null;
+  try {
+    const source = new Blob([new Uint8Array(bytes)], { type: contentType });
+    const bitmap = await decode(source);
+    const width = Math.max(1, Math.round(bitmap.width * scale));
+    const height = Math.max(1, Math.round(bitmap.height * scale));
+    const canvas = new Canvas(width, height);
+    const context = canvas.getContext("2d");
+    if (!context) {
+      bitmap.close?.();
+      return null;
+    }
+    context.drawImage(bitmap, 0, 0, width, height);
+    bitmap.close?.();
+    // PNG keeps a lossless re-encode lossless. A JPEG source stays JPEG so a photo does not grow.
+    const type = contentType === "image/png" ? "image/png" : "image/jpeg";
+    const blob = await canvas.convertToBlob({ type, quality: 0.92 });
+    return { bytes: new Uint8Array(await blob.arrayBuffer()), contentType: type };
+  } catch {
+    return null;
+  }
 }
 
 function safeResponseHeaders(headers: Headers): Record<string, string> {

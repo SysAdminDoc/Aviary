@@ -55,9 +55,39 @@ export const DURABLE_STORAGE_KEYS = [
   "aviary.waczSigning.v1"
 ] as const;
 
+/** One stored collection and the bytes its values occupy, measured rather than guessed. */
+export interface DurableCollectionUsage {
+  /** The unscoped store name, e.g. `aviary.library.bookmarks.v1`. */
+  key: string;
+  bytes: number;
+  records: number;
+}
+
+/**
+ * What the local library actually occupies.
+ *
+ * `totalBytes` is the sum of the measured collections, which is a different number from the
+ * browser's `usage`: the browser counts index overhead, tombstones it has not compacted, and every
+ * other origin-scoped store, and it is explicitly documented as approximate. Reporting one as the
+ * other would be a filesystem claim this cannot make, so both are carried and the readout says
+ * which is which.
+ */
+export interface DurableStorageBreakdown {
+  totalBytes: number;
+  collections: DurableCollectionUsage[];
+  /**
+   * The browser's own split of origin usage by storage type, where it provides one. Chromium fills
+   * `usageDetails`; Firefox and Safari do not, and `null` is how the readout says so rather than
+   * printing a zero.
+   */
+  usageDetails: Record<string, number> | null;
+}
+
 export interface DurableStorageEstimate {
   usage?: number;
   quota?: number;
+  /** Chromium's per-storage-type split. Absent where the browser does not provide one. */
+  usageDetails?: Record<string, number>;
   /**
    * Whether this origin's storage is exempt from eviction, or `undefined` where the browser does
    * not answer. Best-effort storage is the default everywhere, and a browser under disk pressure
@@ -119,6 +149,11 @@ export interface DurableStorageBackend {
   stagePendingWrite(write: DurablePendingWrite, fence?: StorageLockFence): Promise<void>;
   commitPendingWrite(write: DurablePendingWrite, fence?: StorageLockFence): Promise<DurablePendingWriteReceipt>;
   estimate(): Promise<DurableStorageEstimate>;
+  /**
+   * Measured bytes per stored collection. Optional: a backend that cannot enumerate its own values
+   * reports nothing rather than a fabricated breakdown.
+   */
+  measure?(): Promise<DurableStorageBreakdown>;
 }
 
 export interface DurableStorageOptions {
@@ -287,6 +322,33 @@ export class DurableStorageGateway implements StorageGateway {
     return this.getStatus();
   }
 
+  /**
+   * The measured breakdown, or `null` where this session's backend cannot enumerate itself.
+   *
+   * A userscript manager and the legacy fallback both store values behind an API with no cursor,
+   * so they answer nothing rather than a total assembled from the keys Aviary happens to remember.
+   */
+  async measureCollections(): Promise<DurableStorageBreakdown | null> {
+    await this.#ensureInitialized();
+    if (!this.#backend || !this.#usable || typeof this.#backend.measure !== "function") {
+      return null;
+    }
+    try {
+      const breakdown = await this.#backend.measure();
+      return {
+        totalBytes: breakdown.totalBytes,
+        collections: breakdown.collections.map((entry) => ({
+          ...entry,
+          key: this.#unscope(entry.key)
+        })),
+        usageDetails: breakdown.usageDetails
+      };
+    } catch (error) {
+      reportStorageError("aviary.durable.measure", error, "read");
+      return null;
+    }
+  }
+
   async get<T>(key: string, fallback: T): Promise<T> {
     if (!this.#isDurable(key)) {
       return this.#legacy.get(key, fallback);
@@ -408,6 +470,12 @@ export class DurableStorageGateway implements StorageGateway {
       return key;
     }
     return `${this.#namespace}.${key}`;
+  }
+
+  /** The name a store knows itself by, with this profile's namespace taken back off. */
+  #unscope(key: string): string {
+    const prefix = `${this.#namespace}.`;
+    return this.#namespace.length > 0 && key.startsWith(prefix) ? key.slice(prefix.length) : key;
   }
 
   #fallback(error: unknown): void {
@@ -701,6 +769,46 @@ export class IndexedDbStorageBackend implements DurableStorageBackend {
     return commitPendingWriteTransaction(await this.#database, write, fence, valueHash);
   }
 
+  /**
+   * Walks the object store and weighs each value.
+   *
+   * Serialized length, not `structuredClone` cost: it is the number a person can act on, because
+   * it is what an export of that collection would write. Values are read one cursor step at a time
+   * so a large library is never held in memory twice.
+   */
+  async measure(): Promise<DurableStorageBreakdown> {
+    const database = await this.#database;
+    const collections = await new Promise<DurableCollectionUsage[]>((resolve, reject) => {
+      const transaction = database.transaction(DURABLE_OBJECT_STORE, "readonly");
+      const request = transaction.objectStore(DURABLE_OBJECT_STORE).openCursor();
+      const found = new Map<string, DurableCollectionUsage>();
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => {
+        const cursor = request.result;
+        if (!cursor) {
+          resolve([...found.values()].sort((left, right) => right.bytes - left.bytes));
+          return;
+        }
+        const record = cursor.value as DurableIndexedValue | undefined;
+        const key = typeof record?.key === "string" ? record.key : String(cursor.key);
+        if (key !== DURABLE_META_KEY) {
+          const existing = found.get(key) ?? { key, bytes: 0, records: 0 };
+          existing.bytes += measureStoredBytes(record?.value);
+          existing.records += 1;
+          found.set(key, existing);
+        }
+        cursor.continue();
+      };
+    });
+
+    const measured = await this.estimate();
+    return {
+      totalBytes: collections.reduce((total, entry) => total + entry.bytes, 0),
+      collections,
+      usageDetails: measured.usageDetails ?? null
+    };
+  }
+
   async estimate(): Promise<DurableStorageEstimate> {
     // `estimate` must be invoked on `navigator.storage`, not on `navigator`. Calling it with the
     // wrong receiver throws "Illegal invocation" in every real browser, which `refreshEstimate`
@@ -711,7 +819,13 @@ export class IndexedDbStorageBackend implements DurableStorageBackend {
       ? await manager.estimate()
       : {};
     const persisted = await this.#ensurePersisted(manager);
-    return persisted === undefined ? measured : { ...measured, persisted };
+    // `usageDetails` is Chromium-only and is not in the Storage Standard, so it is carried when it
+    // is there and left absent when it is not. An absent split is reported as absent, never as 0.
+    const details = (measured as { usageDetails?: unknown }).usageDetails;
+    const withDetails = details && typeof details === "object" && !Array.isArray(details)
+      ? { ...measured, usageDetails: onlyFiniteNumbers(details as Record<string, unknown>) }
+      : measured;
+    return persisted === undefined ? withDetails : { ...withDetails, persisted };
   }
 
   /**
@@ -752,6 +866,63 @@ export class IndexedDbStorageBackend implements DurableStorageBackend {
       return undefined;
     }
   }
+}
+
+/** What a soft storage cap has to say about the next capture. */
+export type StorageCapState = "off" | "under" | "would-cross" | "over";
+
+export interface StorageCapReport {
+  state: StorageCapState;
+  capBytes: number;
+  storedBytes: number;
+  /** Bytes the next capture is known to add. Unknown assets count as nothing, not as a guess. */
+  incomingBytes: number;
+}
+
+/**
+ * Whether the next capture crosses the cap the user set.
+ *
+ * A warning, and only a warning. Nothing in Aviary deletes stored bytes to stay under a number,
+ * because this library is frequently the only copy of what is in it: a cap that evicted would
+ * lose the thing it was asked to look after. Removal is chosen in the cleanup preview, by a
+ * person, item by item.
+ *
+ * `incomingBytes` counts only assets whose size the capture already knows. An asset of unknown
+ * size contributes nothing rather than an estimate, so this never warns about bytes that may not
+ * exist -- it under-reports instead, which is the direction that does not cry wolf.
+ */
+export function storageCapReport(input: {
+  capBytes: number;
+  storedBytes: number;
+  incomingBytes?: number;
+}): StorageCapReport {
+  const capBytes = Number.isFinite(input.capBytes) && input.capBytes > 0 ? Math.round(input.capBytes) : 0;
+  const storedBytes = Math.max(0, Math.round(input.storedBytes));
+  const incomingBytes = Math.max(0, Math.round(input.incomingBytes ?? 0));
+  if (capBytes === 0) {
+    return { state: "off", capBytes: 0, storedBytes, incomingBytes };
+  }
+  const state: StorageCapState =
+    storedBytes >= capBytes ? "over" : storedBytes + incomingBytes >= capBytes ? "would-cross" : "under";
+  return { state, capBytes, storedBytes, incomingBytes };
+}
+
+/** Serialized size of one stored value, in bytes, with an unserializable value counted as zero. */
+export function measureStoredBytes(value: unknown): number {
+  try {
+    const json = JSON.stringify(value);
+    return json === undefined ? 0 : new TextEncoder().encode(json).byteLength;
+  } catch {
+    return 0;
+  }
+}
+
+function onlyFiniteNumbers(source: Record<string, unknown>): Record<string, number> {
+  const clean: Record<string, number> = {};
+  for (const [key, value] of Object.entries(source)) {
+    if (typeof value === "number" && Number.isFinite(value) && value >= 0) clean[key] = value;
+  }
+  return clean;
 }
 
 function openDatabase(factory: IDBFactory): Promise<IDBDatabase> {

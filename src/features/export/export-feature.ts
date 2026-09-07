@@ -1,5 +1,9 @@
 import type { FeatureContext, FeatureModule } from "../registry.ts";
-import { sanitizeFolderHint } from "../../platform/settings.ts";
+import { ft } from "../core/feature-i18n.ts";
+import { removeFeatureToast, showFeatureToast } from "../core/feature-toast.ts";
+import { storageCapReport } from "../../platform/durable-storage.ts";
+import { recordStoredBytes } from "../library/cleanup-preview.ts";
+import { sanitizeFolderHint, type AviarySettings } from "../../platform/settings.ts";
 import { SemanticIndex } from "../integrations/semantic-search.ts";
 import {
   buildExportPackageManifest,
@@ -84,6 +88,9 @@ export const exportFeature: FeatureModule = {
     lastAutoDiscoverQueryIds = false;
     manuallyPausedJobId = undefined;
     lifecycleQueue = Promise.resolve();
+    // The storage-cap notice is the only toast this feature raises, and it must not outlive the
+    // feature that raised it.
+    removeFeatureToast();
     ctx.diagnostics.info("Export core destroyed");
   },
 
@@ -153,7 +160,8 @@ export async function runExportOfVisibleTweets(ctx: FeatureContext): Promise<Exp
     const records = checkpointStore.records(jobId);
     let packageRecords = reconstructExportOrder(records);
     if (ctx.settings.export.captureMediaBytes) {
-      packageRecords = await captureExportMedia(records);
+      await warnIfCaptureCrossesCap(ctx, records);
+      packageRecords = await captureExportMedia(records, ctx.settings.export);
     }
     await checkpointStore.updateProgress(jobId, { completed: packageRecords.length, total: packageRecords.length });
     // Handing the user an empty ZIP is worse than telling them nothing was captured.
@@ -225,11 +233,57 @@ export async function rebuildCapturedThreads(ctx: FeatureContext): Promise<Captu
   };
 }
 
-async function captureExportMedia(records: ExportRecord[]): Promise<ExportRecord[]> {
+/**
+ * Says so before the capture runs, and then runs it.
+ *
+ * The cap does not stop the capture and never removes anything: it exists so a person notices
+ * their library is about to pass a number they chose, in time to change the capture settings or
+ * clear something first. A cap that silently refused would leave the reader with an export that
+ * quietly lost media, which is worse than a large library.
+ */
+async function warnIfCaptureCrossesCap(
+  ctx: FeatureContext,
+  records: readonly ExportRecord[]
+): Promise<void> {
+  const capBytes = ctx.settings.export.storageCapBytes;
+  if (capBytes <= 0) return;
+  // A backend that cannot weigh itself says so, and no cap warning is raised at all: guessing a
+  // total from the keys Aviary happens to remember would put a number on screen that is not one.
+  const breakdown = await ctx.storage.measureCollections?.().catch(() => null);
+  if (!breakdown) return;
+  const storedBytes = breakdown.totalBytes;
+  const incomingBytes = records.reduce((total, record) => total + recordStoredBytes(record), 0);
+  const report = storageCapReport({ capBytes, storedBytes, incomingBytes });
+  if (report.state === "under" || report.state === "off") return;
+  ctx.diagnostics.warn("Library storage cap reached", {
+    state: report.state,
+    capBytes: report.capBytes,
+    storedBytes: report.storedBytes
+  });
+  showFeatureToast(
+    report.state === "over"
+      ? ft(ctx, "Your local library is already past the storage cap you set. Nothing was deleted.")
+      : ft(ctx, "This capture takes your local library past the storage cap you set. Nothing was deleted."),
+    { tone: "error", ctx }
+  );
+}
+
+async function captureExportMedia(
+  records: ExportRecord[],
+  settings: AviarySettings["export"]
+): Promise<ExportRecord[]> {
   // Capture is opt-in because it performs bounded, user-initiated media requests. Each failure
   // remains on the record as a remote-reference or missing item, so a partial run never claims
   // that an interrupted response is inside the package.
-  return Promise.all(records.map((record) => captureExportRecordMedia(record)));
+  //
+  // The size settings apply from here, to this run only. Records already in the library are not
+  // reopened: a capture setting decides what the next capture keeps, and rewriting stored bytes
+  // to match a preference changed afterwards would destroy the original nobody asked to lose.
+  const size = {
+    imageScale: settings.captureImageScale,
+    posterFrameOnly: settings.capturePosterFramesOnly
+  };
+  return Promise.all(records.map((record) => captureExportRecordMedia(record, size)));
 }
 
 export async function pauseExportJob(jobId: string): Promise<ExportJobActionResult> {
