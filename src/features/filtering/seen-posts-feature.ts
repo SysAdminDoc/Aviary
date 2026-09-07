@@ -18,6 +18,7 @@ let catchUpLoading: Promise<void> | undefined;
 let flushTimer: ReturnType<typeof setTimeout> | undefined;
 let visibilityObserver: IntersectionObserver | undefined;
 let visibilityChangeHandler: (() => void) | undefined;
+let visibilityRefreshHandler: (() => void) | undefined;
 const visibility = new Map<Element, { id: string; visible: boolean }>();
 const dwellTimers = new Map<Element, ReturnType<typeof setTimeout>>();
 
@@ -159,6 +160,11 @@ function scan(ctx: FeatureContext, root: ParentNode | Element): void {
     if (!id) {
       continue;
     }
+    const tracked = visibility.get(article);
+    if (tracked && tracked.id !== id) {
+      cancelDwell(article);
+      visibility.delete(article);
+    }
     if (store!.has(id)) {
       article.setAttribute(MARKER, "1");
     } else if (isDirectStatusPost(ctx, article, id)) {
@@ -216,7 +222,10 @@ function ensureVisibilityObserver(ctx: FeatureContext): IntersectionObserver | u
   }, { threshold: [0, MIN_VISIBLE_RATIO] });
   if (!visibilityObserver) return undefined;
   visibilityChangeHandler = () => {
-    if (document.visibilityState === "visible") return;
+    if (document.visibilityState === "visible") {
+      refreshTrackedVisibility(ctx);
+      return;
+    }
     for (const article of visibility.keys()) {
       const state = visibility.get(article);
       if (state) visibility.set(article, { ...state, visible: false });
@@ -224,6 +233,9 @@ function ensureVisibilityObserver(ctx: FeatureContext): IntersectionObserver | u
     }
   };
   document.addEventListener("visibilitychange", visibilityChangeHandler);
+  visibilityRefreshHandler = () => refreshTrackedVisibility(ctx);
+  document.addEventListener("scroll", visibilityRefreshHandler, true);
+  window.addEventListener("resize", visibilityRefreshHandler);
   return visibilityObserver;
 }
 
@@ -242,6 +254,36 @@ function handleVisibility(ctx: FeatureContext, entry: IntersectionObserverEntry)
     return;
   }
   const visible = document.visibilityState === "visible" && entry.isIntersecting && isVisibleEnough(entry);
+  updateVisibility(ctx, article, id, visible);
+}
+
+function refreshTrackedVisibility(ctx: FeatureContext): void {
+  const viewportHeight = typeof window === "object" && Number.isFinite(window.innerHeight)
+    ? window.innerHeight
+    : 0;
+  for (const article of [...visibility.keys()]) {
+    if (!article.isConnected) {
+      cancelDwell(article);
+      visibility.delete(article);
+      continue;
+    }
+    const id = readTweetId(article);
+    if (!id || !store || store.has(id)) {
+      cancelDwell(article);
+      continue;
+    }
+    const rect = article.getBoundingClientRect();
+    const height = rect.height;
+    const intersectionHeight = Math.max(0, Math.min(rect.bottom, viewportHeight) - Math.max(rect.top, 0));
+    const ratio = height > 0 ? intersectionHeight / height : 0;
+    const visible = document.visibilityState === "visible" && intersectionHeight > 0 && (
+      ratio >= MIN_VISIBLE_RATIO || (height > viewportHeight && intersectionHeight >= MIN_VISIBLE_PIXELS)
+    );
+    updateVisibility(ctx, article, id, visible);
+  }
+}
+
+function updateVisibility(ctx: FeatureContext, article: Element, id: string, visible: boolean): void {
   const prior = visibility.get(article);
   visibility.set(article, { id, visible });
   if (!visible) {
@@ -253,7 +295,8 @@ function handleVisibility(ctx: FeatureContext, entry: IntersectionObserverEntry)
   const timer = scheduleTimer(() => {
     dwellTimers.delete(article);
     const current = visibility.get(article);
-    if (!article.isConnected || !current?.visible || current.id !== scheduledId) return;
+    const currentId = readTweetId(article);
+    if (!article.isConnected || !current?.visible || current.id !== scheduledId || currentId !== scheduledId) return;
     const result = qualify(ctx, article, scheduledId);
     if (result.marked || result.captured) scheduleFlush(now());
   }, DWELL_MS);
@@ -376,6 +419,11 @@ function teardown(): void {
   if (visibilityChangeHandler) {
     document.removeEventListener("visibilitychange", visibilityChangeHandler);
     visibilityChangeHandler = undefined;
+  }
+  if (visibilityRefreshHandler) {
+    document.removeEventListener("scroll", visibilityRefreshHandler, true);
+    window.removeEventListener("resize", visibilityRefreshHandler);
+    visibilityRefreshHandler = undefined;
   }
   for (const timer of dwellTimers.values()) clearTimer(timer);
   dwellTimers.clear();

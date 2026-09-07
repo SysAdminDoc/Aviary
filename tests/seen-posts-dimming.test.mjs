@@ -306,6 +306,58 @@ test("background-tab time never qualifies a visible candidate", async () => {
   assert.equal(result, 0);
 });
 
+test("recycled or detached articles cannot qualify an old dwell", async () => {
+  const result = await page.evaluate(async () => {
+    AviarySeen.resetSeenPostsState();
+    let now = 0;
+    const timers = [];
+    const observers = [];
+    AviarySeen.setSeenPostsTestSeams({
+      now: () => now,
+      setTimeout(callback, delay) {
+        const timer = { callback, due: now + delay, cancelled: false };
+        timers.push(timer);
+        return timer;
+      },
+      clearTimeout(timer) { timer.cancelled = true; },
+      createObserver(callback) {
+        const observer = { callback, observe() {}, disconnect() {} };
+        observers.push(observer);
+        return observer;
+      }
+    });
+    const values = new Map();
+    const storage = {
+      async get(key, fallback) { return values.has(key) ? values.get(key) : fallback; },
+      async set(key, value) { values.set(key, structuredClone(value)); }
+    };
+    const ctx = {
+      settings: AviarySeen.normalizeSettings({ filter: { dimSeenPosts: true } }),
+      storage,
+      route: { href: "https://x.com/home", path: "/home", surface: "home" },
+      diagnostics: { info() {}, warn() {}, error() {} }
+    };
+    document.body.innerHTML = `<article data-testid="tweet" id="post-recycled"><a href="/someone/status/111">link</a></article>`;
+    await AviarySeen.seenPostsFeature.init(ctx);
+    const article = document.getElementById("post-recycled");
+    observers.at(-1)?.callback([{ target: article, isIntersecting: true, intersectionRatio: 1, boundingClientRect: { height: 100 }, intersectionRect: { height: 100 }, rootBounds: { height: 800 } }]);
+    article.querySelector("a").setAttribute("href", "/someone/status/222");
+    await AviarySeen.seenPostsFeature.apply(ctx, article);
+    article.remove();
+    now = 1000;
+    for (const timer of timers) {
+      if (!timer.cancelled && timer.due <= now) {
+        timer.cancelled = true;
+        timer.callback();
+      }
+    }
+    const size = AviarySeen.getSeenPostStore()?.size ?? 0;
+    await AviarySeen.seenPostsFeature.destroy(ctx);
+    return size;
+  });
+  assert.equal(result, 0);
+});
+
 test("destroy removes the fade and every marker", async () => {
   const { afterDestroy } = await run();
   assert.equal(afterDestroy.a, "1", "opacity must return after destroy");

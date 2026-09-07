@@ -17,7 +17,7 @@ before(async () => {
   temp = await mkdtemp(path.join(tmpdir(), "aviary-catch-up-capture-"));
   const entry = path.join(temp, "entry.ts");
   await writeFile(entry, [
-    `export { seenPostsFeature, getCatchUpStore, resetSeenPostsState } from ${JSON.stringify(abs("src/features/filtering/seen-posts-feature.ts"))};`
+    `export { seenPostsFeature, getCatchUpStore, resetSeenPostsState, setSeenPostsTestSeams } from ${JSON.stringify(abs("src/features/filtering/seen-posts-feature.ts"))};`
   ].join("\n"), "utf8");
   const bundle = path.join(temp, "bundle.js");
   await build({
@@ -50,6 +50,24 @@ after(async () => {
 
 test("rendered posts are copied into catch-up with the active filter reason", async () => {
   const result = await page.evaluate(async () => {
+    AviaryCapture.resetSeenPostsState();
+    let now = 0;
+    const timers = [];
+    const observers = [];
+    AviaryCapture.setSeenPostsTestSeams({
+      now: () => now,
+      setTimeout(callback, delay) {
+        const timer = { callback, due: now + delay, cancelled: false };
+        timers.push(timer);
+        return timer;
+      },
+      clearTimeout(timer) { timer.cancelled = true; },
+      createObserver(callback) {
+        const observer = { callback, observe() {}, disconnect() {} };
+        observers.push(observer);
+        return observer;
+      }
+    });
     const values = new Map();
     const storage = {
       async get(key, fallback) { return values.has(key) ? values.get(key) : fallback; },
@@ -68,6 +86,21 @@ test("rendered posts are copied into catch-up with the active filter reason", as
       diagnostics: { info() {}, warn() {}, error() {} }
     };
     await AviaryCapture.seenPostsFeature.init(ctx);
+    observers.at(-1)?.callback([{
+      target: article,
+      isIntersecting: true,
+      intersectionRatio: 1,
+      boundingClientRect: { height: 100 },
+      intersectionRect: { height: 100 },
+      rootBounds: { height: 800 }
+    }]);
+    now = 1000;
+    for (const timer of timers) {
+      if (!timer.cancelled && timer.due <= now) {
+        timer.cancelled = true;
+        timer.callback();
+      }
+    }
     const store = AviaryCapture.getCatchUpStore();
     const entries = store?.list() ?? [];
     await AviaryCapture.seenPostsFeature.destroy(ctx);

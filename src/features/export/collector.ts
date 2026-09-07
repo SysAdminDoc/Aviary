@@ -110,8 +110,12 @@ export function collectExportRecords(
       capturedAt: now,
       surface,
       media,
-      permalink
+      permalink,
+      audience: "unknown"
     };
+    for (const entry of record.media) {
+      if (entry.attribution) entry.attribution = { ...entry.attribution, audience: record.audience ?? "unknown" };
+    }
     if (poll) record.poll = poll;
     if (quote) record.quote = quote;
     if (articleSummary) record.article = articleSummary;
