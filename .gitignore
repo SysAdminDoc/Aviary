@@ -24,3 +24,7 @@ dist/release/
 # binaries. package-lock.json is the pinned source of truth and `npm ci --ignore-scripts` rebuilds
 # this directory exactly.
 node_modules/
+
+# Runtime output. tools/yt-dlp-helper.mjs resolves DEFAULT_OUTPUT to this directory at the repo
+# root, so a single helper run leaves downloaded media sitting in the working tree.
+aviary-downloads/
