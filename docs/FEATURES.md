@@ -27,6 +27,7 @@ map, [FAQ.md](FAQ.md) for the selector-regression workflow and export tips.
 - Catch-up digest: `src/features/filtering/catch-up.ts`, `src/features/filtering/catch-up-ui.ts`
 - Hidden posts: `src/features/filtering/hidden-posts.ts` (store), `src/features/filtering/hidden-posts-feature.ts` (Hide button + collapse)
 - Media downloads: `src/features/media/` (`media-buttons.ts`, `urls.ts`, `template.ts`, `sidecar.ts`, `history.ts`, `queue.ts`, `download-watch.ts`, `downloader.ts`, `extract.ts`, `video-extract.ts`, `media-presentation.ts`, `batch-downloader.ts`)
+- Optional adaptive handoff: `src/features/media/yt-dlp-helper.ts` and `tools/yt-dlp-helper.mjs`
 - Export core: `src/features/export/` (`export-feature.ts`, `collector.ts`, `formatters.ts`, `assets.ts`, `viewer.ts`, `zip-store.ts`, `zip-reader.ts`, `jobs.ts`, `query-discovery.ts`, `network-capture.ts`, `xlsx.ts`, `warc.ts`, `wacz.ts`, `wacz-signing.ts`, `wacz-worker-client.ts`, `external-targets.ts`, `types.ts`)
 - AI: `src/features/ai/command-menu.ts` (local prompt builder; optionally runs through `features/integrations/ai-provider.ts` when the user supplies an API key)
 - Integrations: `src/features/integrations/` (`aria2.ts`, `crosspost.ts`, `ai-provider.ts`, `semantic-search.ts`, `usage.ts`)
@@ -249,6 +250,14 @@ handles. When `tweet_video/` URLs or loop+muted players are detected, the button
 the page or a captured response already contains a saveable URL. Aviary does not discover new media
 through a background request just to populate those controls.
 
+When capture has observed an adaptive X manifest, the post action can also show **Send to yt-dlp**
+and **Copy yt-dlp command**. The direct progressive MP4 remains the default and still works with no
+helper. The optional loopback process starts with `npm run yt-dlp:helper` and an
+`AVIARY_YTDLP_TOKEN`; it accepts only an observed `video.twimg.com` manifest, a collision-safe
+filename, and `bv*+ba/b` with `mp4/mkv` merging. It rejects unauthenticated requests, never creates
+jobs from status reads, and keeps job state distinct for missing, refused, running, completed, and
+failed work. The browser does not send X cookies, bearer tokens, or status URLs to it.
+
 The Media section also offers **Export download history**, with optional start and end dates. The
 JSON and CSV files contain hashes, quality receipts, timestamps, and match counters, never the
 original media URLs.
@@ -412,6 +421,7 @@ later working tree.
 The Control Center "Integrations" section gates each integration behind a per-feature toggle. Every block defaults disabled; no requests fire until you've enabled it *and* filled in the credentials.
 
 - **Aria2 handoff**, when configured and the request exceeds the minimum-bytes threshold, `Downloader` posts an `aria2.addUri` JSON-RPC call to your self-hosted Aria2 daemon (with optional `token:` secret). Falls through to GM_download / extension SW / anchor otherwise. The Integrations panel also lists in-flight transfers and lets you cancel one with a click.
+- **Adaptive yt-dlp handoff**, keeps direct MP4 as the default and offers a local authenticated helper only when an observed X adaptive manifest can improve the saved quality. The helper uses yt-dlp's best-video-plus-audio policy, merges to MP4 when compatible, and reports each job state. The browser sends only the observed manifest, filename, and format policy. Start it with `npm run yt-dlp:helper` and `AVIARY_YTDLP_TOKEN`, then copy the same secret into Integrations.
 - **Bluesky / Mastodon crosspost**, sends the current composer text to your Bluesky AT-protocol account or your Mastodon instance. Two explicit Control Center actions; never auto-cross. Toggle "Crosspost as thread" to chunk on blank lines, Bluesky gets `reply.root/parent` refs, Mastodon chains `in_reply_to_id`.
 - **Crosspost media (opt-in)**, the "Attach last download" toggle uploads the last successful Aviary media source to Bluesky or Mastodon and attaches it to the first post only. The source URL and filename stay local until that explicit action.
 - **AI provider runner**, when enabled, the per-tweet AI command menu shows the provider, endpoint, fields, character/token estimate, retention notice, network status, and budget before POSTing a prompt to Anthropic, OpenAI, or an OpenAI-compatible endpoint. Per-request and daily UTF-8 byte limits stop calls before they leave the browser; OpenAI-compatible endpoints negotiate their supported completion-limit name once per endpoint and report a provider reason when both names are refused. With no key, the menu remains a local prompt builder.

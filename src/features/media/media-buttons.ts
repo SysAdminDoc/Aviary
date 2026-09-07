@@ -20,6 +20,17 @@ import { extractTweet, mediaIdentity, type ExtractedMedia, type ExtractedTweet }
 import { MediaMetadataCache, type CapturedMediaMetadata } from "./media-metadata.ts";
 import { sharedDownloadWatcher } from "./download-watch.ts";
 import { isSaveableVariantUrl, VIDEO_CONTAINER_SELECTOR } from "./video-extract.ts";
+import {
+  bestObservedAdaptive,
+  buildYtDlpCommand,
+  compareVariantQuality,
+  handoffToYtDlp,
+  readYtDlpJob,
+  shouldOfferAdaptiveHelper,
+  YTDLP_FORMAT_POLICY,
+  type ObservedAdaptiveCandidate,
+  type YtDlpJobState
+} from "./yt-dlp-helper.ts";
 import { MediaHistory, type MediaMatchKind } from "./history.ts";
 import { rememberLastDownload } from "./last-download.ts";
 import { DownloadQueue } from "./queue.ts";
@@ -34,6 +45,8 @@ const STYLE_ID = "av-media-buttons";
 const BUTTON_ATTR = "data-av-media-button";
 const ACTION_ATTR = "data-av-media-action";
 const ACTION_SLOT_ATTR = "data-av-media-action-slot";
+const HELPER_SLOT_ATTR = "data-av-media-helper-slot";
+const HELPER_ACTION_ATTR = "data-av-media-helper-action";
 const PROCESSED_ATTR = "data-av-media-processed";
 const DOWNLOADED_ATTR = "data-av-downloaded";
 const MEDIA_HOST_SELECTOR =
@@ -63,12 +76,20 @@ interface ResolvedTarget {
   fallbackQualities?: DownloadQualityReceipt[];
   mediaId: string | null;
   ext: string;
+  helperOnly?: boolean;
+  adaptive?: ObservedAdaptiveCandidate;
 }
 
 interface PrimaryDownloadAsset {
   media: ExtractedMedia;
   index: number;
   target: ResolvedTarget;
+}
+
+interface AdaptiveDownloadAsset {
+  media: ExtractedMedia;
+  index: number;
+  candidate: ObservedAdaptiveCandidate;
 }
 
 let downloader: Downloader | undefined;
@@ -189,7 +210,12 @@ export const mediaButtonsFeature: FeatureModule = {
       // Our own button insertion is also observed. Skip that one mutation, but reconcile every
       // X-owned addition: virtualized timeline cells keep the article element while replacing
       // its media subtree, so a once-only processed marker cannot prove controls still exist.
-      if (node.hasAttribute(BUTTON_ATTR) || node.hasAttribute(ACTION_SLOT_ATTR)) {
+      if (
+        node.hasAttribute(BUTTON_ATTR) ||
+        node.hasAttribute(ACTION_SLOT_ATTR) ||
+        node.hasAttribute(HELPER_SLOT_ATTR) ||
+        node.hasAttribute(HELPER_ACTION_ATTR)
+      ) {
         continue;
       }
       if (needsMutationReconcile(node)) {
@@ -324,6 +350,9 @@ function clearDecorations(): void {
   for (const slot of Array.from(document.querySelectorAll(`[${ACTION_SLOT_ATTR}]`))) {
     slot.remove();
   }
+  for (const slot of Array.from(document.querySelectorAll(`[${HELPER_SLOT_ATTR}]`))) {
+    slot.remove();
+  }
 }
 
 function installContextDownload(ctx: FeatureContext): void {
@@ -418,17 +447,20 @@ async function downloadContextTarget(ctx: FeatureContext): Promise<boolean> {
   const tweet = extractTweetForContext(pending.article, ctx);
   const wantsVideo = pending.host.matches(VIDEO_CONTAINER_SELECTOR);
   const index = tweet.media.findIndex((media) => {
+    const target = resolveTarget(media);
     if (wantsVideo) {
       return (
         media.kind === "video" &&
         media.video?.container === pending.host &&
-        resolveTarget(media) !== null
+        target !== null &&
+        target.helperOnly !== true
       );
     }
     return (
       media.kind === "photo" &&
       media.source.closest('[data-testid="tweetPhoto"]') === pending.host &&
-      resolveTarget(media) !== null
+      target !== null &&
+      target.helperOnly !== true
     );
   });
   const media = tweet.media[index];
@@ -547,7 +579,8 @@ function decorateArticle(tweet: ExtractedTweet, ctx: FeatureContext): void {
     // so the only variant is a `blob:` handle -- offering a control that can never work (and
     // used to report "Saved") is worse than offering none. The poster still gets its Thumb
     // button, so a video post is not left bare.
-    if (!resolveTarget(media)) {
+    const target = resolveTarget(media);
+    if (!target || target.helperOnly) {
       return;
     }
     const button = buildButton(media, index, tweet, ctx);
@@ -558,27 +591,34 @@ function decorateArticle(tweet: ExtractedTweet, ctx: FeatureContext): void {
 
 function decoratePostAction(tweet: ExtractedTweet, ctx: FeatureContext): void {
   const group = findActionGroup(tweet.article);
-  if (!group || group.querySelector(`[${ACTION_ATTR}]`)) {
+  if (group?.querySelector(`[${ACTION_ATTR}], [${HELPER_ACTION_ATTR}]`)) {
     return;
   }
+  if (!group) return;
 
   const assets = primaryDownloadAssets(tweet);
+  const adaptiveAssets = primaryAdaptiveAssets(tweet);
   const hasPendingVideo =
     tweet.media.some((media) => media.kind === "video" && resolveTarget(media) === null) ||
     (tweet.article.querySelector(VIDEO_CONTAINER_SELECTOR) !== null &&
       !tweet.media.some((media) => media.kind === "video"));
-  if (assets.length === 0 && !hasPendingVideo) {
+  if (assets.length === 0 && adaptiveAssets.length === 0 && !hasPendingVideo) {
     return;
   }
 
-  const slot = document.createElement("div");
-  slot.className = "av-media-action-slot";
-  slot.setAttribute(ACTION_SLOT_ATTR, "1");
-  // Do not silently save only the photos from a mixed post while its direct video is still
-  // resolving. Metadata arrival rebuilds this control with the complete primary-asset set.
-  const button = buildPostAction(tweet, hasPendingVideo ? [] : assets, ctx);
-  slot.append(button);
-  group.append(slot);
+  if (assets.length > 0 || hasPendingVideo) {
+    const slot = document.createElement("div");
+    slot.className = "av-media-action-slot";
+    slot.setAttribute(ACTION_SLOT_ATTR, "1");
+    // Do not silently save only the photos from a mixed post while its direct video is still
+    // resolving. Metadata arrival rebuilds this control with the complete primary-asset set.
+    const button = buildPostAction(tweet, hasPendingVideo ? [] : assets, ctx);
+    slot.append(button);
+    group.append(slot);
+  }
+  for (const asset of adaptiveAssets) {
+    group.append(buildYtDlpSlot(tweet, asset, ctx));
+  }
 }
 
 function findActionGroup(article: Element): HTMLElement | null {
@@ -609,8 +649,23 @@ function primaryDownloadAssets(tweet: ExtractedTweet): PrimaryDownloadAsset[] {
       return;
     }
     const target = resolveTarget(media);
-    if (target) {
+    if (target && !target.helperOnly) {
       assets.push({ media, index, target });
+    }
+  });
+  return assets;
+}
+
+function primaryAdaptiveAssets(tweet: ExtractedTweet): AdaptiveDownloadAsset[] {
+  const assets: AdaptiveDownloadAsset[] = [];
+  tweet.media.forEach((media, index) => {
+    if (media.kind !== "video" || media.owner.scope !== "post" || !media.video) return;
+    const direct = media.video.variants
+      .filter((variant) => isSaveableVariantUrl(variant.url, variant.type))
+      .sort((left, right) => compareVariantQuality(right, left))[0] ?? null;
+    const candidate = bestObservedAdaptive(media.video.variants);
+    if (candidate && shouldOfferAdaptiveHelper(direct, media.video.variants)) {
+      assets.push({ media, index, candidate });
     }
   });
   return assets;
@@ -625,7 +680,9 @@ function buildPostAction(
   button.type = "button";
   button.className = "av-media-action";
   button.setAttribute(ACTION_ATTR, "1");
-  const idleLabel = ft(ctx, "Download");
+  const idleLabel = primaryAdaptiveAssets(tweet).length > 0
+    ? ft(ctx, "Download · Best direct MP4")
+    : ft(ctx, "Download");
   // Say so rather than quietly saving fewer files than the post appears to hold. The excluded
   // assets are a quoted post's or a link card's, and each keeps its own Save control.
   const accessibleLabel = tweet.media.some((media) => media.owner.scope !== "post")
@@ -676,6 +733,155 @@ function buildPostAction(
     void handlePostDownload(tweet, assets, completed, ctx, button);
   });
   return button;
+}
+
+function buildYtDlpSlot(
+  tweet: ExtractedTweet,
+  asset: AdaptiveDownloadAsset,
+  ctx: FeatureContext
+): HTMLElement {
+  const slot = document.createElement("div");
+  slot.className = "av-media-helper-slot";
+  slot.setAttribute(HELPER_SLOT_ATTR, "1");
+  const height = asset.candidate.variant.height;
+  const quality = height ? `${height}p` : ft(ctx, "adaptive");
+  const request = helperRequest(tweet, asset, ctx);
+  const send = document.createElement("button");
+  send.type = "button";
+  send.className = "av-media-helper-button av-media-helper-send";
+  send.setAttribute(HELPER_ACTION_ATTR, "send");
+  send.textContent = ft(ctx, "Send to yt-dlp");
+  send.setAttribute("aria-label", ft(ctx, "Send the observed adaptive video to local yt-dlp"));
+  send.dataset.idleLabel = send.textContent;
+  send.addEventListener("click", (event) => {
+    event.stopPropagation();
+    event.preventDefault();
+    void sendYtDlp(request, send, ctx);
+  });
+
+  const copy = document.createElement("button");
+  copy.type = "button";
+  copy.className = "av-media-helper-button av-media-helper-copy";
+  copy.setAttribute(HELPER_ACTION_ATTR, "copy");
+  copy.textContent = ft(ctx, "Copy yt-dlp command");
+  copy.setAttribute("aria-label", ft(ctx, "Copy the yt-dlp command for the observed adaptive video"));
+  copy.addEventListener("click", (event) => {
+    event.stopPropagation();
+    event.preventDefault();
+    void copyYtDlpCommand(request, copy, ctx);
+  });
+  slot.append(send, copy);
+  slot.setAttribute("aria-label", ft(ctx, "Higher quality adaptive video") + ` · ${quality}`);
+  return slot;
+}
+
+function helperRequest(
+  tweet: ExtractedTweet,
+  asset: AdaptiveDownloadAsset,
+  ctx: FeatureContext
+) {
+  const identity = mediaIdentity(tweet, asset.media);
+  const baseFilename = renderFilename(ctx.settings.media.filenameTemplate, {
+    handle: identity.handle,
+    tweetId: identity.tweetId,
+    index: asset.index,
+    total: tweet.media.length,
+    date: new Date(),
+    ext: "mp4",
+    text: identity.text,
+    mediaId: asset.candidate.variant.url.match(/\/([A-Za-z0-9_-]{6,})\.(?:m3u8|mpd)(?:[?#]|$)/i)?.[1] ?? null
+  }).replace(/\.mp4$/i, ".%(ext)s");
+  return {
+    manifestUrl: asset.candidate.manifestUrl,
+    filename: baseFilename,
+    formatPolicy: YTDLP_FORMAT_POLICY
+  };
+}
+
+async function sendYtDlp(
+  request: ReturnType<typeof helperRequest>,
+  button: HTMLButtonElement,
+  ctx: FeatureContext
+): Promise<void> {
+  setHelperFeedback(button, ft(ctx, "Sending…"), true, "running");
+  try {
+    const result = await handoffToYtDlp(ctx.settings.integrations.ytDlp, request);
+    if (result.state === "refused") {
+      setHelperFeedback(button, ft(ctx, "Refused"), false, "refused");
+      showFeatureToast(result.error ?? ft(ctx, "The local yt-dlp helper refused this job."), { tone: "error", ctx });
+      return;
+    }
+    if (result.state === "failed" || !result.jobId) {
+      setHelperFeedback(button, ft(ctx, "Failed"), false, "failed");
+      showFeatureToast(result.error ?? ft(ctx, "The local yt-dlp helper failed."), { tone: "error", ctx });
+      return;
+    }
+    const terminal = await waitForYtDlp(ctx.settings.integrations.ytDlp, result.jobId);
+    if (terminal.state === "completed") {
+      setHelperFeedback(button, ft(ctx, "Saved"), false, "completed");
+      showFeatureToast(ft(ctx, "Adaptive video saved by yt-dlp."), { tone: "info", ctx });
+    } else if (terminal.state === "missing") {
+      setHelperFeedback(button, ft(ctx, "Missing"), false, "missing");
+      showFeatureToast(ft(ctx, "The yt-dlp job is no longer available. Copy the command to retry."), { tone: "error", ctx });
+    } else if (terminal.state === "refused") {
+      setHelperFeedback(button, ft(ctx, "Refused"), false, "refused");
+      showFeatureToast(terminal.error ?? ft(ctx, "The local yt-dlp helper refused this job."), { tone: "error", ctx });
+    } else {
+      setHelperFeedback(button, ft(ctx, "Failed"), false, "failed");
+      showFeatureToast(terminal.error ?? ft(ctx, "The local yt-dlp helper failed."), { tone: "error", ctx });
+    }
+  } catch (error) {
+    setHelperFeedback(button, ft(ctx, "Failed"), false, "failed");
+    ctx.diagnostics.warn("yt-dlp handoff failed", errorDetails(error));
+    showFeatureToast(ft(ctx, "The local yt-dlp helper could not be reached."), { tone: "error", ctx });
+  }
+}
+
+async function waitForYtDlp(
+  settings: FeatureContext["settings"]["integrations"]["ytDlp"],
+  jobId: string
+): Promise<{ state: YtDlpJobState; error?: string }> {
+  const deadline = Date.now() + 120_000;
+  let current = await readYtDlpJob(settings, jobId);
+  while (current.state === "running" && Date.now() < deadline) {
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 500);
+    });
+    current = await readYtDlpJob(settings, jobId);
+  }
+  return current;
+}
+
+async function copyYtDlpCommand(
+  request: ReturnType<typeof helperRequest>,
+  button: HTMLButtonElement,
+  ctx: FeatureContext
+): Promise<void> {
+  try {
+    const clipboard = globalThis.navigator?.clipboard;
+    if (!clipboard?.writeText) throw new Error("Clipboard unavailable");
+    await clipboard.writeText(buildYtDlpCommand(request));
+    setHelperFeedback(button, ft(ctx, "Copied"), false, "copied");
+    showFeatureToast(ft(ctx, "yt-dlp command copied."), { tone: "info", ctx });
+    setTimeout(() => {
+      if (button.isConnected) setHelperFeedback(button, ft(ctx, "Copy yt-dlp command"), false, "idle");
+    }, 2200);
+  } catch (error) {
+    ctx.diagnostics.warn("yt-dlp command copy failed", errorDetails(error));
+    showFeatureToast(ft(ctx, "The yt-dlp command could not be copied."), { tone: "error", ctx });
+  }
+}
+
+function setHelperFeedback(
+  button: HTMLButtonElement,
+  label: string,
+  disabled: boolean,
+  state: string
+): void {
+  button.textContent = label;
+  button.disabled = disabled;
+  button.dataset.state = state;
+  button.setAttribute("aria-busy", String(disabled));
 }
 
 /**
@@ -1442,16 +1648,29 @@ function saveSidecarOrWarn(
 
 function resolveTarget(media: ExtractedMedia): ResolvedTarget | null {
   if (media.kind === "video" && media.video?.preferred) {
-    const url = media.video.preferred.url;
-    if (!isSaveableVariantUrl(url, media.video.preferred.type)) {
-      return null;
+    const direct = media.video.variants
+      .filter((variant) => isSaveableVariantUrl(variant.url, variant.type))
+      .sort((left, right) => compareVariantQuality(right, left))[0] ?? null;
+    const adaptive = bestObservedAdaptive(media.video.variants);
+    if (!direct && adaptive) {
+      return {
+        url: adaptive.manifestUrl,
+        quality: qualityForVariant(adaptive.variant, "best-direct"),
+        mediaId: mediaIdFromVideo(adaptive.manifestUrl),
+        ext: "mp4",
+        helperOnly: true,
+        adaptive
+      };
     }
-    const variant = media.video.preferred;
+    if (!direct) return null;
+    const url = direct.url;
+    const variant = direct;
     return {
       url,
       quality: qualityForVariant(variant, "best-direct"),
       mediaId: mediaIdFromVideo(url),
-      ext: extensionForVideo(variant.type, url)
+      ext: extensionForVideo(variant.type, url),
+      ...(adaptive && shouldOfferAdaptiveHelper(direct, media.video.variants) ? { adaptive } : {})
     };
   }
   if (media.kind === "audio" && media.audio?.preferred) {
@@ -1588,6 +1807,56 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
   justify-content: flex-end;
   min-width: 112px;
   margin-inline-start: 4px;
+}
+
+[${HELPER_SLOT_ATTR}] {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 4px;
+  margin-inline-start: 4px;
+}
+
+[${HELPER_ACTION_ATTR}] {
+  appearance: none;
+  min-height: 40px;
+  padding: 6px 10px;
+  border: 1px solid color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 48%, transparent);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--av-accent, rgb(29, 155, 240));
+  cursor: pointer;
+  font: 700 12px/1.1 TwitterChirp, Inter, ui-sans-serif, system-ui, sans-serif;
+  white-space: nowrap;
+  transition: background-color 140ms ease, color 140ms ease, border-color 140ms ease;
+}
+
+[${HELPER_ACTION_ATTR}]:hover:not(:disabled) {
+  border-color: var(--av-accent, rgb(29, 155, 240));
+  background: color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 12%, transparent);
+}
+
+[${HELPER_ACTION_ATTR}]:focus-visible {
+  outline: 2px solid var(--av-accent, rgb(29, 155, 240));
+  outline-offset: 2px;
+}
+
+[${HELPER_ACTION_ATTR}][data-state="completed"],
+[${HELPER_ACTION_ATTR}][data-state="copied"] {
+  border-color: var(--av-media-success, rgb(120, 200, 130));
+  color: var(--av-media-success-text, rgb(206, 240, 210));
+}
+
+[${HELPER_ACTION_ATTR}][data-state="failed"],
+[${HELPER_ACTION_ATTR}][data-state="refused"],
+[${HELPER_ACTION_ATTR}][data-state="missing"] {
+  border-color: var(--av-media-error, rgb(220, 110, 110));
+  color: var(--av-media-error-text, rgb(248, 200, 200));
+}
+
+[${HELPER_ACTION_ATTR}]:disabled {
+  cursor: progress;
+  opacity: 0.72;
 }
 
 [${ACTION_ATTR}] {
@@ -1778,6 +2047,17 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
     width: 100%;
     min-width: 0;
     margin: 4px 0 0;
+  }
+
+  [${HELPER_SLOT_ATTR}] {
+    flex: 1 0 100%;
+    width: 100%;
+    margin: 4px 0 0;
+  }
+
+  [${HELPER_ACTION_ATTR}] {
+    flex: 1 1 0;
+    min-height: 46px;
   }
 
   [${ACTION_ATTR}] {

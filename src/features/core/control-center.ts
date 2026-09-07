@@ -1111,6 +1111,10 @@ export const controlCenterFeature: FeatureModule = {
         const integrations = ctx.settings.integrations;
         return {
           aria2: { enabled: integrations.aria2.enabled, configured: integrations.aria2.endpoint.length > 0 },
+          ytDlp: {
+            enabled: integrations.ytDlp.enabled,
+            configured: integrations.ytDlp.endpoint.length > 0 && integrations.ytDlp.secret.length > 0
+          },
           bluesky: {
             enabled: integrations.bluesky.enabled,
             configured:

@@ -750,6 +750,82 @@ test("a queued page-bridge observation makes a blob-backed video downloadable af
   assert.equal(result.finalText, "✓ Saved");
 });
 
+test("adaptive observations expose yt-dlp actions while keeping direct MP4 as the default", async () => {
+  const directAndAdaptiveBody = metadataBody.replace(
+    '"bitrate":2176000',
+    '"bitrate": 2176000}, {"content_type":"application/x-mpegURL","url":"https://video.twimg.com/ext_tw_video/123/pu/pl/1920x1080/manifest.m3u8?tag=12","width":1920,"height":1080,"bitrate":4000000'
+  );
+  const adaptiveOnlyBody = directAndAdaptiveBody
+    .replace('"rest_id":"123456789"', '"rest_id":"223456789"')
+    .replaceAll("media/456789?", "media/556789?")
+    .replaceAll('media_key":"7_456789', 'media_key":"7_556789')
+    .replace(/\{"content_type":"video\/mp4","url":"[^"]+","bitrate":\s*2176000\},/, "");
+
+  const result = await page.evaluate(async ({ directBody, adaptiveBody }) => {
+    document.body.replaceChildren();
+    const buildArticle = (handle, tweetId, poster) => {
+      const article = document.createElement("article");
+      article.setAttribute("data-testid", "tweet");
+      const userName = document.createElement("div");
+      userName.setAttribute("data-testid", "User-Name");
+      const profile = document.createElement("a");
+      profile.href = `/${handle}`;
+      userName.append(profile);
+      const status = document.createElement("a");
+      status.href = `/${handle}/status/${tweetId}`;
+      const actions = document.createElement("div");
+      actions.setAttribute("role", "group");
+      const reply = document.createElement("button");
+      reply.setAttribute("data-testid", "reply");
+      actions.append(reply);
+      const player = document.createElement("div");
+      player.setAttribute("data-testid", "videoComponent");
+      const video = document.createElement("video");
+      video.poster = poster;
+      video.src = `blob:https://x.com/${tweetId}`;
+      player.append(video);
+      article.append(userName, status, actions, player);
+      document.body.append(article);
+      return article;
+    };
+    const directArticle = buildArticle("direct_owner", "123456789", "https://pbs.twimg.com/media/456789?format=jpg&name=small");
+    const adaptiveArticle = buildArticle("adaptive_owner", "223456789", "https://pbs.twimg.com/media/556789?format=jpg&name=small");
+    const settings = structuredClone(AviaryMedia.DEFAULT_SETTINGS);
+    settings.media.downloadHistory = false;
+    const storage = { async get(_key, fallback) { return fallback; }, async set() {} };
+    const ctx = {
+      settings,
+      storage,
+      route: { surface: "home", path: "/home", href: "https://x.com/home" },
+      diagnostics: { info() {}, warn() {}, error() {} },
+      auditLog: { record() {} },
+      requestApply() {}
+    };
+    try {
+      AviaryMedia.ingestMediaMetadata({ body: directBody });
+      AviaryMedia.ingestMediaMetadata({ body: adaptiveBody });
+      await AviaryMedia.mediaButtonsFeature.init(ctx);
+      return {
+        directAction: directArticle.querySelector("[data-av-media-action]")?.textContent ?? null,
+        directHelper: directArticle.querySelector("[data-av-media-helper-action=send]")?.textContent ?? null,
+        directCopy: directArticle.querySelector("[data-av-media-helper-action=copy]")?.textContent ?? null,
+        adaptiveAction: adaptiveArticle.querySelector("[data-av-media-action]")?.textContent ?? null,
+        adaptiveSend: adaptiveArticle.querySelector("[data-av-media-helper-action=send]")?.textContent ?? null,
+        adaptiveCopy: adaptiveArticle.querySelector("[data-av-media-helper-action=copy]")?.textContent ?? null
+      };
+    } finally {
+      await AviaryMedia.mediaButtonsFeature.destroy(ctx);
+    }
+  }, { directBody: directAndAdaptiveBody, adaptiveBody: adaptiveOnlyBody });
+
+  assert.match(result.directAction, /Best direct MP4/);
+  assert.equal(result.directHelper, "Send to yt-dlp");
+  assert.equal(result.directCopy, "Copy yt-dlp command");
+  assert.equal(result.adaptiveAction, null);
+  assert.equal(result.adaptiveSend, "Send to yt-dlp");
+  assert.equal(result.adaptiveCopy, "Copy yt-dlp command");
+});
+
 test("media buttons reattach when X recycles a processed post's media subtree", async () => {
   const result = await page.evaluate(async () => {
     document.body.replaceChildren();

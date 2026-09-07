@@ -267,6 +267,7 @@ var Aviary = (() => {
     },
     integrations: {
       aria2: { enabled: false, endpoint: "", secret: "", minBytes: 5e7 },
+      ytDlp: { enabled: false, endpoint: "http://127.0.0.1:8787", secret: "" },
       bluesky: { enabled: false, service: "https://bsky.social", handle: "", appPassword: "" },
       mastodon: { enabled: false, instance: "", token: "", visibility: "public" },
       ai: {
@@ -412,6 +413,7 @@ var Aviary = (() => {
     const diagnostics = asRecord(record.diagnostics);
     const integrations = asRecord(record.integrations);
     const integrationsAria = asRecord(integrations.aria2);
+    const integrationsYtDlp = asRecord(integrations.ytDlp);
     const integrationsBluesky = asRecord(integrations.bluesky);
     const integrationsMastodon = asRecord(integrations.mastodon);
     const integrationsAi = asRecord(integrations.ai);
@@ -419,6 +421,7 @@ var Aviary = (() => {
     const integrationsCrosspost = asRecord(integrations.crosspost);
     const anyIntegrationEnabled = [
       integrationsAria,
+      integrationsYtDlp,
       integrationsBluesky,
       integrationsMastodon,
       integrationsAi,
@@ -642,6 +645,14 @@ var Aviary = (() => {
             1e6,
             5e9
           )
+        },
+        ytDlp: {
+          enabled: booleanValue(integrationsYtDlp.enabled, DEFAULT_SETTINGS.integrations.ytDlp.enabled),
+          endpoint: credentialedUrlValue(
+            integrationsYtDlp.endpoint,
+            DEFAULT_SETTINGS.integrations.ytDlp.endpoint
+          ),
+          secret: secretValue(integrationsYtDlp.secret, DEFAULT_SETTINGS.integrations.ytDlp.secret)
         },
         bluesky: {
           enabled: booleanValue(integrationsBluesky.enabled, DEFAULT_SETTINGS.integrations.bluesky.enabled),
@@ -4227,6 +4238,39 @@ ${body}
       row.append(copy2, refreshBtn, list);
       rows.push(row);
     }
+    rows.push(
+      ctx.toggleRow(
+        "Local yt-dlp handoff",
+        "Offer a higher-quality adaptive save when a local authenticated helper is running.",
+        integrations.ytDlp.enabled,
+        async (checked) => {
+          integrations.ytDlp.enabled = checked;
+          await ctx.save(checked ? "yt-dlp handoff on." : "yt-dlp handoff off.");
+        }
+      )
+    );
+    rows.push(
+      ctx.textInputRow(
+        "yt-dlp helper endpoint",
+        "http://127.0.0.1:8787 (loopback only)",
+        integrations.ytDlp.endpoint,
+        async (value) => {
+          integrations.ytDlp.endpoint = value;
+          await ctx.save("yt-dlp helper endpoint saved.");
+        }
+      )
+    );
+    rows.push(
+      ctx.secretInputRow(
+        "yt-dlp helper secret",
+        "The AVIARY_YTDLP_TOKEN shared with the local process.",
+        integrations.ytDlp.secret,
+        async (value) => {
+          integrations.ytDlp.secret = value;
+          await ctx.save("yt-dlp helper secret saved.");
+        }
+      )
+    );
     rows.push(
       ctx.toggleRow(
         "Bluesky crosspost",
@@ -16145,6 +16189,164 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     return shared;
   }
 
+  // src/features/media/yt-dlp-helper.ts
+  var YTDLP_FORMAT_POLICY = "bv*+ba/b";
+  var YTDLP_MERGE_POLICY = "mp4/mkv";
+  var YTDLP_DEFAULT_ENDPOINT = "http://127.0.0.1:8787";
+  function isObservedAdaptiveManifest(variant) {
+    let parsed;
+    try {
+      parsed = new URL(variant.url);
+    } catch {
+      return false;
+    }
+    if (parsed.protocol !== "https:" || parsed.hostname.toLowerCase() !== "video.twimg.com") {
+      return false;
+    }
+    return /\.(?:m3u8|mpd)$/i.test(parsed.pathname) || /(?:mpegurl|dash\+xml)/i.test(variant.type);
+  }
+  function observedAdaptiveCandidates(variants) {
+    return variants.filter(isObservedAdaptiveManifest).map((variant) => ({ manifestUrl: variant.url, variant })).sort((left, right) => {
+      const quality = compareVariantQuality(right.variant, left.variant);
+      return quality !== 0 ? quality : left.manifestUrl.localeCompare(right.manifestUrl);
+    });
+  }
+  function bestObservedAdaptive(variants) {
+    return observedAdaptiveCandidates(variants)[0] ?? null;
+  }
+  function compareVariantQuality(left, right) {
+    for (const [leftValue, rightValue] of [
+      [left.height, right.height],
+      [left.width, right.width],
+      [left.bitrate, right.bitrate]
+    ]) {
+      const delta = (leftValue ?? 0) - (rightValue ?? 0);
+      if (delta !== 0) return delta;
+    }
+    return 0;
+  }
+  function shouldOfferAdaptiveHelper(direct, variants) {
+    const adaptive = bestObservedAdaptive(variants);
+    return adaptive !== null && (direct === null || compareVariantQuality(adaptive.variant, direct) > 0);
+  }
+  function buildYtDlpCommand(request) {
+    return [
+      "yt-dlp",
+      "--no-playlist",
+      "--format",
+      quotePowerShell(request.formatPolicy),
+      "--merge-output-format",
+      quotePowerShell(YTDLP_MERGE_POLICY),
+      "--output",
+      quotePowerShell(request.filename),
+      quotePowerShell(request.manifestUrl)
+    ].join(" ");
+  }
+  function normalizeYtDlpEndpoint(endpoint) {
+    try {
+      const parsed = new URL(endpoint || YTDLP_DEFAULT_ENDPOINT);
+      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return null;
+      const host = parsed.hostname.replace(/^\[|\]$/g, "").toLowerCase();
+      if (host !== "localhost" && host !== "::1" && !host.endsWith(".localhost") && !/^127\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(host)) {
+        return null;
+      }
+      parsed.username = "";
+      parsed.password = "";
+      parsed.search = "";
+      parsed.hash = "";
+      return parsed.toString().replace(/\/$/, "");
+    } catch {
+      return null;
+    }
+  }
+  async function handoffToYtDlp(settings, request) {
+    if (!settings.enabled || !settings.secret) {
+      return { state: "refused", error: "Enable the local yt-dlp helper and set its shared secret." };
+    }
+    const endpoint = normalizeYtDlpEndpoint(settings.endpoint);
+    if (!endpoint) {
+      return { state: "refused", error: "The yt-dlp helper endpoint must be on this machine." };
+    }
+    if (!isObservedAdaptiveManifest({ url: request.manifestUrl, type: "application/x-mpegURL" })) {
+      return { state: "refused", error: "Only an observed X adaptive manifest can be handed off." };
+    }
+    assertOutboundAllowed("The local yt-dlp handoff");
+    try {
+      const response = await fetch(`${endpoint}/v1/jobs`, {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${settings.secret}`,
+          "content-type": "application/json"
+        },
+        body: JSON.stringify({
+          manifestUrl: request.manifestUrl,
+          filename: request.filename,
+          formatPolicy: request.formatPolicy
+        })
+      });
+      const payload = await readJson(response);
+      if (response.status === 401 || response.status === 403) {
+        return { state: "refused", error: textError(payload, "The local yt-dlp helper refused authorization.") };
+      }
+      if (!response.ok) {
+        return { state: "failed", error: textError(payload, `The local yt-dlp helper returned HTTP ${response.status}.`) };
+      }
+      return normalizeJobStatus(payload, "The local yt-dlp helper returned an invalid job.");
+    } catch (error) {
+      return { state: "failed", error: error instanceof Error ? error.message : String(error) };
+    }
+  }
+  async function readYtDlpJob(settings, jobId) {
+    if (!settings.enabled || !settings.secret) return { state: "refused", error: "The local yt-dlp helper is not configured." };
+    const endpoint = normalizeYtDlpEndpoint(settings.endpoint);
+    if (!endpoint || !/^[A-Za-z0-9_-]{8,80}$/.test(jobId)) return { state: "missing" };
+    assertOutboundAllowed("The local yt-dlp status check");
+    try {
+      const response = await fetch(`${endpoint}/v1/jobs/${encodeURIComponent(jobId)}`, {
+        headers: { authorization: `Bearer ${settings.secret}` }
+      });
+      const payload = await readJson(response);
+      if (response.status === 401 || response.status === 403) {
+        return { state: "refused", error: textError(payload, "The local yt-dlp helper refused authorization.") };
+      }
+      if (response.status === 404) return { state: "missing" };
+      if (!response.ok) return { state: "failed", error: textError(payload, `The local yt-dlp helper returned HTTP ${response.status}.`) };
+      return normalizeJobStatus(payload, "The local yt-dlp helper returned an invalid status.");
+    } catch (error) {
+      return { state: "failed", error: error instanceof Error ? error.message : String(error) };
+    }
+  }
+  async function readJson(response) {
+    try {
+      return await response.json();
+    } catch {
+      return null;
+    }
+  }
+  function normalizeJobStatus(value, fallback) {
+    if (!value || typeof value !== "object") return { state: "failed", error: fallback };
+    const record = value;
+    const state2 = record.state;
+    if (state2 !== "missing" && state2 !== "refused" && state2 !== "running" && state2 !== "completed" && state2 !== "failed") {
+      return { state: "failed", error: fallback };
+    }
+    return {
+      ...typeof record.jobId === "string" ? { jobId: record.jobId } : {},
+      state: state2,
+      ...typeof record.error === "string" ? { error: record.error } : {}
+    };
+  }
+  function textError(value, fallback) {
+    const error = value && typeof value === "object" ? value.error : void 0;
+    if (typeof error === "string") {
+      return error;
+    }
+    return fallback;
+  }
+  function quotePowerShell(value) {
+    return `'${value.replace(/'/g, "''")}'`;
+  }
+
   // src/features/media/history.ts
   var MEDIA_HISTORY_KEY = "aviary.media.history.v1";
   var MEDIA_HISTORY_LIMIT = 1500;
@@ -17346,6 +17548,8 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
   var BUTTON_ATTR = "data-av-media-button";
   var ACTION_ATTR = "data-av-media-action";
   var ACTION_SLOT_ATTR = "data-av-media-action-slot";
+  var HELPER_SLOT_ATTR = "data-av-media-helper-slot";
+  var HELPER_ACTION_ATTR = "data-av-media-helper-action";
   var PROCESSED_ATTR = "data-av-media-processed";
   var DOWNLOADED_ATTR = "data-av-downloaded";
   var MEDIA_HOST_SELECTOR = '[data-testid="tweetPhoto"], [data-testid="videoPlayer"], [data-testid="videoComponent"], audio';
@@ -17438,7 +17642,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
         return;
       }
       for (const node of addedNodes) {
-        if (node.hasAttribute(BUTTON_ATTR) || node.hasAttribute(ACTION_SLOT_ATTR)) {
+        if (node.hasAttribute(BUTTON_ATTR) || node.hasAttribute(ACTION_SLOT_ATTR) || node.hasAttribute(HELPER_SLOT_ATTR) || node.hasAttribute(HELPER_ACTION_ATTR)) {
           continue;
         }
         if (needsMutationReconcile(node)) {
@@ -17538,6 +17742,9 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     for (const slot of Array.from(document.querySelectorAll(`[${ACTION_SLOT_ATTR}]`))) {
       slot.remove();
     }
+    for (const slot of Array.from(document.querySelectorAll(`[${HELPER_SLOT_ATTR}]`))) {
+      slot.remove();
+    }
   }
   function installContextDownload(ctx) {
     const runtime = globalThis.chrome?.runtime;
@@ -17611,10 +17818,11 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     const tweet = extractTweetForContext(pending.article, ctx);
     const wantsVideo = pending.host.matches(VIDEO_CONTAINER_SELECTOR);
     const index = tweet.media.findIndex((media2) => {
+      const target = resolveTarget(media2);
       if (wantsVideo) {
-        return media2.kind === "video" && media2.video?.container === pending.host && resolveTarget(media2) !== null;
+        return media2.kind === "video" && media2.video?.container === pending.host && target !== null && target.helperOnly !== true;
       }
-      return media2.kind === "photo" && media2.source.closest('[data-testid="tweetPhoto"]') === pending.host && resolveTarget(media2) !== null;
+      return media2.kind === "photo" && media2.source.closest('[data-testid="tweetPhoto"]') === pending.host && target !== null && target.helperOnly !== true;
     });
     const media = tweet.media[index];
     if (!media) {
@@ -17702,7 +17910,8 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       if (!container || hasOwnButton(container, media.kind)) {
         return;
       }
-      if (!resolveTarget(media)) {
+      const target = resolveTarget(media);
+      if (!target || target.helperOnly) {
         return;
       }
       const button3 = buildButton(media, index, tweet, ctx);
@@ -17712,20 +17921,27 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
   }
   function decoratePostAction(tweet, ctx) {
     const group = findActionGroup(tweet.article);
-    if (!group || group.querySelector(`[${ACTION_ATTR}]`)) {
+    if (group?.querySelector(`[${ACTION_ATTR}], [${HELPER_ACTION_ATTR}]`)) {
       return;
     }
+    if (!group) return;
     const assets = primaryDownloadAssets(tweet);
+    const adaptiveAssets = primaryAdaptiveAssets(tweet);
     const hasPendingVideo = tweet.media.some((media) => media.kind === "video" && resolveTarget(media) === null) || tweet.article.querySelector(VIDEO_CONTAINER_SELECTOR) !== null && !tweet.media.some((media) => media.kind === "video");
-    if (assets.length === 0 && !hasPendingVideo) {
+    if (assets.length === 0 && adaptiveAssets.length === 0 && !hasPendingVideo) {
       return;
     }
-    const slot = document.createElement("div");
-    slot.className = "av-media-action-slot";
-    slot.setAttribute(ACTION_SLOT_ATTR, "1");
-    const button3 = buildPostAction(tweet, hasPendingVideo ? [] : assets, ctx);
-    slot.append(button3);
-    group.append(slot);
+    if (assets.length > 0 || hasPendingVideo) {
+      const slot = document.createElement("div");
+      slot.className = "av-media-action-slot";
+      slot.setAttribute(ACTION_SLOT_ATTR, "1");
+      const button3 = buildPostAction(tweet, hasPendingVideo ? [] : assets, ctx);
+      slot.append(button3);
+      group.append(slot);
+    }
+    for (const asset of adaptiveAssets) {
+      group.append(buildYtDlpSlot(tweet, asset, ctx));
+    }
   }
   function findActionGroup(article) {
     const reply = article.querySelector('[data-testid="reply"]');
@@ -17742,8 +17958,20 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
         return;
       }
       const target = resolveTarget(media);
-      if (target) {
+      if (target && !target.helperOnly) {
         assets.push({ media, index, target });
+      }
+    });
+    return assets;
+  }
+  function primaryAdaptiveAssets(tweet) {
+    const assets = [];
+    tweet.media.forEach((media, index) => {
+      if (media.kind !== "video" || media.owner.scope !== "post" || !media.video) return;
+      const direct = media.video.variants.filter((variant) => isSaveableVariantUrl(variant.url, variant.type)).sort((left, right) => compareVariantQuality(right, left))[0] ?? null;
+      const candidate = bestObservedAdaptive(media.video.variants);
+      if (candidate && shouldOfferAdaptiveHelper(direct, media.video.variants)) {
+        assets.push({ media, index, candidate });
       }
     });
     return assets;
@@ -17753,7 +17981,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     button3.type = "button";
     button3.className = "av-media-action";
     button3.setAttribute(ACTION_ATTR, "1");
-    const idleLabel = ft(ctx, "Download");
+    const idleLabel = primaryAdaptiveAssets(tweet).length > 0 ? ft(ctx, "Download \xB7 Best direct MP4") : ft(ctx, "Download");
     const accessibleLabel = tweet.media.some((media) => media.owner.scope !== "post") ? ft(ctx, "Download this post's own media. Quoted and card media has its own Download button.") : ft(ctx, "Download all media in this post");
     button3.dataset.idleLabel = idleLabel;
     button3.dataset.baseIdleAriaLabel = accessibleLabel;
@@ -17796,6 +18024,124 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       void handlePostDownload(tweet, assets, completed, ctx, button3);
     });
     return button3;
+  }
+  function buildYtDlpSlot(tweet, asset, ctx) {
+    const slot = document.createElement("div");
+    slot.className = "av-media-helper-slot";
+    slot.setAttribute(HELPER_SLOT_ATTR, "1");
+    const height = asset.candidate.variant.height;
+    const quality = height ? `${height}p` : ft(ctx, "adaptive");
+    const request = helperRequest(tweet, asset, ctx);
+    const send = document.createElement("button");
+    send.type = "button";
+    send.className = "av-media-helper-button av-media-helper-send";
+    send.setAttribute(HELPER_ACTION_ATTR, "send");
+    send.textContent = ft(ctx, "Send to yt-dlp");
+    send.setAttribute("aria-label", ft(ctx, "Send the observed adaptive video to local yt-dlp"));
+    send.dataset.idleLabel = send.textContent;
+    send.addEventListener("click", (event) => {
+      event.stopPropagation();
+      event.preventDefault();
+      void sendYtDlp(request, send, ctx);
+    });
+    const copy2 = document.createElement("button");
+    copy2.type = "button";
+    copy2.className = "av-media-helper-button av-media-helper-copy";
+    copy2.setAttribute(HELPER_ACTION_ATTR, "copy");
+    copy2.textContent = ft(ctx, "Copy yt-dlp command");
+    copy2.setAttribute("aria-label", ft(ctx, "Copy the yt-dlp command for the observed adaptive video"));
+    copy2.addEventListener("click", (event) => {
+      event.stopPropagation();
+      event.preventDefault();
+      void copyYtDlpCommand(request, copy2, ctx);
+    });
+    slot.append(send, copy2);
+    slot.setAttribute("aria-label", ft(ctx, "Higher quality adaptive video") + ` \xB7 ${quality}`);
+    return slot;
+  }
+  function helperRequest(tweet, asset, ctx) {
+    const identity = mediaIdentity(tweet, asset.media);
+    const baseFilename = renderFilename(ctx.settings.media.filenameTemplate, {
+      handle: identity.handle,
+      tweetId: identity.tweetId,
+      index: asset.index,
+      total: tweet.media.length,
+      date: /* @__PURE__ */ new Date(),
+      ext: "mp4",
+      text: identity.text,
+      mediaId: asset.candidate.variant.url.match(/\/([A-Za-z0-9_-]{6,})\.(?:m3u8|mpd)(?:[?#]|$)/i)?.[1] ?? null
+    }).replace(/\.mp4$/i, ".%(ext)s");
+    return {
+      manifestUrl: asset.candidate.manifestUrl,
+      filename: baseFilename,
+      formatPolicy: YTDLP_FORMAT_POLICY
+    };
+  }
+  async function sendYtDlp(request, button3, ctx) {
+    setHelperFeedback(button3, ft(ctx, "Sending\u2026"), true, "running");
+    try {
+      const result = await handoffToYtDlp(ctx.settings.integrations.ytDlp, request);
+      if (result.state === "refused") {
+        setHelperFeedback(button3, ft(ctx, "Refused"), false, "refused");
+        showFeatureToast(result.error ?? ft(ctx, "The local yt-dlp helper refused this job."), { tone: "error", ctx });
+        return;
+      }
+      if (result.state === "failed" || !result.jobId) {
+        setHelperFeedback(button3, ft(ctx, "Failed"), false, "failed");
+        showFeatureToast(result.error ?? ft(ctx, "The local yt-dlp helper failed."), { tone: "error", ctx });
+        return;
+      }
+      const terminal = await waitForYtDlp(ctx.settings.integrations.ytDlp, result.jobId);
+      if (terminal.state === "completed") {
+        setHelperFeedback(button3, ft(ctx, "Saved"), false, "completed");
+        showFeatureToast(ft(ctx, "Adaptive video saved by yt-dlp."), { tone: "info", ctx });
+      } else if (terminal.state === "missing") {
+        setHelperFeedback(button3, ft(ctx, "Missing"), false, "missing");
+        showFeatureToast(ft(ctx, "The yt-dlp job is no longer available. Copy the command to retry."), { tone: "error", ctx });
+      } else if (terminal.state === "refused") {
+        setHelperFeedback(button3, ft(ctx, "Refused"), false, "refused");
+        showFeatureToast(terminal.error ?? ft(ctx, "The local yt-dlp helper refused this job."), { tone: "error", ctx });
+      } else {
+        setHelperFeedback(button3, ft(ctx, "Failed"), false, "failed");
+        showFeatureToast(terminal.error ?? ft(ctx, "The local yt-dlp helper failed."), { tone: "error", ctx });
+      }
+    } catch (error) {
+      setHelperFeedback(button3, ft(ctx, "Failed"), false, "failed");
+      ctx.diagnostics.warn("yt-dlp handoff failed", errorDetails2(error));
+      showFeatureToast(ft(ctx, "The local yt-dlp helper could not be reached."), { tone: "error", ctx });
+    }
+  }
+  async function waitForYtDlp(settings, jobId) {
+    const deadline = Date.now() + 12e4;
+    let current = await readYtDlpJob(settings, jobId);
+    while (current.state === "running" && Date.now() < deadline) {
+      await new Promise((resolve) => {
+        setTimeout(resolve, 500);
+      });
+      current = await readYtDlpJob(settings, jobId);
+    }
+    return current;
+  }
+  async function copyYtDlpCommand(request, button3, ctx) {
+    try {
+      const clipboard = globalThis.navigator?.clipboard;
+      if (!clipboard?.writeText) throw new Error("Clipboard unavailable");
+      await clipboard.writeText(buildYtDlpCommand(request));
+      setHelperFeedback(button3, ft(ctx, "Copied"), false, "copied");
+      showFeatureToast(ft(ctx, "yt-dlp command copied."), { tone: "info", ctx });
+      setTimeout(() => {
+        if (button3.isConnected) setHelperFeedback(button3, ft(ctx, "Copy yt-dlp command"), false, "idle");
+      }, 2200);
+    } catch (error) {
+      ctx.diagnostics.warn("yt-dlp command copy failed", errorDetails2(error));
+      showFeatureToast(ft(ctx, "The yt-dlp command could not be copied."), { tone: "error", ctx });
+    }
+  }
+  function setHelperFeedback(button3, label, disabled, state2) {
+    button3.textContent = label;
+    button3.disabled = disabled;
+    button3.dataset.state = state2;
+    button3.setAttribute("aria-busy", String(disabled));
   }
   async function handlePendingPostDownload(article, ctx, button3) {
     setButtonFeedback(button3, {
@@ -18391,16 +18737,27 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
   }
   function resolveTarget(media) {
     if (media.kind === "video" && media.video?.preferred) {
-      const url = media.video.preferred.url;
-      if (!isSaveableVariantUrl(url, media.video.preferred.type)) {
-        return null;
+      const direct = media.video.variants.filter((variant2) => isSaveableVariantUrl(variant2.url, variant2.type)).sort((left, right) => compareVariantQuality(right, left))[0] ?? null;
+      const adaptive = bestObservedAdaptive(media.video.variants);
+      if (!direct && adaptive) {
+        return {
+          url: adaptive.manifestUrl,
+          quality: qualityForVariant(adaptive.variant, "best-direct"),
+          mediaId: mediaIdFromVideo(adaptive.manifestUrl),
+          ext: "mp4",
+          helperOnly: true,
+          adaptive
+        };
       }
-      const variant = media.video.preferred;
+      if (!direct) return null;
+      const url = direct.url;
+      const variant = direct;
       return {
         url,
         quality: qualityForVariant(variant, "best-direct"),
         mediaId: mediaIdFromVideo(url),
-        ext: extensionForVideo(variant.type, url)
+        ext: extensionForVideo(variant.type, url),
+        ...adaptive && shouldOfferAdaptiveHelper(direct, media.video.variants) ? { adaptive } : {}
       };
     }
     if (media.kind === "audio" && media.audio?.preferred) {
@@ -18516,6 +18873,56 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
   justify-content: flex-end;
   min-width: 112px;
   margin-inline-start: 4px;
+}
+
+[${HELPER_SLOT_ATTR}] {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 4px;
+  margin-inline-start: 4px;
+}
+
+[${HELPER_ACTION_ATTR}] {
+  appearance: none;
+  min-height: 40px;
+  padding: 6px 10px;
+  border: 1px solid color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 48%, transparent);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--av-accent, rgb(29, 155, 240));
+  cursor: pointer;
+  font: 700 12px/1.1 TwitterChirp, Inter, ui-sans-serif, system-ui, sans-serif;
+  white-space: nowrap;
+  transition: background-color 140ms ease, color 140ms ease, border-color 140ms ease;
+}
+
+[${HELPER_ACTION_ATTR}]:hover:not(:disabled) {
+  border-color: var(--av-accent, rgb(29, 155, 240));
+  background: color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 12%, transparent);
+}
+
+[${HELPER_ACTION_ATTR}]:focus-visible {
+  outline: 2px solid var(--av-accent, rgb(29, 155, 240));
+  outline-offset: 2px;
+}
+
+[${HELPER_ACTION_ATTR}][data-state="completed"],
+[${HELPER_ACTION_ATTR}][data-state="copied"] {
+  border-color: var(--av-media-success, rgb(120, 200, 130));
+  color: var(--av-media-success-text, rgb(206, 240, 210));
+}
+
+[${HELPER_ACTION_ATTR}][data-state="failed"],
+[${HELPER_ACTION_ATTR}][data-state="refused"],
+[${HELPER_ACTION_ATTR}][data-state="missing"] {
+  border-color: var(--av-media-error, rgb(220, 110, 110));
+  color: var(--av-media-error-text, rgb(248, 200, 200));
+}
+
+[${HELPER_ACTION_ATTR}]:disabled {
+  cursor: progress;
+  opacity: 0.72;
 }
 
 [${ACTION_ATTR}] {
@@ -18706,6 +19113,17 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
     width: 100%;
     min-width: 0;
     margin: 4px 0 0;
+  }
+
+  [${HELPER_SLOT_ATTR}] {
+    flex: 1 0 100%;
+    width: 100%;
+    margin: 4px 0 0;
+  }
+
+  [${HELPER_ACTION_ATTR}] {
+    flex: 1 1 0;
+    min-height: 46px;
   }
 
   [${ACTION_ATTR}] {
@@ -33384,6 +33802,10 @@ ${COLOR_CSS}`;
           const integrations = ctx.settings.integrations;
           return {
             aria2: { enabled: integrations.aria2.enabled, configured: integrations.aria2.endpoint.length > 0 },
+            ytDlp: {
+              enabled: integrations.ytDlp.enabled,
+              configured: integrations.ytDlp.endpoint.length > 0 && integrations.ytDlp.secret.length > 0
+            },
             bluesky: {
               enabled: integrations.bluesky.enabled,
               configured: integrations.bluesky.handle.length > 0 && integrations.bluesky.appPassword.length > 0

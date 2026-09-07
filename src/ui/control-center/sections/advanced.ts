@@ -531,6 +531,42 @@ export function buildIntegrationRows(ctx: PanelContext): HTMLElement[] {
     rows.push(row);
   }
 
+  // Local yt-dlp helper. The browser sends only an observed X adaptive manifest, never cookies or
+  // a status URL. The companion process owns the output directory and the ffmpeg merge.
+  rows.push(
+    ctx.toggleRow(
+      "Local yt-dlp handoff",
+      "Offer a higher-quality adaptive save when a local authenticated helper is running.",
+      integrations.ytDlp.enabled,
+      async (checked) => {
+        integrations.ytDlp.enabled = checked;
+        await ctx.save(checked ? "yt-dlp handoff on." : "yt-dlp handoff off.");
+      }
+    )
+  );
+  rows.push(
+    ctx.textInputRow(
+      "yt-dlp helper endpoint",
+      "http://127.0.0.1:8787 (loopback only)",
+      integrations.ytDlp.endpoint,
+      async (value) => {
+        integrations.ytDlp.endpoint = value;
+        await ctx.save("yt-dlp helper endpoint saved.");
+      }
+    )
+  );
+  rows.push(
+    ctx.secretInputRow(
+      "yt-dlp helper secret",
+      "The AVIARY_YTDLP_TOKEN shared with the local process.",
+      integrations.ytDlp.secret,
+      async (value) => {
+        integrations.ytDlp.secret = value;
+        await ctx.save("yt-dlp helper secret saved.");
+      }
+    )
+  );
+
   // Bluesky
   rows.push(
     ctx.toggleRow(

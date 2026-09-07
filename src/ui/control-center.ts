@@ -363,6 +363,7 @@ export interface ControlCenterOptions {
   pingAria2?: () => Promise<{ ok: boolean; error?: string }>;
   getIntegrationStatus?: () => {
     aria2: { enabled: boolean; configured: boolean };
+    ytDlp: { enabled: boolean; configured: boolean };
     bluesky: { enabled: boolean; configured: boolean };
     mastodon: { enabled: boolean; configured: boolean };
     ai: { enabled: boolean; configured: boolean };

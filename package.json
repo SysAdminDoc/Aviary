@@ -23,6 +23,7 @@
     "lint": "eslint \"src/**/*.ts\" \"tests/**/*.mjs\" \"tools/**/*.mjs\" \"eslint.config.mjs\"",
     "preflight": "node tools/preflight.mjs",
     "test": "node --test tests/*.test.mjs",
+    "yt-dlp:helper": "node tools/yt-dlp-helper.mjs",
     "test:matrix": "node --test tests/release-matrix.test.mjs tests/large-library-matrix.test.mjs",
     "test:visual": "npm run build && node --test tests/visual/settings-visual-regression.test.mjs tests/visual/injected-visual-regression.test.mjs tests/visual/reflow-visual-regression.test.mjs",
     "test:visual:update": "npm run build && node tools/update-settings-visuals.mjs",

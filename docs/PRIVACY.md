@@ -27,6 +27,7 @@ These are the only Aviary-triggered network paths:
 | Media Save / Thumb / captured Library batch | After you click a media button or the Library download action | The selected X image, video, audio, or caption URL, or URLs already stored in local capture records. A browser/userscript downloader handles each file. Optional text or JSON sidecars are built locally after a completed save. |
 | Export media-byte capture | Only when **Capture media bytes in export** is enabled and you click export | The selected X media URLs; successful response bytes, length, and checksum are placed in that local package, while failures remain local retryable metadata. |
 | Aria2 handoff | When enabled, configured, and the media meets the threshold | Your configured JSON-RPC endpoint; the media URL, filename, and optional RPC secret are sent. |
+| Local yt-dlp handoff | Only after you enable it and click **Send to yt-dlp** for an observed adaptive manifest | Your configured loopback helper; only the observed `video.twimg.com` manifest URL, filename, and fixed format policy are sent. X post URLs, cookies, and bearer tokens are excluded. |
 | Bluesky / Mastodon | After you click the corresponding crosspost action | Your configured service; composer text, thread metadata, and optionally the last downloaded media when attachment is enabled. |
 | AI provider | When AI runs is enabled, you review the disclosure, and you send a provider-backed command | Your configured endpoint; the prompt built from the selected post and configured system text. The review shows fields, character/token estimate, retention notice, network status, and byte budget. |
 | Semantic search | When you rebuild the index, explicitly add semantic ranking to a query, or enable auto-embedding | Your configured embeddings endpoint; the model and record text sent for each embedding request. The Control Center shows the destination, fields, retention notice, and byte budget before auto-indexing. |
@@ -147,7 +148,7 @@ not make the remaining captured post data anonymous: treat it as account data.
 
 ## Credentials and exports
 
-Aria2 secrets, Bluesky app passwords, Mastodon tokens, and AI/embedding keys are stored locally in
+Aria2 secrets, the yt-dlp helper secret, Bluesky app passwords, Mastodon tokens, and AI/embedding keys are stored locally in
 the active profile in the form the browser needs. They are sent only to the service you configured
 when that integration runs. Use scoped, revocable credentials. **Export settings** replaces these
 secrets with placeholders; importing the file keeps credentials already saved on the destination

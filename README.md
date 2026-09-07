@@ -74,6 +74,13 @@ unknown, with any known dimensions, bitrate, and MIME. It never stores the sourc
 failure retries the original image before moving down the quality ladder, while cancellation stops
 without starting another candidate.
 
+Progressive MP4 stays the default because it needs no setup. When an observed X adaptive manifest
+could be better, the post action also offers **Send to yt-dlp** and **Copy yt-dlp command**. The
+optional local helper runs with `npm run yt-dlp:helper` after you set `AVIARY_YTDLP_TOKEN`; enable
+the matching loopback endpoint and secret in **Control Center -> Integrations**. Aviary sends only
+the observed manifest URL, a filename, and the fixed best-video-plus-audio policy. It never sends
+your X URL, cookies, or bearer token to the helper.
+
 That's the whole default surface. Themes, layout cleanup, filters, offscreen video pausing and the
 broader analytics refusal all start off. Outside the download controls, the only thing Aviary adds
 to the page is its launcher in X's left navigation.

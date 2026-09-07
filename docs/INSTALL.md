@@ -47,6 +47,22 @@ Read markers, per-surface seen-post hiding, and captured thread rebuilding are l
 thread reader uses only records already stored in the browser. They do not add an unread badge or
 request another X endpoint.
 
+## Optional adaptive video helper
+
+Progressive MP4 downloads work without a helper. If Aviary has already observed a higher-quality
+adaptive manifest, run the local companion from the repository:
+
+```powershell
+$env:AVIARY_YTDLP_TOKEN = "use-a-long-random-secret"
+npm run yt-dlp:helper
+```
+
+Enable **Local yt-dlp handoff** in **Control Center -> Integrations**, keep the endpoint on the
+loopback address, and enter the same secret. The helper needs `yt-dlp` on your PATH. Aviary sends
+only the observed manifest URL, a filename, and the fixed best-video-plus-audio policy. It does not
+send the X post URL, browser cookies, or bearer token. **Send to yt-dlp** waits for the local job
+state and reports a refusal or failure instead of claiming the file was saved.
+
 ## Chrome, Edge, or Brave (developer load)
 
 1. Run `npm run verify:release` (or `npm run verify:fast` while developing). **This step is required on a fresh clone**: neither

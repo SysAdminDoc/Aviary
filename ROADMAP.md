@@ -12,14 +12,6 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
 
 ### P2, Later
 
-- [ ] F283, P2: Offer an observed-adaptive yt-dlp handoff when it improves saved quality
-  Why: an observed adaptive rendition can exceed the best direct MP4 even when a progressive file exists, and adaptive-only posts need an actionable path.
-  Evidence: `src/features/media/video-extract.ts`, `src/features/media/urls.ts`; https://github.com/yt-dlp/yt-dlp/blob/master/yt_dlp/extractor/twitter.py; https://www.rfc-editor.org/rfc/rfc8216
-  Touches: observed media metadata, candidate selection, post actions, queue, integration network policy, authenticated local-helper protocol, packaging and failure tests
-  Acceptance: adaptive-only media offers `Send to local yt-dlp` and `Copy yt-dlp command`; a direct 720p plus observed adaptive 1080p fixture labels the default as `Best direct MP4` and exposes the higher-quality helper option; the helper receives only the observed manifest, filename, and format policy, never a status URL, cookie, or bearer token for X discovery; the highest observed video and audio are merged without transcoding into MP4 when compatible, otherwise into a named compatible container; helper authorization rejects unauthenticated callers and does not create jobs through GET; missing, refused, running, completed, and failed states differ; direct downloading remains zero setup.
-  Complexity: XL
-  Depends: F277 and F332. Authentic quality proof remains in `Roadmap_Blocked.md`.
-
 ### P3, Under Consideration
 
 - [ ] F291, P3: Generate documentation facts from runtime contracts

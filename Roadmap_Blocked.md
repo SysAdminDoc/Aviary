@@ -27,6 +27,20 @@ measurement, record it with the new date, and move whatever the capture now supp
 ROADMAP.md. The waiver in `captures.json` expires 2026-09-30, after which preflight fails rather
 than warns, deliberately, so the deadline is real.
 
+## F283, authenticate the adaptive quality comparison
+
+The observed-adaptive yt-dlp handoff is implemented and covered by scrubbed fixtures. Direct
+progressive MP4 remains the zero-setup default, while an observed `video.twimg.com` manifest can be
+sent to an authenticated loopback helper with only the manifest URL, filename, and fixed format
+policy. The repository does not claim that an adaptive rendition is higher quality until a signed-in
+X capture records both progressive and adaptive metadata for the same post.
+
+Re-entry condition: capture a privacy-safe, authenticated post that exposes the progressive and
+adaptive renditions together, record dimensions, bitrate, MIME, and container evidence, then compare
+the saved outputs without exporting cookies, bearer tokens, post URLs, or response bodies. Promote
+the quality claim only when the observed adaptive stream is demonstrably better and the merged file is
+playable without a required transcode.
+
 ## F139, Restore what X's August 2026 media redesign changed
 
 X replaced the 2x2 multi-image grid with a carousel (2026-08-11) and removed the desktop profile

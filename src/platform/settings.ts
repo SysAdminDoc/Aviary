@@ -171,6 +171,11 @@ export interface IntegrationSettings {
     secret: string;
     minBytes: number;
   };
+  ytDlp: {
+    enabled: boolean;
+    endpoint: string;
+    secret: string;
+  };
   bluesky: {
     enabled: boolean;
     service: string;
@@ -556,6 +561,7 @@ export const DEFAULT_SETTINGS: AviarySettings = {
   },
   integrations: {
     aria2: { enabled: false, endpoint: "", secret: "", minBytes: 50_000_000 },
+    ytDlp: { enabled: false, endpoint: "http://127.0.0.1:8787", secret: "" },
     bluesky: { enabled: false, service: "https://bsky.social", handle: "", appPassword: "" },
     mastodon: { enabled: false, instance: "", token: "", visibility: "public" },
     ai: {
@@ -764,6 +770,7 @@ export function normalizeSettings(input: unknown): AviarySettings {
   const diagnostics = asRecord(record.diagnostics);
   const integrations = asRecord(record.integrations);
   const integrationsAria = asRecord(integrations.aria2);
+  const integrationsYtDlp = asRecord(integrations.ytDlp);
   const integrationsBluesky = asRecord(integrations.bluesky);
   const integrationsMastodon = asRecord(integrations.mastodon);
   const integrationsAi = asRecord(integrations.ai);
@@ -776,6 +783,7 @@ export function normalizeSettings(input: unknown): AviarySettings {
   // because every integration ships disabled.
   const anyIntegrationEnabled = [
     integrationsAria,
+    integrationsYtDlp,
     integrationsBluesky,
     integrationsMastodon,
     integrationsAi,
@@ -1004,6 +1012,14 @@ export function normalizeSettings(input: unknown): AviarySettings {
           1_000_000,
           5_000_000_000
         )
+      },
+      ytDlp: {
+        enabled: booleanValue(integrationsYtDlp.enabled, DEFAULT_SETTINGS.integrations.ytDlp.enabled),
+        endpoint: credentialedUrlValue(
+          integrationsYtDlp.endpoint,
+          DEFAULT_SETTINGS.integrations.ytDlp.endpoint
+        ),
+        secret: secretValue(integrationsYtDlp.secret, DEFAULT_SETTINGS.integrations.ytDlp.secret)
       },
       bluesky: {
         enabled: booleanValue(integrationsBluesky.enabled, DEFAULT_SETTINGS.integrations.bluesky.enabled),

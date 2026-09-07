@@ -35,6 +35,10 @@
   than blocking Aviary startup or deleting them.
 
 ### Fixed
+- Adaptive video saves now keep the direct progressive MP4 as the default and expose an optional,
+  authenticated loopback yt-dlp handoff when Aviary has already observed a higher-quality X
+  manifest. The helper accepts only the manifest, filename, and fixed `bv*+ba/b` policy, reports
+  missing/refused/running/completed/failed states, and never receives X cookies or bearer tokens.
 - Packaged Chrome and Firefox smoke now exercise the built extension's real storage across a
   background restart. Chrome also freezes a page holder past lease expiry and proves a newer
   fenced write survives the stale owner's resume; missing browsers or lifecycle controls fail the
