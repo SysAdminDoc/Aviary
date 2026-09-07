@@ -1405,14 +1405,14 @@ function preservationArchiveRow(ctx: PanelContext): HTMLElement {
 
 function waczSigningRow(ctx: PanelContext): HTMLElement {
   const row = ctx.el("div", "av-row av-preservation-row");
-  row.dataset.avLabel = "Signed WACZ";
+  row.dataset.avLabel = "Aviary-only WACZ proof";
   const copy = ctx.el("span", "av-row-copy");
   const description = ctx.el("span", "av-row-description");
-  copy.append(ctx.el("span", "av-row-label", ctx.t("Signed WACZ")), description);
+  copy.append(ctx.el("span", "av-row-label", ctx.t("Aviary-only WACZ proof")), description);
 
   const actions = ctx.el("div", "av-preservation-actions");
   actions.setAttribute("role", "group");
-  actions.setAttribute("aria-label", ctx.t("WACZ signing actions"));
+  actions.setAttribute("aria-label", ctx.t("Aviary-only WACZ proof actions"));
   let actionButtons: HTMLButtonElement[] = [];
   let signingController: AbortController | undefined;
   const cancelSigning = ctx.button("Cancel", "av-button av-button-secondary");
@@ -1481,10 +1481,10 @@ function waczSigningRow(ctx: PanelContext): HTMLElement {
     }
 
     if (ctx.options.downloadSignedWacz) {
-      const signed = ctx.button("Signed WACZ", "av-button av-button-primary");
+      const signed = ctx.button("Aviary-only WACZ proof", "av-button av-button-primary");
       actionButtons.push(signed);
       signed.addEventListener("click", () => {
-        void run(signed, ctx.t("Signing WACZ archive…"), async () => {
+        void run(signed, ctx.t("Creating Aviary-only WACZ proof…"), async () => {
           signingController = new AbortController();
           cancelSigning.hidden = false;
           cancelSigning.removeAttribute("aria-hidden");
@@ -1492,11 +1492,11 @@ function waczSigningRow(ctx: PanelContext): HTMLElement {
             const result = await ctx.options.downloadSignedWacz!({
               signal: signingController.signal,
               onProgress: (progress) => {
-                ctx.setStatus(`${ctx.t("Signing WACZ archive…")} ${Math.round(progress * 100)}%`);
+                ctx.setStatus(`${ctx.t("Creating Aviary-only WACZ proof…")} ${Math.round(progress * 100)}%`);
               }
             });
             refresh();
-            ctx.setStatusCopy("Signed WACZ downloaded ({records} records, {size}).", {
+            ctx.setStatusCopy("Aviary-only WACZ proof downloaded ({records} records, {size}).", {
               records: result.records,
               size: ctx.formatBytes(result.bytes)
             });
@@ -1504,8 +1504,8 @@ function waczSigningRow(ctx: PanelContext): HTMLElement {
             if (error instanceof DOMException && error.name === "AbortError") {
               ctx.setStatus("Export job cancelled.");
             } else {
-              ctx.options.onError("Signed WACZ export failed", error);
-              ctx.setStatus("Signed WACZ export failed.");
+              ctx.options.onError("Aviary-only WACZ proof export failed", error);
+              ctx.setStatus("Aviary-only WACZ proof export failed.");
             }
           } finally {
             signingController = undefined;

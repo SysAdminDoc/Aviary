@@ -168,11 +168,13 @@ first page URL and capture date when available. Authored post time is shown sepa
 time. The archive is assembled in a local worker, with a 256 MiB estimate guard and a cancel action,
 then downloaded locally.
 
-The optional **Signed WACZ** action creates an anonymous ECDSA P-384 identity on first use and signs
-the exact SHA-256 hash of `datapackage.json`. The public key and signature travel inside
-`datapackage-digest.json`; the private key stays in this browser profile. **Export keypair** is a
-separate action for keeping a copy. Signing proves that two packages came from the same local key,
-not that X itself endorsed the archive or that the captured content was complete.
+The optional **Aviary-only WACZ proof** action creates an anonymous ECDSA-P384-SHA256 identity on
+first use and signs the exact SHA-256 hash of `datapackage.json`. The public key and signature travel
+inside `datapackage-digest.json` with `format: aviary-local-wacz-proof-v1` and `scope: Aviary-only`.
+This is not the Webrecorder `wacz-auth` format, so third-party WACZ tools cannot verify it. The
+private key stays in this browser profile. **Export keypair** is a separate action for keeping a
+copy. The proof shows that two packages came from the same local key, not that X endorsed the
+archive or that the captured content was complete.
 
 ## How do I share or restore filter rules?
 
@@ -353,7 +355,7 @@ Every control Aviary offers, by Control Center page. 88 controls across 12 pages
 | Capture media bytes in export | Fetch media during the export action and include successful bytes with length and checksum; failed items remain retryable references. |
 | Auto-discover query IDs | Scan loaded scripts for X GraphQL operation IDs and cache them locally. |
 | Preservation archive | Download a raw WARC or a replay-ready WACZ. WACZ keeps archive and index members uncompressed. |
-| Signed WACZ | WACZ signing actions |
+| Aviary-only WACZ proof | Aviary-only WACZ proof actions |
 
 #### Media
 

@@ -13,6 +13,9 @@ test("a profile-local P-384 keypair persists and signs the manifest hash", async
   assert.deepEqual(await first.load(), { state: "missing", fingerprint: null, createdAt: null });
 
   const signature = await first.sign(`sha256:${"a".repeat(64)}`, "2026-08-21T12:00:00Z");
+  assert.equal(signature.format, "aviary-local-wacz-proof-v1");
+  assert.equal(signature.scope, "Aviary-only");
+  assert.equal(signature.algorithm, "ECDSA-P384-SHA256");
   assert.equal(signature.software, "Aviary");
   assert.equal(signature.version, "dev");
   assert.match(signature.publicKey, /^[A-Za-z0-9+/]+=*$/);
@@ -47,7 +50,7 @@ test("a profile-local P-384 keypair persists and signs the manifest hash", async
   assert.equal(keyArtifact.filename, `aviary-wacz-keypair-${persisted.fingerprint.slice(0, 12)}.json`);
 });
 
-test("signed WACZ embeds verifiable anonymous signature data and unsigned WACZ stays valid", async () => {
+test("Aviary-only proof embeds verifiable local signature data and unsigned WACZ stays valid", async () => {
   const [{ buildSignedWaczArchive, buildWaczArchive }, { WaczSigningKeyStore }, { readStoreZip }] =
     await Promise.all([
       importSourceModule("src/features/export/wacz.ts"),
@@ -63,6 +66,9 @@ test("signed WACZ embeds verifiable anonymous signature data and unsigned WACZ s
 
   assert.equal(signed.contentType, "application/wacz");
   assert.equal(digest.signedData.hash, digest.hash);
+  assert.equal(digest.signedData.format, "aviary-local-wacz-proof-v1");
+  assert.equal(digest.signedData.scope, "Aviary-only");
+  assert.equal(digest.signedData.algorithm, "ECDSA-P384-SHA256");
   assert.equal(digest.signedData.created, generatedAt.toISOString());
   assert.equal(digest.signedData.software, "Aviary");
   assert.match(digest.signedData.signature, /^[A-Za-z0-9+/]+=*$/);

@@ -263,9 +263,10 @@ The Control Center "Export" section exposes:
   show authored time separately from capture time. The panel shows the expected WACZ size before
   download because its WARC and index members stay uncompressed for reliable byte-range replay.
   Assembly runs in a dedicated local worker, can be cancelled while it reports progress, and refuses
-  an estimate above 256 MiB. An opt-in Signed WACZ action adds an anonymous ECDSA P-384 signature over
-  the exact datapackage digest. The signing identity stays local and its keypair has a separate
-  export action.
+  an estimate above 256 MiB. An opt-in Aviary-only WACZ proof adds an anonymous ECDSA-P384-SHA256
+  signature over the exact datapackage digest. It is not the Webrecorder `wacz-auth` format and is
+  verifiable only by Aviary. The signing identity stays local and its keypair has a separate export
+  action.
 
 Tweets are gathered passively from the DOM; no auth headers, cookies, or session tokens are ever read or persisted.
 

@@ -22,6 +22,9 @@ interface StoredWaczSigningIdentity {
 }
 
 export interface WaczSignatureData {
+  format: "aviary-local-wacz-proof-v1";
+  scope: "Aviary-only";
+  algorithm: typeof WACZ_SIGNING_ALGORITHM;
   hash: string;
   signature: string;
   publicKey: string;
@@ -86,6 +89,9 @@ export class WaczSigningKeyStore implements WaczDigestSigner {
       await globalThis.crypto.subtle.sign(ECDSA_SIGN_PARAMS, privateKey, ENCODER.encode(hash))
     );
     return {
+      format: "aviary-local-wacz-proof-v1",
+      scope: "Aviary-only",
+      algorithm: WACZ_SIGNING_ALGORITHM,
       hash,
       signature: encodeBase64(signature),
       publicKey: identity.publicKey,

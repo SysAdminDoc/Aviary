@@ -53,6 +53,9 @@
 - **Stable compiler split.** Typechecking now runs the stable TypeScript 7.0.2 `tsc` package, while
   typescript-eslint keeps the published `@typescript/typescript6` 6.0.2 API alias. The nightly
   native preview compiler is no longer installed.
+- **WACZ proof interop is explicit.** The preservation panel now calls its signature an
+  **Aviary-only WACZ proof**, records the proof format, scope, and ECDSA-P384-SHA256 algorithm, and
+  explains that it is not Webrecorder `wacz-auth` and cannot be verified by third-party WACZ tools.
 - **Lazy extension delivery.** Chromium and Firefox now ship a roughly 0.60 MB document-start
   bundle containing protection, media controls, selector health, and the launcher. The Control
   Center, archive tools, viewer, and catalog load from a named, retryable panel chunk only after

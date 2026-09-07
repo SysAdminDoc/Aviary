@@ -123,7 +123,7 @@ export async function buildSignedWaczArchiveOffThread(
     signedData
   }, { ...options, onProgress: (progress) => options.onProgress?.(Math.max(0.85, progress)) });
   if (finalReply.type !== "complete" || !isExportArtifact(finalReply.artifact)) {
-    throw new Error("WACZ worker returned an invalid signed archive");
+    throw new Error("WACZ worker returned an invalid Aviary-only proof archive");
   }
   return finalReply.artifact;
 }

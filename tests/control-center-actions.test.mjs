@@ -194,7 +194,7 @@ test("preservation actions show cost before download and keep one compact contro
   assert.equal(result.waczRuns, 1);
 });
 
-test("signed WACZ is explicit, reports its local identity, and exports the keypair", async () => {
+test("Aviary-only WACZ proof is explicit, reports its local identity, and exports the keypair", async () => {
   const result = await page.evaluate(async () => {
     document.body.replaceChildren();
     const settings = AviaryActions.cloneSettings(AviaryActions.DEFAULT_SETTINGS);
@@ -226,9 +226,9 @@ test("signed WACZ is explicit, reports its local identity, and exports the keypa
     const shadow = document.querySelector("#av-control-center").shadowRoot;
     shadow.querySelector(".av-launcher").click();
     shadow.querySelector('[data-av-section="export"]').click();
-    const row = shadow.querySelector('[data-av-label="Signed WACZ"]');
+    const row = shadow.querySelector('[data-av-label="Aviary-only WACZ proof"]');
     const initial = row.textContent;
-    const signed = [...row.querySelectorAll("button")].find((button) => button.textContent === "Signed WACZ");
+    const signed = [...row.querySelectorAll("button")].find((button) => button.textContent === "Aviary-only WACZ proof");
     const cancel = [...row.querySelectorAll("button")].find((button) => button.textContent === "Cancel");
 
     signed.click();
@@ -269,10 +269,10 @@ test("signed WACZ is explicit, reports its local identity, and exports the keypa
   assert.match(result.initial, /First use creates a local P-384 identity/);
   assert.match(result.ready, /0123 4567 89AB CDEF/);
   assert.match(result.ready, /not what X served/);
-  assert.deepEqual(result.labels, ["Signed WACZ", "Export keypair"]);
+  assert.deepEqual(result.labels, ["Aviary-only WACZ proof", "Export keypair"]);
   assert.deepEqual(result.during, { disabled: true, cancelVisible: true, cancelEnabled: true, busy: "true" });
   assert.equal(result.enabledAfter, true);
-  assert.equal(result.signedStatus, "Signed WACZ downloaded (4 records, 12 KiB).");
+  assert.equal(result.signedStatus, "Aviary-only WACZ proof downloaded (4 records, 12 KiB).");
   assert.equal(result.keyStatus, "Signing keypair downloaded: aviary-wacz-keypair-0123456789ab.json.");
   assert.equal(result.signedRuns, 1);
   assert.equal(result.keyRuns, 1);
