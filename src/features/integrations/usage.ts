@@ -383,7 +383,9 @@ function aiRequestBody(
   }
   return {
     model: config.model,
-    max_tokens: request.maxTokens ?? 1024,
+    // OpenAI-compatible reasoning endpoints use the longer parameter name first. Estimating
+    // that shape is conservative for the legacy fallback, whose `max_tokens` key is shorter.
+    max_completion_tokens: request.maxTokens ?? 1024,
     messages: [
       ...(request.systemPrompt ? [{ role: "system", content: request.systemPrompt }] : []),
       { role: "user", content: request.prompt }

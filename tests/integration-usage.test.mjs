@@ -155,6 +155,53 @@ test("OpenAI-compatible providers negotiate the completion limit and remember it
   }
 });
 
+test("reasoning providers budget the longer completion key and cap successful payload errors", async () => {
+  const { estimateAiRequestBytes } = await importSourceModule("src/features/integrations/usage.ts");
+  const { runAiPrompt } = await importSourceModule("src/features/integrations/ai-provider.ts");
+  const config = {
+    enabled: true,
+    provider: "openai-compatible",
+    endpoint: "https://reasoning-budget.test/v1/chat/completions",
+    apiKey: "secret",
+    model: "reasoning-model"
+  };
+  const request = { prompt: "short", systemPrompt: "be concise", maxTokens: 321 };
+  const expectedBody = JSON.stringify({
+    model: config.model,
+    max_completion_tokens: request.maxTokens,
+    messages: [
+      { role: "system", content: request.systemPrompt },
+      { role: "user", content: request.prompt }
+    ]
+  });
+  assert.ok(estimateAiRequestBytes(config, request) >= new TextEncoder().encode(expectedBody).byteLength);
+
+  const originalFetch = globalThis.fetch;
+  let body;
+  globalThis.fetch = async (_url, init) => {
+    body = JSON.parse(init.body);
+    return new Response(JSON.stringify({ choices: [{ message: { content: "ok" } }] }), { status: 200 });
+  };
+  try {
+    const result = await runAiPrompt(config, request);
+    assert.equal(result.ok, true);
+    assert.equal(body.max_completion_tokens, 321);
+    assert.equal("max_tokens" in body, false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+
+  const longMessage = "provider detail ".repeat(1000);
+  globalThis.fetch = async () => new Response(JSON.stringify({ error: { message: longMessage } }), { status: 200 });
+  try {
+    const result = await runAiPrompt({ ...config, endpoint: "https://reasoning-payload-error.test/v1/chat/completions" }, { prompt: "short" });
+    assert.equal(result.ok, false);
+    assert.ok((result.error ?? "").length <= 4096);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("an unsupported completion-limit pair reports the provider reason", async () => {
   const { runAiPrompt } = await importSourceModule("src/features/integrations/ai-provider.ts");
   const originalFetch = globalThis.fetch;

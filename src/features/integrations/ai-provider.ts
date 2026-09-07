@@ -34,19 +34,25 @@ function completionEndpointKey(endpoint: string): string {
   return endpoint.trim().replace(/\/$/, "").toLowerCase();
 }
 
+function boundedProviderText(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const text = value.trim().replace(/\s+/g, " ");
+  return text ? text.slice(0, 4096) : undefined;
+}
+
 function providerErrorMessage(body: string): string | undefined {
   const trimmed = body.trim().slice(0, 4096);
   if (!trimmed) return undefined;
   try {
-    const parsed = JSON.parse(trimmed) as { error?: { message?: unknown } | string; message?: unknown };
+    const parsed = JSON.parse(body) as { error?: { message?: unknown } | string; message?: unknown };
     const value = typeof parsed.error === "string"
       ? parsed.error
       : parsed.error && typeof parsed.error === "object"
         ? parsed.error.message
         : parsed.message;
-    return typeof value === "string" && value.trim() ? value.trim() : undefined;
+    return boundedProviderText(value);
   } catch {
-    return trimmed.replace(/\s+/g, " ");
+    return boundedProviderText(trimmed);
   }
 }
 
@@ -187,7 +193,9 @@ async function callOpenAiCompatible(
   }
   completionLimitByEndpoint.set(key, result.limitParameter);
   const payload = result.payload;
-  if (payload?.error) return { ok: false, error: payload.error.message ?? "Provider error" };
+  if (payload?.error) {
+    return { ok: false, error: providerErrorMessage(JSON.stringify(payload.error)) ?? "Provider error" };
+  }
   const text = payload?.choices?.[0]?.message?.content ?? "";
   return { ok: true, text };
 }

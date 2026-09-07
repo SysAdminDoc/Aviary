@@ -35,12 +35,17 @@
   than blocking Aviary startup or deleting them.
 
 ### Fixed
+- Seen-post dimming now waits for a visible, one-second dwell before recording a timeline post. It
+  accepts half a post or 200 CSS pixels of a taller post, cancels work when a node leaves the
+  viewport or the tab is hidden, keeps candidates independent, and treats a direct Status route's
+  focal post as immediately seen.
 - Passive request boundaries are now exercised directly: page-world capture stays idle until X
   makes the request, reports only bounded response fields, and keeps account-risk language clear
   about X-triggered navigation and the limits of any safety claim.
 - OpenAI-compatible AI requests now negotiate `max_completion_tokens` and `max_tokens` once per
-  endpoint, retry a supported parameter without double-charging the local usage budget, and show
-  a bounded provider reason when neither parameter is accepted.
+  endpoint, reserve bytes for the longer request shape, retry a supported parameter without
+  double-charging the local usage budget, and show a bounded provider reason when neither parameter
+  is accepted.
 - Historical local releases now use the strongest verification script available at the target commit
   instead of assuming newer `verify:release` exists. Their phase state is read before rebuilding, so a
   network retry reuses verified artifacts and resumes tagging or upload without repacking.
