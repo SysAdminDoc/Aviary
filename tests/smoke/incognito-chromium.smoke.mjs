@@ -62,11 +62,9 @@ async function probe(extensionPath) {
       path: extensionPath,
       enableInIncognito: true
     });
-    // Wake the extension in its regular profile first. This also gives Chrome time to register the
-    // unpacked content script before the isolated target is created.
-    const regular = await context.newPage();
-    await regular.goto("https://x.com/incognito-smoke-regular");
-    await regular.waitForTimeout(700);
+    // Give Chrome time to register the unpacked content script before the isolated target is
+    // created. No regular X tab is needed, which avoids leaving a page-owned storage lease behind.
+    await new Promise((resolve) => setTimeout(resolve, 700));
     const created = await cdp.send("Target.createBrowserContext", {});
     const target = await cdp.send("Target.createTarget", {
       url: "https://x.com/incognito-smoke",
@@ -84,7 +82,8 @@ async function probe(extensionPath) {
         session: Object.keys(sessionStorage).filter((key) => key.startsWith("aviary.")),
         databases: (await indexedDB.databases())
           .map((database) => database.name ?? "")
-          .filter((name) => name.startsWith("aviary."))
+          .filter((name) => name.startsWith("aviary.")),
+        bootNotice: document.querySelector("#av-boot-notice")?.shadowRoot?.textContent ?? ""
       }))()`,
       awaitPromise: true,
       returnByValue: true
@@ -110,7 +109,7 @@ try {
   assert.deepEqual(declared.state?.local, [], "private-window localStorage contains Aviary keys");
   assert.deepEqual(declared.state?.session, [], "private-window sessionStorage contains Aviary keys");
   assert.deepEqual(declared.state?.databases, [], "private-window IndexedDB contains Aviary databases");
-  assert.equal(control.state?.ready, "true", "the control extension did not run in a private window");
+  assert.equal(control.state?.ready, "true", `the control extension did not run in a private window: ${JSON.stringify(control.state)}`);
   console.log("[incognito-smoke] manifest policy blocked Aviary; control extension verified the private target.");
 } finally {
   await rm(controlExtension, { recursive: true, force: true });

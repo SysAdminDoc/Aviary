@@ -175,7 +175,7 @@ export async function sendStorageFenceControl(
   fence: StorageLockFence
 ): Promise<StorageLockFence | undefined> {
   if (!hasExtensionFenceTransport()) return undefined;
-  const response = await globalThis.chrome!.runtime!.sendMessage!({
+  const response = await sendExtensionMessage({
     type: STORAGE_FENCE_MESSAGE,
     operation,
     fence
@@ -194,14 +194,57 @@ export async function sendStorageFenceMutation(
       "The extension background did not expose its fenced storage authority."
     );
   }
-  const response = await globalThis.chrome!.runtime!.sendMessage!({
+  const response = await sendExtensionMessage({
     type: STORAGE_FENCE_MESSAGE,
     operation,
     key,
     ...(operation === "set" ? { value } : {}),
     fence
   });
-  readFenceResponse(response, false);
+  // Mutations acknowledge with `result: null`, so they only need the success/error envelope. The
+  // control acquire path is the one that returns a new fence token.
+  readFenceResponse(response, true);
+}
+
+/**
+ * Chrome's callback transport is still the reliable path at the supported Chromium floor. Newer
+ * browsers return a Promise, while older MV3 runtimes can leave that Promise pending even though
+ * the background listener calls sendResponse. Supporting both forms keeps fenced writes from
+ * hanging silently during the first real settings save.
+ */
+async function sendExtensionMessage(message: unknown): Promise<unknown> {
+  const runtime = globalThis.chrome?.runtime as {
+    sendMessage?: (message: unknown, callback?: (response: unknown) => void) => unknown;
+    lastError?: { message?: string };
+  } | undefined;
+  if (!runtime?.sendMessage) {
+    throw new StorageFenceUnavailableError(
+      "The extension background did not expose its fenced storage authority."
+    );
+  }
+  return new Promise<unknown>((resolve, reject) => {
+    let settled = false;
+    const finish = (value: unknown, error?: unknown): void => {
+      if (settled) return;
+      settled = true;
+      if (error) reject(error);
+      else resolve(value);
+    };
+    try {
+      const pending = runtime.sendMessage!(message, (value) => {
+        const error = runtime.lastError?.message;
+        finish(value, error ? new Error(`Storage fence message failed: ${error}`) : undefined);
+      });
+      if (pending && typeof (pending as PromiseLike<unknown>).then === "function") {
+        (pending as PromiseLike<unknown>).then(
+          (value) => finish(value),
+          (error) => finish(undefined, error)
+        );
+      }
+    } catch (error) {
+      finish(undefined, error);
+    }
+  });
 }
 
 function readFenceResponse(value: unknown, release: boolean): StorageLockFence | undefined {

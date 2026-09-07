@@ -1846,9 +1846,15 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     return rows;
   };
 
-  launcher.addEventListener("click", () => setOpen(!open));
-  navLauncher.addEventListener("click", () => setOpen(!open));
-  close.addEventListener("click", () => setOpen(false));
+  launcher.addEventListener("click", () => {
+    setOpen(!open);
+  });
+  navLauncher.addEventListener("click", () => {
+    setOpen(!open);
+  });
+  close.addEventListener("click", () => {
+    setOpen(false);
+  });
   // `input` covers typing and the native clear affordance alike. The field is outside `body`,
   // so the re-render below cannot steal the caret back.
   search.addEventListener("input", () => {
@@ -1863,7 +1869,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
   updateTransactionButtons();
 
   return {
-    destroy() {
+  destroy() {
       if (open) setOpen(false);
       if (focusTrapAttached) {
         document.removeEventListener("focusin", handleModalFocusIn, true);

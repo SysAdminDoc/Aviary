@@ -191,6 +191,24 @@ async function navigateSmokeRoute(page, nextPath) {
   await page.waitForTimeout(120);
 }
 
+async function openPanel(page) {
+  await page.evaluate(() => {
+    const button = document.querySelector("#av-control-center")?.shadowRoot?.querySelector(".av-launcher");
+    if (!(button instanceof HTMLElement)) throw new Error("Launcher button missing after navigation");
+    button.click();
+  });
+  await page.waitForFunction(
+    () => Boolean(document.querySelector("#av-control-center")?.shadowRoot?.querySelector(".av-status")),
+    null,
+    { timeout: 15_000 }
+  );
+  await page.waitForFunction(
+    () => Boolean(document.querySelector("#av-control-center")?.shadowRoot?.querySelector('[data-av-section="trust"]')),
+    null,
+    { timeout: 15_000 }
+  );
+}
+
 async function runFixtureRouteMatrix(page) {
   const routes = [
     "/home",
@@ -280,7 +298,11 @@ async function runPageHookMatrix(page) {
     );
     expect(probe.beaconAccepted === true, "beacon probe was not acknowledged");
 
+    // Page-world capture persists asynchronously. Give that bounded queue a turn to commit before
+    // navigation tears down the document and leaves a valid lease to expire.
+    await page.waitForTimeout(500);
     await navigateSmokeRoute(page, routes[index % routes.length]);
+    await openPanel(page);
     expect(
       pageErrors.length === beforeErrors,
       "route/config produced an uncaught page error for " + JSON.stringify(config)
@@ -292,6 +314,7 @@ async function runPageHookMatrix(page) {
       await navigateSmokeRoute(page, route);
     }
   }
+  await openPanel(page);
   await setPageHookConfiguration(page, {
     blockBeacons: false,
     captureGraphql: false,
@@ -307,6 +330,7 @@ async function runPageHookMatrix(page) {
     null,
     { timeout: 15_000 }
   );
+  await openPanel(page);
   expect(pageErrors.length === matrixErrors, "page-hook matrix added uncaught page errors");
   console.log("[smoke] 16 page-hook configurations and 3 repeated Home/Following/profile route cycles passed.");
 }
@@ -492,8 +516,22 @@ try {
     if (!(button instanceof HTMLElement)) throw new Error("Launcher button missing");
     button.click();
   });
-  await page.waitForTimeout(250);
-  console.log("[smoke] Control Center launcher mounted and opened.");
+  await page.waitForFunction(
+    () => Boolean(document.querySelector("#av-control-center")?.shadowRoot?.querySelector(".av-status")),
+    null,
+    { timeout: 15_000 }
+  );
+  await page.waitForFunction(
+    () => Boolean(document.querySelector("#av-control-center")?.shadowRoot?.querySelector(".av-nav-launcher, [data-av-section]")),
+    null,
+    { timeout: 15_000 }
+  );
+  await page.waitForFunction(
+    () => Boolean(document.querySelector('#av-control-center')?.shadowRoot?.querySelector('[data-av-section="trust"]')),
+    null,
+    { timeout: 15_000 }
+  );
+  console.log("[smoke] Control Center panel chunk loaded and launcher opened.");
   await runPageHookMatrix(page);
 
   // Width tiers must remain distinct after current X's flex item consumes the available row.
@@ -667,9 +705,11 @@ try {
   const healthyHealth = await rowText(page, "trust", "Selector health");
   expect(healthyHealth.includes("Healthy"), `selector health did not recover: ${healthyHealth}`);
   await navigateSmokeRoute(page, "/selector-degraded");
+  await openPanel(page);
   const degradedHealth = await rowText(page, "trust", "Selector health");
   expect(degradedHealth.includes("Degraded"), `selector health did not degrade: ${degradedHealth}`);
   await navigateSmokeRoute(page, "/home");
+  await openPanel(page);
   const recoveredHealth = await rowText(page, "trust", "Selector health");
   expect(recoveredHealth.includes("Healthy"), `selector health did not recover after navigation: ${recoveredHealth}`);
   console.log(`[smoke] selector health transitions settled: ${JSON.stringify({ disabledHealth, healthyHealth, degradedHealth, recoveredHealth })}`);

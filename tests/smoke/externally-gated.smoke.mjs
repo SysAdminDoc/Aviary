@@ -321,6 +321,19 @@ async function openSection(page, section) {
   await page.waitForTimeout(100);
 }
 
+async function openPanel(page) {
+  await page.evaluate(() => {
+    const button = document.querySelector("#av-control-center")?.shadowRoot?.querySelector(".av-launcher");
+    if (!(button instanceof HTMLElement)) throw new Error("Launcher button missing after boot");
+    button.click();
+  });
+  await page.waitForFunction(
+    () => Boolean(document.querySelector("#av-control-center")?.shadowRoot?.querySelector('[data-av-section="trust"]')),
+    null,
+    { timeout: 15_000 }
+  );
+}
+
 async function commitSettings(page) {
   const committed = await page.evaluate(() => {
     const save = document
@@ -424,7 +437,7 @@ async function waitStatus(page, text) {
       return value.includes(needle);
     }, text, { timeout: 15_000 });
   } catch (error) {
-    throw new Error(`${error.message}; expected ${JSON.stringify(text)}, current status ${JSON.stringify(await statusText(page))}; local calls ${JSON.stringify(provider?.state?.requests?.slice(-5).map((request) => ({ path: request.path, method: request.method, json: request.json })))}`);
+    throw new Error(`${error.message}; expected ${JSON.stringify(text)}, current status ${JSON.stringify(await statusText(page))}; rows ${JSON.stringify(await page.evaluate(() => [...(document.querySelector("#av-control-center")?.shadowRoot?.querySelectorAll(".av-row") ?? [])].map((row) => row.textContent)))}; local calls ${JSON.stringify(provider?.state?.requests?.slice(-5).map((request) => ({ path: request.path, method: request.method, json: request.json })))}`);
   }
 }
 
@@ -559,6 +572,7 @@ try {
     null,
     { timeout: 15_000 }
   );
+  await openPanel(page);
   await setToggle(page, "trust", "Local-only mode", false);
 
   const worker = await waitForServiceWorker(context);
@@ -744,7 +758,7 @@ try {
 
   await clickAction(page, "export", "Copy diagnostics");
   await waitStatus(page, "Diagnostics copied to clipboard.");
-  expect((await readClipboard(page)).includes("aviary"), "diagnostics copy did not reach the browser-scoped clipboard");
+  expect((await readClipboard(page)).includes("Aviary"), "diagnostics copy did not reach the browser-scoped clipboard");
   await clickAction(page, "export", "Copy as Markdown");
   await waitStatus(page, "Copied 1 records to clipboard.");
   expect((await readClipboard(page)).includes("An imported archive fixture record."), "Markdown export did not reach the clipboard");

@@ -8,6 +8,7 @@ import type { ProfileManager } from "../platform/profile.ts";
 import type { TokenBucket } from "../platform/rate-limit.ts";
 import type { AuditLog } from "./core/audit-log.ts";
 import type { IntegrationUsageLedger } from "./integrations/usage.ts";
+import type { SelectorHealthSnapshot } from "./core/selector-health.ts";
 
 export interface FeatureContext {
   route: RouteState;
@@ -41,6 +42,20 @@ export interface FeatureContext {
   saveSettings(): Promise<void>;
   /** Request a serialized apply pass. Live boot contexts return its completion promise. */
   requestApply(): void | Promise<void>;
+  /** Extension-only hook used by the document-start launcher to fetch the panel chunk. */
+  loadControlCenter?: () => Promise<void>;
+  /** Live state readers stay in the document-start chunk when the panel is lazy-loaded. */
+  getPageHookCounters?: () => {
+    blockedBeacons: number;
+    blockedAdRequests: number;
+    rewrittenPlaylists: number;
+  };
+  getAdProtectionCounters?: () => {
+    hiddenPlacements: number;
+    suppressedVideoAds: number;
+  };
+  getSelectorHealth?: () => SelectorHealthSnapshot;
+  clearSelectorAdObservations?: () => Promise<void>;
 }
 
 export interface FeatureStatus {
@@ -75,6 +90,38 @@ export class FeatureRegistry {
       throw new Error(`Feature already registered: ${feature.id}`);
     }
     this.#features.set(feature.id, feature);
+  }
+
+  /**
+   * Registers a feature after the initial boot pass and initializes it immediately.
+   *
+   * Extension delivery uses this for the panel chunk. Keeping the operation on the registry
+   * means a late-loaded feature still participates in suspend, resume, apply, and teardown in
+   * exactly the same way as a feature present in the first chunk.
+   */
+  async registerAndInit(ctx: FeatureContext, feature: FeatureModule): Promise<void> {
+    this.register(feature);
+    await this.initFeature(ctx, feature.id);
+  }
+
+  /** Initializes one feature that was registered after `initAll` completed. */
+  async initFeature(ctx: FeatureContext, id: string): Promise<boolean> {
+    if (this.#active.has(id)) {
+      return true;
+    }
+    const feature = this.#features.get(id);
+    if (!feature) {
+      return false;
+    }
+    try {
+      await feature.init(ctx);
+      this.#active.add(id);
+      ctx.diagnostics.info(`Feature initialized: ${id}`);
+      return true;
+    } catch (error) {
+      ctx.diagnostics.error(`Feature failed to initialize: ${id}`, errorDetails(error));
+      return false;
+    }
   }
 
   /**

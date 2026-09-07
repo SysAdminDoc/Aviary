@@ -33,8 +33,19 @@
   and quota figures it already showed, and says plainly that best-effort storage can be cleared.
   For the userscript, retention belongs to the manager, so Trust reports it as unknown rather than
   implying a guarantee.
+- Shared storage writes no longer contend for the exclusive restore fence, so opening the Control
+  Center while another tab is saving cannot reject an archive import. Local-only mode also stays
+  live for integrations loaded from the separate panel chunk.
 
 ### Added
+- **Lazy extension delivery.** Chromium and Firefox now ship a roughly 0.60 MB document-start
+  bundle containing protection, media controls, selector health, and the launcher. The Control
+  Center, archive tools, viewer, and catalog load from a named, retryable panel chunk only after
+  the launcher is clicked. The panel reads live first-chunk counters across the bundle boundary,
+  and the userscript keeps its readable single-file build.
+- **Deterministic reviewer source archive.** Every build writes a sorted STORE ZIP with fixed
+  timestamps at `dist/aviary-source-v<version>.zip`. `.node-version` pins Node 24.18.1 for a
+  reproducible Linux ARM64 build inside the declared package engine range.
 - **Validator-clean preservation packages.** WACZ exports now carry CDXJ entries with exact WARC
   offsets and three-digit HTTP statuses, truthful response or resource records for captured media,
   package metadata for direct replay, and separate authored and capture times. The archive is

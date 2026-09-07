@@ -28,7 +28,8 @@
     "storage",
     "unlimitedStorage",
     "declarativeNetRequestWithHostAccess",
-    "contextMenus"
+    "contextMenus",
+    "scripting"
   ],
   "optional_permissions": [
     "downloads"
@@ -69,6 +70,18 @@
         "content.js"
       ],
       "run_at": "document_start"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "chunks/extension-panel.js"
+      ],
+      "matches": [
+        "https://x.com/*",
+        "https://twitter.com/*",
+        "https://pro.x.com/*"
+      ]
     }
   ]
 }

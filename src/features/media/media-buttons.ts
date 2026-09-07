@@ -146,7 +146,9 @@ export const mediaButtonsFeature: FeatureModule = {
     applyToggleClass(ctx);
     if (!ctx.settings.media.buttons) {
       unsubscribeFromMediaMetadata();
-      mediaMetadataCache.clear();
+      // Keep metadata observed during this page session so toggling the controls back on can
+      // restore the highest-quality video action without waiting for X to repeat its GraphQL
+      // response. The cache is still cleared during destroy, so it never crosses a navigation.
       clearDecorations();
       pendingContextTarget = undefined;
       appliedPreferOriginalImages = undefined;

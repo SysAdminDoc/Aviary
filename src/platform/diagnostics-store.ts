@@ -208,7 +208,8 @@ export class DiagnosticsStore {
               version: DIAGNOSTICS_SCHEMA_VERSION,
               events: events.slice(-DIAGNOSTICS_LIMIT)
             };
-          }
+          },
+          { restoreGate: false }
         );
         this.#events = parse(next).events;
       })

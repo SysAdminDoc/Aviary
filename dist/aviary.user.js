@@ -8830,9 +8830,15 @@ ${body}
       }
       return rows;
     };
-    launcher.addEventListener("click", () => setOpen(!open));
-    navLauncher.addEventListener("click", () => setOpen(!open));
-    close.addEventListener("click", () => setOpen(false));
+    launcher.addEventListener("click", () => {
+      setOpen(!open);
+    });
+    navLauncher.addEventListener("click", () => {
+      setOpen(!open);
+    });
+    close.addEventListener("click", () => {
+      setOpen(false);
+    });
     search.addEventListener("input", () => {
       if (holdDirtyDraft()) {
         search.value = searchQuery;
@@ -12295,7 +12301,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
   }
   async function sendStorageFenceControl(operation, fence) {
     if (!hasExtensionFenceTransport()) return void 0;
-    const response = await globalThis.chrome.runtime.sendMessage({
+    const response = await sendExtensionMessage({
       type: STORAGE_FENCE_MESSAGE,
       operation,
       fence
@@ -12308,14 +12314,45 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
         "The extension background did not expose its fenced storage authority."
       );
     }
-    const response = await globalThis.chrome.runtime.sendMessage({
+    const response = await sendExtensionMessage({
       type: STORAGE_FENCE_MESSAGE,
       operation,
       key,
       ...operation === "set" ? { value } : {},
       fence
     });
-    readFenceResponse(response, false);
+    readFenceResponse(response, true);
+  }
+  async function sendExtensionMessage(message) {
+    const runtime = globalThis.chrome?.runtime;
+    if (!runtime?.sendMessage) {
+      throw new StorageFenceUnavailableError(
+        "The extension background did not expose its fenced storage authority."
+      );
+    }
+    return new Promise((resolve, reject) => {
+      let settled = false;
+      const finish2 = (value, error) => {
+        if (settled) return;
+        settled = true;
+        if (error) reject(error);
+        else resolve(value);
+      };
+      try {
+        const pending = runtime.sendMessage(message, (value) => {
+          const error = runtime.lastError?.message;
+          finish2(value, error ? new Error(`Storage fence message failed: ${error}`) : void 0);
+        });
+        if (pending && typeof pending.then === "function") {
+          pending.then(
+            (value) => finish2(value),
+            (error) => finish2(void 0, error)
+          );
+        }
+      } catch (error) {
+        finish2(void 0, error);
+      }
+    });
   }
   function readFenceResponse(value, release) {
     const response = isRecord3(value) ? value : {};
@@ -12490,9 +12527,10 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
         generation: contender.ticket,
         expiresAt: contender.expiresAt
       };
-      const remoteFence = await sendStorageFenceControl("acquire", localFence);
-      let fence = remoteFence ?? (store6.kind === "userscript" ? localFence : void 0);
-      if (!fence && hasExtensionFenceTransport()) {
+      const needsFence = mode === "exclusive" || store6.kind === "userscript";
+      const remoteFence = needsFence ? await sendStorageFenceControl("acquire", localFence) : void 0;
+      let fence = needsFence ? remoteFence ?? (store6.kind === "userscript" ? localFence : void 0) : void 0;
+      if (needsFence && !fence && hasExtensionFenceTransport()) {
         throw new Error("The extension background did not return a storage fence");
       }
       let renewal = Promise.resolve();
@@ -12616,13 +12654,13 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     }
     return void 0;
   }
-  async function mutateStored(storage, key, fallback, mutate) {
+  async function mutateStored(storage, key, fallback, mutate, options = {}) {
     return withStorageLock(key, async (fence) => {
       const stored = await storage.get(key, fallback);
       const next = await mutate(stored);
       await storage.set(key, next, fence);
       return next;
-    });
+    }, options);
   }
   async function replaceStored(storage, key, value) {
     await withStorageLock(key, async (fence) => {
@@ -12692,15 +12730,17 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       this.name = "LocalOnlyError";
     }
   };
+  var SHARED_POLICY_KEY = "__AVIARY_LOCAL_ONLY__";
   var localOnly = () => false;
   function setLocalOnlyPolicy(predicate) {
     localOnly = predicate;
+    globalThis[SHARED_POLICY_KEY] = predicate;
   }
   function isLocalOnly() {
-    return localOnly();
+    return globalThis[SHARED_POLICY_KEY]?.() ?? localOnly();
   }
   function assertOutboundAllowed(what) {
-    if (localOnly()) {
+    if (isLocalOnly()) {
       throw new LocalOnlyError(what);
     }
   }
@@ -16726,7 +16766,6 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       applyToggleClass(ctx);
       if (!ctx.settings.media.buttons) {
         unsubscribeFromMediaMetadata();
-        mediaMetadataCache.clear();
         clearDecorations();
         pendingContextTarget = void 0;
         appliedPreferOriginalImages = void 0;
@@ -31184,7 +31223,7 @@ ${COLOR_CSS}`;
         },
         async onChange() {
           await ctx.saveSettings();
-          ctx.requestApply();
+          await ctx.requestApply();
         },
         onError(message, error) {
           ctx.diagnostics.error(message, errorDetails5(error));
@@ -31462,8 +31501,8 @@ ${COLOR_CSS}`;
         },
         getPageHooks() {
           const bridge = ctx.pageBridge;
-          const hooks = pageHookCounters();
-          const ads = adProtectionCounters();
+          const hooks = ctx.getPageHookCounters?.() ?? pageHookCounters();
+          const ads = ctx.getAdProtectionCounters?.() ?? adProtectionCounters();
           return {
             reachable: bridge ? bridge.status() !== "unavailable" : false,
             reason: bridge?.reason() ?? "",
@@ -31475,7 +31514,7 @@ ${COLOR_CSS}`;
           };
         },
         getSelectorHealth() {
-          return getSelectorHealthSnapshot();
+          return ctx.getSelectorHealth?.() ?? getSelectorHealthSnapshot();
         },
         getBisectStatus() {
           return bisect.status();
@@ -31496,6 +31535,10 @@ ${COLOR_CSS}`;
           return ctx.registry?.title(featureId) ?? featureId;
         },
         async clearAdObservations() {
+          if (ctx.clearSelectorAdObservations) {
+            await ctx.clearSelectorAdObservations();
+            return;
+          }
           await clearAdObservations(ctx.storage);
         },
         async exportFilterRules() {
@@ -32500,963 +32543,109 @@ ${COLOR_CSS}`;
     throw new Error("Clipboard API unavailable in this context");
   }
 
-  // src/features/core/first-run.ts
-  var FIRST_RUN_KEY = "aviary.firstRun.v1";
-  var HOST_ID = "av-first-run";
-  var shown = false;
-  var firstRunFeature = {
-    id: "core.firstRun",
-    title: "First run notice",
+  // src/extension/control-center-launcher.ts
+  var HOST_ID = "av-control-center";
+  var NAV_SELECTOR = '[data-testid^="AppTabBar_"]';
+  var controlCenterLauncherFeature = {
+    id: "core.controlCenterLauncher",
+    title: "Control Center launcher",
     category: "core",
-    async init(ctx) {
-      if (!ctx.freshInstall || shown || typeof document === "undefined") {
+    init(ctx) {
+      if (typeof document === "undefined" || document.getElementById(HOST_ID)) {
         return;
       }
-      let state2;
-      try {
-        state2 = await ctx.storage.get(FIRST_RUN_KEY, void 0);
-      } catch {
-        shown = true;
-        return;
+      const host = document.createElement("div");
+      host.id = HOST_ID;
+      host.dataset.avOwned = "true";
+      host.dataset.avDraftState = "clean";
+      host.dataset.avLoadState = "ready";
+      host.dataset.avVersion = AVIARY_VERSION;
+      const shadow = host.attachShadow({ mode: "open" });
+      const style = document.createElement("style");
+      style.textContent = `
+      :host { all: initial; display: block; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+      button {
+        box-sizing: border-box;
+        min-height: 40px;
+        max-width: 220px;
+        padding: 0 16px;
+        border: 1px solid rgba(29, 155, 240, 0.34);
+        border-radius: 999px;
+        background: rgba(29, 155, 240, 0.1);
+        color: #e7e9ea;
+        font: 700 14px/1 system-ui, -apple-system, "Segoe UI", sans-serif;
+        cursor: pointer;
       }
-      if (state2?.acknowledged) {
-        shown = true;
-        return;
-      }
-      shown = true;
-      mountNotice(ctx);
+      button:hover { background: rgba(29, 155, 240, 0.18); }
+      button:focus-visible { outline: 2px solid #1d9bf0; outline-offset: 3px; }
+      button[aria-busy="true"] { cursor: progress; opacity: 0.72; }
+      button[data-state="error"] { border-color: #f4212e; color: #ff8e96; }
+    `;
+      const button3 = document.createElement("button");
+      button3.type = "button";
+      button3.className = "av-launcher";
+      button3.textContent = "Aviary";
+      button3.setAttribute("aria-label", "Open Aviary controls");
+      button3.setAttribute("aria-haspopup", "dialog");
+      button3.setAttribute("aria-expanded", "false");
+      let loading;
+      const setError = (error) => {
+        button3.dataset.state = "error";
+        button3.removeAttribute("aria-busy");
+        button3.disabled = false;
+        button3.textContent = "Aviary controls unavailable. Retry";
+        button3.setAttribute(
+          "aria-label",
+          `Aviary controls unavailable. Retry. ${error instanceof Error ? error.name : "load error"}`
+        );
+        host.dataset.avLoadError = error instanceof Error ? error.message : String(error);
+        host.dataset.avLoadState = "error";
+      };
+      button3.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        if (loading) return;
+        button3.disabled = true;
+        button3.setAttribute("aria-busy", "true");
+        button3.textContent = "Loading Aviary\u2026";
+        button3.setAttribute("aria-label", "Loading Aviary controls");
+        host.dataset.avLoadState = "loading";
+        loading = Promise.resolve(ctx.loadControlCenter?.()).then(
+          () => void 0,
+          (error) => {
+            setError(error);
+            loading = void 0;
+            throw error;
+          }
+        );
+        void loading.catch(() => void 0);
+      });
+      shadow.append(style, button3);
+      const state2 = { destroyed: false, observer: void 0 };
+      const mount = () => {
+        if (state2.destroyed) return;
+        const nav = document.querySelector(NAV_SELECTOR)?.closest("nav");
+        if (nav) {
+          if (host.parentElement !== nav) nav.append(host);
+        } else if (!host.isConnected) {
+          document.documentElement.append(host);
+        }
+      };
+      const observer3 = new MutationObserver(mount);
+      state2.observer = observer3;
+      observer3.observe(document.documentElement, { childList: true, subtree: true });
+      mount();
+      launcherState.set(host, state2);
     },
     destroy() {
-      document.getElementById(HOST_ID)?.remove();
+      const host = document.getElementById(HOST_ID);
+      const state2 = host ? launcherState.get(host) : void 0;
+      if (state2) state2.destroyed = true;
+      state2?.observer?.disconnect();
+      host?.remove();
     }
   };
-  function mountNotice(ctx) {
-    if (document.getElementById(HOST_ID)) {
-      return;
-    }
-    const parent = document.body ?? document.documentElement;
-    if (!parent) {
-      return;
-    }
-    const reduceMotion2 = prefersReducedMotion3(ctx);
-    const host = document.createElement("div");
-    host.id = HOST_ID;
-    host.style.position = "fixed";
-    host.style.zIndex = "2147483000";
-    host.style.insetInlineStart = "16px";
-    host.style.insetBlockEnd = "16px";
-    const shadow = host.attachShadow({ mode: "open" });
-    const style = document.createElement("style");
-    style.textContent = `
-    .card {
-      max-width: 320px;
-      padding: 13px 14px;
-      border: 1px solid #2f3336;
-      border-radius: 9px;
-      background: #16181c;
-      color: #e7e9ea;
-      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-      font-size: 13px;
-      line-height: 1.5;
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.38);
-      ${reduceMotion2 ? "" : "animation: rise 160ms ease-out;"}
-    }
-    @keyframes rise {
-      from { opacity: 0; transform: translateY(6px); }
-      to { opacity: 1; transform: none; }
-    }
-    .title { font-weight: 700; font-size: 15px; margin-bottom: 4px; }
-    ul { margin: 7px 0 0; padding-inline-start: 18px; }
-    li { margin-bottom: 3px; }
-    .actions { display: flex; justify-content: flex-end; margin-top: 10px; }
-    button {
-      min-height: 32px;
-      padding: 0 14px;
-      border: 0;
-      border-radius: 7px;
-      background: #1d9bf0;
-      /* White on X blue is 3.00:1, and 13px at weight 700 is not WCAG large text. Every other
-         primary button in the codebase puts this dark ink on the accent fill; this one was missed,
-         on the first control a new user ever sees. */
-      color: rgb(5, 10, 15);
-      font-family: inherit;
-      font-size: 13px;
-      font-weight: 700;
-      cursor: pointer;
-    }
-    button:focus-visible { outline: 2px solid #1d9bf0; outline-offset: 2px; }
-  `;
-    const card = document.createElement("div");
-    card.className = "card";
-    card.setAttribute("role", "status");
-    const title = document.createElement("div");
-    title.className = "title";
-    title.textContent = ft(ctx, "Aviary is on");
-    const intro = document.createElement("div");
-    intro.textContent = ft(ctx, "Two things are enabled from the start. Everything else stays off until you turn it on.");
-    const list = document.createElement("ul");
-    for (const line of [
-      ft(ctx, "Sponsored posts, promoted trends and pre-rolls are hidden."),
-      ft(ctx, "Photos and videos get a download control that only acts when you click it.")
-    ]) {
-      const item = document.createElement("li");
-      item.textContent = line;
-      list.append(item);
-    }
-    const where = document.createElement("div");
-    where.style.marginTop = "8px";
-    where.textContent = ft(ctx, "Open Aviary from the last row of X's left navigation to change any of it.");
-    const actions = document.createElement("div");
-    actions.className = "actions";
-    const dismiss = document.createElement("button");
-    dismiss.type = "button";
-    dismiss.textContent = ft(ctx, "Got it");
-    dismiss.addEventListener("click", () => {
-      host.remove();
-      void acknowledge(ctx);
-    });
-    actions.append(dismiss);
-    card.append(title, intro, list, where, actions);
-    shadow.append(style, card);
-    parent.append(host);
-  }
-  async function acknowledge(ctx) {
-    try {
-      await ctx.storage.set(FIRST_RUN_KEY, { version: 1, acknowledged: true });
-    } catch (error) {
-      ctx.diagnostics.warn("First-run acknowledgement could not be saved", {
-        message: error instanceof Error ? error.message : String(error)
-      });
-    }
-  }
-  function prefersReducedMotion3(ctx) {
-    if (ctx.settings.accessibility.reduceMotion === "always") return true;
-    if (ctx.settings.accessibility.reduceMotion === "never") return false;
-    return globalThis.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
-  }
-
-  // src/features/filtering/reading-marker-feature.ts
-  var STYLE_ID12 = "av-reading-marker";
-  var SEPARATOR_ATTR = "data-av-reading-separator";
-  var NEW_ATTR = "data-av-reading-new";
-  var ARTICLE_SELECTOR4 = 'article[data-testid="tweet"]';
-  var FLUSH_DELAY_MS2 = 900;
-  var store5;
-  var storeLoading2;
-  var activeSurface;
-  var activeContext;
-  var articleStates = /* @__PURE__ */ new Map();
-  var flushTimer2;
-  var scrollTimer;
-  var listenersAttached = false;
-  async function ensureStore2(ctx) {
-    if (store5) return;
-    if (!storeLoading2) {
-      const pending = new ReadingMarkerStore(ctx.storage);
-      storeLoading2 = pending.load().then(
-        () => {
-          store5 = pending;
-        },
-        (error) => {
-          storeLoading2 = void 0;
-          throw error;
-        }
-      );
-    }
-    await storeLoading2;
-  }
-  var readingMarkerFeature = {
-    id: "filtering.readingMarkers",
-    title: "Read markers",
-    category: "filtering",
-    async init(ctx) {
-      if (!enabled(ctx)) {
-        teardown2();
-        return;
-      }
-      await ensureStore2(ctx);
-      switchSurface(ctx);
-      ensureStyle8();
-      attachListeners();
-      scanArticles2();
-      renderSeparator(ctx, false);
-    },
-    async apply(ctx) {
-      if (!enabled(ctx)) {
-        teardown2();
-        return;
-      }
-      await ensureStore2(ctx);
-      switchSurface(ctx);
-      activeContext = ctx;
-      ensureStyle8();
-      attachListeners();
-      scanArticles2();
-      renderSeparator(ctx, true);
-    },
-    async destroy() {
-      store5?.flush();
-      await store5?.settled();
-      teardown2();
-    },
-    getStatus() {
-      return {
-        ok: true,
-        message: store5 ? `Read markers stored: ${Object.keys(store5.snapshot().markers).length}` : "Read markers idle"
-      };
-    }
-  };
-  function enabled(ctx) {
-    const surface = ctx.route.surface;
-    return Boolean(
-      ctx.settings.layout.readMarker && isReadingMarkerSurface(surface) && ctx.settings.layout.readMarkerSurfaces.includes(surface)
-    );
-  }
-  function switchSurface(ctx) {
-    const next = isReadingMarkerSurface(ctx.route.surface) ? ctx.route.surface : void 0;
-    if (activeSurface === next) {
-      activeContext = ctx;
-      return;
-    }
-    removeSeparator();
-    articleStates = /* @__PURE__ */ new Map();
-    activeSurface = next;
-    activeContext = ctx;
-  }
-  function scanArticles2() {
-    const live = /* @__PURE__ */ new Set();
-    const height = globalThis.innerHeight || document.documentElement.clientHeight || 0;
-    for (const article of Array.from(document.querySelectorAll(ARTICLE_SELECTOR4))) {
-      const id = readTweetId5(article);
-      if (!id) continue;
-      live.add(article);
-      const existing = articleStates.get(article);
-      if (existing && existing.id === id) continue;
-      const rect = article.getBoundingClientRect();
-      articleStates.set(article, {
-        id,
-        // This is observation only. A marker is never advanced from this render pass.
-        wasVisible: height > 0 && rect.bottom > 0 && rect.top < height
-      });
-    }
-    for (const article of articleStates.keys()) {
-      if (!live.has(article)) articleStates.delete(article);
-    }
-  }
-  function attachListeners() {
-    if (listenersAttached) return;
-    listenersAttached = true;
-    globalThis.addEventListener("scroll", scheduleScrollScan, { passive: true });
-    document.addEventListener("scroll", scheduleScrollScan, { capture: true, passive: true });
-  }
-  function detachListeners() {
-    if (!listenersAttached) return;
-    listenersAttached = false;
-    globalThis.removeEventListener("scroll", scheduleScrollScan);
-    document.removeEventListener("scroll", scheduleScrollScan, true);
-    if (scrollTimer !== void 0) {
-      clearTimeout(scrollTimer);
-      scrollTimer = void 0;
-    }
-  }
-  function scheduleScrollScan() {
-    if (scrollTimer !== void 0) return;
-    scrollTimer = setTimeout(() => {
-      scrollTimer = void 0;
-      observeUpwardExit();
-    }, 0);
-  }
-  function observeUpwardExit() {
-    if (!activeSurface || !store5 || !activeContext) return;
-    const height = globalThis.innerHeight || document.documentElement.clientHeight || 0;
-    if (height <= 0) return;
-    let changed = false;
-    const now2 = Date.now();
-    for (const [article, state2] of articleStates) {
-      if (!article.isConnected) {
-        articleStates.delete(article);
-        continue;
-      }
-      const rect = article.getBoundingClientRect();
-      const visible = rect.bottom > 0 && rect.top < height;
-      if (visible) {
-        state2.wasVisible = true;
-        continue;
-      }
-      if (state2.wasVisible && rect.bottom <= 0) {
-        state2.wasVisible = false;
-        changed = store5.advance(activeSurface, state2.id, now2) || changed;
-      }
-    }
-    if (changed) {
-      store5.flush();
-      scheduleFlush2();
-      renderSeparator(activeContext, true);
-    }
-  }
-  function scheduleFlush2() {
-    if (flushTimer2 !== void 0) return;
-    flushTimer2 = setTimeout(() => {
-      flushTimer2 = void 0;
-      store5?.flush();
-    }, FLUSH_DELAY_MS2);
-  }
-  function renderSeparator(ctx, preservePosition) {
-    if (!activeSurface || !store5) return;
-    const marker = store5.get(activeSurface);
-    const anchor = preservePosition ? readingAnchor() : null;
-    const articles = Array.from(document.querySelectorAll(ARTICLE_SELECTOR4)).map((article) => ({ article, id: readTweetId5(article) })).filter((entry) => entry.id !== null);
-    for (const { article } of articles) article.removeAttribute(NEW_ATTR);
-    removeSeparator();
-    if (!marker) {
-      restoreReadingAnchor(anchor);
-      return;
-    }
-    const newEntries = articles.filter(({ id }) => compareTweetIds(id, marker.lastReadId) > 0);
-    if (newEntries.length === 0) {
-      restoreReadingAnchor(anchor);
-      return;
-    }
-    for (const { article } of newEntries) article.setAttribute(NEW_ATTR, "1");
-    const firstOldIndex = articles.findIndex(({ id }) => compareTweetIds(id, marker.lastReadId) <= 0);
-    const separator = buildSeparator(ctx, newEntries);
-    if (firstOldIndex >= 0) {
-      articles[firstOldIndex].article.parentElement?.insertBefore(separator, articles[firstOldIndex].article);
-    } else {
-      const last = articles.at(-1)?.article;
-      last?.parentElement?.insertBefore(separator, last.nextSibling);
-    }
-    restoreReadingAnchor(anchor);
-  }
-  function buildSeparator(ctx, newEntries) {
-    const separator = document.createElement("div");
-    separator.className = "av-reading-separator";
-    separator.setAttribute(SEPARATOR_ATTR, "1");
-    separator.setAttribute("role", "separator");
-    separator.setAttribute("aria-label", translateText(ctx.settings.i18n.locale, "New since you last looked"));
-    const label = document.createElement("span");
-    label.textContent = translateText(ctx.settings.i18n.locale, "New since you last looked");
-    const button3 = document.createElement("button");
-    button3.type = "button";
-    button3.className = "av-reading-mark-button";
-    button3.textContent = translateText(ctx.settings.i18n.locale, "Mark above as read");
-    button3.addEventListener("click", (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      const target = newEntries[0];
-      if (!activeSurface || !target || !store5) return;
-      if (store5.set(activeSurface, target.id, Date.now())) {
-        store5.flush();
-        void store5.settled();
-        renderSeparator(ctx, true);
-      }
-    });
-    separator.append(label, button3);
-    return separator;
-  }
-  function readingAnchor() {
-    for (const article of Array.from(document.querySelectorAll(ARTICLE_SELECTOR4))) {
-      const rect = article.getBoundingClientRect();
-      if (rect.bottom > 0 && rect.top < (globalThis.innerHeight || document.documentElement.clientHeight || 0)) {
-        return { article, top: rect.top };
-      }
-    }
-    return null;
-  }
-  function restoreReadingAnchor(anchor) {
-    if (!anchor?.article.isConnected) return;
-    const delta = anchor.article.getBoundingClientRect().top - anchor.top;
-    if (!delta) return;
-    const scroller = document.scrollingElement;
-    if (scroller) {
-      scroller.scrollTop += delta;
-    } else {
-      globalThis.scrollBy?.(0, delta);
-    }
-  }
-  function removeSeparator() {
-    document.querySelector(`[${SEPARATOR_ATTR}]`)?.remove();
-  }
-  function readTweetId5(article) {
-    for (const link of Array.from(article.querySelectorAll('a[href*="/status/"]'))) {
-      const match = /\/status\/(\d{1,25})/.exec(link.getAttribute("href") ?? "");
-      if (match?.[1]) return match[1];
-    }
-    return null;
-  }
-  function ensureStyle8() {
-    if (document.getElementById(STYLE_ID12)) return;
-    const style = document.createElement("style");
-    style.id = STYLE_ID12;
-    style.textContent = `
-.av-reading-separator {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  min-height: 40px;
-  margin: 8px 0;
-  padding: 0 16px;
-  border-block: 1px solid color-mix(in srgb, var(--av-accent, #1d9bf0) 32%, transparent);
-  background: color-mix(in srgb, var(--av-accent, #1d9bf0) 8%, transparent);
-  color: var(--av-accent, #1d9bf0);
-  font-size: 13px;
-  font-weight: 700;
-  line-height: 1.25;
-}
-.av-reading-mark-button {
-  min-height: 28px;
-  padding: 4px 10px;
-  border: 1px solid currentColor;
-  border-radius: 7px;
-  background: transparent;
-  color: inherit;
-  cursor: pointer;
-  font-family: inherit;
-  font-style: inherit;
-  font-size: 12px;
-  font-weight: inherit;
-  line-height: inherit;
-}
-.av-reading-mark-button:hover,
-.av-reading-mark-button:focus-visible {
-  background: color-mix(in srgb, currentColor 14%, transparent);
-}
-html[data-av-motion="reduce"] .av-reading-mark-button { transition: none; }
-`;
-    (document.head ?? document.documentElement).append(style);
-  }
-  function teardown2() {
-    if (flushTimer2 !== void 0) {
-      clearTimeout(flushTimer2);
-      flushTimer2 = void 0;
-    }
-    detachListeners();
-    removeSeparator();
-    for (const article of articleStates.keys()) article.removeAttribute(NEW_ATTR);
-    document.getElementById(STYLE_ID12)?.remove();
-    articleStates = /* @__PURE__ */ new Map();
-    activeSurface = void 0;
-    activeContext = void 0;
-  }
-
-  // src/features/layout/declutter.ts
-  var STYLE_ID13 = "av-layout-declutter";
-  var TITLE_STASH_ATTRIBUTE = "data-av-title";
-  var COMPOSER_SELECTOR = [
-    '[data-testid^="tweetTextarea_"]',
-    '[data-testid="toolBar"]',
-    '[data-testid="tweetButtonInline"]',
-    '[data-testid="tweetButton"]'
-  ].join(", ");
-  var writerListenersBound = false;
-  var writerFrame = 0;
-  var layoutDeclutterFeature = {
-    id: "layout.declutter",
-    title: "Layout declutter",
-    category: "layout",
-    init(ctx) {
-      ensureLayoutStyle();
-      applyLayoutClasses(ctx);
-      ctx.diagnostics.info("Layout declutter initialized");
-    },
-    apply(ctx, root) {
-      ensureLayoutStyle();
-      applyLayoutClasses(ctx);
-      if (ctx.settings.layout.suppressHoverPreviews) {
-        stripNativeTitles(root instanceof Element || root instanceof Document ? root : document);
-      }
-    },
-    destroy(ctx) {
-      document.getElementById(STYLE_ID13)?.remove();
-      restoreNativeTitles();
-      unbindWriterListeners();
-      document.documentElement.classList.remove(
-        "av-hide-right-sidebar",
-        "av-hide-trends",
-        "av-hide-follow-suggestions",
-        "av-hide-home-composer",
-        "av-hide-grok",
-        "av-suppress-hover",
-        "av-writer-mode",
-        "av-writing"
-      );
-      for (const className of Array.from(document.documentElement.classList)) {
-        if (className.startsWith("av-hide-nav-")) {
-          document.documentElement.classList.remove(className);
-        }
-      }
-      ctx.diagnostics.info("Layout declutter destroyed");
-    }
-  };
-  function stripNativeTitles(scope) {
-    const roots = [];
-    if (scope instanceof Element && scope.hasAttribute("title")) roots.push(scope);
-    for (const node of Array.from(scope.querySelectorAll("[title]"))) {
-      roots.push(node);
-    }
-    for (const node of roots) {
-      const title = node.getAttribute("title");
-      if (title === null || node.hasAttribute(TITLE_STASH_ATTRIBUTE)) continue;
-      node.setAttribute(TITLE_STASH_ATTRIBUTE, title);
-      node.removeAttribute("title");
-    }
-  }
-  function restoreNativeTitles() {
-    for (const node of Array.from(
-      document.querySelectorAll(`[${TITLE_STASH_ATTRIBUTE}]`)
-    )) {
-      const title = node.getAttribute(TITLE_STASH_ATTRIBUTE);
-      if (title !== null) node.setAttribute("title", title);
-      node.removeAttribute(TITLE_STASH_ATTRIBUTE);
-    }
-  }
-  function applyLayoutClasses(ctx) {
-    const root = document.documentElement;
-    root.classList.toggle("av-hide-right-sidebar", ctx.settings.layout.hideRightSidebar);
-    root.classList.toggle("av-hide-trends", ctx.settings.layout.hideTrends);
-    root.classList.toggle("av-hide-follow-suggestions", ctx.settings.layout.hideFollowSuggestions === true);
-    root.classList.toggle(
-      "av-hide-home-composer",
-      ctx.settings.layout.hideHomeComposer === true && ctx.route?.surface === "home"
-    );
-    root.classList.toggle("av-hide-grok", ctx.settings.layout.hideGrok);
-    const suppressHover = ctx.settings.layout.suppressHoverPreviews === true;
-    root.classList.toggle("av-suppress-hover", suppressHover);
-    if (suppressHover) stripNativeTitles(document);
-    else restoreNativeTitles();
-    root.classList.toggle("av-writer-mode", ctx.settings.layout.writerMode);
-    if (ctx.settings.layout.writerMode) {
-      bindWriterListeners();
-      syncWritingClass();
-    } else {
-      unbindWriterListeners();
-    }
-    for (const className of Array.from(root.classList)) {
-      if (className.startsWith("av-hide-nav-")) {
-        root.classList.remove(className);
-      }
-    }
-    for (const item of ctx.settings.layout.hideNavItems) {
-      const safe = item.replace(/[^a-z0-9_-]/gi, "").toLowerCase();
-      if (safe.length > 0) {
-        root.classList.add(`av-hide-nav-${safe}`);
-      }
-    }
-  }
-  function isComposerNode(node) {
-    if (!(node instanceof Element)) {
-      return false;
-    }
-    return node.closest(COMPOSER_SELECTOR) !== null;
-  }
-  function syncWritingClass() {
-    const writing = isComposerNode(document.activeElement);
-    document.documentElement.classList.toggle("av-writing", writing);
-  }
-  function onFocusOut() {
-    if (writerFrame !== 0) {
-      return;
-    }
-    const schedule = globalThis.requestAnimationFrame ?? ((cb) => globalThis.setTimeout(() => cb(0), 16));
-    writerFrame = schedule(() => {
-      writerFrame = 0;
-      syncWritingClass();
-    });
-  }
-  function bindWriterListeners() {
-    if (writerListenersBound) {
-      return;
-    }
-    document.addEventListener("focusin", syncWritingClass, true);
-    document.addEventListener("focusout", onFocusOut, true);
-    writerListenersBound = true;
-  }
-  function unbindWriterListeners() {
-    if (!writerListenersBound) {
-      document.documentElement.classList.remove("av-writing");
-      return;
-    }
-    document.removeEventListener("focusin", syncWritingClass, true);
-    document.removeEventListener("focusout", onFocusOut, true);
-    if (writerFrame !== 0) {
-      globalThis.cancelAnimationFrame?.(writerFrame);
-      writerFrame = 0;
-    }
-    writerListenersBound = false;
-    document.documentElement.classList.remove("av-writing");
-  }
-  function ensureLayoutStyle() {
-    if (document.getElementById(STYLE_ID13)) {
-      return;
-    }
-    const style = document.createElement("style");
-    style.id = STYLE_ID13;
-    style.textContent = LAYOUT_CSS;
-    (document.head ?? document.documentElement).append(style);
-  }
-  var LAYOUT_CSS = `
-/* Hover-only surfaces. X opens a profile card or a visual tooltip when the pointer rests on a
-   name, avatar or control; both are portals it inserts near the end of the body, so hiding them
-   by role and test id reaches every one without this feature listening for the pointer at all.
-   Click-opened menus and dialogs use different roles and are deliberately left alone. */
-html.av-suppress-hover [data-testid="hoverCardParent"],
-html.av-suppress-hover [role="tooltip"] {
-  display: none !important;
-}
-
-html.av-hide-right-sidebar [data-testid="sidebarColumn"] {
-  display: none !important;
-}
-
-/* Once the discovery rail is gone, current X leaves its 820px reading column pinned to the
-   rail's old edge inside a wider main canvas. Center it on full desktop layouts so the empty
-   space becomes an intentional gutter on both sides instead of a stranded right-hand void. */
-@media (min-width: 1200px) {
-  html.av-hide-right-sidebar main[role="main"] div:has(> [data-testid="primaryColumn"]) {
-    justify-content: center !important;
-  }
-}
-
-/* Current X puts a zero-height news_sidebar marker beside the visible news card and nests
-   trends inside an unlabelled region. Collapse the semantic module boundaries so headings and
-   empty card chrome do not survive after their rows disappear. Keep the leaf selectors as a
-   compatibility path for older markup. */
-html.av-hide-trends [data-testid="sidebarColumn"] div:has(> [data-testid="news_sidebar"]),
-html.av-hide-trends [data-testid="sidebarColumn"] section:has([data-testid="trend"]),
-html.av-hide-trends [data-testid="news_sidebar"],
-html.av-hide-trends [data-testid^="news_sidebar_article_"],
-html.av-hide-trends [data-testid="trend"] {
-  display: none !important;
-}
-
-html.av-hide-follow-suggestions [data-testid="sidebarColumn"] aside[role="complementary"]:has(a[href^="/i/connect_people"]),
-html.av-hide-follow-suggestions [data-testid="sidebarColumn"] [data-testid="whoToFollowSspAd"] {
-  display: none !important;
-}
-
-/* Home's quick composer is the direct child of its labelled timeline shell in current X. The
-   direct toolbar selector keeps the sanitized/legacy fixture covered without reaching reply
-   composers on status pages. The route-aware root class is only present on Home. */
-html.av-hide-home-composer [data-testid="primaryColumn"] > [data-testid="toolBar"],
-html.av-hide-home-composer [data-testid="primaryColumn"] > * > *:has([data-testid^="tweetTextarea_"]) {
-  display: none !important;
-}
-
-/* Collapsed by features/layout/thread-recommendations.ts, which stamps the owning
-   timeline cells only after a bounded heading label matched on a conversation route. */
-[data-av-thread-recommendation="1"] {
-  display: none !important;
-}
-
-html.av-hide-grok [data-testid="GrokDrawer"],
-html.av-hide-grok [data-testid="GrokDrawerHeader"],
-html.av-hide-grok [data-testid="chat-drawer-root"],
-html.av-hide-grok [data-testid="chat-drawer-main"],
-html.av-hide-grok [data-testid="grokImgGen"],
-html.av-hide-grok [data-testid="sidebarColumn"] aside[role="complementary"]:has(a[href*="grok.com/"]),
-html.av-hide-grok a[href="/i/grok"],
-html.av-hide-grok button[aria-label="Grok actions"] {
-  display: none !important;
-}
-
-/* Writer mode: only active while focus is inside the composer, so the timeline is untouched
-   the rest of the time. Nothing is display:none'd here. The surroundings recede and come
-   straight back on blur, which keeps the effect reversible mid-scroll. */
-html.av-writer-mode.av-writing [data-testid="sidebarColumn"],
-html.av-writer-mode.av-writing [data-testid="news_sidebar"] {
-  opacity: 0.12;
-  pointer-events: none;
-}
-
-html.av-writer-mode.av-writing [data-testid="cellInnerDiv"] {
-  opacity: 0.28;
-}
-
-html.av-writer-mode [data-testid="sidebarColumn"],
-html.av-writer-mode [data-testid="news_sidebar"],
-html.av-writer-mode [data-testid="cellInnerDiv"] {
-  transition: opacity 160ms ease;
-}
-
-html.av-writer-mode.av-writing [data-testid="cellInnerDiv"]:hover {
-  opacity: 1;
-}
-
-html.av-hide-nav-premium [data-testid="premium-signup-tab"],
-html.av-hide-nav-home [data-testid="AppTabBar_Home_Link"],
-html.av-hide-nav-explore [data-testid="AppTabBar_Explore_Link"],
-html.av-hide-nav-notifications [data-testid="AppTabBar_Notifications_Link"],
-html.av-hide-nav-follow [data-testid="AppTabBar_Follow_Link"],
-html.av-hide-nav-messages [data-testid="AppTabBar_DirectMessage_Link"],
-html.av-hide-nav-chat [data-testid="AppTabBar_DirectMessage_Link"],
-html.av-hide-nav-grok a[href="/i/grok"],
-html.av-hide-nav-history a[href="/i/history"],
-html.av-hide-nav-studio a[href="/i/jf/creators/studio"],
-html.av-hide-nav-profile [data-testid="AppTabBar_Profile_Link"],
-html.av-hide-nav-more [data-testid="AppTabBar_More_Menu"] {
-  display: none !important;
-}
-`;
-
-  // src/features/layout/thread-recommendations.ts
-  var MARKER4 = "data-av-thread-recommendation";
-  var HEADING_MARKER = "data-av-thread-recommendation-heading";
-  var HEADING_LABELS = /* @__PURE__ */ new Set([
-    // Verified in _decoded/status.html (2026-08-14 capture).
-    "discover more"
-  ]);
-  var threadRecommendationsFeature = {
-    id: "layout.threadRecommendations",
-    title: "Hide thread recommendations",
-    category: "layout",
-    init(ctx) {
-      applyThreadRecommendations(ctx);
-    },
-    apply(ctx) {
-      applyThreadRecommendations(ctx);
-    },
-    destroy(ctx) {
-      restoreThreadRecommendations();
-      ctx.diagnostics.info("Thread recommendations restored");
-    }
-  };
-  function applyThreadRecommendations(ctx) {
-    if (!ctx.settings.layout.hideThreadRecommendations || ctx.route?.surface !== "status") {
-      restoreThreadRecommendations();
-      return;
-    }
-    const heading = findRecommendationHeading();
-    if (!heading) {
-      return;
-    }
-    const headingCell = heading.closest('[data-testid="cellInnerDiv"]');
-    if (!headingCell) {
-      return;
-    }
-    let hidden = 0;
-    let node = headingCell;
-    while (node) {
-      if (node instanceof HTMLElement && node.matches('[data-testid="cellInnerDiv"]')) {
-        node.setAttribute(MARKER4, "1");
-        hidden += 1;
-      }
-      node = node.nextElementSibling;
-    }
-    headingCell.setAttribute(HEADING_MARKER, "1");
-    if (hidden > 0) {
-      ctx.diagnostics.info("Thread recommendations collapsed", { cells: hidden });
-    }
-  }
-  function findRecommendationHeading() {
-    const cells = Array.from(document.querySelectorAll('[data-testid="cellInnerDiv"]'));
-    for (const cell of cells) {
-      if (cell.querySelector('article[data-testid="tweet"]')) {
-        continue;
-      }
-      const heading = cell.querySelector('h2[role="heading"]');
-      if (!heading) {
-        continue;
-      }
-      const label = (heading.textContent ?? "").trim().toLowerCase();
-      if (HEADING_LABELS.has(label)) {
-        return heading;
-      }
-    }
-    return null;
-  }
-  function restoreThreadRecommendations() {
-    for (const node of Array.from(document.querySelectorAll(`[${MARKER4}], [${HEADING_MARKER}]`))) {
-      node.removeAttribute(MARKER4);
-      node.removeAttribute(HEADING_MARKER);
-    }
-  }
-
-  // src/features/layout/focus-mode.ts
-  var HOST_ID2 = "av-focus-mode";
-  var STYLE_ID14 = "av-focus-mode-style";
-  var OVERRIDE_MINUTES = 5;
-  function minutesOfDay(date) {
-    return date.getHours() * 60 + date.getMinutes();
-  }
-  function withinWindow(now2, startMinute, endMinute) {
-    if (startMinute === endMinute) {
-      return true;
-    }
-    return startMinute < endMinute ? now2 >= startMinute && now2 < endMinute : now2 >= startMinute || now2 < endMinute;
-  }
-  function parseTime(value) {
-    const match = /^(\d{1,2}):(\d{2})$/.exec(value.trim());
-    if (!match) {
-      return null;
-    }
-    const hours = Number(match[1]);
-    const minutes = Number(match[2]);
-    if (!Number.isInteger(hours) || !Number.isInteger(minutes) || hours > 23 || minutes > 59) {
-      return null;
-    }
-    return hours * 60 + minutes;
-  }
-  var overrideUntil = 0;
-  var timer;
-  var focusModeFeature = {
-    id: "layout.focusMode",
-    title: "Focus mode",
-    category: "layout",
-    init(ctx) {
-      applyFocusMode(ctx);
-    },
-    apply(ctx) {
-      applyFocusMode(ctx);
-    },
-    destroy(ctx) {
-      teardown3();
-      ctx.diagnostics.info("Focus mode removed");
-    },
-    getStatus() {
-      return {
-        ok: true,
-        message: document.getElementById(HOST_ID2) ? "Focus mode covering the timeline" : "Focus mode clear"
-      };
-    }
-  };
-  function applyFocusMode(ctx) {
-    const settings = ctx.settings.layout;
-    if (!settings.focusMode) {
-      teardown3();
-      return;
-    }
-    const start = parseTime(settings.focusStart);
-    const end = parseTime(settings.focusEnd);
-    if (start === null || end === null) {
-      teardown3();
-      ctx.diagnostics.warn("Focus mode window could not be read", {
-        start: settings.focusStart,
-        end: settings.focusEnd
-      });
-      return;
-    }
-    const now2 = Date.now();
-    if (now2 < overrideUntil) {
-      hidePanel();
-      scheduleRecheck(ctx);
-      return;
-    }
-    if (withinWindow(minutesOfDay(new Date(now2)), start, end)) {
-      hidePanel();
-    } else {
-      showPanel(ctx);
-    }
-    scheduleRecheck(ctx);
-  }
-  function scheduleRecheck(ctx) {
-    if (timer !== void 0) {
-      return;
-    }
-    timer = setInterval(() => applyFocusMode(ctx), 3e4);
-  }
-  function showPanel(ctx) {
-    ensureStyle9();
-    if (document.getElementById(HOST_ID2)) {
-      return;
-    }
-    const parent = document.body ?? document.documentElement;
-    if (!parent) {
-      return;
-    }
-    const host = document.createElement("div");
-    host.id = HOST_ID2;
-    const shadow = host.attachShadow({ mode: "open" });
-    const style = document.createElement("style");
-    style.textContent = PANEL_CSS;
-    const card = document.createElement("div");
-    card.className = "card";
-    card.setAttribute("role", "status");
-    const title = document.createElement("h2");
-    title.textContent = ft(ctx, "Outside your reading hours");
-    const copy2 = document.createElement("p");
-    copy2.textContent = ft(
-      ctx,
-      "Aviary is covering the timeline until your next window. Nothing is blocked and nothing left this device."
-    );
-    const window_ = document.createElement("p");
-    window_.className = "window";
-    window_.textContent = `${ctx.settings.layout.focusStart} to ${ctx.settings.layout.focusEnd}`;
-    const button3 = document.createElement("button");
-    button3.type = "button";
-    button3.textContent = ft(ctx, "Let me through for five minutes");
-    button3.addEventListener("click", () => {
-      overrideUntil = Date.now() + OVERRIDE_MINUTES * 6e4;
-      hidePanel();
-    });
-    card.append(title, copy2, window_, button3);
-    shadow.append(style, card);
-    parent.append(host);
-    document.documentElement.classList.add("av-focus-active");
-  }
-  function hidePanel() {
-    document.getElementById(HOST_ID2)?.remove();
-    document.documentElement.classList.remove("av-focus-active");
-  }
-  function ensureStyle9() {
-    if (document.getElementById(STYLE_ID14)) {
-      return;
-    }
-    const style = document.createElement("style");
-    style.id = STYLE_ID14;
-    style.textContent = `
-html.av-focus-active [data-testid="primaryColumn"] > * {
-  filter: blur(9px);
-  pointer-events: none;
-  user-select: none;
-}
-`;
-    (document.head ?? document.documentElement).append(style);
-  }
-  var PANEL_CSS = `
-:host { all: initial; }
-.card {
-  position: fixed;
-  inset-block-start: 96px;
-  inset-inline-start: 50%;
-  transform: translateX(-50%);
-  z-index: 2147482000;
-  max-width: 380px;
-  padding: 20px 22px;
-  border: 1px solid #2f3336;
-  border-radius: 10px;
-  background: #16181c;
-  color: #e7e9ea;
-  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-  text-align: center;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
-}
-h2 { margin: 0 0 8px; font-size: 17px; }
-p { margin: 0 0 8px; font-size: 13px; line-height: 1.5; color: #c9cdd1; }
-.window { font-variant-numeric: tabular-nums; font-weight: 700; color: #e7e9ea; }
-button {
-  margin-top: 8px;
-  min-height: 34px;
-  padding: 0 16px;
-  border: 1px solid #536471;
-  border-radius: 8px;
-  background: transparent;
-  color: inherit;
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-}
-button:focus-visible { outline: 2px solid #1d9bf0; outline-offset: 2px; }
-`;
-  function teardown3() {
-    hidePanel();
-    document.getElementById(STYLE_ID14)?.remove();
-    if (timer !== void 0) {
-      clearInterval(timer);
-      timer = void 0;
-    }
-  }
+  var launcherState = /* @__PURE__ */ new WeakMap();
 
   // src/features/integrations/ai-provider.ts
   async function runAiPrompt(config, request, options = {}) {
@@ -33556,7 +32745,7 @@ button:focus-visible { outline: 2px solid #1d9bf0; outline-offset: 2px; }
   }
 
   // src/features/ai/command-menu.ts
-  var STYLE_ID15 = "av-ai-command-menu";
+  var STYLE_ID12 = "av-ai-command-menu";
   var TRIGGER_ATTR = "data-av-ai-trigger";
   var PROCESSED_ATTR4 = "data-av-ai-processed";
   var AI_COMMANDS = [
@@ -33601,7 +32790,7 @@ ${text}`
       if (!ctx.settings.ai.commandMenu) {
         return;
       }
-      ensureStyle10();
+      ensureStyle8();
       decorate2(ctx, document);
       ctx.diagnostics.info("AI command menu ready");
     },
@@ -33610,7 +32799,7 @@ ${text}`
         clearDecorations4();
         return;
       }
-      ensureStyle10();
+      ensureStyle8();
       if (!addedNodes || addedNodes.length === 0) {
         decorate2(ctx, root);
         return;
@@ -33632,7 +32821,7 @@ ${text}`
     closeAiReview?.(false);
     closeAiReview = void 0;
     removeFeatureToast();
-    document.getElementById(STYLE_ID15)?.remove();
+    document.getElementById(STYLE_ID12)?.remove();
     for (const article of Array.from(document.querySelectorAll(`[${PROCESSED_ATTR4}]`))) {
       article.removeAttribute(PROCESSED_ATTR4);
     }
@@ -33969,12 +33158,12 @@ ${text}`
     }
     throw new Error("Clipboard API unavailable");
   }
-  function ensureStyle10() {
-    if (document.getElementById(STYLE_ID15)) {
+  function ensureStyle8() {
+    if (document.getElementById(STYLE_ID12)) {
       return;
     }
     const style = document.createElement("style");
-    style.id = STYLE_ID15;
+    style.id = STYLE_ID12;
     style.textContent = AI_CSS;
     (document.head ?? document.documentElement).append(style);
   }
@@ -34129,7 +33318,7 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
 `;
 
   // src/features/composer/composer-snippets.ts
-  var STYLE_ID16 = "av-composer-snippets";
+  var STYLE_ID13 = "av-composer-snippets";
   var TOOLBAR_ATTR = "data-av-composer-mounted";
   var PALETTE_ATTR = "data-av-snippet-palette";
   var composerSnippetsFeature = {
@@ -34182,7 +33371,7 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
   function clearDecorations5() {
     closePalettes();
     removeFeatureToast();
-    document.getElementById(STYLE_ID16)?.remove();
+    document.getElementById(STYLE_ID13)?.remove();
     for (const toolbar of Array.from(document.querySelectorAll(`[${TOOLBAR_ATTR}]`))) {
       toolbar.removeAttribute(TOOLBAR_ATTR);
     }
@@ -34383,11 +33572,11 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
     popover.style.maxWidth = "320px";
   }
   function ensureComposerStyle() {
-    if (document.getElementById(STYLE_ID16)) {
+    if (document.getElementById(STYLE_ID13)) {
       return;
     }
     const style = document.createElement("style");
-    style.id = STYLE_ID16;
+    style.id = STYLE_ID13;
     style.textContent = COMPOSER_CSS;
     (document.head ?? document.documentElement).append(style);
   }
@@ -34460,162 +33649,6 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
   padding: 6px 8px;
   color: var(--av-muted, rgb(132, 139, 145));
   font-size: 12px;
-}
-`;
-
-  // src/features/core/i18n-feature.ts
-  var STYLE_ID17 = "av-i18n";
-  var i18nFeature = {
-    id: "core.i18n",
-    title: "Internationalization",
-    category: "core",
-    init(ctx) {
-      ensureI18nStyle();
-      applyLocaleClasses(ctx);
-      ctx.diagnostics.info("i18n initialized", { locale: ctx.settings.i18n.locale });
-    },
-    apply(ctx) {
-      ensureI18nStyle();
-      applyLocaleClasses(ctx);
-    },
-    destroy(ctx) {
-      document.getElementById(STYLE_ID17)?.remove();
-      const root = document.documentElement;
-      root.classList.remove("av-rtl", "av-ltr");
-      delete root.dataset.avLocale;
-      document.getElementById("av-control-center")?.removeAttribute("dir");
-      ctx.diagnostics.info("i18n destroyed");
-    }
-  };
-  function applyLocaleClasses(ctx) {
-    const root = document.documentElement;
-    const direction = localeDirection(ctx.settings.i18n.locale);
-    root.dataset.avLocale = ctx.settings.i18n.locale;
-    root.classList.toggle("av-rtl", direction === "rtl");
-    root.classList.toggle("av-ltr", direction === "ltr");
-    document.getElementById("av-control-center")?.setAttribute("dir", direction);
-  }
-  function ensureI18nStyle() {
-    if (document.getElementById(STYLE_ID17)) {
-      return;
-    }
-    const style = document.createElement("style");
-    style.id = STYLE_ID17;
-    style.textContent = I18N_CSS;
-    (document.head ?? document.documentElement).append(style);
-  }
-  var I18N_CSS = `
-html.av-rtl [data-testid="tweetText"] {
-  text-align: start;
-  unicode-bidi: plaintext;
-}
-
-html.av-rtl [data-testid="primaryColumn"] {
-  direction: rtl;
-}
-
-html.av-ltr [data-testid="tweetText"][lang^="ar"],
-html.av-ltr [data-testid="tweetText"][lang^="he"] {
-  direction: rtl;
-  text-align: start;
-  unicode-bidi: plaintext;
-}
-
-@media (pointer: coarse) {
-  html.av-touch [data-testid="reply"],
-  html.av-touch [data-testid="retweet"],
-  html.av-touch [data-testid="like"],
-  html.av-touch [data-testid="bookmark"] {
-    min-height: 44px;
-    min-width: 44px;
-  }
-}
-`;
-
-  // src/features/core/mobile-touch.ts
-  var STYLE_ID18 = "av-mobile-touch";
-  var mobileTouchFeature = {
-    id: "core.mobileTouch",
-    title: "Mobile & touch ergonomics",
-    category: "accessibility",
-    init(ctx) {
-      ensureMobileStyle();
-      applyMobileClasses();
-      ctx.diagnostics.info("Mobile/touch initialized");
-    },
-    apply() {
-      ensureMobileStyle();
-      applyMobileClasses();
-    },
-    destroy(ctx) {
-      document.getElementById(STYLE_ID18)?.remove();
-      document.documentElement.classList.remove("av-mobile", "av-touch");
-      ctx.diagnostics.info("Mobile/touch destroyed");
-    }
-  };
-  function applyMobileClasses() {
-    if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
-      return;
-    }
-    const root = document.documentElement;
-    const touch = window.matchMedia("(pointer: coarse)").matches;
-    const narrow = window.matchMedia("(max-width: 760px)").matches;
-    root.classList.toggle("av-touch", touch);
-    root.classList.toggle("av-mobile", narrow);
-  }
-  function ensureMobileStyle() {
-    if (document.getElementById(STYLE_ID18)) {
-      return;
-    }
-    const style = document.createElement("style");
-    style.id = STYLE_ID18;
-    style.textContent = MOBILE_CSS;
-    (document.head ?? document.documentElement).append(style);
-  }
-  var MOBILE_CSS = `
-html.av-touch [${"data-av-hide-button"}] {
-  min-width: 44px;
-  min-height: 44px;
-  margin-inline-end: 4px;
-  padding: 8px 12px;
-}
-
-html.av-touch [${"data-av-media-button"}] {
-  min-width: 44px;
-  min-height: 44px;
-  padding: 8px 12px;
-  font-size: 12px;
-}
-
-html.av-touch [data-av-local-bookmark],
-html.av-touch .av-ai-trigger,
-html.av-touch [data-av-snippet-palette="trigger"] {
-  min-width: 44px;
-  min-height: 44px;
-  margin-block: 2px;
-  padding: 8px 10px;
-}
-
-/* Hover is not a discovery mechanism on a coarse pointer. Keep both prompt affordances visible
-   and give their options the same target size without enlarging the surrounding timeline. */
-html.av-touch .av-ai-trigger {
-  opacity: 1;
-}
-
-html.av-touch .av-ai-menu,
-html.av-touch .av-snippet-popover {
-  gap: 8px;
-}
-
-html.av-touch .av-ai-option,
-html.av-touch .av-snippet-option {
-  min-width: 44px;
-  min-height: 44px;
-  padding: 10px 12px;
-}
-
-html.av-mobile [data-testid="primaryColumn"] {
-  padding-inline: 0;
 }
 `;
 
@@ -35493,7 +34526,7 @@ html.av-mobile [data-testid="primaryColumn"] {
   var MAX_PENDING_PAYLOADS = 32;
   var subscribedBridge3;
   var graphqlHandler2;
-  var activeContext2;
+  var activeContext;
   var captureEpoch = 0;
   var captureTail = Promise.resolve();
   var sessionPayloads = 0;
@@ -35508,8 +34541,8 @@ html.av-mobile [data-testid="primaryColumn"] {
     title: "Passive GraphQL capture",
     category: "export",
     init(ctx) {
-      const previousContext = activeContext2;
-      activeContext2 = ctx;
+      const previousContext = activeContext;
+      activeContext = ctx;
       const bridge = ctx.pageBridge;
       if (bridge && (subscribedBridge3 !== bridge || previousContext !== ctx)) {
         resetCaptureSession();
@@ -35518,7 +34551,7 @@ html.av-mobile [data-testid="primaryColumn"] {
         }
         subscribedBridge3 = bridge;
         graphqlHandler2 = (payload) => {
-          const current = activeContext2;
+          const current = activeContext;
           if (current) {
             enqueueCaptured(payload, captureEpoch, current);
           }
@@ -35531,27 +34564,29 @@ html.av-mobile [data-testid="primaryColumn"] {
       });
     },
     apply(ctx) {
-      activeContext2 = ctx;
+      activeContext = ctx;
       const enabled2 = ctx.settings.export.preserveRawPayloads;
       if (enabled2 !== lastCaptureEnabled) {
         resetCaptureSession();
         lastCaptureEnabled = enabled2;
       }
     },
-    destroy(ctx) {
-      activeContext2 = void 0;
+    async destroy(ctx) {
+      const pending = captureTail;
+      activeContext = void 0;
       resetCaptureSession();
-      lastCaptureEnabled = false;
-      recentPayloads.length = 0;
       if (subscribedBridge3 === ctx.pageBridge) {
         if (graphqlHandler2) subscribedBridge3?.off("graphql", graphqlHandler2);
         graphqlHandler2 = void 0;
         subscribedBridge3 = void 0;
       }
+      await pending;
+      lastCaptureEnabled = false;
+      recentPayloads.length = 0;
       ctx.diagnostics.info("Network capture destroyed");
     },
     getStatus() {
-      const ctx = activeContext2;
+      const ctx = activeContext;
       if (!ctx?.settings.export.preserveRawPayloads) {
         return { ok: true, message: "Capture inactive" };
       }
@@ -35575,7 +34610,7 @@ html.av-mobile [data-testid="primaryColumn"] {
     }
   };
   async function onCaptured(payload, epoch) {
-    const ctx = activeContext2;
+    const ctx = activeContext;
     if (epoch !== captureEpoch || !ctx || !payload || typeof payload.url !== "string") {
       return;
     }
@@ -35592,7 +34627,7 @@ html.av-mobile [data-testid="primaryColumn"] {
     }
   }
   function enqueueCaptured(payload, epoch, ctx) {
-    if (epoch !== captureEpoch || activeContext2 !== ctx) {
+    if (epoch !== captureEpoch || activeContext !== ctx) {
       return;
     }
     const sanitized = sanitizeCapturedGraphqlPayload(payload, pageOrigin(ctx));
@@ -35665,7 +34700,7 @@ html.av-mobile [data-testid="primaryColumn"] {
     }
   }
   async function persistPayload(ctx, url, operationName, body, epoch) {
-    if (epoch !== captureEpoch || activeContext2 !== ctx) {
+    if (epoch !== captureEpoch || activeContext !== ctx) {
       return;
     }
     const store6 = getCheckpointStore();
@@ -35847,7 +34882,7 @@ html.av-mobile [data-testid="primaryColumn"] {
   }
 
   // src/features/library/copy-post-link.ts
-  var STYLE_ID19 = "av-copy-post-link";
+  var STYLE_ID14 = "av-copy-post-link";
   var BUTTON_ATTR4 = "data-av-copy-link";
   var PROCESSED_ATTR6 = "data-av-copy-link-processed";
   function buildPostLink(handle, tweetId, host) {
@@ -35875,7 +34910,7 @@ html.av-mobile [data-testid="primaryColumn"] {
     category: "layout",
     init(ctx) {
       if (ctx.settings.links.copyLinkHost !== "") {
-        ensureStyle11();
+        ensureStyle9();
       }
     },
     apply(ctx, root) {
@@ -35883,7 +34918,7 @@ html.av-mobile [data-testid="primaryColumn"] {
         clearDecorations6();
         return;
       }
-      ensureStyle11();
+      ensureStyle9();
       const scope = root instanceof Element ? root : document;
       const articles = /* @__PURE__ */ new Set();
       if (scope instanceof Element && scope.matches('article[data-testid="tweet"]')) {
@@ -35977,7 +35012,7 @@ html.av-mobile [data-testid="primaryColumn"] {
   }
   function clearDecorations6() {
     removeFeatureToast();
-    document.getElementById(STYLE_ID19)?.remove();
+    document.getElementById(STYLE_ID14)?.remove();
     for (const button3 of Array.from(document.querySelectorAll(`[${BUTTON_ATTR4}]`))) {
       button3.remove();
     }
@@ -35985,12 +35020,12 @@ html.av-mobile [data-testid="primaryColumn"] {
       article.removeAttribute(PROCESSED_ATTR6);
     }
   }
-  function ensureStyle11() {
-    if (document.getElementById(STYLE_ID19)) {
+  function ensureStyle9() {
+    if (document.getElementById(STYLE_ID14)) {
       return;
     }
     const style = document.createElement("style");
-    style.id = STYLE_ID19;
+    style.id = STYLE_ID14;
     style.textContent = COPY_LINK_CSS;
     (document.head ?? document.documentElement).append(style);
   }
@@ -36028,6 +35063,1134 @@ html.av-mobile [data-testid="primaryColumn"] {
   .av-copy-link-button {
     transition: opacity 120ms ease, color 120ms ease;
   }
+}
+`;
+
+  // src/features/core/optional-features.ts
+  var optionalFeatureModules = [
+    exportFeature,
+    bookmarksFeature,
+    userNotesFeature,
+    linkUnshortenFeature,
+    cleanShareLinksFeature,
+    copyPostLinkFeature,
+    snapshotsFeature,
+    composerSnippetsFeature,
+    networkCaptureFeature,
+    aiCommandMenuFeature
+  ];
+
+  // src/features/core/first-run.ts
+  var FIRST_RUN_KEY = "aviary.firstRun.v1";
+  var HOST_ID2 = "av-first-run";
+  var shown = false;
+  var firstRunFeature = {
+    id: "core.firstRun",
+    title: "First run notice",
+    category: "core",
+    async init(ctx) {
+      if (!ctx.freshInstall || shown || typeof document === "undefined") {
+        return;
+      }
+      let state2;
+      try {
+        state2 = await ctx.storage.get(FIRST_RUN_KEY, void 0);
+      } catch {
+        shown = true;
+        return;
+      }
+      if (state2?.acknowledged) {
+        shown = true;
+        return;
+      }
+      shown = true;
+      mountNotice(ctx);
+    },
+    destroy() {
+      document.getElementById(HOST_ID2)?.remove();
+    }
+  };
+  function mountNotice(ctx) {
+    if (document.getElementById(HOST_ID2)) {
+      return;
+    }
+    const parent = document.body ?? document.documentElement;
+    if (!parent) {
+      return;
+    }
+    const reduceMotion2 = prefersReducedMotion3(ctx);
+    const host = document.createElement("div");
+    host.id = HOST_ID2;
+    host.style.position = "fixed";
+    host.style.zIndex = "2147483000";
+    host.style.insetInlineStart = "16px";
+    host.style.insetBlockEnd = "16px";
+    const shadow = host.attachShadow({ mode: "open" });
+    const style = document.createElement("style");
+    style.textContent = `
+    .card {
+      max-width: 320px;
+      padding: 13px 14px;
+      border: 1px solid #2f3336;
+      border-radius: 9px;
+      background: #16181c;
+      color: #e7e9ea;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      font-size: 13px;
+      line-height: 1.5;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.38);
+      ${reduceMotion2 ? "" : "animation: rise 160ms ease-out;"}
+    }
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: none; }
+    }
+    .title { font-weight: 700; font-size: 15px; margin-bottom: 4px; }
+    ul { margin: 7px 0 0; padding-inline-start: 18px; }
+    li { margin-bottom: 3px; }
+    .actions { display: flex; justify-content: flex-end; margin-top: 10px; }
+    button {
+      min-height: 32px;
+      padding: 0 14px;
+      border: 0;
+      border-radius: 7px;
+      background: #1d9bf0;
+      /* White on X blue is 3.00:1, and 13px at weight 700 is not WCAG large text. Every other
+         primary button in the codebase puts this dark ink on the accent fill; this one was missed,
+         on the first control a new user ever sees. */
+      color: rgb(5, 10, 15);
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    button:focus-visible { outline: 2px solid #1d9bf0; outline-offset: 2px; }
+  `;
+    const card = document.createElement("div");
+    card.className = "card";
+    card.setAttribute("role", "status");
+    const title = document.createElement("div");
+    title.className = "title";
+    title.textContent = ft(ctx, "Aviary is on");
+    const intro = document.createElement("div");
+    intro.textContent = ft(ctx, "Two things are enabled from the start. Everything else stays off until you turn it on.");
+    const list = document.createElement("ul");
+    for (const line of [
+      ft(ctx, "Sponsored posts, promoted trends and pre-rolls are hidden."),
+      ft(ctx, "Photos and videos get a download control that only acts when you click it.")
+    ]) {
+      const item = document.createElement("li");
+      item.textContent = line;
+      list.append(item);
+    }
+    const where = document.createElement("div");
+    where.style.marginTop = "8px";
+    where.textContent = ft(ctx, "Open Aviary from the last row of X's left navigation to change any of it.");
+    const actions = document.createElement("div");
+    actions.className = "actions";
+    const dismiss = document.createElement("button");
+    dismiss.type = "button";
+    dismiss.textContent = ft(ctx, "Got it");
+    dismiss.addEventListener("click", () => {
+      host.remove();
+      void acknowledge(ctx);
+    });
+    actions.append(dismiss);
+    card.append(title, intro, list, where, actions);
+    shadow.append(style, card);
+    parent.append(host);
+  }
+  async function acknowledge(ctx) {
+    try {
+      await ctx.storage.set(FIRST_RUN_KEY, { version: 1, acknowledged: true });
+    } catch (error) {
+      ctx.diagnostics.warn("First-run acknowledgement could not be saved", {
+        message: error instanceof Error ? error.message : String(error)
+      });
+    }
+  }
+  function prefersReducedMotion3(ctx) {
+    if (ctx.settings.accessibility.reduceMotion === "always") return true;
+    if (ctx.settings.accessibility.reduceMotion === "never") return false;
+    return globalThis.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
+  }
+
+  // src/features/filtering/reading-marker-feature.ts
+  var STYLE_ID15 = "av-reading-marker";
+  var SEPARATOR_ATTR = "data-av-reading-separator";
+  var NEW_ATTR = "data-av-reading-new";
+  var ARTICLE_SELECTOR4 = 'article[data-testid="tweet"]';
+  var FLUSH_DELAY_MS2 = 900;
+  var store5;
+  var storeLoading2;
+  var activeSurface;
+  var activeContext2;
+  var articleStates = /* @__PURE__ */ new Map();
+  var flushTimer2;
+  var scrollTimer;
+  var listenersAttached = false;
+  async function ensureStore2(ctx) {
+    if (store5) return;
+    if (!storeLoading2) {
+      const pending = new ReadingMarkerStore(ctx.storage);
+      storeLoading2 = pending.load().then(
+        () => {
+          store5 = pending;
+        },
+        (error) => {
+          storeLoading2 = void 0;
+          throw error;
+        }
+      );
+    }
+    await storeLoading2;
+  }
+  var readingMarkerFeature = {
+    id: "filtering.readingMarkers",
+    title: "Read markers",
+    category: "filtering",
+    async init(ctx) {
+      if (!enabled(ctx)) {
+        teardown2();
+        return;
+      }
+      await ensureStore2(ctx);
+      switchSurface(ctx);
+      ensureStyle10();
+      attachListeners();
+      scanArticles2();
+      renderSeparator(ctx, false);
+    },
+    async apply(ctx) {
+      if (!enabled(ctx)) {
+        teardown2();
+        return;
+      }
+      await ensureStore2(ctx);
+      switchSurface(ctx);
+      activeContext2 = ctx;
+      ensureStyle10();
+      attachListeners();
+      scanArticles2();
+      renderSeparator(ctx, true);
+    },
+    async destroy() {
+      store5?.flush();
+      await store5?.settled();
+      teardown2();
+    },
+    getStatus() {
+      return {
+        ok: true,
+        message: store5 ? `Read markers stored: ${Object.keys(store5.snapshot().markers).length}` : "Read markers idle"
+      };
+    }
+  };
+  function enabled(ctx) {
+    const surface = ctx.route.surface;
+    return Boolean(
+      ctx.settings.layout.readMarker && isReadingMarkerSurface(surface) && ctx.settings.layout.readMarkerSurfaces.includes(surface)
+    );
+  }
+  function switchSurface(ctx) {
+    const next = isReadingMarkerSurface(ctx.route.surface) ? ctx.route.surface : void 0;
+    if (activeSurface === next) {
+      activeContext2 = ctx;
+      return;
+    }
+    removeSeparator();
+    articleStates = /* @__PURE__ */ new Map();
+    activeSurface = next;
+    activeContext2 = ctx;
+  }
+  function scanArticles2() {
+    const live = /* @__PURE__ */ new Set();
+    const height = globalThis.innerHeight || document.documentElement.clientHeight || 0;
+    for (const article of Array.from(document.querySelectorAll(ARTICLE_SELECTOR4))) {
+      const id = readTweetId5(article);
+      if (!id) continue;
+      live.add(article);
+      const existing = articleStates.get(article);
+      if (existing && existing.id === id) continue;
+      const rect = article.getBoundingClientRect();
+      articleStates.set(article, {
+        id,
+        // This is observation only. A marker is never advanced from this render pass.
+        wasVisible: height > 0 && rect.bottom > 0 && rect.top < height
+      });
+    }
+    for (const article of articleStates.keys()) {
+      if (!live.has(article)) articleStates.delete(article);
+    }
+  }
+  function attachListeners() {
+    if (listenersAttached) return;
+    listenersAttached = true;
+    globalThis.addEventListener("scroll", scheduleScrollScan, { passive: true });
+    document.addEventListener("scroll", scheduleScrollScan, { capture: true, passive: true });
+  }
+  function detachListeners() {
+    if (!listenersAttached) return;
+    listenersAttached = false;
+    globalThis.removeEventListener("scroll", scheduleScrollScan);
+    document.removeEventListener("scroll", scheduleScrollScan, true);
+    if (scrollTimer !== void 0) {
+      clearTimeout(scrollTimer);
+      scrollTimer = void 0;
+    }
+  }
+  function scheduleScrollScan() {
+    if (scrollTimer !== void 0) return;
+    scrollTimer = setTimeout(() => {
+      scrollTimer = void 0;
+      observeUpwardExit();
+    }, 0);
+  }
+  function observeUpwardExit() {
+    if (!activeSurface || !store5 || !activeContext2) return;
+    const height = globalThis.innerHeight || document.documentElement.clientHeight || 0;
+    if (height <= 0) return;
+    let changed = false;
+    const now2 = Date.now();
+    for (const [article, state2] of articleStates) {
+      if (!article.isConnected) {
+        articleStates.delete(article);
+        continue;
+      }
+      const rect = article.getBoundingClientRect();
+      const visible = rect.bottom > 0 && rect.top < height;
+      if (visible) {
+        state2.wasVisible = true;
+        continue;
+      }
+      if (state2.wasVisible && rect.bottom <= 0) {
+        state2.wasVisible = false;
+        changed = store5.advance(activeSurface, state2.id, now2) || changed;
+      }
+    }
+    if (changed) {
+      store5.flush();
+      scheduleFlush2();
+      renderSeparator(activeContext2, true);
+    }
+  }
+  function scheduleFlush2() {
+    if (flushTimer2 !== void 0) return;
+    flushTimer2 = setTimeout(() => {
+      flushTimer2 = void 0;
+      store5?.flush();
+    }, FLUSH_DELAY_MS2);
+  }
+  function renderSeparator(ctx, preservePosition) {
+    if (!activeSurface || !store5) return;
+    const marker = store5.get(activeSurface);
+    const anchor = preservePosition ? readingAnchor() : null;
+    const articles = Array.from(document.querySelectorAll(ARTICLE_SELECTOR4)).map((article) => ({ article, id: readTweetId5(article) })).filter((entry) => entry.id !== null);
+    for (const { article } of articles) article.removeAttribute(NEW_ATTR);
+    removeSeparator();
+    if (!marker) {
+      restoreReadingAnchor(anchor);
+      return;
+    }
+    const newEntries = articles.filter(({ id }) => compareTweetIds(id, marker.lastReadId) > 0);
+    if (newEntries.length === 0) {
+      restoreReadingAnchor(anchor);
+      return;
+    }
+    for (const { article } of newEntries) article.setAttribute(NEW_ATTR, "1");
+    const firstOldIndex = articles.findIndex(({ id }) => compareTweetIds(id, marker.lastReadId) <= 0);
+    const separator = buildSeparator(ctx, newEntries);
+    if (firstOldIndex >= 0) {
+      articles[firstOldIndex].article.parentElement?.insertBefore(separator, articles[firstOldIndex].article);
+    } else {
+      const last = articles.at(-1)?.article;
+      last?.parentElement?.insertBefore(separator, last.nextSibling);
+    }
+    restoreReadingAnchor(anchor);
+  }
+  function buildSeparator(ctx, newEntries) {
+    const separator = document.createElement("div");
+    separator.className = "av-reading-separator";
+    separator.setAttribute(SEPARATOR_ATTR, "1");
+    separator.setAttribute("role", "separator");
+    separator.setAttribute("aria-label", translateText(ctx.settings.i18n.locale, "New since you last looked"));
+    const label = document.createElement("span");
+    label.textContent = translateText(ctx.settings.i18n.locale, "New since you last looked");
+    const button3 = document.createElement("button");
+    button3.type = "button";
+    button3.className = "av-reading-mark-button";
+    button3.textContent = translateText(ctx.settings.i18n.locale, "Mark above as read");
+    button3.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const target = newEntries[0];
+      if (!activeSurface || !target || !store5) return;
+      if (store5.set(activeSurface, target.id, Date.now())) {
+        store5.flush();
+        void store5.settled();
+        renderSeparator(ctx, true);
+      }
+    });
+    separator.append(label, button3);
+    return separator;
+  }
+  function readingAnchor() {
+    for (const article of Array.from(document.querySelectorAll(ARTICLE_SELECTOR4))) {
+      const rect = article.getBoundingClientRect();
+      if (rect.bottom > 0 && rect.top < (globalThis.innerHeight || document.documentElement.clientHeight || 0)) {
+        return { article, top: rect.top };
+      }
+    }
+    return null;
+  }
+  function restoreReadingAnchor(anchor) {
+    if (!anchor?.article.isConnected) return;
+    const delta = anchor.article.getBoundingClientRect().top - anchor.top;
+    if (!delta) return;
+    const scroller = document.scrollingElement;
+    if (scroller) {
+      scroller.scrollTop += delta;
+    } else {
+      globalThis.scrollBy?.(0, delta);
+    }
+  }
+  function removeSeparator() {
+    document.querySelector(`[${SEPARATOR_ATTR}]`)?.remove();
+  }
+  function readTweetId5(article) {
+    for (const link of Array.from(article.querySelectorAll('a[href*="/status/"]'))) {
+      const match = /\/status\/(\d{1,25})/.exec(link.getAttribute("href") ?? "");
+      if (match?.[1]) return match[1];
+    }
+    return null;
+  }
+  function ensureStyle10() {
+    if (document.getElementById(STYLE_ID15)) return;
+    const style = document.createElement("style");
+    style.id = STYLE_ID15;
+    style.textContent = `
+.av-reading-separator {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 40px;
+  margin: 8px 0;
+  padding: 0 16px;
+  border-block: 1px solid color-mix(in srgb, var(--av-accent, #1d9bf0) 32%, transparent);
+  background: color-mix(in srgb, var(--av-accent, #1d9bf0) 8%, transparent);
+  color: var(--av-accent, #1d9bf0);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+.av-reading-mark-button {
+  min-height: 28px;
+  padding: 4px 10px;
+  border: 1px solid currentColor;
+  border-radius: 7px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-family: inherit;
+  font-style: inherit;
+  font-size: 12px;
+  font-weight: inherit;
+  line-height: inherit;
+}
+.av-reading-mark-button:hover,
+.av-reading-mark-button:focus-visible {
+  background: color-mix(in srgb, currentColor 14%, transparent);
+}
+html[data-av-motion="reduce"] .av-reading-mark-button { transition: none; }
+`;
+    (document.head ?? document.documentElement).append(style);
+  }
+  function teardown2() {
+    if (flushTimer2 !== void 0) {
+      clearTimeout(flushTimer2);
+      flushTimer2 = void 0;
+    }
+    detachListeners();
+    removeSeparator();
+    for (const article of articleStates.keys()) article.removeAttribute(NEW_ATTR);
+    document.getElementById(STYLE_ID15)?.remove();
+    articleStates = /* @__PURE__ */ new Map();
+    activeSurface = void 0;
+    activeContext2 = void 0;
+  }
+
+  // src/features/layout/declutter.ts
+  var STYLE_ID16 = "av-layout-declutter";
+  var TITLE_STASH_ATTRIBUTE = "data-av-title";
+  var COMPOSER_SELECTOR = [
+    '[data-testid^="tweetTextarea_"]',
+    '[data-testid="toolBar"]',
+    '[data-testid="tweetButtonInline"]',
+    '[data-testid="tweetButton"]'
+  ].join(", ");
+  var writerListenersBound = false;
+  var writerFrame = 0;
+  var layoutDeclutterFeature = {
+    id: "layout.declutter",
+    title: "Layout declutter",
+    category: "layout",
+    init(ctx) {
+      ensureLayoutStyle();
+      applyLayoutClasses(ctx);
+      ctx.diagnostics.info("Layout declutter initialized");
+    },
+    apply(ctx, root) {
+      ensureLayoutStyle();
+      applyLayoutClasses(ctx);
+      if (ctx.settings.layout.suppressHoverPreviews) {
+        stripNativeTitles(root instanceof Element || root instanceof Document ? root : document);
+      }
+    },
+    destroy(ctx) {
+      document.getElementById(STYLE_ID16)?.remove();
+      restoreNativeTitles();
+      unbindWriterListeners();
+      document.documentElement.classList.remove(
+        "av-hide-right-sidebar",
+        "av-hide-trends",
+        "av-hide-follow-suggestions",
+        "av-hide-home-composer",
+        "av-hide-grok",
+        "av-suppress-hover",
+        "av-writer-mode",
+        "av-writing"
+      );
+      for (const className of Array.from(document.documentElement.classList)) {
+        if (className.startsWith("av-hide-nav-")) {
+          document.documentElement.classList.remove(className);
+        }
+      }
+      ctx.diagnostics.info("Layout declutter destroyed");
+    }
+  };
+  function stripNativeTitles(scope) {
+    const roots = [];
+    if (scope instanceof Element && scope.hasAttribute("title")) roots.push(scope);
+    for (const node of Array.from(scope.querySelectorAll("[title]"))) {
+      roots.push(node);
+    }
+    for (const node of roots) {
+      const title = node.getAttribute("title");
+      if (title === null || node.hasAttribute(TITLE_STASH_ATTRIBUTE)) continue;
+      node.setAttribute(TITLE_STASH_ATTRIBUTE, title);
+      node.removeAttribute("title");
+    }
+  }
+  function restoreNativeTitles() {
+    for (const node of Array.from(
+      document.querySelectorAll(`[${TITLE_STASH_ATTRIBUTE}]`)
+    )) {
+      const title = node.getAttribute(TITLE_STASH_ATTRIBUTE);
+      if (title !== null) node.setAttribute("title", title);
+      node.removeAttribute(TITLE_STASH_ATTRIBUTE);
+    }
+  }
+  function applyLayoutClasses(ctx) {
+    const root = document.documentElement;
+    root.classList.toggle("av-hide-right-sidebar", ctx.settings.layout.hideRightSidebar);
+    root.classList.toggle("av-hide-trends", ctx.settings.layout.hideTrends);
+    root.classList.toggle("av-hide-follow-suggestions", ctx.settings.layout.hideFollowSuggestions === true);
+    root.classList.toggle(
+      "av-hide-home-composer",
+      ctx.settings.layout.hideHomeComposer === true && ctx.route?.surface === "home"
+    );
+    root.classList.toggle("av-hide-grok", ctx.settings.layout.hideGrok);
+    const suppressHover = ctx.settings.layout.suppressHoverPreviews === true;
+    root.classList.toggle("av-suppress-hover", suppressHover);
+    if (suppressHover) stripNativeTitles(document);
+    else restoreNativeTitles();
+    root.classList.toggle("av-writer-mode", ctx.settings.layout.writerMode);
+    if (ctx.settings.layout.writerMode) {
+      bindWriterListeners();
+      syncWritingClass();
+    } else {
+      unbindWriterListeners();
+    }
+    for (const className of Array.from(root.classList)) {
+      if (className.startsWith("av-hide-nav-")) {
+        root.classList.remove(className);
+      }
+    }
+    for (const item of ctx.settings.layout.hideNavItems) {
+      const safe = item.replace(/[^a-z0-9_-]/gi, "").toLowerCase();
+      if (safe.length > 0) {
+        root.classList.add(`av-hide-nav-${safe}`);
+      }
+    }
+  }
+  function isComposerNode(node) {
+    if (!(node instanceof Element)) {
+      return false;
+    }
+    return node.closest(COMPOSER_SELECTOR) !== null;
+  }
+  function syncWritingClass() {
+    const writing = isComposerNode(document.activeElement);
+    document.documentElement.classList.toggle("av-writing", writing);
+  }
+  function onFocusOut() {
+    if (writerFrame !== 0) {
+      return;
+    }
+    const schedule = globalThis.requestAnimationFrame ?? ((cb) => globalThis.setTimeout(() => cb(0), 16));
+    writerFrame = schedule(() => {
+      writerFrame = 0;
+      syncWritingClass();
+    });
+  }
+  function bindWriterListeners() {
+    if (writerListenersBound) {
+      return;
+    }
+    document.addEventListener("focusin", syncWritingClass, true);
+    document.addEventListener("focusout", onFocusOut, true);
+    writerListenersBound = true;
+  }
+  function unbindWriterListeners() {
+    if (!writerListenersBound) {
+      document.documentElement.classList.remove("av-writing");
+      return;
+    }
+    document.removeEventListener("focusin", syncWritingClass, true);
+    document.removeEventListener("focusout", onFocusOut, true);
+    if (writerFrame !== 0) {
+      globalThis.cancelAnimationFrame?.(writerFrame);
+      writerFrame = 0;
+    }
+    writerListenersBound = false;
+    document.documentElement.classList.remove("av-writing");
+  }
+  function ensureLayoutStyle() {
+    if (document.getElementById(STYLE_ID16)) {
+      return;
+    }
+    const style = document.createElement("style");
+    style.id = STYLE_ID16;
+    style.textContent = LAYOUT_CSS;
+    (document.head ?? document.documentElement).append(style);
+  }
+  var LAYOUT_CSS = `
+/* Hover-only surfaces. X opens a profile card or a visual tooltip when the pointer rests on a
+   name, avatar or control; both are portals it inserts near the end of the body, so hiding them
+   by role and test id reaches every one without this feature listening for the pointer at all.
+   Click-opened menus and dialogs use different roles and are deliberately left alone. */
+html.av-suppress-hover [data-testid="hoverCardParent"],
+html.av-suppress-hover [role="tooltip"] {
+  display: none !important;
+}
+
+html.av-hide-right-sidebar [data-testid="sidebarColumn"] {
+  display: none !important;
+}
+
+/* Once the discovery rail is gone, current X leaves its 820px reading column pinned to the
+   rail's old edge inside a wider main canvas. Center it on full desktop layouts so the empty
+   space becomes an intentional gutter on both sides instead of a stranded right-hand void. */
+@media (min-width: 1200px) {
+  html.av-hide-right-sidebar main[role="main"] div:has(> [data-testid="primaryColumn"]) {
+    justify-content: center !important;
+  }
+}
+
+/* Current X puts a zero-height news_sidebar marker beside the visible news card and nests
+   trends inside an unlabelled region. Collapse the semantic module boundaries so headings and
+   empty card chrome do not survive after their rows disappear. Keep the leaf selectors as a
+   compatibility path for older markup. */
+html.av-hide-trends [data-testid="sidebarColumn"] div:has(> [data-testid="news_sidebar"]),
+html.av-hide-trends [data-testid="sidebarColumn"] section:has([data-testid="trend"]),
+html.av-hide-trends [data-testid="news_sidebar"],
+html.av-hide-trends [data-testid^="news_sidebar_article_"],
+html.av-hide-trends [data-testid="trend"] {
+  display: none !important;
+}
+
+html.av-hide-follow-suggestions [data-testid="sidebarColumn"] aside[role="complementary"]:has(a[href^="/i/connect_people"]),
+html.av-hide-follow-suggestions [data-testid="sidebarColumn"] [data-testid="whoToFollowSspAd"] {
+  display: none !important;
+}
+
+/* Home's quick composer is the direct child of its labelled timeline shell in current X. The
+   direct toolbar selector keeps the sanitized/legacy fixture covered without reaching reply
+   composers on status pages. The route-aware root class is only present on Home. */
+html.av-hide-home-composer [data-testid="primaryColumn"] > [data-testid="toolBar"],
+html.av-hide-home-composer [data-testid="primaryColumn"] > * > *:has([data-testid^="tweetTextarea_"]) {
+  display: none !important;
+}
+
+/* Collapsed by features/layout/thread-recommendations.ts, which stamps the owning
+   timeline cells only after a bounded heading label matched on a conversation route. */
+[data-av-thread-recommendation="1"] {
+  display: none !important;
+}
+
+html.av-hide-grok [data-testid="GrokDrawer"],
+html.av-hide-grok [data-testid="GrokDrawerHeader"],
+html.av-hide-grok [data-testid="chat-drawer-root"],
+html.av-hide-grok [data-testid="chat-drawer-main"],
+html.av-hide-grok [data-testid="grokImgGen"],
+html.av-hide-grok [data-testid="sidebarColumn"] aside[role="complementary"]:has(a[href*="grok.com/"]),
+html.av-hide-grok a[href="/i/grok"],
+html.av-hide-grok button[aria-label="Grok actions"] {
+  display: none !important;
+}
+
+/* Writer mode: only active while focus is inside the composer, so the timeline is untouched
+   the rest of the time. Nothing is display:none'd here. The surroundings recede and come
+   straight back on blur, which keeps the effect reversible mid-scroll. */
+html.av-writer-mode.av-writing [data-testid="sidebarColumn"],
+html.av-writer-mode.av-writing [data-testid="news_sidebar"] {
+  opacity: 0.12;
+  pointer-events: none;
+}
+
+html.av-writer-mode.av-writing [data-testid="cellInnerDiv"] {
+  opacity: 0.28;
+}
+
+html.av-writer-mode [data-testid="sidebarColumn"],
+html.av-writer-mode [data-testid="news_sidebar"],
+html.av-writer-mode [data-testid="cellInnerDiv"] {
+  transition: opacity 160ms ease;
+}
+
+html.av-writer-mode.av-writing [data-testid="cellInnerDiv"]:hover {
+  opacity: 1;
+}
+
+html.av-hide-nav-premium [data-testid="premium-signup-tab"],
+html.av-hide-nav-home [data-testid="AppTabBar_Home_Link"],
+html.av-hide-nav-explore [data-testid="AppTabBar_Explore_Link"],
+html.av-hide-nav-notifications [data-testid="AppTabBar_Notifications_Link"],
+html.av-hide-nav-follow [data-testid="AppTabBar_Follow_Link"],
+html.av-hide-nav-messages [data-testid="AppTabBar_DirectMessage_Link"],
+html.av-hide-nav-chat [data-testid="AppTabBar_DirectMessage_Link"],
+html.av-hide-nav-grok a[href="/i/grok"],
+html.av-hide-nav-history a[href="/i/history"],
+html.av-hide-nav-studio a[href="/i/jf/creators/studio"],
+html.av-hide-nav-profile [data-testid="AppTabBar_Profile_Link"],
+html.av-hide-nav-more [data-testid="AppTabBar_More_Menu"] {
+  display: none !important;
+}
+`;
+
+  // src/features/layout/thread-recommendations.ts
+  var MARKER4 = "data-av-thread-recommendation";
+  var HEADING_MARKER = "data-av-thread-recommendation-heading";
+  var HEADING_LABELS = /* @__PURE__ */ new Set([
+    // Verified in _decoded/status.html (2026-08-14 capture).
+    "discover more"
+  ]);
+  var threadRecommendationsFeature = {
+    id: "layout.threadRecommendations",
+    title: "Hide thread recommendations",
+    category: "layout",
+    init(ctx) {
+      applyThreadRecommendations(ctx);
+    },
+    apply(ctx) {
+      applyThreadRecommendations(ctx);
+    },
+    destroy(ctx) {
+      restoreThreadRecommendations();
+      ctx.diagnostics.info("Thread recommendations restored");
+    }
+  };
+  function applyThreadRecommendations(ctx) {
+    if (!ctx.settings.layout.hideThreadRecommendations || ctx.route?.surface !== "status") {
+      restoreThreadRecommendations();
+      return;
+    }
+    const heading = findRecommendationHeading();
+    if (!heading) {
+      return;
+    }
+    const headingCell = heading.closest('[data-testid="cellInnerDiv"]');
+    if (!headingCell) {
+      return;
+    }
+    let hidden = 0;
+    let node = headingCell;
+    while (node) {
+      if (node instanceof HTMLElement && node.matches('[data-testid="cellInnerDiv"]')) {
+        node.setAttribute(MARKER4, "1");
+        hidden += 1;
+      }
+      node = node.nextElementSibling;
+    }
+    headingCell.setAttribute(HEADING_MARKER, "1");
+    if (hidden > 0) {
+      ctx.diagnostics.info("Thread recommendations collapsed", { cells: hidden });
+    }
+  }
+  function findRecommendationHeading() {
+    const cells = Array.from(document.querySelectorAll('[data-testid="cellInnerDiv"]'));
+    for (const cell of cells) {
+      if (cell.querySelector('article[data-testid="tweet"]')) {
+        continue;
+      }
+      const heading = cell.querySelector('h2[role="heading"]');
+      if (!heading) {
+        continue;
+      }
+      const label = (heading.textContent ?? "").trim().toLowerCase();
+      if (HEADING_LABELS.has(label)) {
+        return heading;
+      }
+    }
+    return null;
+  }
+  function restoreThreadRecommendations() {
+    for (const node of Array.from(document.querySelectorAll(`[${MARKER4}], [${HEADING_MARKER}]`))) {
+      node.removeAttribute(MARKER4);
+      node.removeAttribute(HEADING_MARKER);
+    }
+  }
+
+  // src/features/layout/focus-mode.ts
+  var HOST_ID3 = "av-focus-mode";
+  var STYLE_ID17 = "av-focus-mode-style";
+  var OVERRIDE_MINUTES = 5;
+  function minutesOfDay(date) {
+    return date.getHours() * 60 + date.getMinutes();
+  }
+  function withinWindow(now2, startMinute, endMinute) {
+    if (startMinute === endMinute) {
+      return true;
+    }
+    return startMinute < endMinute ? now2 >= startMinute && now2 < endMinute : now2 >= startMinute || now2 < endMinute;
+  }
+  function parseTime(value) {
+    const match = /^(\d{1,2}):(\d{2})$/.exec(value.trim());
+    if (!match) {
+      return null;
+    }
+    const hours = Number(match[1]);
+    const minutes = Number(match[2]);
+    if (!Number.isInteger(hours) || !Number.isInteger(minutes) || hours > 23 || minutes > 59) {
+      return null;
+    }
+    return hours * 60 + minutes;
+  }
+  var overrideUntil = 0;
+  var timer;
+  var focusModeFeature = {
+    id: "layout.focusMode",
+    title: "Focus mode",
+    category: "layout",
+    init(ctx) {
+      applyFocusMode(ctx);
+    },
+    apply(ctx) {
+      applyFocusMode(ctx);
+    },
+    destroy(ctx) {
+      teardown3();
+      ctx.diagnostics.info("Focus mode removed");
+    },
+    getStatus() {
+      return {
+        ok: true,
+        message: document.getElementById(HOST_ID3) ? "Focus mode covering the timeline" : "Focus mode clear"
+      };
+    }
+  };
+  function applyFocusMode(ctx) {
+    const settings = ctx.settings.layout;
+    if (!settings.focusMode) {
+      teardown3();
+      return;
+    }
+    const start = parseTime(settings.focusStart);
+    const end = parseTime(settings.focusEnd);
+    if (start === null || end === null) {
+      teardown3();
+      ctx.diagnostics.warn("Focus mode window could not be read", {
+        start: settings.focusStart,
+        end: settings.focusEnd
+      });
+      return;
+    }
+    const now2 = Date.now();
+    if (now2 < overrideUntil) {
+      hidePanel();
+      scheduleRecheck(ctx);
+      return;
+    }
+    if (withinWindow(minutesOfDay(new Date(now2)), start, end)) {
+      hidePanel();
+    } else {
+      showPanel(ctx);
+    }
+    scheduleRecheck(ctx);
+  }
+  function scheduleRecheck(ctx) {
+    if (timer !== void 0) {
+      return;
+    }
+    timer = setInterval(() => applyFocusMode(ctx), 3e4);
+  }
+  function showPanel(ctx) {
+    ensureStyle11();
+    if (document.getElementById(HOST_ID3)) {
+      return;
+    }
+    const parent = document.body ?? document.documentElement;
+    if (!parent) {
+      return;
+    }
+    const host = document.createElement("div");
+    host.id = HOST_ID3;
+    const shadow = host.attachShadow({ mode: "open" });
+    const style = document.createElement("style");
+    style.textContent = PANEL_CSS;
+    const card = document.createElement("div");
+    card.className = "card";
+    card.setAttribute("role", "status");
+    const title = document.createElement("h2");
+    title.textContent = ft(ctx, "Outside your reading hours");
+    const copy2 = document.createElement("p");
+    copy2.textContent = ft(
+      ctx,
+      "Aviary is covering the timeline until your next window. Nothing is blocked and nothing left this device."
+    );
+    const window_ = document.createElement("p");
+    window_.className = "window";
+    window_.textContent = `${ctx.settings.layout.focusStart} to ${ctx.settings.layout.focusEnd}`;
+    const button3 = document.createElement("button");
+    button3.type = "button";
+    button3.textContent = ft(ctx, "Let me through for five minutes");
+    button3.addEventListener("click", () => {
+      overrideUntil = Date.now() + OVERRIDE_MINUTES * 6e4;
+      hidePanel();
+    });
+    card.append(title, copy2, window_, button3);
+    shadow.append(style, card);
+    parent.append(host);
+    document.documentElement.classList.add("av-focus-active");
+  }
+  function hidePanel() {
+    document.getElementById(HOST_ID3)?.remove();
+    document.documentElement.classList.remove("av-focus-active");
+  }
+  function ensureStyle11() {
+    if (document.getElementById(STYLE_ID17)) {
+      return;
+    }
+    const style = document.createElement("style");
+    style.id = STYLE_ID17;
+    style.textContent = `
+html.av-focus-active [data-testid="primaryColumn"] > * {
+  filter: blur(9px);
+  pointer-events: none;
+  user-select: none;
+}
+`;
+    (document.head ?? document.documentElement).append(style);
+  }
+  var PANEL_CSS = `
+:host { all: initial; }
+.card {
+  position: fixed;
+  inset-block-start: 96px;
+  inset-inline-start: 50%;
+  transform: translateX(-50%);
+  z-index: 2147482000;
+  max-width: 380px;
+  padding: 20px 22px;
+  border: 1px solid #2f3336;
+  border-radius: 10px;
+  background: #16181c;
+  color: #e7e9ea;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  text-align: center;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+}
+h2 { margin: 0 0 8px; font-size: 17px; }
+p { margin: 0 0 8px; font-size: 13px; line-height: 1.5; color: #c9cdd1; }
+.window { font-variant-numeric: tabular-nums; font-weight: 700; color: #e7e9ea; }
+button {
+  margin-top: 8px;
+  min-height: 34px;
+  padding: 0 16px;
+  border: 1px solid #536471;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+button:focus-visible { outline: 2px solid #1d9bf0; outline-offset: 2px; }
+`;
+  function teardown3() {
+    hidePanel();
+    document.getElementById(STYLE_ID17)?.remove();
+    if (timer !== void 0) {
+      clearInterval(timer);
+      timer = void 0;
+    }
+  }
+
+  // src/features/core/i18n-feature.ts
+  var STYLE_ID18 = "av-i18n";
+  var i18nFeature = {
+    id: "core.i18n",
+    title: "Internationalization",
+    category: "core",
+    init(ctx) {
+      ensureI18nStyle();
+      applyLocaleClasses(ctx);
+      ctx.diagnostics.info("i18n initialized", { locale: ctx.settings.i18n.locale });
+    },
+    apply(ctx) {
+      ensureI18nStyle();
+      applyLocaleClasses(ctx);
+    },
+    destroy(ctx) {
+      document.getElementById(STYLE_ID18)?.remove();
+      const root = document.documentElement;
+      root.classList.remove("av-rtl", "av-ltr");
+      delete root.dataset.avLocale;
+      document.getElementById("av-control-center")?.removeAttribute("dir");
+      ctx.diagnostics.info("i18n destroyed");
+    }
+  };
+  function applyLocaleClasses(ctx) {
+    const root = document.documentElement;
+    const direction = localeDirection(ctx.settings.i18n.locale);
+    root.dataset.avLocale = ctx.settings.i18n.locale;
+    root.classList.toggle("av-rtl", direction === "rtl");
+    root.classList.toggle("av-ltr", direction === "ltr");
+    document.getElementById("av-control-center")?.setAttribute("dir", direction);
+  }
+  function ensureI18nStyle() {
+    if (document.getElementById(STYLE_ID18)) {
+      return;
+    }
+    const style = document.createElement("style");
+    style.id = STYLE_ID18;
+    style.textContent = I18N_CSS;
+    (document.head ?? document.documentElement).append(style);
+  }
+  var I18N_CSS = `
+html.av-rtl [data-testid="tweetText"] {
+  text-align: start;
+  unicode-bidi: plaintext;
+}
+
+html.av-rtl [data-testid="primaryColumn"] {
+  direction: rtl;
+}
+
+html.av-ltr [data-testid="tweetText"][lang^="ar"],
+html.av-ltr [data-testid="tweetText"][lang^="he"] {
+  direction: rtl;
+  text-align: start;
+  unicode-bidi: plaintext;
+}
+
+@media (pointer: coarse) {
+  html.av-touch [data-testid="reply"],
+  html.av-touch [data-testid="retweet"],
+  html.av-touch [data-testid="like"],
+  html.av-touch [data-testid="bookmark"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+`;
+
+  // src/features/core/mobile-touch.ts
+  var STYLE_ID19 = "av-mobile-touch";
+  var mobileTouchFeature = {
+    id: "core.mobileTouch",
+    title: "Mobile & touch ergonomics",
+    category: "accessibility",
+    init(ctx) {
+      ensureMobileStyle();
+      applyMobileClasses();
+      ctx.diagnostics.info("Mobile/touch initialized");
+    },
+    apply() {
+      ensureMobileStyle();
+      applyMobileClasses();
+    },
+    destroy(ctx) {
+      document.getElementById(STYLE_ID19)?.remove();
+      document.documentElement.classList.remove("av-mobile", "av-touch");
+      ctx.diagnostics.info("Mobile/touch destroyed");
+    }
+  };
+  function applyMobileClasses() {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+      return;
+    }
+    const root = document.documentElement;
+    const touch = window.matchMedia("(pointer: coarse)").matches;
+    const narrow = window.matchMedia("(max-width: 760px)").matches;
+    root.classList.toggle("av-touch", touch);
+    root.classList.toggle("av-mobile", narrow);
+  }
+  function ensureMobileStyle() {
+    if (document.getElementById(STYLE_ID19)) {
+      return;
+    }
+    const style = document.createElement("style");
+    style.id = STYLE_ID19;
+    style.textContent = MOBILE_CSS;
+    (document.head ?? document.documentElement).append(style);
+  }
+  var MOBILE_CSS = `
+html.av-touch [${"data-av-hide-button"}] {
+  min-width: 44px;
+  min-height: 44px;
+  margin-inline-end: 4px;
+  padding: 8px 12px;
+}
+
+html.av-touch [${"data-av-media-button"}] {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 8px 12px;
+  font-size: 12px;
+}
+
+html.av-touch [data-av-local-bookmark],
+html.av-touch .av-ai-trigger,
+html.av-touch [data-av-snippet-palette="trigger"] {
+  min-width: 44px;
+  min-height: 44px;
+  margin-block: 2px;
+  padding: 8px 10px;
+}
+
+/* Hover is not a discovery mechanism on a coarse pointer. Keep both prompt affordances visible
+   and give their options the same target size without enlarging the surrounding timeline. */
+html.av-touch .av-ai-trigger {
+  opacity: 1;
+}
+
+html.av-touch .av-ai-menu,
+html.av-touch .av-snippet-popover {
+  gap: 8px;
+}
+
+html.av-touch .av-ai-option,
+html.av-touch .av-snippet-option {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 10px 12px;
+}
+
+html.av-mobile [data-testid="primaryColumn"] {
+  padding-inline: 0;
 }
 `;
 
@@ -36730,6 +36893,36 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       this.#features.set(feature.id, feature);
     }
     /**
+     * Registers a feature after the initial boot pass and initializes it immediately.
+     *
+     * Extension delivery uses this for the panel chunk. Keeping the operation on the registry
+     * means a late-loaded feature still participates in suspend, resume, apply, and teardown in
+     * exactly the same way as a feature present in the first chunk.
+     */
+    async registerAndInit(ctx, feature) {
+      this.register(feature);
+      await this.initFeature(ctx, feature.id);
+    }
+    /** Initializes one feature that was registered after `initAll` completed. */
+    async initFeature(ctx, id) {
+      if (this.#active.has(id)) {
+        return true;
+      }
+      const feature = this.#features.get(id);
+      if (!feature) {
+        return false;
+      }
+      try {
+        await feature.init(ctx);
+        this.#active.add(id);
+        ctx.diagnostics.info(`Feature initialized: ${id}`);
+        return true;
+      } catch (error) {
+        ctx.diagnostics.error(`Feature failed to initialize: ${id}`, errorDetails7(error));
+        return false;
+      }
+    }
+    /**
      * What is registered, in registration order.
      *
      * `statuses()` reports how each feature is doing but not which feature it is, so nothing could
@@ -37059,7 +37252,8 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
               version: DIAGNOSTICS_SCHEMA_VERSION,
               events: events.slice(-DIAGNOSTICS_LIMIT)
             };
-          }
+          },
+          { restoreGate: false }
         );
         this.#events = parse2(next).events;
       }).then(
@@ -38696,7 +38890,32 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     if (!runtime?.id || typeof runtime.sendMessage !== "function") {
       return null;
     }
-    return new ExtensionDurableStorageBackend((message) => runtime.sendMessage(message));
+    return new ExtensionDurableStorageBackend((message) => sendRuntimeMessage(runtime, message));
+  }
+  function sendRuntimeMessage(runtime, message) {
+    return new Promise((resolve, reject) => {
+      let settled = false;
+      const finish2 = (value, error) => {
+        if (settled) return;
+        settled = true;
+        if (error) reject(error);
+        else resolve(value);
+      };
+      try {
+        const pending = runtime.sendMessage(message, (value) => {
+          const error = runtime.lastError?.message;
+          finish2(value, error ? new Error(`Extension storage message failed: ${error}`) : void 0);
+        });
+        if (pending && typeof pending.then === "function") {
+          pending.then(
+            (value) => finish2(value),
+            (error) => finish2(void 0, error)
+          );
+        }
+      } catch (error) {
+        finish2(void 0, error);
+      }
+    });
   }
   async function migrateLegacyHostDurableStorage(backend, factory = globalThis.indexedDB) {
     if (!factory) {
@@ -38878,6 +39097,57 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
   }
 
   // src/main.ts
+  var EXTENSION_LAZY = false;
+  var EXTENSION_PANEL_RESOURCE = "chunks/extension-panel.js";
+  async function importExtensionPanel() {
+    const runtime = globalThis.chrome?.runtime;
+    if (!runtime?.sendMessage) {
+      throw new Error("Aviary panel chunk cannot load: extension messaging unavailable");
+    }
+    const response = await new Promise((resolve, reject) => {
+      let settled = false;
+      const finish2 = (value, error) => {
+        if (settled) return;
+        settled = true;
+        if (error) reject(error);
+        else resolve(value);
+      };
+      try {
+        const pending = runtime.sendMessage?.(
+          { type: "AVIARY_LOAD_PANEL", resource: EXTENSION_PANEL_RESOURCE },
+          (value) => {
+            const message = runtime.lastError?.message;
+            finish2(value, message ? new Error(`Aviary panel message failed: ${message}`) : void 0);
+          }
+        );
+        if (pending && typeof pending.then === "function") {
+          pending.then((value) => finish2(value), (error) => finish2(void 0, error));
+        }
+      } catch (error) {
+        finish2(void 0, error);
+      }
+    });
+    if (response?.ok !== true) {
+      const detail = typeof response?.error === "string" ? response.error : "injection failed";
+      throw new Error(`Aviary panel chunk could not load: ${detail}`);
+    }
+    const readPanel = () => globalThis.AviaryExtensionPanelChunk;
+    let panel = readPanel();
+    const deadline = Date.now() + 15e3;
+    while (!panel && Date.now() < deadline) {
+      await new Promise((resolve) => {
+        setTimeout(resolve, 25);
+      });
+      panel = readPanel();
+    }
+    if (!panel?.optionalFeatureModules || typeof panel.startControlCenter !== "function") {
+      throw new Error("Aviary panel chunk loaded without its entry points");
+    }
+    return panel;
+  }
+  function settingsNeedPanelChunk(settings) {
+    return settings.export.enabled || settings.export.preserveRawPayloads || settings.links.cleanShareButtons || settings.links.expandTco || settings.links.copyLinkHost !== "" || settings.ai.commandMenu || settings.composer.snippets.length > 0;
+  }
   var activeApp;
   var bootingApp;
   var pendingBridge;
@@ -39008,6 +39278,42 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       diagnostics.info("Rate limit mode reconciled", { mode: appliedRateLimitMode });
     };
     const registry = new FeatureRegistry();
+    let panelModule;
+    let panelLoading;
+    let panelFeaturesRegistered = false;
+    let panelStarted = false;
+    let registryInitialized = false;
+    const loadPanelFeatures = async (ctx) => {
+      if (!EXTENSION_LAZY) {
+        throw new Error("Aviary panel loading is only needed by the extension build");
+      }
+      panelLoading ??= importExtensionPanel().catch((error) => {
+        panelLoading = void 0;
+        throw error;
+      });
+      panelModule = await panelLoading;
+      if (!panelFeaturesRegistered) {
+        for (const feature of panelModule.optionalFeatureModules) {
+          if (registry.ids().includes(feature.id)) continue;
+          registry.register(feature);
+          if (registryInitialized) {
+            await registry.initFeature(ctx, feature.id);
+          }
+        }
+        panelFeaturesRegistered = true;
+      }
+      return panelModule;
+    };
+    const openControlCenter = async (ctx) => {
+      const panel = await loadPanelFeatures(ctx);
+      if (!panelStarted) {
+        await registry.suspend(ctx, [controlCenterLauncherFeature.id]);
+        document.getElementById("av-control-center")?.remove();
+        await panel.startControlCenter(ctx);
+        panelStarted = true;
+      }
+      panel.openControlCenter();
+    };
     const policy = createTrustedHtmlPolicy();
     const auditLog = new AuditLog(
       storage,
@@ -39034,24 +39340,32 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
     registry.register(hiddenPostsFeature);
     registry.register(mediaButtonsFeature);
     registry.register(mediaPresentationFeature);
-    registry.register(exportFeature);
-    registry.register(bookmarksFeature);
-    registry.register(userNotesFeature);
-    registry.register(linkUnshortenFeature);
-    registry.register(cleanShareLinksFeature);
-    registry.register(copyPostLinkFeature);
+    if (!EXTENSION_LAZY) {
+      for (const feature of optionalFeatureModules) {
+        if (feature.id !== "export.networkCapture" && feature.id !== "ai.commandMenu") {
+          registry.register(feature);
+        }
+      }
+    }
     registry.register(pauseOffscreenVideoFeature);
     registry.register(videoPlaybackFeature);
     registry.register(forceFollowingFeature);
     registry.register(timelinePaginationFeature);
     registry.register(inlineOriginalImagesFeature);
-    registry.register(snapshotsFeature);
     registry.register(mobileTouchFeature);
-    registry.register(composerSnippetsFeature);
     registry.register(pageHooksFeature);
-    registry.register(networkCaptureFeature);
-    registry.register(aiCommandMenuFeature);
-    registry.register(controlCenterFeature);
+    if (!EXTENSION_LAZY) {
+      for (const feature of optionalFeatureModules) {
+        if (feature.id === "export.networkCapture" || feature.id === "ai.commandMenu") {
+          registry.register(feature);
+        }
+      }
+    }
+    if (EXTENSION_LAZY) {
+      registry.register(controlCenterLauncherFeature);
+    } else {
+      registry.register(controlCenterFeature);
+    }
     registry.register(firstRunFeature);
     registry.register(customCssFeature);
     const context = {
@@ -39088,15 +39402,41 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       },
       requestApply() {
         reconcileRateLimit();
+        if (EXTENSION_LAZY && settingsNeedPanelChunk(settings)) {
+          return loadPanelFeatures(context).then(() => registry.applyAll(context, document));
+        }
         return registry.applyAll(context, document);
       }
     };
+    if (EXTENSION_LAZY) {
+      context.loadControlCenter = () => openControlCenter(context);
+    }
+    context.getPageHookCounters = pageHookCounters;
+    context.getAdProtectionCounters = adProtectionCounters;
+    context.getSelectorHealth = getSelectorHealthSnapshot;
+    context.clearSelectorAdObservations = () => clearAdObservations(context.storage);
+    if (EXTENSION_LAZY && settingsNeedPanelChunk(settings)) {
+      await loadPanelFeatures(context);
+    }
     const stops = [];
     document.documentElement.dataset.avSource = options.source;
     policy.html("");
     try {
       await registry.initAll(context);
       await registry.applyAll(context, document);
+      registryInitialized = true;
+      let pageTeardownStarted = false;
+      const onPageExit = () => {
+        if (pageTeardownStarted) return;
+        pageTeardownStarted = true;
+        void activeApp?.destroy();
+      };
+      globalThis.addEventListener("pagehide", onPageExit, { once: true });
+      globalThis.addEventListener("beforeunload", onPageExit, { once: true });
+      stops.push(() => {
+        globalThis.removeEventListener("pagehide", onPageExit);
+        globalThis.removeEventListener("beforeunload", onPageExit);
+      });
       const observerRoot = document.body ?? document.documentElement;
       stops.push(
         observeAddedElements(observerRoot, (nodes, root) => {
@@ -39120,6 +39460,10 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
           for (const stop3 of stops.reverse()) {
             stop3();
           }
+          if (panelStarted && panelModule) {
+            await panelModule.stopControlCenter(context);
+            panelStarted = false;
+          }
           await registry.destroyAll(context);
           pageBridge.destroy();
           delete document.documentElement.dataset.avReady;
@@ -39134,6 +39478,10 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
       showBootFailureNotice(error instanceof Error ? error.message : String(error));
       for (const stop3 of stops.reverse()) {
         stop3();
+      }
+      if (panelStarted && panelModule) {
+        await panelModule.stopControlCenter(context);
+        panelStarted = false;
       }
       await registry.destroyAll(context);
       pageBridge.destroy();

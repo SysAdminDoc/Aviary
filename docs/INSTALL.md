@@ -50,9 +50,11 @@ request another X endpoint.
 ## Chrome, Edge, or Brave (developer load)
 
 1. Run `npm run verify` (or `npm run build`). **This step is required on a fresh clone**: neither
-   `dist/extension-chrome/` nor the ZIP is carried in git, `content.js` alone is 1.9 MB per target
-   and is rebuilt on every commit that touches `src/`, so the committed copy was 3.8 MB of
-   incompressible history per commit that nothing read. Build them, or take them from a release.
+   `dist/extension-chrome/` nor the ZIP is carried in git. The document-start `content.js` is about
+   0.60 MB per target; the Control Center and archive code lives in a separate panel chunk fetched
+   only after its launcher is clicked. Build them, or take them from a release.
+   The panel shares the document-start privacy and storage state, so late-loaded integrations use
+   the same Local-only setting and cross-tab write coordination.
 2. Open `chrome://extensions/` (or the equivalent extensions page), enable **Developer mode**, and
    choose **Load unpacked** with `dist/extension-chrome/`. A ZIP is a release artifact; Chromium
    developer loading uses the unpacked directory.
@@ -109,6 +111,24 @@ Raising the Firefox floor to 153 would exclude the still-maintained 140 ESR line
 the feature detection needed for newer APIs. Versions were checked against the Firefox 153 ESR
 release notes, the Firefox 140.15 security advisory, and the Chrome manifest documentation on
 2026-09-06.
+
+## Reproduce the source archive on Linux ARM64
+
+`.node-version` pins Node 24.18.1, which is inside the package engine range. Select it before the
+install so a host image with an older Node release does not produce a misleading build:
+
+```sh
+nvm install 24.18.1
+nvm use 24.18.1
+npm ci --ignore-scripts
+npm run build
+sha256sum dist/aviary-source-v1.47.2.zip
+```
+
+The source archive is a sorted, STORE-only ZIP with a fixed timestamp. It contains the checkout
+inputs needed to reproduce the build and leaves out `dist/`, dependencies, temporary directories,
+and image captures. The extension's first chunk contains the page-safe protection and media path;
+the exact X-matched panel chunk is web-accessible only where the manifest declares it.
 
 ## Firefox (temporary load)
 

@@ -8,9 +8,10 @@
  *
  * ## Chrome 102
  *
- * The manifest's `"world": "MAIN"` content script and `optional_host_permissions` are both
- * available at 102. Aviary does not use `chrome.scripting` document targeting or another newer
- * API to justify the old 116 floor. Declarative Net Request session rules and tab IDs are older.
+ * The manifest's `"world": "MAIN"` content script, `optional_host_permissions`, and the
+ * file-targeted `scripting.executeScript` path are available at 102. Aviary does not use
+ * document targeting or another newer scripting feature to justify a higher floor. Declarative
+ * Net Request session rules and tab IDs are older.
  *
  * ## Firefox 140
  *

@@ -80,18 +80,20 @@ export const networkCaptureFeature: FeatureModule = {
     }
   },
 
-  destroy(ctx) {
+  async destroy(ctx) {
     // The page-side hook is turned off by `privacy.pageHooks`, which owns the config. Dropping
     // the context here is what stops anything reaching the store.
+    const pending = captureTail;
     activeContext = undefined;
     resetCaptureSession();
-    lastCaptureEnabled = false;
-    recentPayloads.length = 0;
     if (subscribedBridge === ctx.pageBridge) {
       if (graphqlHandler) subscribedBridge?.off("graphql", graphqlHandler);
       graphqlHandler = undefined;
       subscribedBridge = undefined;
     }
+    await pending;
+    lastCaptureEnabled = false;
+    recentPayloads.length = 0;
     ctx.diagnostics.info("Network capture destroyed");
   },
 

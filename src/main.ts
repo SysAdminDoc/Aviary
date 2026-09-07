@@ -4,8 +4,14 @@ import { absoluteTimeFeature } from "./features/appearance/absolute-time.ts";
 import { faviconFeature } from "./features/appearance/favicon.ts";
 import { customCssFeature } from "./features/appearance/custom-css.ts";
 import { controlCenterFeature } from "./features/core/control-center.ts";
+import { controlCenterLauncherFeature } from "./extension/control-center-launcher.ts";
+import { optionalFeatureModules } from "./features/core/optional-features.ts";
 import { firstRunFeature } from "./features/core/first-run.ts";
-import { selectorHealthFeature } from "./features/core/selector-health.ts";
+import {
+  clearAdObservations as clearSelectorAdObservations,
+  getSelectorHealthSnapshot,
+  selectorHealthFeature
+} from "./features/core/selector-health.ts";
 import { filterEngineFeature } from "./features/filtering/filter-engine.ts";
 import { seenPostsFeature } from "./features/filtering/seen-posts-feature.ts";
 import { readingMarkerFeature } from "./features/filtering/reading-marker-feature.ts";
@@ -14,29 +20,23 @@ import { layoutDeclutterFeature } from "./features/layout/declutter.ts";
 import { threadRecommendationsFeature } from "./features/layout/thread-recommendations.ts";
 import { focusModeFeature } from "./features/layout/focus-mode.ts";
 import { AuditLog } from "./features/core/audit-log.ts";
-import { aiCommandMenuFeature } from "./features/ai/command-menu.ts";
-import { composerSnippetsFeature } from "./features/composer/composer-snippets.ts";
 import { i18nFeature } from "./features/core/i18n-feature.ts";
 import { mobileTouchFeature } from "./features/core/mobile-touch.ts";
-import { exportFeature } from "./features/export/export-feature.ts";
-import { networkCaptureFeature } from "./features/export/network-capture.ts";
-import { cleanShareLinksFeature } from "./features/library/clean-share-links.ts";
-import { copyPostLinkFeature } from "./features/library/copy-post-link.ts";
 import { pauseOffscreenVideoFeature } from "./features/performance/pause-offscreen-video.ts";
 import { videoPlaybackFeature } from "./features/performance/video-playback.ts";
 import { forceFollowingFeature } from "./features/layout/force-following.ts";
 import { timelinePaginationFeature } from "./features/layout/timeline-pagination.ts";
 import { inlineOriginalImagesFeature } from "./features/media/inline-original-images.ts";
-import { linkUnshortenFeature } from "./features/library/link-unshorten.ts";
-import { snapshotsFeature } from "./features/library/snapshots-feature.ts";
-import { userNotesFeature } from "./features/library/user-notes.ts";
-import { bookmarksFeature } from "./features/library/bookmarks-feature.ts";
 import { mediaButtonsFeature } from "./features/media/media-buttons.ts";
 import { mediaPresentationFeature } from "./features/media/media-presentation.ts";
 import { FeatureRegistry, type FeatureContext } from "./features/registry.ts";
 import { setLocalOnlyPolicy } from "./features/integrations/network-policy.ts";
-import { pageHooksFeature } from "./features/privacy/page-hooks.ts";
-import { adProtectionFeature, installEarlyAdShield } from "./features/privacy/ad-protection.ts";
+import { pageHookCounters, pageHooksFeature } from "./features/privacy/page-hooks.ts";
+import {
+  adProtectionCounters,
+  adProtectionFeature,
+  installEarlyAdShield
+} from "./features/privacy/ad-protection.ts";
 import { Diagnostics } from "./platform/diagnostics.ts";
 import { DiagnosticsStore } from "./platform/diagnostics-store.ts";
 import { showBootFailureNotice } from "./platform/boot-notice.ts";
@@ -66,6 +66,84 @@ import {
   createExtensionDurableStorageBackend,
   migrateLegacyHostDurableStorage
 } from "./extension/durable-storage-api.ts";
+
+declare const __AVIARY_EXTENSION_LAZY__: boolean;
+
+const EXTENSION_LAZY =
+  typeof __AVIARY_EXTENSION_LAZY__ === "boolean" && __AVIARY_EXTENSION_LAZY__;
+const EXTENSION_PANEL_RESOURCE = "chunks/extension-panel.js";
+
+interface ExtensionPanelModule {
+  optionalFeatureModules: typeof optionalFeatureModules;
+  startControlCenter(ctx: FeatureContext): Promise<void>;
+  stopControlCenter(ctx: FeatureContext): Promise<void>;
+  openControlCenter(): void;
+}
+
+async function importExtensionPanel(): Promise<ExtensionPanelModule> {
+  const runtime = globalThis.chrome?.runtime as {
+    sendMessage?: (message: unknown, callback?: (response: unknown) => void) => unknown;
+    lastError?: { message?: string };
+  } | undefined;
+  if (!runtime?.sendMessage) {
+    throw new Error("Aviary panel chunk cannot load: extension messaging unavailable");
+  }
+  const response = await new Promise<unknown>((resolve, reject) => {
+    let settled = false;
+    const finish = (value: unknown, error?: unknown) => {
+      if (settled) return;
+      settled = true;
+      if (error) reject(error);
+      else resolve(value);
+    };
+    try {
+      const pending = runtime.sendMessage?.(
+        { type: "AVIARY_LOAD_PANEL", resource: EXTENSION_PANEL_RESOURCE },
+        (value) => {
+          const message = runtime.lastError?.message;
+          finish(value, message ? new Error(`Aviary panel message failed: ${message}`) : undefined);
+        }
+      );
+      if (pending && typeof (pending as PromiseLike<unknown>).then === "function") {
+        (pending as PromiseLike<unknown>).then((value) => finish(value), (error) => finish(undefined, error));
+      }
+    } catch (error) {
+      finish(undefined, error);
+    }
+  }) as {
+    ok?: unknown;
+    error?: unknown;
+  } | undefined;
+  if (response?.ok !== true) {
+    const detail = typeof response?.error === "string" ? response.error : "injection failed";
+    throw new Error(`Aviary panel chunk could not load: ${detail}`);
+  }
+  const readPanel = () => (globalThis as typeof globalThis & {
+    AviaryExtensionPanelChunk?: ExtensionPanelModule;
+  }).AviaryExtensionPanelChunk;
+  let panel = readPanel();
+  const deadline = Date.now() + 15_000;
+  while (!panel && Date.now() < deadline) {
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 25);
+    });
+    panel = readPanel();
+  }
+  if (!panel?.optionalFeatureModules || typeof panel.startControlCenter !== "function") {
+    throw new Error("Aviary panel chunk loaded without its entry points");
+  }
+  return panel;
+}
+
+function settingsNeedPanelChunk(settings: AviarySettings): boolean {
+  return settings.export.enabled ||
+    settings.export.preserveRawPayloads ||
+    settings.links.cleanShareButtons ||
+    settings.links.expandTco ||
+    settings.links.copyLinkHost !== "" ||
+    settings.ai.commandMenu ||
+    settings.composer.snippets.length > 0;
+}
 
 export interface BootOptions {
   source: "userscript" | "extension";
@@ -274,6 +352,45 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
     diagnostics.info("Rate limit mode reconciled", { mode: appliedRateLimitMode });
   };
   const registry = new FeatureRegistry();
+  let panelModule: ExtensionPanelModule | undefined;
+  let panelLoading: Promise<ExtensionPanelModule> | undefined;
+  let panelFeaturesRegistered = false;
+  let panelStarted = false;
+  let registryInitialized = false;
+
+  const loadPanelFeatures = async (ctx: FeatureContext): Promise<ExtensionPanelModule> => {
+    if (!EXTENSION_LAZY) {
+      throw new Error("Aviary panel loading is only needed by the extension build");
+    }
+    panelLoading ??= importExtensionPanel().catch((error) => {
+      panelLoading = undefined;
+      throw error;
+    });
+    panelModule = await panelLoading;
+    if (!panelFeaturesRegistered) {
+      for (const feature of panelModule.optionalFeatureModules) {
+        if (registry.ids().includes(feature.id)) continue;
+        registry.register(feature);
+        if (registryInitialized) {
+          await registry.initFeature(ctx, feature.id);
+        }
+      }
+      panelFeaturesRegistered = true;
+    }
+    return panelModule;
+  };
+
+  const openControlCenter = async (ctx: FeatureContext): Promise<void> => {
+    const panel = await loadPanelFeatures(ctx);
+    if (!panelStarted) {
+      await registry.suspend(ctx, [controlCenterLauncherFeature.id]);
+      document.getElementById("av-control-center")?.remove();
+      await panel.startControlCenter(ctx);
+      panelStarted = true;
+    }
+    panel.openControlCenter();
+  };
+
   const policy = createTrustedHtmlPolicy();
   const auditLog = new AuditLog(
     storage,
@@ -304,27 +421,38 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
   registry.register(hiddenPostsFeature);
   registry.register(mediaButtonsFeature);
   registry.register(mediaPresentationFeature);
-  registry.register(exportFeature);
-  registry.register(bookmarksFeature);
-  registry.register(userNotesFeature);
-  registry.register(linkUnshortenFeature);
-  registry.register(cleanShareLinksFeature);
-  registry.register(copyPostLinkFeature);
+  if (!EXTENSION_LAZY) {
+    for (const feature of optionalFeatureModules) {
+      if (feature.id !== "export.networkCapture" && feature.id !== "ai.commandMenu") {
+        registry.register(feature);
+      }
+    }
+  }
   registry.register(pauseOffscreenVideoFeature);
   registry.register(videoPlaybackFeature);
   registry.register(forceFollowingFeature);
   registry.register(timelinePaginationFeature);
   registry.register(inlineOriginalImagesFeature);
-  registry.register(snapshotsFeature);
   registry.register(mobileTouchFeature);
-  registry.register(composerSnippetsFeature);
   // Registered before networkCapture: it owns the page-side config that switches capture on.
   registry.register(pageHooksFeature);
-  registry.register(networkCaptureFeature);
-  registry.register(aiCommandMenuFeature);
-  // Registered last so its first paint reads stores that are already loaded — features
-  // initialize in registration order, and the panel reports their counts.
-  registry.register(controlCenterFeature);
+  if (!EXTENSION_LAZY) {
+    for (const feature of optionalFeatureModules) {
+      if (feature.id === "export.networkCapture" || feature.id === "ai.commandMenu") {
+        registry.register(feature);
+      }
+    }
+  }
+  // The extension keeps the launcher in the first chunk. Its panel and archive features are
+  // registered from the web-accessible panel chunk only after the user opens it. Userscripts keep
+  // the original single-file order and mount the full panel during boot.
+  if (EXTENSION_LAZY) {
+    registry.register(controlCenterLauncherFeature);
+  } else {
+    // Registered last so its first paint reads stores that are already loaded. Features
+    // initialize in registration order, and the panel reports their counts.
+    registry.register(controlCenterFeature);
+  }
   // Last: the notice points at the navigation row the Control Center feature mounts.
   registry.register(firstRunFeature);
   // Custom CSS is last so a user's scoped declarations win over Aviary's authored styles.
@@ -378,9 +506,27 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
     },
     requestApply() {
       reconcileRateLimit();
+      if (EXTENSION_LAZY && settingsNeedPanelChunk(settings)) {
+        return loadPanelFeatures(context).then(() => registry.applyAll(context, document));
+      }
       return registry.applyAll(context, document);
-    }
+    },
   };
+
+  if (EXTENSION_LAZY) {
+    context.loadControlCenter = () => openControlCenter(context);
+  }
+  context.getPageHookCounters = pageHookCounters;
+  context.getAdProtectionCounters = adProtectionCounters;
+  context.getSelectorHealth = getSelectorHealthSnapshot;
+  context.clearSelectorAdObservations = () => clearSelectorAdObservations(context.storage);
+
+  // An explicitly enabled export or integration feature must begin observing the page before its
+  // first response arrives. The default path leaves the panel, archive, WACZ worker, and catalog
+  // unloaded until the launcher is clicked.
+  if (EXTENSION_LAZY && settingsNeedPanelChunk(settings)) {
+    await loadPanelFeatures(context);
+  }
 
   const stops: Array<() => void> = [];
 
@@ -390,6 +536,24 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
   try {
     await registry.initAll(context);
     await registry.applyAll(context, document);
+    registryInitialized = true;
+
+    // A top-level navigation tears down the document without giving the normal UI path a chance
+    // to stop features. Let capture queues flush and release their storage fences before the page
+    // disappears, so the next X route can save settings immediately instead of waiting for a dead
+    // tab's lease to expire.
+    let pageTeardownStarted = false;
+    const onPageExit = (): void => {
+      if (pageTeardownStarted) return;
+      pageTeardownStarted = true;
+      void activeApp?.destroy();
+    };
+    globalThis.addEventListener("pagehide", onPageExit, { once: true });
+    globalThis.addEventListener("beforeunload", onPageExit, { once: true });
+    stops.push(() => {
+      globalThis.removeEventListener("pagehide", onPageExit);
+      globalThis.removeEventListener("beforeunload", onPageExit);
+    });
 
     const observerRoot = document.body ?? document.documentElement;
     stops.push(
@@ -417,6 +581,10 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
         for (const stop of stops.reverse()) {
           stop();
         }
+        if (panelStarted && panelModule) {
+          await panelModule.stopControlCenter(context);
+          panelStarted = false;
+        }
         await registry.destroyAll(context);
         // After the features, so their `destroy` can still turn their hooks off through it.
         pageBridge.destroy();
@@ -433,6 +601,10 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
     showBootFailureNotice(error instanceof Error ? error.message : String(error));
     for (const stop of stops.reverse()) {
       stop();
+    }
+    if (panelStarted && panelModule) {
+      await panelModule.stopControlCenter(context);
+      panelStarted = false;
     }
     await registry.destroyAll(context);
     pageBridge.destroy();

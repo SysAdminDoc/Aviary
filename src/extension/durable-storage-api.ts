@@ -81,7 +81,8 @@ interface DurableStorageResponse {
 
 interface RuntimeMessageApi {
   id?: string;
-  sendMessage?: (message: unknown) => Promise<unknown>;
+  sendMessage?: (message: unknown, callback?: (response: unknown) => void) => unknown;
+  lastError?: { message?: string };
 }
 
 interface LegacyMigrationEntry {
@@ -266,7 +267,39 @@ export function createExtensionDurableStorageBackend(
   if (!runtime?.id || typeof runtime.sendMessage !== "function") {
     return null;
   }
-  return new ExtensionDurableStorageBackend((message) => runtime.sendMessage!(message));
+  return new ExtensionDurableStorageBackend((message) => sendRuntimeMessage(runtime, message));
+}
+
+/**
+ * Chrome's callback transport remains the reliable path at the supported Chromium floor. Newer
+ * browsers return a Promise, while older MV3 runtimes can leave that Promise pending even though
+ * the background listener calls sendResponse. Supporting both forms keeps durable settings writes
+ * from hanging after the first panel interaction.
+ */
+function sendRuntimeMessage(runtime: RuntimeMessageApi, message: unknown): Promise<unknown> {
+  return new Promise<unknown>((resolve, reject) => {
+    let settled = false;
+    const finish = (value: unknown, error?: unknown): void => {
+      if (settled) return;
+      settled = true;
+      if (error) reject(error);
+      else resolve(value);
+    };
+    try {
+      const pending = runtime.sendMessage!(message, (value) => {
+        const error = runtime.lastError?.message;
+        finish(value, error ? new Error(`Extension storage message failed: ${error}`) : undefined);
+      });
+      if (pending && typeof (pending as PromiseLike<unknown>).then === "function") {
+        (pending as PromiseLike<unknown>).then(
+          (value) => finish(value),
+          (error) => finish(undefined, error)
+        );
+      }
+    } catch (error) {
+      finish(undefined, error);
+    }
+  });
 }
 
 export function isDurableStorageRequest(message: unknown): message is DurableStorageRequest {

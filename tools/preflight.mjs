@@ -13,6 +13,11 @@ const extensionIconSizes = [16, 32, 48, 128];
 const expectedExtensionIcons = Object.fromEntries(
   extensionIconSizes.map((size) => [String(size), `icons/icon-${size}.png`])
 );
+const matchLines = [
+  "https://x.com/*",
+  "https://twitter.com/*",
+  "https://pro.x.com/*"
+];
 
 /**
  * Delivery size is a shipped contract, so it gets a gate like every other one.
@@ -39,10 +44,18 @@ const DELIVERY_BUDGETS = [
   // path entirely. Not worth it for the bytes.
   // F278 also adds the retry outcome copy to every locale, so keep the same modest headroom above
   // the measured bundle rather than letting a localized status silently trip the release gate.
-  { file: "aviary.user.js", maxBytes: 2_420_000 },
+  // The readable userscript remains a single file. Its small F298 loader shim keeps the existing
+  // cap close to the measured artifact without inheriting the extension's split-chunk budget.
+  { file: "aviary.user.js", maxBytes: 2_450_000 },
   { file: "aviary.meta.js", maxBytes: 4_000 },
-  { file: "extension-chrome/content.js", maxBytes: 2_420_000 },
-  { file: "extension-firefox/content.js", maxBytes: 2_420_000 }
+  // F298 keeps the document-start bootstrap below half of the previous 2.42 MB ceiling. The
+  // panel, archive, WACZ worker, viewer, and translated catalog live in the separately budgeted
+  // web-accessible chunk below.
+  { file: "extension-chrome/content.js", maxBytes: 1_210_000 },
+  { file: "extension-firefox/content.js", maxBytes: 1_210_000 },
+  { file: "extension-chrome/chunks/extension-panel.js", maxBytes: 2_050_000 },
+  { file: "extension-firefox/chunks/extension-panel.js", maxBytes: 2_050_000 },
+  { file: `aviary-source-v${pkg.version}.zip`, maxBytes: 10_000_000 }
 ];
 
 const failures = [];
@@ -179,6 +192,16 @@ async function checkManifests() {
           failures.push(`${target}: compatibility ruleset is unreadable (${error.message})`);
         }
       }
+    }
+    const resources = manifest.web_accessible_resources ?? [];
+    const panelResource = resources.find((resource) =>
+      Array.isArray(resource.resources) && resource.resources.includes("chunks/extension-panel.js")
+    );
+    if (!panelResource || JSON.stringify(panelResource.matches) !== JSON.stringify(matchLines)) {
+      failures.push(`${target}: web-accessible panel chunk must be limited to the three X match patterns`);
+    }
+    if (resources.some((resource) => resource.resources?.some((entry) => entry.includes("*")))) {
+      failures.push(`${target}: web-accessible resources must name exact chunks, not a wildcard`);
     }
   }
 }
@@ -382,6 +405,19 @@ async function checkBundles() {
       }
     }
 
+    const panelPath = path.join(root, "dist", target, "chunks", "extension-panel.js");
+    try {
+      const panel = await readFile(panelPath, "utf8");
+      if (!panel.includes("startControlCenter") || !panel.includes("optionalFeatureModules")) {
+        failures.push(`${target}: panel chunk is missing its named lazy entry points`);
+      }
+      if (/\beval\s*\(/.test(panel) || /new\s+Function\s*\(/.test(panel)) {
+        failures.push(`${target}: panel chunk contains a forbidden dynamic-code primitive`);
+      }
+    } catch (error) {
+      failures.push(`${target}: panel chunk missing (${error.message})`);
+    }
+
     try {
       const [content, background, options] = await Promise.all([
         readFile(contentPath, "utf8"),
@@ -390,6 +426,12 @@ async function checkBundles() {
       ]);
       if (content.includes("function createIndexedDbStorageBackend") || content.includes("class IndexedDbStorageBackend")) {
         failures.push(`${target}: content bundle contains the active IndexedDB backend`);
+      }
+      if (content.includes("PANEL_STRINGS") || content.includes("panelCatalog")) {
+        failures.push(`${target}: document-start content bundle contains the deferred translation catalog`);
+      }
+      if (!content.includes("chunks/extension-panel.js")) {
+        failures.push(`${target}: document-start content bundle has no named panel chunk loader`);
       }
       if (options.includes("indexedDB")) {
         failures.push(`${target}: options bundle opens IndexedDB instead of using the background API`);

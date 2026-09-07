@@ -235,7 +235,8 @@ test("MV3 manifests keep permissions narrow", async () => {
       "storage",
       "unlimitedStorage",
       "declarativeNetRequestWithHostAccess",
-      "contextMenus"
+      "contextMenus",
+      "scripting"
     ]);
     assert.deepEqual(manifest.optional_permissions, ["downloads"]);
     assert.ok(!JSON.stringify(manifest).includes("<all_urls>"));

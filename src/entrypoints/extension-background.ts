@@ -37,6 +37,14 @@ const runtime = globalThis.chrome?.runtime;
 const extensionApi = globalThis.chrome as unknown as ExtensionAdRuleApi | undefined;
 const contextMenus = globalThis.chrome?.contextMenus;
 const tabs = globalThis.chrome?.tabs;
+const scripting = (globalThis.chrome as typeof globalThis.chrome & {
+  scripting?: {
+    executeScript?(details: {
+      target: { tabId: number };
+      files: string[];
+    }): Promise<unknown>;
+  };
+})?.scripting;
 // The only IndexedDB constructor in the extension build. Content and options use the typed runtime
 // protocol above, so their host/extension documents never open a second storage authority.
 const durableStorageBackend = createIndexedDbStorageBackend();
@@ -47,6 +55,7 @@ const DOWNLOAD_TERMINAL_KEY = "aviary.downloadTerminal.v1";
 const DOWNLOAD_TRACKING_LIMIT = 64;
 /** Terminal receipts are retained so a fallback can answer for its original report id. */
 const DOWNLOAD_TERMINAL_LIMIT = 64;
+const PANEL_CHUNK_RESOURCE = "chunks/extension-panel.js";
 /** One reconciliation per worker lifetime is enough; a failed pass may be retried by a lifecycle event. */
 let sessionReconciliation: Promise<void> | null = null;
 type BackgroundTaskCode =
@@ -233,6 +242,27 @@ runtime?.onMessage?.addListener((message, sender, sendResponse) => {
   }
   if (isType(message, "AVIARY_PING")) {
     sendResponse({ ok: true, product: "aviary" });
+    return false;
+  }
+  if (isType(message, "AVIARY_LOAD_PANEL")) {
+    const tabId = tabIdOf(sender);
+    const resource = (message as { resource?: unknown }).resource;
+    if (
+      tabId === undefined ||
+      tabId === null ||
+      resource !== PANEL_CHUNK_RESOURCE ||
+      !scripting?.executeScript
+    ) {
+      sendResponse({ ok: false, error: "Aviary panel injection is unavailable" });
+      return false;
+    }
+    // A synchronous acknowledgement keeps the message channel compatible with the callback API
+    // present at the Chromium floor. The content script then waits for the injected global, so an
+    // in-flight or failed executeScript call cannot be mistaken for a ready panel.
+    sendResponse({ ok: true });
+    void scripting.executeScript({ target: { tabId }, files: [PANEL_CHUNK_RESOURCE] }).catch((error: unknown) => {
+      console.error("[aviary] panel injection failed", errorMessage(error));
+    });
     return false;
   }
   if (isType(message, "AVIARY_DOWNLOAD_CAPABILITY")) {

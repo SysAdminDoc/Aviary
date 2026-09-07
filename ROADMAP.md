@@ -18,7 +18,7 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
   Touches: observed media metadata, candidate selection, post actions, queue, integration network policy, authenticated local-helper protocol, packaging and failure tests
   Acceptance: adaptive-only media offers `Send to local yt-dlp` and `Copy yt-dlp command`; a direct 720p plus observed adaptive 1080p fixture labels the default as `Best direct MP4` and exposes the higher-quality helper option; the helper receives only the observed manifest, filename, and format policy, never a status URL, cookie, or bearer token for X discovery; the highest observed video and audio are merged without transcoding into MP4 when compatible, otherwise into a named compatible container; helper authorization rejects unauthenticated callers and does not create jobs through GET; missing, refused, running, completed, and failed states differ; direct downloading remains zero setup.
   Complexity: XL
-  Depends: F277, F332, and F298. Authentic quality proof remains in `Roadmap_Blocked.md`.
+  Depends: F277 and F332. Authentic quality proof remains in `Roadmap_Blocked.md`.
 
 - [ ] F284, P2: Store quality receipts and retry original images without premature fallback
   Why: completion history cannot identify original versus fallback quality, and transient CDN failures should not force a smaller image.
@@ -33,7 +33,6 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
   Evidence: `src/features/appearance/custom-css.ts`, `src/features/filtering/regex-budget.ts`, commit history; https://owasp.org/www-community/attacks/Regular_expression_Denial_of_Service_-_ReDoS; https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/11-Client-side_Testing/05-Testing_for_CSS_Injection
   Touches: both analyzers, deterministic corpus generators, worker timeout harness, parser tests
   Acceptance: at least 10,000 seeded mutations cover comments, escapes, nested functions, selector lists, lookarounds, backreferences, and nested quantifiers; accepted CSS cannot escape its allowed selector prefix or create an import/network rule; accepted regex cases finish the sentinel corpus within the worker budget; every discovered reducer case becomes a permanent fixture; the run is deterministic.
-  Complexity: L
   Depends: None.
 
 - [ ] F286, P2: Derive accessibility coverage from every shipped surface
@@ -118,14 +117,6 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
 ## Research-Driven Additions (2026-09-04)
 
 ### P1, Next
-
-- [ ] F298, P1: Remove optional panel and archive code from document-start delivery
-  Why: the extension's approximately 2.33 MB content bundle has about 2.8 percent headroom under its 2.40 MB budget, while optional panel, archive, and catalog code loads on every page.
-  Evidence: `tools/build.mjs`, `tools/preflight.mjs`, `src/platform/i18n-catalog.ts`, `src/ui/control-center.ts`, generated content bundle; https://developer.chrome.com/docs/extensions/reference/manifest/web-accessible-resources; https://www.extensionworkshop.com/documentation/publish/source-code-submission/
-  Touches: build targets, delivery budgets, manifests, content entrypoint, panel/export/library entry points, composition tests, reviewer source package
-  Acceptance: first prove lazy module loading from isolated content scripts at both declared browser floors; choose a compatible bootstrap/output format from that result rather than assuming IIFE output can split; keep protection, media controls, selector health, and launcher in the first chunk, loading panel/export/WACZ/viewer/catalog on demand; first-chunk bytes fall by at least 50 percent with budgets for every chunk; failed loads give a named recoverable error; expose exact required chunks to X matches only, use dynamic URLs only where supported, and never expose privileged modules; preserve the readable single-file userscript with its own budget; ship a deterministic source archive and reproduce it on Linux ARM64 with a pinned runtime satisfying package engines, since AMO's documented Node 24.14.0 does not.
-  Complexity: L
-  Depends: None. Unblocks the delivery-size half of F283, F292, and F294.
 
 - [ ] F299, P1: Report a selector break on the page, not only inside Advanced
   Why: selector health reacts only when "App root" or "Primary column" goes missing, and its only reaction is a diagnostics warning. Twenty-one surfaces are tracked, twelve marked high churn, and every one already names the feature it owns, so the data to say "Download is unavailable because X renamed the post action bar" exists and is discarded. With the update channel answering 404 (F183), a user on a broken build has no other way to find out.

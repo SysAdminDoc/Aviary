@@ -28,6 +28,27 @@ const matchLines = [
   "https://pro.x.com/*",
 ];
 
+const extensionI18nRuntimePlugin = {
+  name: "aviary-extension-i18n-runtime",
+  setup(build) {
+    build.onResolve({ filter: /platform[\\/]i18n\.ts$/ }, (args) => {
+      const requested = path.resolve(args.resolveDir, args.path);
+      const fullCatalog = path.join(root, "src/platform/i18n.ts");
+      if (requested !== fullCatalog) return undefined;
+      return { path: path.join(root, "src/platform/i18n-runtime.ts") };
+    });
+    build.onResolve({ filter: /features[\\/]core[\\/](control-center|optional-features)\.ts$/ }, (args) => {
+      const requested = path.resolve(args.resolveDir, args.path);
+      const lazyModules = new Set([
+        path.join(root, "src/features/core/control-center.ts"),
+        path.join(root, "src/features/core/optional-features.ts")
+      ]);
+      if (!lazyModules.has(requested)) return undefined;
+      return { path: path.join(root, "src/extension/lazy-stubs.ts") };
+    });
+  }
+};
+
 /**
  * The translations the options page actually uses, pulled out of the one catalog.
  *
@@ -116,7 +137,8 @@ if (!waczWorkerSource) {
 }
 const contentDefines = {
   __AVIARY_VERSION__: JSON.stringify(pkg.version),
-  __AVIARY_WACZ_WORKER_SOURCE__: JSON.stringify(waczWorkerSource)
+  __AVIARY_WACZ_WORKER_SOURCE__: JSON.stringify(waczWorkerSource),
+  __AVIARY_EXTENSION_LAZY__: "false"
 };
 
 await esbuild.build({
@@ -148,6 +170,22 @@ for (const target of ["extension-chrome", "extension-firefox"]) {
     outfile: path.join(targetDir, "content.js"),
     bundle: true,
     format: "iife",
+    define: { ...contentDefines, __AVIARY_EXTENSION_LAZY__: "true" },
+    target: "es2022",
+    platform: "browser",
+    minify: false,
+    legalComments: "inline",
+    plugins: [extensionI18nRuntimePlugin]
+  });
+
+  const chunksDir = path.join(targetDir, "chunks");
+  await mkdir(chunksDir, { recursive: true });
+  await esbuild.build({
+    entryPoints: [path.join(root, "src/entrypoints/extension-panel.ts")],
+    outfile: path.join(chunksDir, "extension-panel.js"),
+    bundle: true,
+    format: "iife",
+    globalName: "AviaryExtensionPanelChunk",
     define: contentDefines,
     target: "es2022",
     platform: "browser",
@@ -225,6 +263,16 @@ for (const target of ["extension-chrome", "extension-firefox"]) {
   await packDirectoryAsStoreZip(targetDir, zipPath);
 }
 
+// Keep a small, deterministic source artifact beside the installable packages. It contains the
+// checkout inputs needed to reproduce the build, never generated dist/ output or dependencies.
+const sourceEntries = [];
+for await (const filePath of walkSource(root)) {
+  const filename = path.relative(root, filePath).replace(/\\/g, "/");
+  sourceEntries.push({ filename, data: new Uint8Array(await readFile(filePath)) });
+}
+sourceEntries.sort((left, right) => left.filename.localeCompare(right.filename));
+await writeFile(path.join(dist, `aviary-source-v${pkg.version}.zip`), buildStoreZip(sourceEntries));
+
 async function packDirectoryAsStoreZip(directory, outputPath) {
   const entries = [];
   for await (const filePath of walk(directory)) {
@@ -244,6 +292,23 @@ async function* walk(directory) {
     if (entry.isDirectory()) {
       yield* walk(next);
     } else if ((await stat(next)).isFile()) {
+      yield next;
+    }
+  }
+}
+
+async function* walkSource(directory) {
+  const entries = await readdir(directory, { withFileTypes: true });
+  entries.sort((left, right) => (left.name < right.name ? -1 : left.name > right.name ? 1 : 0));
+  for (const entry of entries) {
+    if ([".git", "node_modules", "dist", ".tmp", ".cache", "mockups"].includes(entry.name)) continue;
+    const next = path.join(directory, entry.name);
+    if (entry.isDirectory()) {
+      yield* walkSource(next);
+    } else if ((await stat(next)).isFile()) {
+      if ([".png", ".jpg", ".jpeg", ".webp", ".gif"].includes(path.extname(entry.name).toLowerCase())) {
+        continue;
+      }
       yield next;
     }
   }

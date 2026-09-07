@@ -196,3 +196,81 @@ test("extension authority cannot commit a paused old owner after a fresh authori
     else delete globalThis.chrome;
   }
 });
+
+test("shared restore writers do not contend for one exclusive background fence", async () => {
+  const values = new Map();
+  const fences = new Map();
+  const previousChrome = globalThis.chrome;
+  const storage = {
+    async get(key) {
+      if (key === null) return Object.fromEntries(values);
+      return values.has(key) ? { [key]: structuredClone(values.get(key)) } : {};
+    },
+    async set(items) {
+      for (const [key, value] of Object.entries(items)) values.set(key, structuredClone(value));
+    },
+    async remove(keys) {
+      for (const key of Array.isArray(keys) ? keys : [keys]) values.delete(key);
+    }
+  };
+  const respondToFence = async (message) => {
+    const current = fences.get(message.fence.name);
+    if (message.operation === "acquire") {
+      if (current && current.expiresAt > Date.now() && current.owner !== message.fence.owner) {
+        return { ok: false, error: "Another owner still holds this storage fence.", code: "storage-fence-lost" };
+      }
+      const next = {
+        ...message.fence,
+        generation: Math.max(current?.generation ?? 0, message.fence.generation) + 1
+      };
+      fences.set(next.name, next);
+      return { ok: true, result: next };
+    }
+    if (message.operation === "renew") {
+      if (!current || current.owner !== message.fence.owner || current.generation !== message.fence.generation) {
+        return { ok: false, error: "The storage lease changed.", code: "storage-fence-lost" };
+      }
+      fences.set(message.fence.name, message.fence);
+      return { ok: true, result: message.fence };
+    }
+    if (message.operation === "release") {
+      if (current?.owner === message.fence.owner && current.generation === message.fence.generation) {
+        fences.delete(message.fence.name);
+      }
+      return { ok: true, result: null };
+    }
+    return { ok: false, error: "unknown fence operation" };
+  };
+  globalThis.chrome = {
+    runtime: {
+      id: "fixture-extension",
+      sendMessage: respondToFence
+    },
+    storage: { local: storage }
+  };
+  try {
+    const { withStorageLock } = await importSourceModule("src/platform/storage-lock.ts", { fresh: true });
+    let entered = 0;
+    let release;
+    const held = new Promise((resolve) => { release = resolve; });
+    const first = withStorageLock("first", async () => {
+      entered += 1;
+      await held;
+    });
+    const second = withStorageLock("second", async () => {
+      entered += 1;
+      await held;
+    });
+    for (let attempt = 0; attempt < 100; attempt += 1) {
+      if (entered >= 2) break;
+      await new Promise((resolve) => setTimeout(resolve, 5));
+    }
+    assert.equal(entered, 2, "shared writers should overlap without fighting one restore fence");
+    release();
+    await Promise.all([first, second]);
+    assert.equal(fences.has("aviary.library.restore"), false, "shared restore coordination must not leave a remote fence");
+  } finally {
+    if (previousChrome) globalThis.chrome = previousChrome;
+    else delete globalThis.chrome;
+  }
+});

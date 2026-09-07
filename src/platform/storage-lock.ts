@@ -279,9 +279,17 @@ async function runUnderRegisterLock<T>(
       generation: contender.ticket,
       expiresAt: contender.expiresAt
     };
-    const remoteFence = await sendStorageFenceControl("acquire", localFence);
-    let fence = remoteFence ?? (store.kind === "userscript" ? localFence : undefined);
-    if (!fence && hasExtensionFenceTransport()) {
+    // The restore register has a shared mode for ordinary per-store writes. Those contenders may
+    // overlap by design, while the extension background fence is exclusive by name. Do not make
+    // every shared writer fight over one `aviary.library.restore` fence. The nested named lock
+    // acquires the per-store fence that protects its actual mutation; the exclusive restore gate
+    // still receives one fence covering the whole multi-key transaction.
+    const needsFence = mode === "exclusive" || store.kind === "userscript";
+    const remoteFence = needsFence ? await sendStorageFenceControl("acquire", localFence) : undefined;
+    let fence = needsFence
+      ? remoteFence ?? (store.kind === "userscript" ? localFence : undefined)
+      : undefined;
+    if (needsFence && !fence && hasExtensionFenceTransport()) {
       throw new Error("The extension background did not return a storage fence");
     }
 
@@ -465,14 +473,15 @@ export async function mutateStored<T>(
   storage: StorageGateway,
   key: string,
   fallback: T,
-  mutate: (stored: T) => T | Promise<T>
+  mutate: (stored: T) => T | Promise<T>,
+  options: { restoreGate?: boolean } = {}
 ): Promise<T> {
   return withStorageLock(key, async (fence) => {
     const stored = await storage.get<T>(key, fallback);
     const next = await mutate(stored);
     await storage.set(key, next, fence);
     return next;
-  });
+  }, options);
 }
 
 /**

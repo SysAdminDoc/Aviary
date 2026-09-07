@@ -34,6 +34,13 @@ The build also writes `dist/extension-chrome-v<version>.zip` and its Firefox twi
 for upload, but nothing has been submitted anywhere. The Firefox manifest still carries a
 placeholder add-on id, so an AMO submission would need a real one first.
 
+The extension keeps the document-start bundle small. Protection, media controls, selector health,
+and the launcher arrive with the page; the Control Center, archive tools, viewer, and translation
+catalog load from an exact X-only panel chunk after you click the launcher. A failed panel load leaves
+the launcher in a named Retry state. The userscript remains a readable single file with the full
+feature set inline. Panel actions keep the live storage and privacy state from the document-start
+bundle, so a late-loaded integration follows the same Local-only choice and cross-tab write rules.
+
 ## What a fresh install actually does
 
 Two things are on out of the box, and everything else waits for you.
@@ -192,6 +199,20 @@ using an open `>=`, which would admit Node 25.x after its end of life.
 
 Development tests import the TypeScript sources directly through Node's native type stripping. The
 release build still bundles the userscript and extension artifacts.
+
+The repository pins Node 24.18.1 in `.node-version`. On Linux ARM64, select that runtime before
+installing and building so the result stays inside the package engine range:
+
+```sh
+nvm install 24.18.1
+nvm use 24.18.1
+npm ci --ignore-scripts
+npm run build
+sha256sum dist/aviary-source-v1.47.2.zip
+```
+
+`npm run build` writes the deterministic `dist/aviary-source-v<version>.zip` reviewer archive with
+fixed timestamps and sorted entries. It excludes generated output, dependencies, and image captures.
 
 ```powershell
 npm run smoke   # packaged-extension request-rule probes in Chromium and Firefox

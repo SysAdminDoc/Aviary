@@ -203,7 +203,10 @@ export const controlCenterFeature: FeatureModule = {
       },
       async onChange() {
         await ctx.saveSettings();
-        ctx.requestApply();
+        // Keep the panel's committed state aligned with live features before reporting the save
+        // complete. Async feature applies otherwise leave a short window where a just-enabled
+        // diagnostic still renders as disabled.
+        await ctx.requestApply();
       },
       onError(message, error) {
         ctx.diagnostics.error(message, errorDetails(error));
@@ -497,8 +500,8 @@ export const controlCenterFeature: FeatureModule = {
       },
       getPageHooks() {
         const bridge = ctx.pageBridge;
-        const hooks = pageHookCounters();
-        const ads = adProtectionCounters();
+        const hooks = ctx.getPageHookCounters?.() ?? pageHookCounters();
+        const ads = ctx.getAdProtectionCounters?.() ?? adProtectionCounters();
         return {
           reachable: bridge ? bridge.status() !== "unavailable" : false,
           reason: bridge?.reason() ?? "",
@@ -510,7 +513,7 @@ export const controlCenterFeature: FeatureModule = {
         };
       },
       getSelectorHealth() {
-        return getSelectorHealthSnapshot();
+        return ctx.getSelectorHealth?.() ?? getSelectorHealthSnapshot();
       },
       getBisectStatus() {
         return bisect.status();
@@ -531,6 +534,10 @@ export const controlCenterFeature: FeatureModule = {
         return ctx.registry?.title(featureId) ?? featureId;
       },
       async clearAdObservations() {
+        if (ctx.clearSelectorAdObservations) {
+          await ctx.clearSelectorAdObservations();
+          return;
+        }
         await clearSelectorAdObservations(ctx.storage);
       },
       async exportFilterRules() {
@@ -1271,6 +1278,24 @@ export const controlCenterFeature: FeatureModule = {
     ctx.diagnostics.info("Control Center destroyed");
   }
 };
+
+/** Panel-chunk entry point used by the extension launcher. */
+export async function startControlCenter(ctx: FeatureContext): Promise<void> {
+  await controlCenterFeature.init(ctx);
+}
+
+/** Teardown for the panel chunk when the host app is destroyed. */
+export async function stopControlCenter(ctx: FeatureContext): Promise<void> {
+  await controlCenterFeature.destroy(ctx);
+}
+
+/** Opens the mounted panel from the lightweight extension launcher. */
+export function openMountedControlCenter(): void {
+  const host = document.getElementById("av-control-center");
+  const shadow = host?.shadowRoot;
+  const launcher = shadow?.querySelector<HTMLButtonElement>(".av-nav-launcher, .av-launcher");
+  launcher?.click();
+}
 
 async function processArchiveImport(
   ctx: FeatureContext,

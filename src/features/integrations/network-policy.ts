@@ -25,19 +25,29 @@ export class LocalOnlyError extends Error {
   }
 }
 
+const SHARED_POLICY_KEY = "__AVIARY_LOCAL_ONLY__";
+type PolicyGlobal = typeof globalThis & {
+  [SHARED_POLICY_KEY]?: () => boolean;
+};
+
 let localOnly: () => boolean = () => false;
 
 export function setLocalOnlyPolicy(predicate: () => boolean): void {
   localOnly = predicate;
+  // The extension's document-start bundle and its on-demand panel are separate IIFEs. Keep this
+  // tiny live policy on their shared isolated-world global so panel actions cannot silently revert
+  // to the permissive default after the user turns Local-only mode back on.
+  (globalThis as PolicyGlobal)[SHARED_POLICY_KEY] = predicate;
 }
 
 /** Test seam: restores the permissive default so one spec cannot leak into the next. */
 export function resetLocalOnlyPolicy(): void {
   localOnly = () => false;
+  delete (globalThis as PolicyGlobal)[SHARED_POLICY_KEY];
 }
 
 export function isLocalOnly(): boolean {
-  return localOnly();
+  return (globalThis as PolicyGlobal)[SHARED_POLICY_KEY]?.() ?? localOnly();
 }
 
 /**
@@ -46,7 +56,7 @@ export function isLocalOnly(): boolean {
  * credential is attached or any partial state is written.
  */
 export function assertOutboundAllowed(what: string): void {
-  if (localOnly()) {
+  if (isLocalOnly()) {
     throw new LocalOnlyError(what);
   }
 }
