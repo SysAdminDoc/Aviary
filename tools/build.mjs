@@ -203,9 +203,8 @@ for (const target of ["extension-chrome", "extension-firefox"]) {
     );
   }
   if (target === "extension-firefox") {
-    // Firefox 128-132 can reject or forget dynamic-rule updates after restart unless an enabled
-    // static ruleset exists. The empty set is a compatibility anchor; the setting-controlled
-    // promoted-content rule remains dynamic in background.js.
+    // Keep the empty enabled ruleset as a compatibility anchor for the older Firefox dynamic-rule
+    // restart path. The setting-controlled promoted-content rule remains dynamic in background.js.
     await copyFile(
       path.join(root, "src/extension/dnr-empty-rules.json"),
       path.join(targetDir, "dnr-empty-rules.json")

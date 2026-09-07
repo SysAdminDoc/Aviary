@@ -471,7 +471,7 @@ html.${EXPLAIN_ALL_CLASS} ${ARTICLE_SELECTOR}[${RESULT_ATTR}="hide"][${REASON_AT
 
 /**
  * The structural half, emitted from the one table in predicates.ts. `:has()` is Baseline widely
- * available and sits far below both manifest floors (Chrome 105 / Firefox 121 against 116 / 128).
+ * available and sits far below both manifest floors (Chrome 105 / Firefox 121 against 102 / 140).
  */
 /**
  * A `content:` string literal. The text comes from the translation catalog, so a quote, a

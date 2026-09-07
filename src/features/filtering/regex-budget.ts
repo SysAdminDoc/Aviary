@@ -20,7 +20,7 @@
  * tab costs the whole session, and nothing can abort a running match.
  *
  * Note for anyone tempted to reach for `RegExp.escape`: it is Chrome 136 / Firefox 134, well above
- * this project's Chrome 116 / Firefox 128 manifest floors.
+ * this project's Chrome 102 / Firefox 140 manifest floors.
  */
 
 /** Longer than any filter anyone writes by hand, and short enough to bound the search below. */

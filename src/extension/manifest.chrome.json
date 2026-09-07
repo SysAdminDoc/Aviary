@@ -10,7 +10,7 @@
     "48": "icons/icon-48.png",
     "128": "icons/icon-128.png"
   },
-  "minimum_chrome_version": "116",
+  "minimum_chrome_version": "102",
   "action": {
     "default_title": "Aviary",
     "default_icon": {

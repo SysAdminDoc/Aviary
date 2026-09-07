@@ -6,20 +6,19 @@
  * the floor is what decides whether a platform feature can be used directly or needs a detection
  * branch, and a floor nobody can point at is one that gets rediscovered per feature.
  *
- * ## Chrome 116
+ * ## Chrome 102
  *
- * The manifest's `"world": "MAIN"` content script, which is how Aviary observes X's own loaded
- * network responses without originating a request. Chrome shipped it in 111 and shipped the
- * `documentId`/`world` combination Aviary relies on in 116.
+ * The manifest's `"world": "MAIN"` content script and `optional_host_permissions` are both
+ * available at 102. Aviary does not use `chrome.scripting` document targeting or another newer
+ * API to justify the old 116 floor. Declarative Net Request session rules and tab IDs are older.
  *
- * ## Firefox 128
+ * ## Firefox 140
  *
- * The same `"world": "MAIN"` declaration, plus MV3 event-page backgrounds. 128 is also an ESR
- * line, and that is the deciding half of the choice: Aviary is sideloaded rather than distributed
- * through a store, and the people most likely to sideload a local-first tool are the people most
- * likely to be on ESR. Raising the floor to pick up `URLPattern` (142), `@scope` (146) or the
- * Navigation API (147) would buy a few lines of detection branch at the cost of excluding them,
- * which is the wrong trade for this project.
+ * Firefox 140.15 received security fixes on 2026-09-01 and remains the oldest supported ESR line
+ * in this release decision. The `"world": "MAIN"` declaration arrived earlier, in Firefox 128,
+ * but 140 keeps the supported floor on a maintained ESR without excluding that release. Firefox
+ * 153 is the current ESR line and Firefox 155 is the current stable tested by the smoke lane.
+ * Raising the floor to 153 would incorrectly label Firefox 140 unsupported just because 153 exists.
  *
  * ## The rule that follows from the floor
  *
@@ -29,8 +28,8 @@
  * verified against webstatus.dev / MDN on 2026-08-17.
  */
 
-export const CHROME_FLOOR = "116";
-export const FIREFOX_FLOOR = "128.0";
+export const CHROME_FLOOR = "102";
+export const FIREFOX_FLOOR = "140.0";
 
 export interface PlatformFeatureFloor {
   feature: string;
@@ -41,10 +40,10 @@ export interface PlatformFeatureFloor {
 }
 
 export const PLATFORM_FEATURE_FLOORS: readonly PlatformFeatureFloor[] = [
-  { feature: ":has()", chrome: 105, firefox: 121, underFloor: true },
-  { feature: "Popover API", chrome: 116, firefox: 125, underFloor: true },
+  { feature: ":has()", chrome: 105, firefox: 121, underFloor: false },
+  { feature: "Popover API", chrome: 116, firefox: 125, underFloor: false },
   { feature: "Web Locks", chrome: 69, firefox: 96, underFloor: true },
-  { feature: "content-visibility", chrome: 85, firefox: 130, underFloor: false },
+  { feature: "content-visibility", chrome: 85, firefox: 130, underFloor: true },
   { feature: "RegExp.escape", chrome: 136, firefox: 134, underFloor: false },
   { feature: "URLPattern", chrome: 95, firefox: 142, underFloor: false },
   { feature: "@scope", chrome: 118, firefox: 146, underFloor: false },

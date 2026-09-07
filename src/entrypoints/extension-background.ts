@@ -329,7 +329,7 @@ async function installMediaContextMenu(): Promise<void> {
   }
 
   // This extension owns one context-menu item. Clear first so unpacked reloads and updates cannot
-  // leave duplicate entries behind; the callback form works on the Chrome 116 minimum as well as
+  // leave duplicate entries behind; the callback form works on the Chrome 102 minimum as well as
   // Firefox, while newer Chromium also returns a Promise.
   await new Promise<void>((resolve) => {
     try {

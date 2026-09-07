@@ -13,7 +13,7 @@
   "browser_specific_settings": {
     "gecko": {
       "id": "aviary@example.local",
-      "strict_min_version": "128.0"
+      "strict_min_version": "140.0"
     }
   },
   "action": {

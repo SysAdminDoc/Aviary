@@ -55,7 +55,8 @@ test("isUnderFloor answers for a listed feature and refuses an unlisted one", as
   const { isUnderFloor } = await floors();
   // A caller asking about something nobody has recorded must get the cautious answer, so a new
   // platform feature defaults to needing a branch rather than to being assumed available.
-  assert.equal(isUnderFloor(":has()"), true);
+  assert.equal(isUnderFloor(":has()"), false);
+  assert.equal(isUnderFloor("content-visibility"), true);
   assert.equal(isUnderFloor("@scope"), false);
   assert.equal(isUnderFloor("View Transitions"), false);
 });

@@ -71,6 +71,9 @@
   export from a redacted backup.
 
 ### Changed
+- Browser support now starts at Chromium 102 and Firefox 140.0. The floor matches the APIs Aviary
+  actually declares, keeps Firefox 140.15 covered after its September security fixes, and leaves
+  feature detection in place for newer browser APIs.
 - Extension ad protection now installs one host-scoped session rule per enabled X tab, conditioned
   by that tab's id. Opposing profile choices no longer race, and navigation, tab close, startup,
   and upgrades remove stale rules. The userscript remains document-local.

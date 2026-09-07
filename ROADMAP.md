@@ -119,21 +119,13 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
 
 ### P1, Next
 
-- [ ] F297, P1: Align browser floors with supported releases and actual API requirements
-  Why: Firefox 128 is no longer a supported ESR, and the Chrome 116 rationale names documentId/world APIs not used by this code.
-  Evidence: `src/extension/browser-floors.ts`, both manifests; https://www.firefox.com/en-US/firefox/153.0esr/releasenotes/; https://www.mozilla.org/en-US/security/advisories/mfsa2026-84/; https://developer.chrome.com/docs/extensions/reference/manifest/minimum-chrome-version
-  Touches: browser-floor constants, manifests, capability callers, floor tests, preflight, install documentation, release support table
-  Acceptance: select and record a Firefox ESR receiving security updates on the implementation date and test it plus current stable; Firefox 140 must not be labeled unsupported merely because 153 exists, since 140 received fixes on 2026-09-01; derive the Chromium minimum from used APIs and tested compatibility; remove only fallbacks made unnecessary in every supported target, retaining feature detection needed by userscript managers; manifest and constants agree under preflight; explain any retained DNR workaround with a reproduced requirement; install docs and release notes name the last compatible build before either minimum increases.
-  Complexity: M
-  Depends: None.
-
 - [ ] F298, P1: Remove optional panel and archive code from document-start delivery
   Why: the extension's approximately 2.33 MB content bundle has about 2.8 percent headroom under its 2.40 MB budget, while optional panel, archive, and catalog code loads on every page.
   Evidence: `tools/build.mjs`, `tools/preflight.mjs`, `src/platform/i18n-catalog.ts`, `src/ui/control-center.ts`, generated content bundle; https://developer.chrome.com/docs/extensions/reference/manifest/web-accessible-resources; https://www.extensionworkshop.com/documentation/publish/source-code-submission/
   Touches: build targets, delivery budgets, manifests, content entrypoint, panel/export/library entry points, composition tests, reviewer source package
   Acceptance: first prove lazy module loading from isolated content scripts at both declared browser floors; choose a compatible bootstrap/output format from that result rather than assuming IIFE output can split; keep protection, media controls, selector health, and launcher in the first chunk, loading panel/export/WACZ/viewer/catalog on demand; first-chunk bytes fall by at least 50 percent with budgets for every chunk; failed loads give a named recoverable error; expose exact required chunks to X matches only, use dynamic URLs only where supported, and never expose privileged modules; preserve the readable single-file userscript with its own budget; ship a deterministic source archive and reproduce it on Linux ARM64 with a pinned runtime satisfying package engines, since AMO's documented Node 24.14.0 does not.
   Complexity: L
-  Depends: F297 for final browser-floor validation. Unblocks the delivery-size half of F283, F292, and F294.
+  Depends: None. Unblocks the delivery-size half of F283, F292, and F294.
 
 - [ ] F299, P1: Report a selector break on the page, not only inside Advanced
   Why: selector health reacts only when "App root" or "Primary column" goes missing, and its only reaction is a diagnostics warning. Twenty-one surfaces are tracked, twelve marked high churn, and every one already names the feature it owns, so the data to say "Download is unavailable because X renamed the post action bar" exists and is discarded. With the update channel answering 404 (F183), a user on a broken build has no other way to find out.
@@ -327,7 +319,7 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
   Touches: `src/features/library/query-model.ts`, index schema/version migration, search worker if applicable, tokenizer and ranking tests
   Acceptance: feature-detected `Intl.Segmenter` with word granularity supplies tokens for scripts without spaces while the existing deterministic tokenizer remains the fallback; handles, IDs, normalization, phrase matching, and Latin/CJK rankings do not regress; Thai, Lao, Khmer, and Myanmar fixtures find the same record from a contained word; index versioning rebuilds old indexes once and resumes safely after interruption; tests run both native and forced-fallback paths.
   Complexity: M
-  Depends: F297 so the final browser floors define the required Segmenter behavior.
+  Depends: None.
 
 - [ ] F324, P2: Attribute mutation work and long frames to individual features
   Why: every active `apply()` runs serially after each mutation batch, but diagnostics cannot identify which feature makes scrolling or navigation stall.

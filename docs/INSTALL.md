@@ -86,8 +86,8 @@ if either manifest disagrees with it.
 
 | Build | Floor | Why |
 | --- | --- | --- |
-| Chromium | **116** | The `"world": "MAIN"` content script Aviary uses to observe X's own loaded network responses. |
-| Firefox | **128** | The same declaration, plus MV3 event-page backgrounds, and 128 is an ESR line. Aviary is sideloaded rather than distributed through a store, and the people most likely to sideload a local-first tool are the people most likely to be on ESR. |
+| Chromium | **102** | The `"world": "MAIN"` content script and `optional_host_permissions` used by Aviary. Declarative Net Request session rules and tab IDs are available earlier. |
+| Firefox | **140** | The oldest maintained ESR line selected for this release. Firefox 140.15 received security fixes on 2026-09-01; Firefox 153 is the current ESR and Firefox 155 is the current stable smoke target. |
 
 The floor is what decides whether a platform feature can be used directly. A feature is used
 directly only when it is available at **both** floors; anything newer carries a runtime detection
@@ -96,18 +96,19 @@ true for each feature, so the answer is looked up rather than re-derived:
 
 | Feature | Chrome | Firefox | At both floors |
 | --- | --- | --- | --- |
-| `:has()` | 105 | 121 | yes |
-| Popover API | 116 | 125 | yes |
+| `:has()` | 105 | 121 | no, needs a branch |
+| Popover API | 116 | 125 | no, needs a branch |
 | Web Locks | 69 | 96 | yes |
-| `content-visibility` | 85 | 130 | no, needs a branch |
+| `content-visibility` | 85 | 130 | yes |
 | `RegExp.escape` | 136 | 134 | no, needs a branch |
 | `URLPattern` | 95 | 142 | no, needs a branch |
 | `@scope` | 118 | 146 | no, needs a branch |
 | Navigation API | 102 | 147 | no, needs a branch |
 
-Raising the Firefox floor to pick up the last three would buy a few lines of detection branch at
-the cost of excluding ESR users, which is the wrong trade for a sideloaded tool. Versions verified
-against webstatus.dev and MDN on 2026-08-17.
+Raising the Firefox floor to 153 would exclude the still-maintained 140 ESR line without removing
+the feature detection needed for newer APIs. Versions were checked against the Firefox 153 ESR
+release notes, the Firefox 140.15 security advisory, and the Chrome manifest documentation on
+2026-09-06.
 
 ## Firefox (temporary load)
 
@@ -121,9 +122,9 @@ Build the extension, then:
 5. Refresh an `x.com` page.
 
 The Firefox build has the same base, optional, and options-page permission flow as the Chromium
-build. Its background runs as a Firefox MV3 event page and keeps an empty enabled ruleset solely for
-Firefox 128 to 132 dynamic-rule restart compatibility. Temporary add-ons disappear when Firefox
-restarts.
+build. Its background runs as a Firefox MV3 event page and keeps an empty enabled ruleset as a
+compatibility anchor for the older Firefox dynamic-rule restart path covered by the extension tests.
+Temporary add-ons disappear when Firefox restarts.
 
 ## Updating
 
