@@ -97,6 +97,9 @@
 - Shared storage writes no longer contend for the exclusive restore fence, so opening the Control
   Center while another tab is saving cannot reject an archive import. Local-only mode also stays
   live for integrations loaded from the separate panel chunk.
+- Minimal now has an independent **Hide For You tab** control. On Home it selects Following and
+  collapses only the first tab by position, leaves other route tablists alone, reports a short Home
+  strip to Trust, and restores the original tab styles immediately when disabled.
 
 ### Added
 - **Dated selector evidence.** Aviary now keeps a checked-in comparison of its selector registry

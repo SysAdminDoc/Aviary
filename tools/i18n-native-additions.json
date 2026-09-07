@@ -30,7 +30,11 @@
     "{observed} long frames · {correlated} correlated": "{observed} fotogramas largos · {correlated} correlacionados",
     "{count} features": "{count} funciones",
     "Long Animation Frame unavailable": "Long Animation Frame no disponible",
-    "No apply samples yet": "Aún no hay muestras de aplicación"
+    "No apply samples yet": "Aún no hay muestras de aplicación",
+    "Hide For You tab": "Ocultar pestaña Para ti",
+    "Selects Following, then collapses the first Home tab. It only affects Home and restores immediately when turned off.": "Selecciona Siguiendo y contrae la primera pestaña de Inicio. Solo afecta a Inicio y se restaura al desactivarlo.",
+    "For You tab hidden.": "Pestaña Para ti oculta.",
+    "For You tab restored.": "Pestaña Para ti restaurada."
   },
   "pt": {
     "Quality receipts": "Comprovantes de qualidade",
@@ -63,7 +67,11 @@
     "{observed} long frames · {correlated} correlated": "{observed} frames longos · {correlated} correlacionados",
     "{count} features": "{count} recursos",
     "Long Animation Frame unavailable": "Long Animation Frame indisponível",
-    "No apply samples yet": "Nenhuma amostra de aplicação ainda"
+    "No apply samples yet": "Nenhuma amostra de aplicação ainda",
+    "Hide For You tab": "Ocultar aba Para você",
+    "Selects Following, then collapses the first Home tab. It only affects Home and restores immediately when turned off.": "Seleciona Seguindo e recolhe a primeira aba da página inicial. Só afeta a página inicial e é restaurada ao desativar.",
+    "For You tab hidden.": "Aba Para você oculta.",
+    "For You tab restored.": "Aba Para você restaurada."
   },
   "fr": {
     "Quality receipts": "Reçus de qualité",
@@ -96,7 +104,11 @@
     "{observed} long frames · {correlated} correlated": "{observed} longues animations · {correlated} corrélées",
     "{count} features": "{count} fonctions",
     "Long Animation Frame unavailable": "Long Animation Frame indisponible",
-    "No apply samples yet": "Aucun échantillon d’application"
+    "No apply samples yet": "Aucun échantillon d’application",
+    "Hide For You tab": "Masquer l’onglet Pour vous",
+    "Selects Following, then collapses the first Home tab. It only affects Home and restores immediately when turned off.": "Sélectionne Abonnements, puis réduit le premier onglet de l’accueil. S’applique uniquement à l’accueil et se restaure à la désactivation.",
+    "For You tab hidden.": "Onglet Pour vous masqué.",
+    "For You tab restored.": "Onglet Pour vous restauré."
   },
   "de": {
     "Quality receipts": "Qualitätsnachweise",
@@ -129,7 +141,11 @@
     "{observed} long frames · {correlated} correlated": "{observed} lange Frames · {correlated} korreliert",
     "{count} features": "{count} Funktionen",
     "Long Animation Frame unavailable": "Long Animation Frame nicht verfügbar",
-    "No apply samples yet": "Noch keine Apply-Messungen"
+    "No apply samples yet": "Noch keine Apply-Messungen",
+    "Hide For You tab": "Für dich-Tab ausblenden",
+    "Selects Following, then collapses the first Home tab. It only affects Home and restores immediately when turned off.": "Wählt „Folge ich“ und klappt den ersten Home-Tab ein. Gilt nur für Home und wird beim Ausschalten sofort wiederhergestellt.",
+    "For You tab hidden.": "Für dich-Tab ausgeblendet.",
+    "For You tab restored.": "Für dich-Tab wiederhergestellt."
   },
   "ja": {
     "Quality receipts": "品質レシート",
@@ -162,7 +178,11 @@
     "{observed} long frames · {correlated} correlated": "{observed} 件の長いフレーム · 相関 {correlated} 件",
     "{count} features": "{count} 件の機能",
     "Long Animation Frame unavailable": "Long Animation Frame は利用できません",
-    "No apply samples yet": "適用サンプルはまだありません"
+    "No apply samples yet": "適用サンプルはまだありません",
+    "Hide For You tab": "For you タブを隠す",
+    "Selects Following, then collapses the first Home tab. It only affects Home and restores immediately when turned off.": "フォロー中を選び、ホームの最初のタブを折りたたみます。ホームだけに適用され、オフにするとすぐ戻ります。",
+    "For You tab hidden.": "For you タブを非表示にしました。",
+    "For You tab restored.": "For you タブを復元しました。"
   },
   "ko": {
     "Quality receipts": "품질 영수증",
@@ -195,7 +215,11 @@
     "{observed} long frames · {correlated} correlated": "{observed}개의 긴 프레임 · 상관됨 {correlated}개",
     "{count} features": "기능 {count}개",
     "Long Animation Frame unavailable": "Long Animation Frame을 사용할 수 없음",
-    "No apply samples yet": "아직 적용 샘플 없음"
+    "No apply samples yet": "아직 적용 샘플 없음",
+    "Hide For You tab": "For you 탭 숨기기",
+    "Selects Following, then collapses the first Home tab. It only affects Home and restores immediately when turned off.": "팔로잉을 선택한 뒤 홈의 첫 번째 탭을 접습니다. 홈에서만 적용되며 끄면 즉시 복원됩니다.",
+    "For You tab hidden.": "For you 탭을 숨겼습니다.",
+    "For You tab restored.": "For you 탭을 복원했습니다."
   },
   "ar": {
     "Quality receipts": "إيصالات الجودة",
@@ -228,7 +252,11 @@
     "{observed} long frames · {correlated} correlated": "{observed} إطارات طويلة · مترابطة {correlated}",
     "{count} features": "{count} ميزات",
     "Long Animation Frame unavailable": "Long Animation Frame غير متاح",
-    "No apply samples yet": "لا توجد عينات تطبيق بعد"
+    "No apply samples yet": "لا توجد عينات تطبيق بعد",
+    "Hide For You tab": "إخفاء تبويب «لك»",
+    "Selects Following, then collapses the first Home tab. It only affects Home and restores immediately when turned off.": "يختار «المتابَعون» ثم يطوي أول تبويب في الصفحة الرئيسية. يعمل على الصفحة الرئيسية فقط ويُعاد فورًا عند إيقافه.",
+    "For You tab hidden.": "تم إخفاء تبويب «لك».",
+    "For You tab restored.": "تمت استعادة تبويب «لك»."
   },
   "he": {
     "Quality receipts": "אישורי איכות",
@@ -261,6 +289,10 @@
     "{observed} long frames · {correlated} correlated": "{observed} פריימים ארוכים · במתאם {correlated}",
     "{count} features": "{count} תכונות",
     "Long Animation Frame unavailable": "Long Animation Frame אינו זמין",
-    "No apply samples yet": "עדיין אין דגימות החלה"
+    "No apply samples yet": "עדיין אין דגימות החלה",
+    "Hide For You tab": "הסתרת לשונית For You",
+    "Selects Following, then collapses the first Home tab. It only affects Home and restores immediately when turned off.": "בוחר ב'במעקב' ואז מכווץ את הלשונית הראשונה בדף הבית. חל רק בדף הבית ומשוחזר מיד כשמכבים.",
+    "For You tab hidden.": "לשונית For You הוסתרה.",
+    "For You tab restored.": "לשונית For You שוחזרה."
   }
 }

@@ -248,6 +248,7 @@ test("presets can promise the two settings that now have implementations", async
   const byId = Object.fromEntries(PRESETS.map((preset) => [preset.id, preset]));
   assert.equal(byId["quiet-reader"].overrides.appearance.hideBorders, true);
   assert.equal(byId.minimal.overrides.appearance.hideBorders, true);
+  assert.equal(byId.minimal.overrides.layout.hideForYouTab, true);
   assert.equal(byId.creator.overrides.layout.writerMode, true);
 });
 
@@ -260,6 +261,7 @@ test("the Control Center exposes both settings", async () => {
   ).join("\n");
   assert.match(source, /ctx\.options\.settings\.appearance\.hideBorders = checked/);
   assert.match(source, /ctx\.options\.settings\.layout\.writerMode = checked/);
+  assert.match(source, /ctx\.options\.settings\.layout\.hideForYouTab = checked/);
 });
 
 async function waitFor(predicate, timeoutMs = 1_000) {

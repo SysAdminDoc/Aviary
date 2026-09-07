@@ -39,6 +39,7 @@ test("default settings enable only ad protection and user-invoked media saves", 
   assert.equal(s.layout.hideGrok, false);
   assert.equal(s.layout.writerMode, false);
   assert.equal(s.layout.forceFollowing, false);
+  assert.equal(s.layout.hideForYouTab, false);
   assert.deepEqual(s.layout.hideNavItems, []);
 
   // Media downloads are ready without setup, but remain user-invoked. No other post control is

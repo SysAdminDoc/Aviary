@@ -57,15 +57,17 @@ const DELIVERY_BUDGETS = [
   // F324 adds the bounded feature-timing store, Long Animation Frame correlation, the Trust
   // readout, and five translated status strings. The measured increase is kept under 30 KB here,
   // with the decision recorded instead of silently weakening the gate.
-  { file: "aviary.user.js", maxBytes: 2_535_000 },
+  // F325 adds the reversible Home tab control and four localized strings. Keep the measured
+  // headroom narrow for both the readable userscript and the lazy panel chunk.
+  { file: "aviary.user.js", maxBytes: 2_545_000 },
   { file: "aviary.meta.js", maxBytes: 4_000 },
   // F298 keeps the document-start bootstrap below half of the previous 2.42 MB ceiling. The
   // panel, archive, WACZ worker, viewer, and translated catalog live in the separately budgeted
   // web-accessible chunk below.
   { file: "extension-chrome/content.js", maxBytes: 1_210_000 },
   { file: "extension-firefox/content.js", maxBytes: 1_210_000 },
-  { file: "extension-chrome/chunks/extension-panel.js", maxBytes: 2_100_000 },
-  { file: "extension-firefox/chunks/extension-panel.js", maxBytes: 2_100_000 },
+  { file: "extension-chrome/chunks/extension-panel.js", maxBytes: 2_110_000 },
+  { file: "extension-firefox/chunks/extension-panel.js", maxBytes: 2_110_000 },
   { file: `aviary-source-v${pkg.version}.zip`, maxBytes: 10_000_000 }
 ];
 

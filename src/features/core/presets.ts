@@ -154,6 +154,7 @@ export const PRESETS: PresetDefinition[] = [
         hideHomeComposer: true,
         hideGrok: true,
         suppressHoverPreviews: true,
+        hideForYouTab: true,
         hideNavItems: ["follow", "grok", "history", "studio", "premium"]
       },
       filter: { enabled: true, premiumRule: "hide" },

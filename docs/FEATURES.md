@@ -43,8 +43,8 @@ Layout now offers independent controls to hide Home's quick composer and Who to 
 Hide trends collapses the complete current news/trend cards instead of leaving headings or empty
 shells, Hide Grok also catches its sidebar promotion and floating Chat drawer, and navigation
 cleanup understands X's current Follow, Chat, Grok, History, Creator Studio and Premium destinations. The Minimal
-preset combines those reductions with a comfortable-width Noir timeline while keeping every
-choice reversible.
+preset combines those reductions with a comfortable-width Noir timeline and can collapse the first
+Home tab after selecting Following. Every choice is reversible.
 
 ## Privacy Model
 

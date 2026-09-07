@@ -146,14 +146,6 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
 
 ### P2, Later
 
-- [ ] F325, P2: Hide For You independently from opening Following
-  Why: users may want the algorithmic tab gone, not merely bypassed once on arrival, and current `forceFollowing` deliberately leaves a manual switch back available.
-  Evidence: `src/features/layout/force-following.ts`; https://github.com/yusukesaitoh/calm-twitter/issues/70 and https://github.com/alterebro/bye-for-you
-  Touches: `src/features/layout/force-following.ts`, `src/platform/settings.ts`, Minimal preset, Reading controls, i18n catalog, route and teardown tests
-  Acceptance: a separate `Hide For You tab` setting is enabled by the Minimal preset and can be changed without changing `forceFollowing`; on Home it selects Following before collapsing only the first tab to 0 by 0, using the known home tablist and position rather than translated text; profile, search, notifications, and custom-list tablists are untouched; if the strip has fewer than two tabs the feature does nothing and reports degraded selector health; disabling it restores the tab without navigation or reload; LTR, RTL, narrow, and touch fixtures pass.
-  Complexity: S
-  Depends: None. Selector-break reporting is available in the current build.
-
 - [ ] F326, P2: Stop reading unrelated storage on every lock poll
   Why: sharedLockRegisterStore().entries uses chrome.storage.local.get(null) at a 12 ms poll interval, deserializing the whole storage area to find a small register.
   Evidence: `src/platform/storage-lock.ts:357`, `SHARED_LOCK_POLL_MS`, `tests/storage-authority-browser.test.mjs`; https://developer.chrome.com/docs/extensions/reference/api/storage

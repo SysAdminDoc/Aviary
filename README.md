@@ -101,6 +101,10 @@ in full and incremental apply passes, shows the slowest recorded run, and correl
 Frames where the browser supports them. The ring stores no selectors, routes, post text, handles, or
 DOM values, and **Reset performance metrics** clears it immediately.
 
+Reading also has an independent **Hide For You tab** control. On Home it selects Following and
+collapses only the first tab by position, leaving other route tablists alone. Turning it off restores
+the original tab immediately.
+
 Changed your mind about all of it? **Trust → Reset everything to plain X** returns preferences to
 the ad-free baseline. Saved posts, notes, bookmarks and download history are kept.
 

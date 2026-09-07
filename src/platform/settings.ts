@@ -280,6 +280,8 @@ export interface AviarySettings {
     suppressHoverPreviews: boolean;
     writerMode: boolean;
     forceFollowing: boolean;
+    /** Collapse the first tab in the Home strip after selecting Following. */
+    hideForYouTab: boolean;
     /** Cover the reading column outside the window below. Local only; nothing is blocked. */
     focusMode: boolean;
     /** Start of the allowed reading window, "HH:MM" local time. */
@@ -441,6 +443,7 @@ export const DEFAULT_SETTINGS: AviarySettings = {
     suppressHoverPreviews: false,
     writerMode: false,
     forceFollowing: false,
+    hideForYouTab: false,
     focusMode: false,
     focusStart: "09:00",
     focusEnd: "18:00",
@@ -828,6 +831,7 @@ export function normalizeSettings(input: unknown): AviarySettings {
       ),
       writerMode: booleanValue(layout.writerMode, DEFAULT_SETTINGS.layout.writerMode),
       forceFollowing: booleanValue(layout.forceFollowing, DEFAULT_SETTINGS.layout.forceFollowing),
+      hideForYouTab: booleanValue(layout.hideForYouTab, DEFAULT_SETTINGS.layout.hideForYouTab),
       focusMode: booleanValue(layout.focusMode, DEFAULT_SETTINGS.layout.focusMode),
       focusStart: timeValue(layout.focusStart, DEFAULT_SETTINGS.layout.focusStart),
       focusEnd: timeValue(layout.focusEnd, DEFAULT_SETTINGS.layout.focusEnd),

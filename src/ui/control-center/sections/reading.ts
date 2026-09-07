@@ -353,6 +353,15 @@ export function buildLayoutRows(ctx: PanelContext): HTMLElement[] {
           ctx.options.settings.layout.forceFollowing = checked;
           await ctx.save(checked ? "Following timeline on." : "Following timeline off.");
         }
+      ),
+      ctx.toggleRow(
+        "Hide For You tab",
+        "Selects Following, then collapses the first Home tab. It only affects Home and restores immediately when turned off.",
+        ctx.options.settings.layout.hideForYouTab,
+        async (checked) => {
+          ctx.options.settings.layout.hideForYouTab = checked;
+          await ctx.save(checked ? "For You tab hidden." : "For You tab restored.");
+        }
       )
   ];
   rows.push(

@@ -35,6 +35,7 @@ before(async () => {
     [
       `export { themeFeature, THEME_CSS } from ${JSON.stringify(abs("src/features/appearance/theme.ts"))};`,
       `export { layoutDeclutterFeature } from ${JSON.stringify(abs("src/features/layout/declutter.ts"))};`,
+      `export { forceFollowingFeature } from ${JSON.stringify(abs("src/features/layout/force-following.ts"))};`,
       `export { cleanShareLinksFeature, cleanUrl } from ${JSON.stringify(abs("src/features/library/clean-share-links.ts"))};`,
       `export { linkUnshortenFeature } from ${JSON.stringify(abs("src/features/library/link-unshorten.ts"))};`,
       `export { PRESETS } from ${JSON.stringify(abs("src/features/core/presets.ts"))};`,
@@ -462,6 +463,10 @@ test("every appearance and layout key a preset writes changes the page", async (
       <nav>
         <a data-testid="AppTabBar_Home_Link">home</a>
         <a data-testid="AppTabBar_Explore_Link">explore</a>
+        <div role="tablist" data-testid="ScrollSnap-List">
+          <div role="tab" data-testid="HomeTab" aria-selected="true">For you</div>
+          <div role="tab" data-testid="HomeTab" aria-selected="false">Following</div>
+        </div>
       </nav>`;
 
     const fingerprint = () =>
@@ -491,9 +496,12 @@ test("every appearance and layout key a preset writes changes the page", async (
             });
             AviaryLifecycle.themeFeature.init(ctx);
             AviaryLifecycle.layoutDeclutterFeature.init(ctx);
+            AviaryLifecycle.forceFollowingFeature.init(ctx);
+            AviaryLifecycle.forceFollowingFeature.apply(ctx, document);
             const shot = fingerprint();
             AviaryLifecycle.themeFeature.destroy(ctx);
             AviaryLifecycle.layoutDeclutterFeature.destroy(ctx);
+            AviaryLifecycle.forceFollowingFeature.destroy(ctx);
             return shot;
           };
 

@@ -179,6 +179,160 @@ test("apply() selects Following once, then leaves a manual switch back alone", a
   assert.equal(result.afterOtherSurface, "For you", "other surfaces are not touched");
 });
 
+test("Hide For You collapses only the first Home tab and restores without navigation", async () => {
+  const result = await page.evaluate(() => {
+    const host = document.createElement("section");
+    host.dir = "rtl";
+    host.dataset.pointer = "coarse";
+    host.style.cssText = "inline-size: 320px; max-inline-size: 100%;";
+    const list = document.createElement("div");
+    list.setAttribute("role", "tablist");
+    list.dataset.testid = "ScrollSnap-List";
+    const tabs = ["For you", "Following"].map((label, index) => {
+      const tab = document.createElement("div");
+      tab.setAttribute("role", "tab");
+      tab.setAttribute("aria-selected", index === 0 ? "true" : "false");
+      tab.setAttribute("style", "color: red;");
+      tab.setAttribute("aria-hidden", "false");
+      tab.setAttribute("tabindex", "0");
+      tab.textContent = label;
+      tab.addEventListener("click", () => {
+        for (const other of tabs) other.setAttribute("aria-selected", "false");
+        tab.setAttribute("aria-selected", "true");
+      });
+      list.append(tab);
+      return tab;
+    });
+    host.append(list);
+    document.body.append(host);
+    const warnings = [];
+    const ctx = (hideForYouTab) => ({
+      settings: { layout: { forceFollowing: false, hideForYouTab } },
+      route: { surface: "home", href: "https://x.com/home" },
+      diagnostics: { info() {}, warn(message) { warnings.push(message); }, error() {} }
+    });
+    const feature = AviaryFollowing.forceFollowingFeature;
+    feature.init(ctx(true));
+    feature.apply(ctx(true), host);
+    const collapsed = {
+      marker: tabs[0].getAttribute("data-av-hide-for-you"),
+      width: getComputedStyle(tabs[0]).width,
+      height: getComputedStyle(tabs[0]).height,
+      selected: tabs[1].getAttribute("aria-selected"),
+      rtl: host.dir,
+      pointer: host.dataset.pointer,
+      originalStyle: tabs[0].getAttribute("style")
+    };
+    const beforeDisable = tabs.map((tab) => tab.getAttribute("aria-selected"));
+    feature.apply(ctx(false), host);
+    const restored = {
+      marker: tabs[0].getAttribute("data-av-hide-for-you"),
+      style: tabs[0].getAttribute("style"),
+      ariaHidden: tabs[0].getAttribute("aria-hidden"),
+      tabIndex: tabs[0].getAttribute("tabindex"),
+      selected: tabs.map((tab) => tab.getAttribute("aria-selected")),
+      beforeDisable,
+      status: feature.getStatus()
+    };
+    feature.destroy(ctx(false));
+    host.remove();
+    return { collapsed, restored, warnings };
+  });
+
+  assert.equal(result.collapsed.marker, "true");
+  assert.equal(result.collapsed.width, "0px");
+  assert.equal(result.collapsed.height, "0px");
+  assert.equal(result.collapsed.selected, "true", "Following is selected before the first tab is hidden");
+  assert.equal(result.collapsed.rtl, "rtl");
+  assert.equal(result.collapsed.pointer, "coarse");
+  assert.match(result.collapsed.originalStyle, /color: red/);
+  assert.equal(result.restored.marker, null);
+  assert.equal(result.restored.style, "color: red;");
+  assert.equal(result.restored.ariaHidden, "false");
+  assert.equal(result.restored.tabIndex, "0");
+  assert.deepEqual(result.restored.selected, result.restored.beforeDisable, "disabling must not navigate");
+  assert.equal(result.restored.status.ok, true);
+  assert.deepEqual(result.warnings, []);
+});
+
+test("Hide For You reports a short Home strip and ignores other tablists", async () => {
+  const result = await page.evaluate(() => {
+    const host = document.createElement("section");
+    const shortHome = document.createElement("div");
+    shortHome.setAttribute("role", "tablist");
+    shortHome.dataset.testid = "ScrollSnap-List";
+    const only = document.createElement("div");
+    only.setAttribute("role", "tab");
+    only.textContent = "Localized first tab";
+    shortHome.append(only);
+    const otherSurfaces = ["profile", "search", "notifications", "unknown"].map((surface) => {
+      const list = document.createElement("div");
+      list.setAttribute("role", "tablist");
+      list.dataset.testid = `other-${surface}`;
+      for (const label of ["first", "second"]) {
+        const tab = document.createElement("div");
+        tab.setAttribute("role", "tab");
+        tab.textContent = label;
+        list.append(tab);
+      }
+      host.append(list);
+      return list;
+    });
+    host.append(shortHome);
+    document.body.append(host);
+    const warnings = [];
+    const ctx = (surface) => ({
+      settings: { layout: { forceFollowing: false, hideForYouTab: true } },
+      route: { surface, href: `https://x.com/${surface}` },
+      diagnostics: { info() {}, warn(message) { warnings.push(message); }, error() {} }
+    });
+    const feature = AviaryFollowing.forceFollowingFeature;
+    feature.init(ctx("home"));
+    feature.apply(ctx("home"), host);
+    const short = {
+      marker: only.getAttribute("data-av-hide-for-you"),
+      status: feature.getStatus()
+    };
+    const untouched = otherSurfaces.map((list) => [...list.querySelectorAll('[role="tab"]')].map((tab) => ({
+      marker: tab.getAttribute("data-av-hide-for-you"),
+      hidden: tab.getAttribute("aria-hidden")
+    })));
+    const second = document.createElement("div");
+    second.setAttribute("role", "tab");
+    second.textContent = "Localized Following";
+    second.setAttribute("aria-selected", "false");
+    shortHome.append(second);
+    only.setAttribute("aria-selected", "true");
+    second.addEventListener("click", () => {
+      only.setAttribute("aria-selected", "false");
+      second.setAttribute("aria-selected", "true");
+    });
+    feature.apply(ctx("home"), host);
+    const recovered = {
+      marker: only.getAttribute("data-av-hide-for-you"),
+      selected: second.getAttribute("aria-selected"),
+      status: feature.getStatus()
+    };
+    feature.destroy(ctx("home"));
+    host.remove();
+    return { short, untouched, recovered, warnings };
+  });
+
+  assert.equal(result.short.marker, null);
+  assert.equal(result.short.status.ok, false);
+  assert.match(result.short.status.message, /two-tab Home strip/);
+  assert.ok(result.warnings.some((message) => message.includes("selector degraded")));
+  for (const tabs of result.untouched) {
+    assert.deepEqual(tabs, [
+      { marker: null, hidden: null },
+      { marker: null, hidden: null }
+    ]);
+  }
+  assert.equal(result.recovered.marker, "true");
+  assert.equal(result.recovered.selected, "true");
+  assert.equal(result.recovered.status.ok, true);
+});
+
 test("the feature only acts on the home surface and only once per visit", async () => {
   const source = await readFileUtf8("src/features/layout/force-following.ts");
 
