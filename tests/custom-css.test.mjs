@@ -6,6 +6,12 @@ import { after, before, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { build } from "esbuild";
 import { chromium } from "playwright";
+import {
+  CSS_FUZZ_SEED,
+  CSS_REDUCER_FIXTURES,
+  SAFETY_FUZZ_CASES,
+  generateCssFuzzCorpus
+} from "./helpers/safety-fuzz.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 let browser;
@@ -233,5 +239,85 @@ test("scoped custom CSS never emits a rule outside its own scope block", async (
   assert.ok(
     outsideStyle.topLevelRules <= 1,
     `the payload must not add top-level rules, saw ${outsideStyle.topLevelRules}`
+  );
+});
+
+test("a seeded CSS mutation corpus stays local and selector-scoped", async () => {
+  const corpus = generateCssFuzzCorpus(SAFETY_FUZZ_CASES, CSS_FUZZ_SEED);
+  assert.deepEqual(
+    corpus,
+    generateCssFuzzCorpus(SAFETY_FUZZ_CASES, CSS_FUZZ_SEED),
+    `CSS fuzz corpus must be reproducible from seed ${CSS_FUZZ_SEED}`
+  );
+
+  const result = await page.evaluate((cases) => {
+    const marker = '[data-av-custom-css-scope~="posts"]';
+    const forbidden = /@(?:import|font-face|namespace|scope|keyframes?|property|page)\b|(?:url|expression|image-set|cross-fade|paint)\s*\(/i;
+    const outputs = [];
+    const failures = [];
+    const familyCounts = {};
+
+    for (const entry of cases) {
+      familyCounts[entry.family] = (familyCounts[entry.family] ?? 0) + 1;
+      const sanitized = AviaryCustomCss.sanitizeCustomCss(entry.source).value;
+      if (!sanitized) continue;
+      const fallback = AviaryCustomCss.buildScopedCustomCss(
+        { posts: sanitized, media: "", navigation: "", sidebar: "", composer: "" },
+        false
+      );
+      if (!fallback || forbidden.test(fallback) || !fallback.includes(marker)) {
+        failures.push({ id: entry.id, family: entry.family, reason: "unsafe fallback output" });
+        continue;
+      }
+      outputs.push(fallback);
+    }
+
+    // Parse every accepted mutation together. Each CSSStyleRule must retain the scope marker,
+    // including rules nested below @media, @supports, @container, and @layer.
+    const style = document.createElement("style");
+    style.textContent = outputs.join("\n");
+    document.head.append(style);
+    const walk = (rules) => {
+      for (const rule of rules ?? []) {
+        if (typeof rule.selectorText === "string" && !rule.selectorText.includes(marker)) {
+          failures.push({ reason: "unscoped CSSStyleRule", selector: rule.selectorText });
+        }
+        if (rule.cssRules) walk(rule.cssRules);
+      }
+    };
+    try {
+      walk(style.sheet?.cssRules);
+    } catch (error) {
+      failures.push({ reason: `CSSOM parse failed: ${String(error)}` });
+    }
+    style.remove();
+    return { accepted: outputs.length, failures: failures.slice(0, 12), familyCounts };
+  }, corpus);
+
+  assert.equal(result.accepted > 0, true, "the corpus must retain ordinary CSS alongside attacks");
+  assert.deepEqual(result.familyCounts, {
+    comments: 1250,
+    escapes: 1250,
+    "nested-functions": 1250,
+    "selector-lists": 1250,
+    "nested-at-rules": 1250,
+    strings: 1250,
+    "network-hooks": 1250,
+    malformed: 1250
+  });
+  assert.deepEqual(result.failures, []);
+});
+
+test("reduced CSS safety cases stay permanent fixtures", async () => {
+  const result = await page.evaluate((fixtures) =>
+    fixtures.map((fixture) => ({
+      family: fixture.family,
+      accepted: AviaryCustomCss.sanitizeCustomCss(fixture.source).value.length > 0
+    })),
+    CSS_REDUCER_FIXTURES
+  );
+  assert.deepEqual(
+    result,
+    CSS_REDUCER_FIXTURES.map((fixture) => ({ family: fixture.family, accepted: fixture.expected === "accept" }))
   );
 });

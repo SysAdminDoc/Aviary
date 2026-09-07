@@ -3,6 +3,10 @@
 ## Unreleased
 
 ### Security
+- **Seeded parser fuzzing.** Custom CSS and regex boundaries now run deterministic 10,000-case
+  mutation corpora. CSS output is checked for network hooks and selector escape in the fallback
+  scoper, while accepted regexes run a long sentinel corpus in a time-bounded worker. Reduced cases
+  remain permanent fixtures so later parser changes cannot reopen a bypass.
 - Diagnostic persistence now keeps only stable authored message ids, severity, ISO timestamps, and
   detail-key names. Legacy message and reason values migrate out, AI provider failures no longer
   attach provider text, and the Options page can copy a merged redacted report with the bounded

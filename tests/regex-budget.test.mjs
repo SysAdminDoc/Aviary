@@ -1,6 +1,59 @@
 import { importSourceModule } from "./helpers/source-import.mjs";
 import assert from "node:assert/strict";
+import { once } from "node:events";
 import { test } from "node:test";
+import { Worker } from "node:worker_threads";
+import {
+  REGEX_FUZZ_SEED,
+  REGEX_REDUCER_FIXTURES,
+  SAFETY_FUZZ_CASES,
+  generateRegexFuzzCorpus
+} from "./helpers/safety-fuzz.mjs";
+
+const REGEX_WORKER_BUDGET_MS = 2_000;
+
+async function runRegexSentinelInWorker(patterns, timeoutMs = REGEX_WORKER_BUDGET_MS) {
+  const worker = new Worker(
+    `
+      const { parentPort, workerData } = require("node:worker_threads");
+      const subjects = [
+        "a".repeat(400) + "!",
+        "x".repeat(400) + "z",
+        "spam".repeat(100),
+        "0123456789.".repeat(40),
+        "crypto giveaway airdrop ".repeat(40)
+      ];
+      try {
+        let checks = 0;
+        for (const source of workerData.patterns) {
+          const expression = new RegExp(source);
+          for (const subject of subjects) {
+            expression.lastIndex = 0;
+            expression.test(subject);
+            checks += 1;
+          }
+        }
+        parentPort.postMessage({ ok: true, checks });
+      } catch (error) {
+        parentPort.postMessage({ ok: false, message: String(error) });
+      }
+    `,
+    { eval: true, workerData: { patterns } }
+  );
+  let timer;
+  try {
+    const result = await Promise.race([
+      once(worker, "message").then(([message]) => message),
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`regex sentinel exceeded ${timeoutMs}ms`)), timeoutMs);
+      })
+    ]);
+    return result;
+  } finally {
+    clearTimeout(timer);
+    await worker.terminate();
+  }
+}
 
 /**
  * Filter patterns run synchronously against every article in every mutation batch, and JavaScript
@@ -348,4 +401,53 @@ test("a small bounded repetition of an ambiguous group is allowed, a large one i
   assert.notEqual(checkRegexBudget("(\\S+){4}").reason, null, "four are not");
   assert.equal(checkRegexBudget("(cat|dog){8}").reason, null, "eight branch choices are countable");
   assert.notEqual(checkRegexBudget("(cat|dog){9}").reason, null, "nine are not");
+});
+
+test("a seeded regex mutation corpus stays inside the worker budget", async () => {
+  const corpus = generateRegexFuzzCorpus(SAFETY_FUZZ_CASES, REGEX_FUZZ_SEED);
+  assert.deepEqual(
+    corpus,
+    generateRegexFuzzCorpus(SAFETY_FUZZ_CASES, REGEX_FUZZ_SEED),
+    `regex fuzz corpus must be reproducible from seed ${REGEX_FUZZ_SEED}`
+  );
+  const { checkRegexBudget } = await importSourceModule("src/features/filtering/regex-budget.ts");
+  const verdicts = corpus.map((entry) => ({ ...entry, verdict: checkRegexBudget(entry.source) }));
+  const refused = verdicts.filter((entry) => entry.verdict.reason !== null);
+  const accepted = verdicts.filter((entry) => entry.verdict.reason === null);
+  assert.ok(refused.length > 0, "the corpus must exercise refusal paths");
+  for (const family of ["nested-quantifier", "alternation"]) {
+    assert.ok(
+      refused.some((entry) => entry.family === family),
+      `${family} mutations must include a refused case`
+    );
+  }
+
+  const compilable = [];
+  const invalid = [];
+  for (const entry of accepted) {
+    try {
+      new RegExp(entry.source);
+      compilable.push(entry.source);
+    } catch {
+      invalid.push(entry);
+    }
+  }
+  assert.ok(invalid.length > 0, "the parser corpus should keep malformed reducer cases visible");
+  assert.ok(invalid.every((entry) => entry.family === "invalid"));
+
+  const result = await runRegexSentinelInWorker(compilable);
+  assert.equal(result.ok, true, result.message ?? "regex sentinel worker failed");
+  assert.equal(result.checks, compilable.length * 5);
+});
+
+test("reduced regex safety cases stay permanent fixtures", async () => {
+  const { checkRegexBudget } = await importSourceModule("src/features/filtering/regex-budget.ts");
+  const result = REGEX_REDUCER_FIXTURES.map((fixture) => ({
+    family: fixture.family,
+    accepted: checkRegexBudget(fixture.source).reason === null
+  }));
+  assert.deepEqual(
+    result,
+    REGEX_REDUCER_FIXTURES.map((fixture) => ({ family: fixture.family, accepted: fixture.expected === "accept" }))
+  );
 });

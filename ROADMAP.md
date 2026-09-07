@@ -28,13 +28,6 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
   Complexity: M
   Depends: F277 and F332. F283 adds adaptive receipts when it lands.
 
-- [ ] F285, P2: Fuzz the custom CSS and regex safety boundaries
-  Why: both analyzers accept user input and have needed repeated bypass fixes. No current bypass was verified, so a seeded adversarial corpus is more justified than replacing either parser.
-  Evidence: `src/features/appearance/custom-css.ts`, `src/features/filtering/regex-budget.ts`, commit history; https://owasp.org/www-community/attacks/Regular_expression_Denial_of_Service_-_ReDoS; https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/11-Client-side_Testing/05-Testing_for_CSS_Injection
-  Touches: both analyzers, deterministic corpus generators, worker timeout harness, parser tests
-  Acceptance: at least 10,000 seeded mutations cover comments, escapes, nested functions, selector lists, lookarounds, backreferences, and nested quantifiers; accepted CSS cannot escape its allowed selector prefix or create an import/network rule; accepted regex cases finish the sentinel corpus within the worker budget; every discovered reducer case becomes a permanent fixture; the run is deterministic.
-  Depends: None.
-
 - [ ] F286, P2: Derive accessibility coverage from every shipped surface
   Why: the axe test hard-codes 13 destinations and omits Catch-up, while options, injected media controls, dialogs, toasts, and the archive viewer are not scanned.
   Evidence: `tests/a11y-axe.test.mjs:32-46`, `src/ui/control-center.ts:449-491`; https://www.w3.org/TR/WCAG22/; https://github.com/dequelabs/axe-core-npm/tree/develop/packages/playwright

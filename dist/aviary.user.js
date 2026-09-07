@@ -2073,7 +2073,7 @@ ${css}
     while (cursor < css.length) {
       const open = findNextBrace(css, cursor);
       if (open === -1) {
-        if (css.slice(cursor).trim().length > 0) return "";
+        if (!onlyCssComments(css.slice(cursor))) return "";
         break;
       }
       const prelude = css.slice(cursor, open).trim();
@@ -2100,6 +2100,18 @@ ${body}
       cursor = close + 1;
     }
     return output.join("\n");
+  }
+  function onlyCssComments(value) {
+    let cursor = 0;
+    while (cursor < value.length) {
+      while (/\s/.test(value[cursor] ?? "")) cursor += 1;
+      if (cursor >= value.length) return true;
+      if (!value.startsWith("/*", cursor)) return false;
+      const close = value.indexOf("*/", cursor + 2);
+      if (close === -1) return false;
+      cursor = close + 2;
+    }
+    return true;
   }
   function findNextBrace(source, start) {
     let quote = null;

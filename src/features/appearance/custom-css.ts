@@ -135,7 +135,10 @@ function scopeCssFallback(css: string, scopeSelector: string): string {
   while (cursor < css.length) {
     const open = findNextBrace(css, cursor);
     if (open === -1) {
-      if (css.slice(cursor).trim().length > 0) return "";
+      // A trailing comment is harmless CSS and is accepted by the native @scope path. Keep the
+      // compatibility path in agreement instead of dropping an otherwise valid rule set just
+      // because the final comment has no block of its own.
+      if (!onlyCssComments(css.slice(cursor))) return "";
       break;
     }
     const prelude = css.slice(cursor, open).trim();
@@ -158,6 +161,19 @@ function scopeCssFallback(css: string, scopeSelector: string): string {
     cursor = close + 1;
   }
   return output.join("\n");
+}
+
+function onlyCssComments(value: string): boolean {
+  let cursor = 0;
+  while (cursor < value.length) {
+    while (/\s/.test(value[cursor] ?? "")) cursor += 1;
+    if (cursor >= value.length) return true;
+    if (!value.startsWith("/*", cursor)) return false;
+    const close = value.indexOf("*/", cursor + 2);
+    if (close === -1) return false;
+    cursor = close + 2;
+  }
+  return true;
 }
 
 function findNextBrace(source: string, start: number): number {
