@@ -82,6 +82,10 @@
   origin.
 - Media batches now wait for their durable queue checkpoint before reporting a browser transfer as
   running, so restart recovery retains the browser download ID.
+- Legacy profile adoption now keeps a per-store hash journal. If a source delete is interrupted,
+  the next attempt verifies the matching destination and finishes the delete; different values are
+  reported as conflicts and are never overwritten. The Control Center separates moved,
+  retry-completed, skipped, conflicted, and failed stores.
 - A userscript manager that grants only part of Aviary's storage API is now refused by name at
   startup instead of quietly falling back to page storage. Aviary lists its own keys to coordinate
   writes across x.com, twitter.com and pro.x.com, so a manager without `GM_listValues` cannot keep

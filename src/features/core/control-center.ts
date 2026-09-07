@@ -229,10 +229,12 @@ export const controlCenterFeature: FeatureModule = {
         return { ok: true };
       },
       async adoptLegacyProfileData() {
-        if (!ctx.profile) return { moved: 0, skipped: 0 };
+        if (!ctx.profile) {
+          return { moved: 0, skipped: 0, completedAfterRetry: 0, conflicted: 0, failed: 0 };
+        }
         const result = await ctx.profile.adoptLegacyIntoActive();
-        if (result.moved > 0) {
-          ctx.diagnostics.info("Legacy data assigned to profile", result);
+        if (result.moved > 0 || result.completedAfterRetry > 0) {
+          ctx.diagnostics.info("Legacy data assigned to profile", { ...result });
           reloadPage();
         }
         return result;

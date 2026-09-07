@@ -172,6 +172,9 @@ test("every durable store key declared in src is registered everywhere it must b
     // The registry of profiles cannot itself be profile-scoped, and it is what migration reads.
     "aviary.profiles.v1": { durable: "is the profile registry", profile: "is the profile registry", backup: "profile plumbing, not user data" },
     "aviary.profile.active.v1": { durable: "is profile selection", profile: "is profile selection", backup: "profile plumbing, not user data" },
+    // Records the two-phase legacy adoption receipt. It is install-wide metadata, never a profile
+    // collection and never part of a user backup.
+    "aviary.profile.migration.v1": { profile: "install-wide migration journal", backup: "profile plumbing, not user data" },
     // Lives in the extension service worker's chrome.storage, not the page StorageGateway, and is
     // derived from settings — it mirrors whether one DNR rule is installed.
     "aviary.runtime.adLoggerRule.v1": { durable: "extension realm, not the page gateway", profile: "extension realm, not the page gateway", backup: "derived runtime state, rebuilt from settings" },

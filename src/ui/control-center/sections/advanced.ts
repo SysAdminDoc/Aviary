@@ -141,10 +141,16 @@ export function buildTrustRows(ctx: PanelContext): HTMLElement[] {
           async () => {
             const result = await ctx.options.adoptLegacyProfileData!();
             ctx.render();
-            ctx.setStatusCopy("Assigned {moved} stores; {skipped} already existed.", {
-              moved: result.moved,
-              skipped: result.skipped
-            });
+            ctx.setStatusCopy(
+              "Assigned {moved} stores; {completedAfterRetry} completed after retry; {skipped} already existed; {conflicted} conflicted; {failed} failed.",
+              {
+                moved: result.moved,
+                completedAfterRetry: result.completedAfterRetry,
+                skipped: result.skipped,
+                conflicted: result.conflicted,
+                failed: result.failed
+              }
+            );
           },
           "The legacy data could not be assigned. Nothing was moved, so it is still where it was. Reopen this page to try again."
         )

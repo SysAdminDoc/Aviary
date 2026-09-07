@@ -44,7 +44,7 @@ const AVIARY_VERSION = typeof __AVIARY_VERSION__ === "undefined" ? "dev" : __AVI
 
 import type { DiagnosticEvent } from "../platform/diagnostics.ts";
 import type { StorageStatus } from "../platform/storage.ts";
-import type { ProfileStatus } from "../platform/profile.ts";
+import type { LegacyAdoptionResult, ProfileStatus } from "../platform/profile.ts";
 import type { LibraryBackupPreview, LibraryBackupRestoreResult } from "../features/core/library-backup.ts";
 import type { IntegrationUsageStatus } from "../features/integrations/usage.ts";
 import type { BisectStatus, BisectVerdict } from "../features/core/feature-bisect.ts";
@@ -167,7 +167,7 @@ export interface ControlCenterOptions {
   getProfileStatus?: () => ProfileStatus;
   createProfile?: (label: string) => Promise<{ ok: boolean; error?: string }>;
   switchProfile?: (profileId: string) => Promise<{ ok: boolean; error?: string }>;
-  adoptLegacyProfileData?: () => Promise<{ moved: number; skipped: number }>;
+  adoptLegacyProfileData?: () => Promise<LegacyAdoptionResult>;
   getMediaStatus?: () => MediaStatus;
   clearMediaHistory?: () => Promise<void>;
   exportMediaHistory?: (options: { from: string | null; to: string | null }) => Promise<{

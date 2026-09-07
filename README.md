@@ -108,6 +108,8 @@ The full reference lives in [docs/FEATURES.md](docs/FEATURES.md). The short vers
 - **Backups.** One versioned envelope covering every profile, not just the one you have open.
   Credentials are excluded unless you explicitly ask for them, and schema 1 and 2 files remain
   readable under their historical checksum rules.
+- **Profile adoption.** Pre-profile stores move only when you choose the active profile. A durable
+  receipt makes an interrupted move safe to retry and leaves different destination values untouched.
 - **Integrations.** Aria2 handoff, Bluesky and Mastodon crossposting, semantic search. Every one is
   off by default and makes zero requests until you enable it and supply your own credentials.
 - **Local AI command menu (off by default).** Enable it in Integrations and each post's action row

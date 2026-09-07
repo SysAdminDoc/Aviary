@@ -57,7 +57,10 @@ writes before a later deletion. The userscript uses `GM_getValue`, `GM_setValue`
 and `GM_listValues` only, never X storage, and refuses a measured value above 16 MiB explicitly.
 Profile-scoped copies may be prefixed with
 `aviary.profile.<profileId>.`; Trust reports the active backend, schema, migration, usage, quota,
-and whether the browser has agreed to keep the library.
+and whether the browser has agreed to keep the library. When you explicitly adopt data from an
+older unprofiled install, Aviary stores only per-key SHA-256 receipts in the unscoped migration
+journal. Receipts contain the source hash, destination profile, phase, and bounded error text, not
+the copied values.
 
 Browser storage is best effort unless something asks otherwise, which means a browser short on disk
 space can clear a local library without warning. The extension declares `unlimitedStorage` and asks
@@ -75,6 +78,7 @@ restore and journal authority.
 | Key | Data | Purpose and user control |
 |---|---|---|
 | `aviary.profiles.v1` / `aviary.profile.active.v1` | Profile registry and active-profile id | Keep explicit settings/library boundaries. Profiles are created and switched in Trust. |
+| `aviary.profile.migration.v1` | Per-store source and destination hashes, destination profile, phase, and bounded error text | Make explicit legacy-profile adoption retry-safe. It is install metadata, never profile data or a backup collection. |
 | `aviary.settings.v1` | Preferences, scoped custom CSS rules, portable filter rules, and any integration credentials you enter | Configure Aviary. Custom CSS stays local to the named surface. Plain-text rule exports contain only the rules you wrote. **Export settings** is a settings envelope, not a full-library backup. |
 | `aviary.integration.usage.v1` | Profile-scoped AI/embedding request, record, and UTF-8 byte counters for the local 31-day history | Enforce configurable per-request/daily budgets and show usage; **Clear AI and embedding usage** removes counters. No API keys or raw prompts are stored here. |
 | `aviary.hiddenPosts.v1` | Hidden status ids or handle/text signatures | Hide posts across visits; **Clear hidden posts** removes them. |

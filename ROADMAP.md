@@ -10,14 +10,6 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
 
 ### P1, Next
 
-- [ ] F278, P1: Make legacy-profile adoption retry-convergent
-  Why: adoption writes the profile-scoped destination before deleting the legacy key. A failure between the two leaves a destination that every later run skips, so the legacy key is never retired.
-  Evidence: `src/platform/profile.ts:173-192`
-  Touches: `src/platform/profile.ts`, durable migration metadata, profile tests, Control Center adoption status
-  Acceptance: a per-key journal records source hash, destination profile, and phase; restart after any injected failure either completes the matching source deletion or reports a real conflict; a different destination value is never overwritten; the status reports moved, completed-after-retry, conflicted, and failed counts separately.
-  Complexity: M
-  Depends: F273 and F274.
-
 - [ ] F279, P1: Disallow persistent private-browsing sessions
   Why: both extension manifests omit an incognito policy, so a user-enabled private session can write captured posts, notes, URLs, and integration state into shared persistent storage.
   Evidence: `src/extension/manifest.chrome.json`, `src/extension/manifest.firefox.json`; https://developer.chrome.com/docs/extensions/reference/manifest/incognito; https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/manifest.json/incognito

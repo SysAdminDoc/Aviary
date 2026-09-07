@@ -64,6 +64,12 @@ so a closed tab or restarted worker can retry without reviving old data. Setting
 queue entries, export checkpoints and diagnostics also write only their transaction-local change,
 which keeps non-conflicting edits from two open X tabs and makes clears authoritative.
 
+When an older install still has unassigned stores, the Control Center offers an explicit adoption
+action. Each store gets a durable SHA-256 receipt with its source hash, destination profile, and
+phase. A restart can finish a source deletion only after verifying the same destination value;
+different values remain in place and are reported as conflicts. The action reports moved,
+retry-completed, skipped, conflicted, and failed counts separately.
+
 Browser media handoffs keep their terminal state replayable to the post control and queue. A fast
 completion is reconciled before the handoff response returns, and queue Resume asks the extension
 background about retained browser ids before retrying, so active or completed files are not

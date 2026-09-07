@@ -37,10 +37,12 @@ const DELIVERY_BUDGETS = [
   // shrinking that further means compressing it, which means decompressing before the first
   // translated render -- trading away the laziness that keeps the catalog off the document-start
   // path entirely. Not worth it for the bytes.
-  { file: "aviary.user.js", maxBytes: 2_400_000 },
+  // F278 also adds the retry outcome copy to every locale, so keep the same modest headroom above
+  // the measured bundle rather than letting a localized status silently trip the release gate.
+  { file: "aviary.user.js", maxBytes: 2_420_000 },
   { file: "aviary.meta.js", maxBytes: 4_000 },
-  { file: "extension-chrome/content.js", maxBytes: 2_400_000 },
-  { file: "extension-firefox/content.js", maxBytes: 2_400_000 }
+  { file: "extension-chrome/content.js", maxBytes: 2_420_000 },
+  { file: "extension-firefox/content.js", maxBytes: 2_420_000 }
 ];
 
 const failures = [];

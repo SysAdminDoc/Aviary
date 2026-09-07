@@ -1,9 +1,12 @@
 import type { StorageGateway } from "./storage.ts";
 import type { StorageLockFence } from "./storage-fence.ts";
 import { mutateStored } from "./storage-lock.ts";
+import { hashStorageValue } from "./storage-value-hash.ts";
 
 export const PROFILE_REGISTRY_KEY = "aviary.profiles.v1";
 export const ACTIVE_PROFILE_KEY = "aviary.profile.active.v1";
+/** Install-wide journal for legacy profile adoption. It is never copied into a profile. */
+export const PROFILE_MIGRATION_JOURNAL_KEY = "aviary.profile.migration.v1";
 
 /** Stores that contained account-specific data before profile isolation was introduced. */
 export const PROFILE_MIGRATION_KEYS = [
@@ -66,6 +69,39 @@ export interface ProfileStatus {
   legacyDataAvailable: boolean;
 }
 
+const MIGRATION_PHASES = [
+  "copying",
+  "destination-written",
+  "completed",
+  "conflicted",
+  "failed"
+] as const;
+
+export type ProfileMigrationPhase = (typeof MIGRATION_PHASES)[number];
+
+/** Durable receipt for one unscoped store being assigned to a profile. */
+export interface ProfileMigrationEntry {
+  sourceHash: string;
+  destinationProfileId: string;
+  phase: ProfileMigrationPhase;
+  destinationHash?: string;
+  updatedAt: string;
+  error?: string;
+}
+
+export interface ProfileMigrationJournal {
+  version: 1;
+  entries: Record<string, ProfileMigrationEntry>;
+}
+
+export interface LegacyAdoptionResult {
+  moved: number;
+  skipped: number;
+  completedAfterRetry: number;
+  conflicted: number;
+  failed: number;
+}
+
 interface ProfileState {
   profiles: ProfileRecord[];
 }
@@ -76,6 +112,7 @@ type ProfileChange =
   | { kind: "clear" };
 
 const EMPTY: ProfileState = { profiles: [] };
+const EMPTY_MIGRATION_JOURNAL: ProfileMigrationJournal = { version: 1, entries: {} };
 
 export class ProfileManager {
   readonly #base: StorageGateway;
@@ -118,8 +155,8 @@ export class ProfileManager {
     }
     this.#loaded = true;
     // Deferred to a later task, not merely left unawaited. The answer drives one optional panel
-    // row and nothing on the timeline, while the walk is 28 storage reads -- 25 of them separate
-    // IndexedDB transactions -- and main.ts awaits this before a single feature initializes.
+    // row and nothing on the timeline, while the walk covers every migration key -- most are
+    // separate IndexedDB transactions -- and main.ts awaits this before a single feature initializes.
     // Issuing the reads in this task would still put them in front of the first paint even if
     // nothing waited for the results.
     this.#legacySweep = new Promise<void>((resolve) => {
@@ -194,34 +231,230 @@ export class ProfileManager {
     return true;
   }
 
-  async adoptLegacyIntoActive(): Promise<{ moved: number; skipped: number }> {
+  async adoptLegacyIntoActive(): Promise<LegacyAdoptionResult> {
     await this.load();
     const scoped = createProfileStorageGateway(this.#base, this.#activeId);
-    let moved = 0;
-    let skipped = 0;
+    const journal = await this.#readMigrationJournal();
+    const result: LegacyAdoptionResult = {
+      moved: 0,
+      skipped: 0,
+      completedAfterRetry: 0,
+      conflicted: 0,
+      failed: 0
+    };
+
     for (const key of PROFILE_MIGRATION_KEYS) {
-      const legacy = await this.#base.get<unknown>(key, undefined);
-      if (legacy === undefined) continue;
-      const existing = await scoped.get<unknown>(key, undefined);
-      if (existing !== undefined) {
-        skipped += 1;
-        continue;
+      let sourceHash: string | undefined;
+      let destinationHash: string | undefined;
+      let destinationWritten = false;
+      let sourceRemoved = false;
+      let conflictDetected = false;
+      let lastEntry: ProfileMigrationEntry | undefined;
+
+      const save = async (entry: ProfileMigrationEntry): Promise<void> => {
+        await this.#persistMigrationEntry(key, entry);
+        journal.entries[key] = entry;
+        lastEntry = entry;
+      };
+
+      try {
+        const prior = journal.entries[key];
+        const legacy = await this.#base.get<unknown>(key, undefined);
+
+        // A prior destination-written receipt with no source means a previous attempt did remove
+        // the source but was interrupted before it could write the completed receipt. Verify the
+        // destination before closing that receipt. The original profile may no longer be active.
+        if (legacy === undefined) {
+          if (prior && prior.phase !== "completed") {
+            const priorScoped = createProfileStorageGateway(this.#base, prior.destinationProfileId);
+            const priorDestination = await priorScoped.get<unknown>(key, undefined);
+            if (priorDestination !== undefined) {
+              destinationHash = await hashStorageValue(priorDestination);
+              if (destinationHash === prior.sourceHash) {
+                await save({
+                  ...prior,
+                  phase: "completed",
+                  destinationHash,
+                  updatedAt: new Date().toISOString()
+                });
+                result.completedAfterRetry += 1;
+              } else {
+                await save({
+                  ...prior,
+                  phase: "conflicted",
+                  destinationHash,
+                  updatedAt: new Date().toISOString(),
+                  error: "The destination changed before the migration receipt was completed."
+                });
+                result.conflicted += 1;
+              }
+            }
+          }
+          continue;
+        }
+
+        sourceHash = await hashStorageValue(legacy);
+        const retry =
+          prior?.destinationProfileId === this.#activeId &&
+          prior.sourceHash === sourceHash &&
+          prior.phase !== "completed";
+        await save({
+          sourceHash,
+          destinationProfileId: this.#activeId,
+          phase: "copying",
+          updatedAt: new Date().toISOString()
+        });
+        let destinationWasPresent = false;
+        const destination = await mutateStored<unknown>(
+          scoped,
+          key,
+          undefined,
+          (current) => {
+            destinationWasPresent = current !== undefined;
+            return current === undefined ? legacy : current;
+          }
+        );
+        destinationWritten = true;
+        if (destination === undefined) {
+          conflictDetected = true;
+          await save({
+            sourceHash,
+            destinationProfileId: this.#activeId,
+            phase: "conflicted",
+            updatedAt: new Date().toISOString(),
+            error: "The destination could not be verified after it was written."
+          });
+          result.conflicted += 1;
+          continue;
+        }
+        destinationHash = await hashStorageValue(destination);
+        if (destinationHash !== sourceHash) {
+          conflictDetected = true;
+          await save({
+            sourceHash,
+            destinationProfileId: this.#activeId,
+            phase: "conflicted",
+            destinationHash,
+            updatedAt: new Date().toISOString(),
+            error: "The destination changed before the source could be retired."
+          });
+          result.conflicted += 1;
+          continue;
+        }
+        // Re-read immediately before retiring the source. The atomic ensure above prevents this
+        // tab from overwriting a concurrent destination, and this final check avoids deleting a
+        // source if another writer changed that matching value while the receipt was being saved.
+        const latestDestination = await scoped.get<unknown>(key, undefined);
+        if (latestDestination === undefined) {
+          conflictDetected = true;
+          await save({
+            sourceHash,
+            destinationProfileId: this.#activeId,
+            phase: "conflicted",
+            destinationHash,
+            updatedAt: new Date().toISOString(),
+            error: "The destination disappeared before the source could be retired."
+          });
+          result.conflicted += 1;
+          continue;
+        }
+        destinationHash = await hashStorageValue(latestDestination);
+        if (destinationHash !== sourceHash) {
+          conflictDetected = true;
+          await save({
+            sourceHash,
+            destinationProfileId: this.#activeId,
+            phase: "conflicted",
+            destinationHash,
+            updatedAt: new Date().toISOString(),
+            error: "The destination changed before the source could be retired."
+          });
+          result.conflicted += 1;
+          continue;
+        }
+        await save({
+          sourceHash,
+          destinationProfileId: this.#activeId,
+          phase: "destination-written",
+          destinationHash,
+          updatedAt: new Date().toISOString()
+        });
+        await this.#base.remove(key);
+        sourceRemoved = true;
+        if (retry) result.completedAfterRetry += 1;
+        else if (destinationWasPresent) result.skipped += 1;
+        else result.moved += 1;
+        await save({
+          sourceHash,
+          destinationProfileId: this.#activeId,
+          phase: "completed",
+          destinationHash,
+          updatedAt: new Date().toISOString()
+        });
+      } catch (error) {
+        // A source deletion failure must retain destination-written, not overwrite it with a
+        // generic failed phase. That receipt is what makes the next run converge without copying
+        // again. If the source was already removed, the data move succeeded even if the final
+        // journal write was interrupted, so do not report a false failed count.
+        if (!sourceRemoved) result.failed += 1;
+        if (sourceHash && !sourceRemoved) {
+          try {
+            await save({
+              sourceHash,
+              destinationProfileId: this.#activeId,
+              phase: conflictDetected ? "conflicted" : destinationWritten ? "destination-written" : "failed",
+              ...(destinationHash ? { destinationHash } : {}),
+              updatedAt: new Date().toISOString(),
+              error: migrationError(error)
+            });
+          } catch {
+            // The journal is best effort here. The source remains untouched, so a later run can
+            // still compare it with any destination value before making another change.
+          }
+        } else if (!sourceRemoved && lastEntry && lastEntry.phase !== "completed") {
+          try {
+            await save({
+              ...lastEntry,
+              phase: "failed",
+              updatedAt: new Date().toISOString(),
+              error: migrationError(error)
+            });
+          } catch {
+            // Preserve the original failure while leaving the data in place for a future retry.
+          }
+        }
       }
-      await scoped.set(key, legacy);
-      await this.#base.remove(key);
-      moved += 1;
     }
     this.#legacySweep = this.#refreshLegacyAvailability();
     await this.#legacySweep;
-    return { moved, skipped };
+    return result;
+  }
+
+  async #readMigrationJournal(): Promise<ProfileMigrationJournal> {
+    return normalizeMigrationJournal(
+      await this.#base.get<ProfileMigrationJournal>(PROFILE_MIGRATION_JOURNAL_KEY, EMPTY_MIGRATION_JOURNAL)
+    );
+  }
+
+  async #persistMigrationEntry(key: string, entry: ProfileMigrationEntry): Promise<void> {
+    await mutateStored<ProfileMigrationJournal>(
+      this.#base,
+      PROFILE_MIGRATION_JOURNAL_KEY,
+      EMPTY_MIGRATION_JOURNAL,
+      (stored) => {
+        const journal = normalizeMigrationJournal(stored);
+        journal.entries[key] = { ...entry };
+        return journal;
+      }
+    );
   }
 
   /**
-   * One round of reads rather than 28 in series.
+   * One round of reads rather than one serial transaction per migration key.
    *
    * The old loop returned on the first hit, which sounds cheaper and is the opposite on the path
-   * that matters: a fresh install has none of these keys, so it always ran all 28 to completion,
-   * one await at a time. Asking for them together lets the durable gateway overlap them, and the
+   * that matters: a fresh install has none of these keys, so it always ran the complete migration
+   * list, one await at a time. Asking for them together lets the durable gateway overlap them, and the
    * early-exit saving it gives up only ever applied to installs that had legacy data anyway.
    */
   async hasLegacyData(): Promise<boolean> {
@@ -280,6 +513,58 @@ function normalizeState(value: unknown): ProfileState {
     : [];
   const unique = new Map(profiles.map((profile) => [profile.id, profile]));
   return { profiles: [...unique.values()] };
+}
+
+function normalizeMigrationJournal(value: unknown): ProfileMigrationJournal {
+  if (!value || typeof value !== "object") return { version: 1, entries: {} };
+  const raw = value as { entries?: unknown };
+  if (!raw.entries || typeof raw.entries !== "object" || Array.isArray(raw.entries)) {
+    return { version: 1, entries: {} };
+  }
+  const entries: Record<string, ProfileMigrationEntry> = {};
+  const rawEntries = raw.entries as Record<string, unknown>;
+  for (const key of PROFILE_MIGRATION_KEYS) {
+    const entry = normalizeMigrationEntry(rawEntries[key]);
+    if (entry) entries[key] = entry;
+  }
+  return { version: 1, entries };
+}
+
+function normalizeMigrationEntry(value: unknown): ProfileMigrationEntry | null {
+  if (!value || typeof value !== "object") return null;
+  const raw = value as Partial<ProfileMigrationEntry>;
+  if (
+    typeof raw.sourceHash !== "string" ||
+    raw.sourceHash.length === 0 ||
+    typeof raw.destinationProfileId !== "string" ||
+    raw.destinationProfileId.length === 0 ||
+    typeof raw.phase !== "string" ||
+    !MIGRATION_PHASES.includes(raw.phase as ProfileMigrationPhase)
+  ) {
+    return null;
+  }
+  const destinationProfileId = raw.destinationProfileId
+    .replace(/[^A-Za-z0-9_-]/g, "-")
+    .slice(0, 80);
+  if (!destinationProfileId) return null;
+  const entry: ProfileMigrationEntry = {
+    sourceHash: raw.sourceHash.slice(0, 128),
+    destinationProfileId,
+    phase: raw.phase as ProfileMigrationPhase,
+    updatedAt: typeof raw.updatedAt === "string" ? raw.updatedAt : new Date(0).toISOString()
+  };
+  if (typeof raw.destinationHash === "string" && raw.destinationHash.length > 0) {
+    entry.destinationHash = raw.destinationHash.slice(0, 128);
+  }
+  if (typeof raw.error === "string" && raw.error.length > 0) {
+    entry.error = raw.error.slice(0, 240);
+  }
+  return entry;
+}
+
+function migrationError(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  return message.slice(0, 240) || "Migration failed";
 }
 
 function applyProfileChange(value: unknown, change: ProfileChange): ProfileState {

@@ -26,6 +26,7 @@ const DURABLE_PENDING_MARKER_PREFIX = "__aviary_pending__:";
 export const DURABLE_STORAGE_KEYS = [
   "aviary.profiles.v1",
   "aviary.profile.active.v1",
+  "aviary.profile.migration.v1",
   "aviary.settings.v1",
   "aviary.integration.usage.v1",
   "aviary.export.checkpoints.v1",
