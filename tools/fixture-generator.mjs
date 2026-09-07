@@ -184,7 +184,7 @@ function authorBlock(schema, account, postId, verified, timestamp, relative) {
               "aria-label": `${relative} ago`,
               role: schema.roles.link
             },
-            el("time", { datetime: timestamp }, escapeText(relative))
+            el("time", { [schema.observedHead.timeAttribute]: timestamp }, escapeText(relative))
           )
         )
     )
@@ -462,7 +462,7 @@ function navigation(schema, route) {
   );
 }
 
-function sidebar(schema, route, extraCarets) {
+function sidebar(schema, route) {
   const search = el(
     "div",
     {},
@@ -491,21 +491,6 @@ function sidebar(schema, route, extraCarets) {
         .join("")
   );
 
-  const carets = Array.from({ length: Math.max(0, extraCarets) }, () =>
-    el(
-      "button",
-      {
-        "aria-expanded": "false",
-        "aria-haspopup": "menu",
-        "aria-label": schema.aria.caretLabel,
-        role: schema.roles.button,
-        "data-testid": schema.testIds.caret,
-        type: "button"
-      },
-      el("div", { dir: "ltr" }, "")
-    )
-  ).join("");
-
   const headings = route.sidebarHeadings
     .map((text) => el("h2", { role: schema.roles.heading, "aria-level": "2" }, el("span", {}, escapeText(text))))
     .join("");
@@ -513,7 +498,7 @@ function sidebar(schema, route, extraCarets) {
   return el(
     "div",
     { "data-testid": schema.testIds.sidebarColumn },
-    search + news + trends + headings + carets
+    search + news + trends + headings
   );
 }
 
@@ -579,6 +564,18 @@ export function generateCaptureDocument(schema, routeName, options = {}) {
   if (!route) {
     throw new Error(`dom-schema.json has no route named ${JSON.stringify(routeName)}`);
   }
+  // A missing observation must stop the generator, not render as the string "undefined" in an
+  // attribute a test then happily matches.
+  for (const field of ["lang", "route", "title"]) {
+    if (typeof route[field] !== "string" || route[field].length === 0) {
+      throw new Error(`dom-schema.json route ${routeName} is missing ${field}`);
+    }
+  }
+  for (const field of ["iconRel", "iconHref", "timeAttribute"]) {
+    if (typeof schema.observedHead?.[field] !== "string" || schema.observedHead[field].length === 0) {
+      throw new Error(`dom-schema.json is missing observedHead.${field}`);
+    }
+  }
 
   let postIndex = 0;
   const cells = route.cells
@@ -611,11 +608,7 @@ export function generateCaptureDocument(schema, routeName, options = {}) {
       timeline
   );
 
-  const columns = el(
-    "div",
-    {},
-    primary + sidebar(schema, route, route.observedCounts.carets - route.observedCounts.posts)
-  );
+  const columns = el("div", {}, primary + sidebar(schema, route));
   const main = el("main", { role: schema.roles.main }, wrap(schema.nesting.mainToPrimaryColumn - 1, columns));
   const shell = el("div", {}, navigation(schema, route) + main);
   // X ships this inline on the app root itself, so it survives with or without its stylesheets
@@ -630,7 +623,9 @@ export function generateCaptureDocument(schema, routeName, options = {}) {
     "<head>",
     '<meta charset="utf-8">',
     `<title>${escapeText(route.title)}</title>`,
-    '<link rel="shortcut icon" href="https://abs.twimg.com/favicons/twitter.3.ico">',
+    // Both facts are recorded observations, not generator decoration: a feature reads each one,
+    // and if X stops shipping it the schema is what changes.
+    `<link rel="${escapeAttribute(schema.observedHead.iconRel)}" href="${escapeAttribute(schema.observedHead.iconHref)}">`,
     `<link rel="canonical" href="${escapeAttribute(route.route)}">`,
     stylesheet,
     "</head>",

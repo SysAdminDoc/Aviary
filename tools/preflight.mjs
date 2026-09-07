@@ -79,11 +79,14 @@ const DELIVERY_BUDGETS = [
 /**
  * Exports nothing refers to are abandoned entry points, and they read as supported API.
  *
- * An entry here is a deliberate exception and has to say why it exists. Deleting the symbol or
- * wiring it up is the expected fix; the allowlist is for a symbol that is genuinely referenced
- * somewhere this scan cannot see.
+ * An entry here is a deliberate exception and has to say why it exists, in a sentence, not a
+ * placeholder. Deleting the symbol or wiring it up is the expected fix; the allowlist is for a
+ * symbol that is genuinely referenced somewhere this scan cannot see.
  */
 const ALLOWED_UNREFERENCED_EXPORTS = new Map();
+
+/** Long enough that "ok" or a space cannot stand in for a reason. */
+const ALLOWLIST_REASON_MIN_LENGTH = 30;
 
 const failures = [];
 const warnings = [];
@@ -620,9 +623,19 @@ async function checkSourceExportReferences() {
     );
     return;
   }
+  // A form the scan cannot check by name is not a form it may silently pass over.
+  for (const entry of graph.refused) {
+    failures.push(`${entry.file}:${entry.line + 1}: ${entry.reason}, so this gate cannot check it`);
+  }
   for (const entry of graph.unreferenced) {
     const reason = ALLOWED_UNREFERENCED_EXPORTS.get(`${entry.file}:${entry.name}`);
-    if (reason) continue;
+    if (typeof reason === "string" && reason.trim().length >= ALLOWLIST_REASON_MIN_LENGTH) continue;
+    if (reason !== undefined) {
+      failures.push(
+        `${entry.file}:${entry.name} is allowlisted with no real reason; say why the export stays`
+      );
+      continue;
+    }
     failures.push(
       `${entry.file}:${entry.line + 1}: exported ${entry.name} is referenced from nowhere in ` +
         "src/, tests/, or tools/ — delete it, wire it up, or allowlist it with a reason"

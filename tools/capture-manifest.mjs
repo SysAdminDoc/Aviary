@@ -73,7 +73,7 @@ export async function readCaptureManifest() {
  */
 export async function listFixtureFiles() {
   const entries = await readdir(path.join(root, "_decoded"));
-  return entries.filter((name) => /\.(html|mhtml)$/i.test(name)).sort();
+  return entries.filter((name) => /\.(x?html?|mht|mhtml|webarchive)$/i.test(name)).sort();
 }
 
 /**

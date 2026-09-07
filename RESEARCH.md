@@ -123,7 +123,7 @@ Those captures used the available 1.47.2 bundle and do not certify the pending s
 
 **Verified automated result:** typecheck and all 920 tests passed. However, `tests/storage-authority-browser.test.mjs:216` substitutes a shared Node Map for extension and manager APIs. It is a cross-origin browser model, not installed Chrome/Firefox/Tampermonkey/Violentmonkey proof. F327 owns real extension lifecycle tests; F335 adds real manager persistence. No signed-in X download or installed-manager test was performed.
 
-The two authentic captures date from 2026-05-19, 110 days before this research, beyond their 90-day ceiling; the waiver ends 2026-09-30. F306 should generate private-data-free fixtures without pretending a synthetic generation refreshes authentic evidence. F308 can add the changed `profile-photo-grid-*` and Videos structures now. Sources: `_decoded/captures.json`, [exporter update](https://github.com/prinsss/twitter-web-exporter/commit/3e07f1e7ad7469c1bd6526b03bdcb90c495f25b1).
+The two authentic captures date from 2026-05-19, 110 days before this research, beyond their 90-day ceiling; the waiver ends 2026-09-30. F306 should generate private-data-free fixtures without pretending a synthetic generation refreshes authentic evidence. F308 can add the changed `profile-photo-grid-*` and Videos structures now. Sources: `_decoded/dom-schema.json`, [exporter update](https://github.com/prinsss/twitter-web-exporter/commit/3e07f1e7ad7469c1bd6526b03bdcb90c495f25b1).
 
 ### Dependencies and delivery
 

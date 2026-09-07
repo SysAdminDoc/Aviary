@@ -70,8 +70,15 @@ before(async () => {
     document.head.append(style);
   });
 
-  // The same document with the column geometry the schema recorded from X's own stylesheets, so
-  // the width tiers are still measured against observed flex values rather than against nothing.
+  // The same document with the column geometry the schema recorded from X's own stylesheets.
+  //
+  // This is a reduction, and it is worth being plain about: the lane used to attach the ~8,000
+  // lines of stylesheet the capture carried, and it now attaches eleven rules built from thirteen
+  // recorded numbers -- flex, max-width and column widths. What it still proves is that Aviary's
+  // width tiers beat X's own flex declarations for the primary column, which is the claim the
+  // feature makes. What it no longer proves is that nothing else in X's cascade interferes. That
+  // trade bought the removal of a saved authenticated page; the numbers it rests on are recorded
+  // in `_decoded/dom-schema.json` under `layout`, with the date they were measured.
   currentPage = await browser.newPage({ viewport: { width: 1400, height: 900 } });
   await currentPage.goto(await captureUrl("home-layout"));
   await currentPage.addScriptTag({ path: bundle });
@@ -149,7 +156,7 @@ test("timelineWidth actually widens the captured primary column", async () => {
   assert.equal(wide.width, 1400, "wide fills the captured desktop viewport");
 });
 
-test("timelineWidth controls the current X flex item when the sidebar is hidden", async () => {
+test("timelineWidth controls the recorded X flex item when the sidebar is hidden", async () => {
   await currentPage.evaluate(() => {
     document.querySelector('[data-testid="sidebarColumn"]')?.remove();
   });

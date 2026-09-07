@@ -86,6 +86,31 @@ const PLANTED_NAME = `aviaryPlanted${"DeadExport"}`;
 const PLANTED_SOURCE = `export function ${PLANTED_NAME}(): void {}\n`;
 const PLANTED_REFERENCE = `// ${PLANTED_NAME}\n`;
 
+/**
+ * Every declaration shape the repository can write, so the scan cannot be blind to one.
+ *
+ * The first version recognised six shapes and quietly ignored the rest, including
+ * `export type { X }` -- a form `src/ui/control-center.ts` uses -- and a multi-line export list.
+ * Two more shapes had the opposite failure: a list-form export was cleared by its own declaration
+ * line, and two dead exports sharing a name in different files cleared each other.
+ */
+const DECLARATION_SHAPES = [
+  ["a function", (name) => `export function ${name}(): void {}`],
+  ["a class", (name) => `export class ${name} {}`],
+  ["an abstract class", (name) => `export abstract class ${name} {}`],
+  ["an async function", (name) => `export async function ${name}(): Promise<void> {}`],
+  ["an enum", (name) => `export enum ${name} { A }`],
+  ["a const enum", (name) => `export const enum ${name} { A }`],
+  ["an interface", (name) => `export interface ${name} { a: number }`],
+  ["a type alias", (name) => `export type ${name} = number;`],
+  ["a renamed export list", (name) => `const inner = 1;\nexport { inner as ${name} };`],
+  ["a plain export list", (name) => `function ${name}(): void {}\nexport { ${name} };`],
+  ["a type-only export list", (name) => `interface ${name} { a: number }\nexport type { ${name} };`],
+  ["an inline type in a list", (name) => `interface ${name} { a: number }\nexport { type ${name} };`],
+  ["a multi-line export list", (name) => `function ${name}(): void {}\nexport {\n  ${name}\n};`],
+  ["a second declarator", (name) => `export const aviaryPlantedFirst = 1, ${name} = 2;`]
+];
+
 test("no source export is left with nothing referring to it", async () => {
   const graph = await sourceExportReferences(root);
 
@@ -98,6 +123,11 @@ test("no source export is left with nothing referring to it", async () => {
     graph.unreferenced.map((entry) => `${entry.file}:${entry.line + 1} ${entry.name}`),
     [],
     "delete the export, wire it up, or allowlist it in tools/preflight.mjs with a reason"
+  );
+  assert.deepEqual(
+    graph.refused.map((entry) => `${entry.file}:${entry.line + 1} ${entry.reason}`),
+    [],
+    "a form this scan cannot check by name must not be in src/"
   );
 
   // Plant one and the scan has to see it, otherwise the empty list above means nothing.
@@ -120,6 +150,77 @@ test("no source export is left with nothing referring to it", async () => {
     ])
   );
   assert.deepEqual(referenced.unreferenced, [], "a referenced export must not be reported");
+});
+
+test("every declaration shape the repository can write is visible to the scan", async () => {
+  const missed = [];
+  for (const [label, build] of DECLARATION_SHAPES) {
+    const graph = await sourceExportReferences(
+      root,
+      new Map([["src/features/media/urls.ts", `${build(PLANTED_NAME)}\n`]])
+    );
+    const reported = graph.unreferenced.filter((entry) => entry.name === PLANTED_NAME);
+    if (reported.length !== 1) missed.push(`${label}: reported ${reported.length} times`);
+  }
+  assert.deepEqual(missed, [], "an export shape the scan cannot see is a hole in the gate");
+});
+
+test("a name declared twice does not clear itself, and two dead copies do not clear each other", async () => {
+  // Both failures were live: `export { X }` after `function X()` always looked used, and eight
+  // exported names are shared between i18n.ts and i18n-runtime.ts, so either module could rot to
+  // nothing without the gate reacting.
+  const duplicated = await sourceExportReferences(
+    root,
+    new Map([
+      ["src/features/media/urls.ts", PLANTED_SOURCE],
+      ["src/features/media/template.ts", PLANTED_SOURCE]
+    ])
+  );
+  assert.deepEqual(
+    duplicated.unreferenced.filter((entry) => entry.name === PLANTED_NAME).map((entry) => entry.file).sort(),
+    ["src/features/media/template.ts", "src/features/media/urls.ts"],
+    "two dead exports of one name must both be reported"
+  );
+});
+
+test("a form the scan cannot check by name is refused, not skipped", async () => {
+  for (const [label, body] of [
+    ["a default export", `export default function ${PLANTED_NAME}(): void {}\n`],
+    ["a star re-export", 'export * from "./template.ts";\n']
+  ]) {
+    const graph = await sourceExportReferences(
+      root,
+      new Map([["src/features/media/urls.ts", body]])
+    );
+    assert.equal(
+      graph.refused.filter((entry) => entry.file === "src/features/media/urls.ts").length,
+      1,
+      `${label} must be refused rather than silently passed over`
+    );
+  }
+});
+
+test("preflight runs the export gate, and its allowlist demands a real reason", async () => {
+  // A gate nothing calls is decorative. This is the one wiring fact a source read can settle,
+  // because preflight is a top-level script with nothing to import.
+  const source = await readFile(path.join(root, "tools/preflight.mjs"), "utf8");
+  assert.match(
+    source,
+    /^await checkSourceExportReferences\(\);$/m,
+    "preflight must actually run the export-reference check"
+  );
+  assert.match(
+    source,
+    /reason\.trim\(\)\.length >= ALLOWLIST_REASON_MIN_LENGTH/,
+    "an allowlist entry must state why it exists, not merely be truthy"
+  );
+  assert.match(
+    source,
+    /const ALLOWLIST_REASON_MIN_LENGTH = (\d+);/,
+    "the minimum reason length must be declared"
+  );
+  const minimum = Number(/const ALLOWLIST_REASON_MIN_LENGTH = (\d+);/.exec(source)[1]);
+  assert.ok(minimum >= 20, `a ${minimum}-character reason is not a reason`);
 });
 
 test("no stylesheet targets one of X's generated class names", async () => {

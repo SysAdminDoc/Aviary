@@ -27,6 +27,12 @@
     ],
     "notes": "Counts and nesting were measured in headless Chromium against the decoded documents. No repost, sensitive-media, Article, or relationship-indicator surface was present in either capture, which is why none of them appears here."
   },
+  "observedHead": {
+    "$comment": "Facts a feature reads out of the page head or a post, observed on the derivedFrom date. The favicon feature swaps the icon link, absolute-time reads the time element's attribute, and ad-label detection reads the document language. Each is recorded here so the generated fixtures carry an observation rather than a generator decoration.",
+    "iconRel": "shortcut icon",
+    "iconHref": "https://abs.twimg.com/favicons/twitter.3.ico",
+    "timeAttribute": "datetime"
+  },
   "testIds": {
     "appRoot": "react-root",
     "primaryColumn": "primaryColumn",
@@ -147,6 +153,22 @@
         "carets": 13,
         "metricContainers": 36
       },
+      "reproduction": {
+        "$comment": "What the generated document does with each observed count. \"exact\" means the generated document must contain exactly that many; anything else is a stated reason why it contains fewer, and the test asserts the generated number really is lower. A count with no entry here fails the test, so a mismatch cannot be hidden by leaving a key out.",
+        "cells": "exact",
+        "posts": "exact",
+        "postTexts": "exact",
+        "photos": "exact",
+        "videoPlayers": "exact",
+        "videoComponents": "exact",
+        "verifiedIcons": "exact",
+        "authorNames": "exact",
+        "placements": "exact",
+        "userCells": "exact",
+        "trends": "exact",
+        "carets": "One per post. The remaining observed carets belong to sidebar modules the generator does not reproduce, and inventing them would make this count assert itself.",
+        "metricContainers": "exact"
+      },
       "cells": [
         {
           "kind": "post",
@@ -250,6 +272,22 @@
         "trends": 4,
         "carets": 13,
         "metricContainers": 37
+      },
+      "reproduction": {
+        "$comment": "See the home route's note. A stated reason means the generated document contains fewer than the capture did, and the test checks that it really does.",
+        "cells": "The generated conversation carries the root post, its replies, the Discover more boundary and its suggestions, not the length of a scrolled thread.",
+        "posts": "exact",
+        "postTexts": "exact",
+        "photos": "exact",
+        "videoPlayers": "exact",
+        "videoComponents": "exact",
+        "verifiedIcons": "exact",
+        "authorNames": "exact",
+        "placements": "exact",
+        "userCells": "exact",
+        "trends": "exact",
+        "carets": "One per post. The remaining observed carets belong to sidebar modules the generator does not reproduce.",
+        "metricContainers": "Four per post. The capture carried one more, on a surface outside the timeline that no feature reads."
       },
       "cells": [
         {

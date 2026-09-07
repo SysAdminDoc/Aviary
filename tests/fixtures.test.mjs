@@ -121,6 +121,27 @@ test("a schema missing its observation date or ceiling is rejected", async () =>
   }
 });
 
+test("the ceiling and the waiver cannot be widened into nothing", async () => {
+  // Both live in the same file as the fixture data, and one character could have moved the waiver
+  // to 2027 or the ceiling to 9000 with every gate still green. A ceiling is only a ceiling while
+  // it is bounded, and a waiver is only a deferral while it expires near the observation it defers.
+  const manifest = await readCaptureManifest();
+  assert.ok(
+    manifest.ceilingDays <= 120,
+    `a ${manifest.ceilingDays}-day ceiling is not a ceiling on evidence about a site that changes weekly`
+  );
+  if (manifest.acknowledgedStaleUntil) {
+    const day = (iso) => Date.parse(`${iso}T00:00:00Z`);
+    const extraDays = Math.round(
+      (day(manifest.acknowledgedStaleUntil) - day(manifest.captures[0].capturedOn)) / 86_400_000
+    );
+    assert.ok(
+      extraDays <= manifest.ceilingDays * 2,
+      `the waiver runs ${extraDays} days past the observation, which is a permanent bypass wearing a date`
+    );
+  }
+});
+
 test("regenerating the fixtures cannot move the observation date", async () => {
   // The failure this exists to prevent: someone regenerates markup, sees a fresh file, and treats
   // the selector evidence as fresh too. Generation reads the date; nothing about it writes one.
@@ -142,7 +163,8 @@ test("the generated documents carry no real identity", async () => {
     for (const handle of html.matchAll(/@([A-Za-z0-9_]+)/g)) {
       assert.match(handle[1], /^fixture_/, `${route} carries a handle that is not synthetic`);
     }
-    for (const media of html.matchAll(/pbs\.twimg\.com\/[a-z_]+\/([A-Za-z0-9_-]+)/g)) {
+    // Both media hosts, not only the image one: a real video id would have passed unnoticed.
+    for (const media of html.matchAll(/(?:pbs|video)\.twimg\.com\/[a-z_0-9]+\/([A-Za-z0-9_-]+)/g)) {
       assert.match(media[1], /^AviaryFixture|^1900000000000000/, `${route} carries a media id that is not synthetic`);
     }
     for (const id of html.matchAll(/\/status\/(\d+)/g)) {
@@ -381,16 +403,52 @@ test("the dated upstream selector comparison is complete for adopted equivalents
   }
 });
 
-test("every generated route reaches the browser and matches its recorded surface counts", async () => {
+/**
+ * What the generated document contains, derived from the route's cell list rather than from the
+ * counts it is about to be compared against.
+ *
+ * The first version measured a set of keys it chose itself and compared each against
+ * `observedCounts`. Two things went wrong. The generator filled the sidebar with
+ * `observedCounts.carets - observedCounts.posts` fabricated caret buttons, so that comparison was
+ * the schema agreeing with itself -- setting the schema to 137 would have injected 128 carets and
+ * still passed. And the two counts the generated document genuinely does not reproduce, `cells`
+ * and `metricContainers` on the conversation route, were exactly the two keys the measured object
+ * left out, so nothing said so.
+ */
+function expectedFromCells(route) {
+  const posts = route.cells.filter((cell) => cell.kind === "post");
+  const quotes = posts.filter((cell) => cell.quote);
+  return {
+    cells: route.cells.length,
+    posts: posts.length,
+    postTexts: posts.length + quotes.length,
+    photos: posts.filter((cell) => cell.media === "photo").length,
+    videoPlayers: posts.filter((cell) => cell.media === "video").length,
+    videoComponents: posts.filter((cell) => cell.media === "video").length,
+    verifiedIcons:
+      posts.filter((cell) => cell.verified).length + quotes.filter((cell) => cell.quotedVerified).length,
+    authorNames: posts.length + quotes.length,
+    placements: posts.filter((cell) => cell.promoted).length,
+    userCells: route.cells
+      .filter((cell) => cell.kind === "whoToFollow")
+      .reduce((total, cell) => total + cell.userCells, 0),
+    trends: 4,
+    carets: posts.length,
+    metricContainers: posts.length * 4
+  };
+}
+
+test("every generated route matches the composition its cells describe", async () => {
   const schema = await captureSchema();
   const browser = await chromium.launch({ headless: true });
   try {
-    for (const route of Object.keys(schema.routes)) {
+    for (const [name, route] of Object.entries(schema.routes)) {
       const page = await browser.newPage({ viewport: { width: 1400, height: 900 } });
-      await page.goto(await captureUrl(route));
+      await page.goto(await captureUrl(name));
       const measured = await page.evaluate((ids) => {
         const n = (selector) => document.querySelectorAll(selector).length;
         return {
+          cells: n(`[data-testid="${ids.cell}"]`),
           posts: n(`[data-testid="${ids.post}"]`),
           postTexts: n(`[data-testid="${ids.postText}"]`),
           photos: n(`[data-testid="${ids.photo}"]`),
@@ -401,17 +459,73 @@ test("every generated route reaches the browser and matches its recorded surface
           placements: n(`[data-testid="${ids.placement}"]`),
           userCells: n(`[data-testid="${ids.userCell}"]`),
           trends: n(`[data-testid="${ids.trend}"]`),
-          carets: n(`[data-testid="${ids.caret}"]`)
+          carets: n(`[data-testid="${ids.caret}"]`),
+          metricContainers: n(`[data-testid="${ids.metricContainer}"]`)
         };
       }, schema.testIds);
-      const observed = schema.routes[route].observedCounts;
-      for (const [key, value] of Object.entries(measured)) {
-        assert.equal(value, observed[key], `${route} ${key}: generated ${value}, schema recorded ${observed[key]}`);
-      }
       await page.close();
+
+      // The document has to match what the cell list says it should be. Neither side is derived
+      // from the other, so this can fail.
+      assert.deepEqual(measured, expectedFromCells(route), `${name}: generated document does not match its cells`);
+
+      // And every count the capture recorded has to be accounted for, exactly or with a reason.
+      const observed = route.observedCounts;
+      const reproduction = route.reproduction;
+      for (const key of Object.keys(observed)) {
+        if (key === "$note") continue;
+        const rule = reproduction[key];
+        assert.ok(rule, `${name}.${key} has no entry in reproduction, so a mismatch would go unsaid`);
+        if (rule === "exact") {
+          assert.equal(
+            measured[key],
+            observed[key],
+            `${name}.${key}: generated ${measured[key]}, capture recorded ${observed[key]}`
+          );
+          continue;
+        }
+        assert.ok(rule.length >= 30, `${name}.${key} needs a real reason, not "${rule}"`);
+        assert.ok(
+          measured[key] < observed[key],
+          `${name}.${key} claims to reproduce fewer than the capture, but generated ${measured[key]} against ${observed[key]}`
+        );
+      }
+      for (const key of Object.keys(reproduction)) {
+        if (key === "$comment") continue;
+        assert.ok(key in observed, `${name}.${key} is described in reproduction but never observed`);
+      }
     }
   } finally {
     await browser.close();
   }
 });
 
+test("the head and post facts features read are recorded, not decoration", async () => {
+  // These three assertions used to read a real saved page: evidence that X still shipped the thing
+  // the feature depends on. Against a generated document they would only prove the generator has a
+  // string in it, so the schema records each fact and the document has to carry what it recorded.
+  const schema = await captureSchema();
+  assert.equal(typeof schema.observedHead.iconRel, "string");
+  assert.ok(schema.observedHead.iconRel.length > 0);
+  assert.ok(schema.observedHead.iconHref.startsWith("https://"));
+  assert.equal(typeof schema.observedHead.timeAttribute, "string");
+
+  for (const [name, route] of Object.entries(schema.routes)) {
+    const html = await captureHtml(name);
+    assert.ok(
+      html.includes(`<link rel="${schema.observedHead.iconRel}"`),
+      `${name} must carry the icon link the schema recorded`
+    );
+    assert.ok(
+      html.includes(`<${"time"} ${schema.observedHead.timeAttribute}=`),
+      `${name} must carry the time attribute the schema recorded`
+    );
+    assert.ok(html.includes(`lang="${route.lang}"`), `${name} must carry the recorded document language`);
+  }
+
+  // A route that lost its recorded language must stop the generator rather than render
+  // `lang="undefined"` into a document a test then matches.
+  const broken = structuredClone(await readDomSchema());
+  delete broken.routes.home.lang;
+  assert.throws(() => generateCaptureDocument(broken, "home"), /missing lang/);
+});

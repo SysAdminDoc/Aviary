@@ -12,10 +12,16 @@ the repository.
 
 ## F134 (operator half), produce a refreshed authenticated capture
 
-The tooling landed 2026-08-15: `npm run capture:decode` turns a saved MHTML into a scrubbed
-`_decoded/*.html`, `_decoded/captures.json` records each capture's date and provenance, and preflight
-warns then fails past the declared 90-day ceiling. What cannot be automated is the capture itself,
-it requires a signed-in X session, and nothing in this repository logs in or fetches.
+The tooling landed 2026-08-15 and changed shape on 2026-09-07 (F306): `npm run capture:decode`
+turns a saved MHTML into a scrubbed page **outside** the repository, that page is measured into
+`_decoded/dom-schema.json` and then deleted, and preflight warns then fails past the declared
+90-day ceiling on `derivedFrom.capturedOn`. What cannot be automated is the capture itself, it
+requires a signed-in X session, and nothing in this repository logs in or fetches.
+
+**Every "measured: N hits" figure below was taken against the 2026-05-19 saved pages, which no
+longer exist in the working tree.** The schema records the surfaces Aviary depends on; it does not
+record the absence of surfaces it does not, so none of those measurements can be re-checked without
+a fresh capture. They are historical readings, dated, not facts about X today.
 
 The current captures are dated **2026-05-19**. Everything below that says "measured: N hits" was
 measured against that date, and X shipped a media redesign on 2026-08-11/08-13 that no capture here
@@ -77,7 +83,7 @@ Re-entry condition: add the authenticated capture, verify the social-context sel
 
 Blocked on a fixture that contains a repost -- the roadmap entry that proposed this asserted the
 public capture exposes the social-context row, and that is wrong. Measured: `socialContext`
-appears 0 times in `_decoded/home.html` and `_decoded/status.html`, and so do the strings
+appeared 0 times in the 2026-05-19 Home and conversation captures, and so did the strings
 "reposted" and "retweeted" (case-insensitive). Neither capture contains a single repost, so there
 is nothing to build a predicate against and nothing to fixture-test it with.
 
@@ -162,12 +168,12 @@ promote a lane only after its evidence is checked into `_decoded/` or the extern
 
 X injects a "More From This Author" module between replies (reported July 2026; Control Panel for
 Twitter shipped a toggle for it in v4.23.0). The sibling module on the same routes, "Discover
-more", is present in `_decoded/status.html` and is handled by
+more", was present in the 2026-05-19 conversation capture and is handled by
 `src/features/layout/thread-recommendations.ts`, which matches a bounded heading label inside a
 `cellInnerDiv` on a conversation route.
 
 Blocked because neither capture contains "More From This Author". Measured: the string appears 0
-times in `_decoded/home.html` and `_decoded/status.html`. Its heading text, its owning element, and
+times in the 2026-05-19 captures. Its heading text, its owning element, and
 whether it even uses the same `h2[role="heading"]` boundary shape as "Discover more" are all
 unknown, and a guess would be exactly the speculative selector this repository refuses to ship.
 
@@ -222,7 +228,7 @@ it can reach page globals before first paint, and rewriting a bootstrap flag iss
 so stays on the safe side of the ban-risk line.
 
 Blocked on evidence, not on design. Measured: `__INITIAL_STATE__` and `featureSwitch` appear 0 times
-in `_decoded/home.html`, `_decoded/status.html`, and the root `.mhtml` captures, those captures are
+in the 2026-05-19 Home and conversation captures, those captures were
 decoded DOM without page scripts. So the container's real name, its shape, whether it is writable
 before X reads it, and the exact flag names are all unknown here. The flag names circulating in
 community threads are third-party reports, not something this repository can verify, and a wrong
@@ -309,7 +315,7 @@ X's Articles surface draws steady complaint as an AI-slop vector, and the filter
 added in v1.23 is the natural home for it: one more field, or one predicate the rules can name.
 
 Blocked on evidence. Measured: `twitterArticle`, `/i/article`, `article_card`, and `longform` each
-appear 0 times in `_decoded/home.html` and `_decoded/status.html`. The only `article`-bearing test
+appeared 0 times in the 2026-05-19 captures. The only `article`-bearing test
 ids in either capture are `news_sidebar_article_*`, which belong to the right-rail news module,
 a different surface, already covered by Hide trends. So the container, the marker, and whether an
 Article even renders as a timeline cell are all unknown here.
@@ -325,8 +331,8 @@ post carrying a link is untouched.
 
 ## F130, Relationship badges (follows you / mutual)
 
-Blocked on evidence. Measured: "follows you" appears 0 times in `_decoded/home.html` and
-`_decoded/status.html`. The only follow-related test ids in either capture are `<userId>-follow`,
+Blocked on evidence. Measured: "follows you" appeared 0 times in the 2026-05-19 Home and
+conversation captures. The only follow-related test ids in either capture were `<userId>-follow`,
 which mark the Follow *button*, an action, not a relationship. Inferring "you do not follow this
 account" from the presence of that button is wrong twice over: the button also appears inside
 Who-to-follow modules, and its absence has several causes.
