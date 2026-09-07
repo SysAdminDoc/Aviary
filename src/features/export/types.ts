@@ -1,6 +1,16 @@
 import type { ExportAudience } from "./audience.ts";
 
 export interface ExportRecord {
+  /**
+   * Which shape of X archive this record was imported from, when it was imported from one.
+   *
+   * X's export has changed by accretion, so two records of the same post can carry different
+   * fields depending on which vintage produced them. Keeping the vintage on the record is what
+   * lets a later import of a newer export supersede an older one by canonical post id instead of
+   * merging two partial views into one wrong record. Absent on anything captured from a page.
+   */
+  archiveVintage?: "current" | "tweet-js" | "grailbird";
+
   tweetId: string | null;
   handle: string | null;
   displayName: string | null;

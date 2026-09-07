@@ -76,7 +76,8 @@ import { defaultAiBudget, defaultEmbeddingBudget } from "../integrations/usage.t
 import { recentIntegrationErrors } from "./integration-errors.ts";
 import {
   importOfficialArchiveFromSource,
-  MAX_ARCHIVE_BYTES
+  MAX_ARCHIVE_BYTES,
+  type ArchiveVintage
 } from "../library/archive-import.ts";
 import {
   ArchiveImportJobStore,
@@ -1375,6 +1376,10 @@ async function processArchiveImport(
 ): Promise<{
   /** Set when the user paused or cancelled the run, so nothing reports it as a completion. */
   stopped?: "cancelled" | "paused";
+  /** Which archive layout this file set was, so the reader knows what it could have contained. */
+  vintage?: ArchiveVintage | null;
+  /** Collections that layout has no place for, reported as impossible rather than as empty. */
+  collectionsAbsent?: readonly string[];
   records: number;
   warnings: number;
   errors: number;
@@ -1435,6 +1440,8 @@ async function processArchiveImport(
         records: 0,
         warnings: result.warnings.length,
         errors: result.errors.length,
+        vintage: result.vintage,
+        collectionsAbsent: result.collectionsAbsent,
         recognizedFiles: result.recognizedFiles.length,
         skippedFiles: result.skippedFiles.length,
         malformedFiles: result.malformedFiles.length,
@@ -1457,6 +1464,8 @@ async function processArchiveImport(
         records: 0,
         warnings: result.warnings.length,
         errors: result.errors.length,
+        vintage: result.vintage,
+        collectionsAbsent: result.collectionsAbsent,
         recognizedFiles: result.recognizedFiles.length,
         skippedFiles: result.skippedFiles.length,
         malformedFiles: result.malformedFiles.length,

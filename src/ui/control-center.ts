@@ -388,6 +388,8 @@ export interface ControlCenterOptions {
   ) => { onlyLater: number; onlyEarlier: number; inBoth: number; partial: boolean } | null;
   clearSnapshots?: () => Promise<void>;
   importArchive?: (file: File) => Promise<{
+    vintage?: "current" | "tweet-js" | "grailbird" | null;
+    collectionsAbsent?: readonly string[];
     records: number;
     warnings: number;
     errors: number;

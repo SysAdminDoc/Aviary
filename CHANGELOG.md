@@ -202,6 +202,13 @@
   export from a redacted backup.
 
 ### Added
+- **Older X archives import.** X's export changed by accretion, not by version, so Aviary now
+  recognises three layouts: the current `tweets.js` set, the roughly-2020 `tweet.js` set, and the
+  pre-2018 Grailbird layout with one `data/js/tweets/YYYY_MM.js` per month. The import report names
+  the layout it read and states which collections that layout has no place for, instead of
+  reporting an older archive's missing direct messages as an account that had none. Records carry
+  the layout they came from, so re-importing a newer export supersedes the older one by post id.
+  A file set matching none of the three is refused whole, with the files it did find listed.
 - **Library storage, a soft cap, and capture-size controls.** The Library section now reports what
   the local library occupies, measured per stored collection, beside the browser's own approximate
   figure and its per-type split where the browser publishes one. A soft cap warns before a capture

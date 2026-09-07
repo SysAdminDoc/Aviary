@@ -7,6 +7,24 @@ import {
 } from "../../../platform/settings.ts";
 import type { PanelContext } from "../panel-context.ts";
 import { MEDIA_LAYOUT_OPTIONS } from "../constants.ts";
+/**
+ * What each archive layout is called in the import report.
+ *
+ * X's export changed by accretion rather than by version, so the reader needs the name of the
+ * shape that was read before any count means anything. These are deliberately not translated:
+ * two are literal filenames from inside the archive and the third is the format's own name, so
+ * they are the strings a reader would search for, in every locale. The extractor only harvests
+ * literals it can see at a call site, and a translated name reached through a lookup would have
+ * shipped English everywhere while looking translated -- which is the defect that had 28 panel
+ * strings untranslated until this release.
+ */
+const ARCHIVE_LAYOUT_LABELS: Record<string, string> = {
+  current: "tweets.js",
+  "tweet-js": "tweet.js",
+  grailbird: "Grailbird",
+  unknown: "unrecognised"
+};
+
 export function buildSnapshotRows(ctx: PanelContext): HTMLElement[] {
   const rows: HTMLElement[] = [];
 
@@ -238,8 +256,15 @@ export function buildSnapshotRows(ctx: PanelContext): HTMLElement[] {
         try {
           const result = await ctx.options.importArchive!(file);
           ctx.render();
+          // Name the layout, and name what that layout has no place for. Reporting "0 direct
+          // messages" for an archive that never had a file for them is how three other importers
+          // told people their history was empty when it was only absent from that export.
+          const layout = ARCHIVE_LAYOUT_LABELS[result.vintage ?? "unknown"] ?? "unrecognised";
+          const absent = (result.collectionsAbsent ?? []).length > 0
+            ? ` ${ctx.t("Not in this layout:")} ${(result.collectionsAbsent ?? []).join(", ")}.`
+            : "";
           ctx.setStatusCopy(
-            "Imported {records} records. Repairs: {archiveLinks} archive links, {corpusLinks} captured links, {participants} participant IDs resolved, {unresolved} kept unresolved. Warnings: {warnings}; errors: {errors}. Files: {recognized} recognized, {skipped} skipped, {malformed} malformed.",
+            "Read a {layout} archive. Imported {records} records. Repairs: {archiveLinks} archive links, {corpusLinks} captured links, {participants} participant IDs resolved, {unresolved} kept unresolved. Warnings: {warnings}; errors: {errors}. Files: {recognized} recognized, {skipped} skipped, {malformed} malformed.{absent}",
             {
               records: result.records,
               archiveLinks: result.archiveLinksExpanded ?? 0,
@@ -250,7 +275,9 @@ export function buildSnapshotRows(ctx: PanelContext): HTMLElement[] {
               errors: result.errors,
               recognized: result.recognizedFiles ?? 0,
               skipped: result.skippedFiles ?? 0,
-              malformed: result.malformedFiles ?? 0
+              malformed: result.malformedFiles ?? 0,
+              layout,
+              absent
             }
           );
         } catch (error) {

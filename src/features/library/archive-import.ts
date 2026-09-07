@@ -30,6 +30,58 @@ export type ArchiveCollectionName =
   | "profile"
   | "account";
 
+/**
+ * Which shape of X export this is.
+ *
+ * X's archive has changed by accretion rather than by version, so the only way to know what a file
+ * set can contain is to recognise its layout. Three exist in the wild:
+ *
+ *   `current`    `data/tweets.js` (or `tweets-part1.js`), with the four direct-message files.
+ *   `tweet-js`   `data/tweet.js`, roughly 2020 and earlier. No direct-message files at all.
+ *   `grailbird`  pre-2018. `data/js/tweets/YYYY_MM.js`, one file per month, assigned to
+ *                `Grailbird.data.tweets_YYYY_MM`, with `data/js/user_details.js` beside them.
+ *
+ * Verified against a published Grailbird archive: `data/js/tweets/2011_08.js` opens
+ * `Grailbird.data.tweets_2011_08 = ` and its tweet objects carry `id_str`, `text`, `created_at`
+ * and `user`, which is what the tweet mapper already reads.
+ */
+export type ArchiveVintage = "current" | "tweet-js" | "grailbird";
+
+/**
+ * What each vintage cannot contain, so an empty collection is reported as impossible rather than
+ * as empty.
+ *
+ * Three separate third-party importers had the same bug open in 2026: they read an older archive,
+ * found no direct messages, and told the user they had none. The archive never had a place to put
+ * them.
+ */
+export const ARCHIVE_VINTAGE_ABSENT: Record<ArchiveVintage, readonly ArchiveCollectionName[]> = {
+  current: [],
+  "tweet-js": ["direct-messages"],
+  grailbird: ["direct-messages", "likes", "lists", "followers", "following"]
+};
+
+/**
+ * Newer beats older when the same post arrives twice.
+ *
+ * A current export carries fields the older shapes never had, so a re-import of a newer archive
+ * supersedes what an older one wrote for the same canonical post id rather than merging into it.
+ */
+export function archiveVintageRank(vintage: ArchiveVintage): number {
+  return vintage === "current" ? 3 : vintage === "tweet-js" ? 2 : 1;
+}
+
+/** The layout a file set is, read from the names alone. `null` means none of the three. */
+export function classifyArchiveVintage(filenames: readonly string[]): ArchiveVintage | null {
+  const lower = filenames.map((name) => name.toLowerCase());
+  if (lower.some((name) => GRAILBIRD_TWEETS.test(name))) return "grailbird";
+  if (lower.some((name) => /(?:^|\/)tweets(?:-part\d+)?\.js$/.test(name))) return "current";
+  if (lower.some((name) => /(?:^|\/)tweet\.js$/.test(name))) return "tweet-js";
+  return null;
+}
+
+const GRAILBIRD_TWEETS = /(?:^|\/)js\/tweets\/\d{4}_\d{2}\.js$/;
+
 export interface ArchiveFileReport {
   filename: string;
   collection: ArchiveCollectionName;
@@ -38,6 +90,10 @@ export interface ArchiveFileReport {
 }
 
 export interface ArchiveImportResult {
+  /** The layout this file set was recognised as. `null` when it matched none and nothing ran. */
+  vintage: ArchiveVintage | null;
+  /** Collections this vintage has no place for, so "none found" is not reported as "you had none". */
+  collectionsAbsent: readonly ArchiveCollectionName[];
   records: ExportRecord[];
   collections: ArchiveCollections;
   warnings: string[];
@@ -91,6 +147,8 @@ export async function importOfficialArchiveFromSource(
 
 function archiveImportError(message: string): ArchiveImportResult {
   return {
+    vintage: null,
+    collectionsAbsent: [],
     records: [],
     collections: emptyArchiveCollections(),
     warnings: [],
@@ -125,7 +183,30 @@ async function importArchiveEntries(
         ? "Archive contained no readable entries."
         : "This browser cannot decompress archives (DecompressionStream is unavailable)."
     );
-    return { records, collections, warnings, errors, filesParsed, recognizedFiles, skippedFiles, malformedFiles, repairs };
+    return {
+      vintage: null,
+      collectionsAbsent: [],
+      records, collections, warnings, errors, filesParsed, recognizedFiles, skippedFiles, malformedFiles, repairs
+    };
+  }
+
+  // Recognise the layout before reading anything. An unrecognised file set is refused whole rather
+  // than half-imported: a partial library built from a shape nobody identified is worse than no
+  // import, because nothing afterwards can tell which half arrived.
+  const vintage = classifyArchiveVintage(entries.map((entry) => entry.filename));
+  if (vintage === null) {
+    const found = entries.map((entry) => entry.filename).slice(0, 20);
+    errors.push(
+      "This does not look like an X archive. Expected data/tweets.js, data/tweet.js, or " +
+        `data/js/tweets/YYYY_MM.js. Found: ${found.join(", ")}${entries.length > found.length ? ", …" : ""}`
+    );
+    return {
+      vintage: null,
+      collectionsAbsent: [],
+      records, collections, warnings, errors, filesParsed, recognizedFiles,
+      skippedFiles: entries.map((entry) => entry.filename),
+      malformedFiles, repairs
+    };
   }
 
   for (const entry of entries) {
@@ -153,15 +234,55 @@ async function importArchiveEntries(
       continue;
     }
     repairIndex.ingestArchivePayload(parsed);
-    const count = appendCollection(collections, collection, parsed, entry.filename, surface, records);
+    const count = appendCollection(collections, collection, parsed, entry.filename, surface, records, vintage);
     recognizedFiles.push({ filename: entry.filename, collection, status: "parsed", records: count });
   }
 
   repairs = repairIndex.repair(records, collections);
-  return { records, collections, warnings, errors, filesParsed, recognizedFiles, skippedFiles, malformedFiles, repairs };
+  // One archive is one vintage, but a file set can still list the same post twice -- a monthly
+  // Grailbird file overlapping the next, or a re-exported part. Keep one record per canonical id.
+  const deduped = dedupeByCanonicalId(records);
+  records.length = 0;
+  records.push(...deduped);
+  return {
+    vintage,
+    collectionsAbsent: ARCHIVE_VINTAGE_ABSENT[vintage],
+    records, collections, warnings, errors, filesParsed, recognizedFiles, skippedFiles, malformedFiles, repairs
+  };
+}
+
+/**
+ * One record per canonical post id, keeping the one from the newer vintage.
+ *
+ * Exported so a library merging a second import can apply the same rule: re-importing a current
+ * export over a Grailbird one has to supersede those posts, not sit beside them. A record with no
+ * id cannot be matched to anything and is always kept.
+ */
+export function dedupeByCanonicalId(records: readonly ExportRecord[]): ExportRecord[] {
+  const byId = new Map<string, ExportRecord>();
+  const unmatched: ExportRecord[] = [];
+  for (const record of records) {
+    if (!record.tweetId) {
+      unmatched.push(record);
+      continue;
+    }
+    const existing = byId.get(record.tweetId);
+    if (!existing) {
+      byId.set(record.tweetId, record);
+      continue;
+    }
+    const existingRank = existing.archiveVintage ? archiveVintageRank(existing.archiveVintage) : 0;
+    const incomingRank = record.archiveVintage ? archiveVintageRank(record.archiveVintage) : 0;
+    if (incomingRank > existingRank) byId.set(record.tweetId, record);
+  }
+  return [...byId.values(), ...unmatched];
 }
 
 function classifyArchiveFile(name: string): ArchiveCollectionName | null {
+  // Grailbird splits the timeline into one file per month. `tweet_index.js` is a table of contents
+  // for those files and carries no posts, so it is skipped rather than parsed as a collection.
+  if (GRAILBIRD_TWEETS.test(name)) return "authored-posts";
+  if (/(?:^|\/)js\/user_details\.js$/.test(name)) return "profile";
   if (/(?:^|\/)tweets(?:-part\d+)?\.js$/.test(name) || /(?:^|\/)tweet\.js$/.test(name)) return "authored-posts";
   if (/(?:^|\/)(?:like|likes|liked-tweets)\.js$/.test(name)) return "likes";
   if (/(?:^|\/)(?:direct-messages|direct_messages|dm|dms)\.js$/.test(name)) return "direct-messages";
@@ -180,15 +301,16 @@ function appendCollection(
   parsed: unknown,
   filename: string,
   surface: string,
-  records: ExportRecord[]
+  records: ExportRecord[],
+  vintage: ArchiveVintage
 ): number {
   if (collection === "authored-posts") {
-    const mapped = mapTweets(parsed, surface);
+    const mapped = mapTweets(parsed, surface).map((record) => ({ ...record, archiveVintage: vintage }));
     records.push(...mapped);
     return mapped.length;
   }
   if (collection === "likes") {
-    const mapped = mapLikes(parsed, surface);
+    const mapped = mapLikes(parsed, surface).map((record) => ({ ...record, archiveVintage: vintage }));
     records.push(...mapped);
     return mapped.length;
   }
@@ -389,8 +511,18 @@ function stripPrefix(text: string): string {
   // expression. Anchored to that shape on purpose: `^[^=]*=` consumed everything up to the first
   // `=` anywhere in the file, so an un-prefixed pure-JSON export containing base64 padding or a
   // query string had its opening destroyed and was then reported as malformed.
-  const match = /^\s*(?:window\.)?YTD(?:\.[A-Za-z0-9_$]+)*\s*=\s*/.exec(text);
-  return match ? text.slice(match[0].length) : text;
+  //
+  // Two older shapes, both anchored the same way. Grailbird writes
+  // `Grailbird.data.tweets_2011_08 = ` at the head of each monthly file, and its side files use
+  // `var user_details = {…};`. Both were verified against a published Grailbird archive rather
+  // than assumed.
+  const match =
+    /^\s*(?:window\.)?YTD(?:\.[A-Za-z0-9_$]+)*\s*=\s*/.exec(text) ??
+    /^\s*Grailbird(?:\.[A-Za-z0-9_$]+)*\s*=\s*/.exec(text) ??
+    /^\s*var\s+[A-Za-z0-9_$]+\s*=\s*/.exec(text);
+  const body = match ? text.slice(match[0].length) : text;
+  // `var user_details = { … };` ends in a semicolon that JSON.parse will not accept.
+  return body.replace(/;\s*$/, "");
 }
 
 function mapTweets(parsed: unknown, surface: string): ExportRecord[] {
