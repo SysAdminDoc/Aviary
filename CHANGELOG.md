@@ -219,6 +219,11 @@
 - Export records now carry a video's poster URL, which the export used to drop entirely.
 
 ### Fixed
+- A capture with no re-encode kept the response's `Content-Type` over the type the page observed,
+  so a host that omits the header put `application/octet-stream` into the ZIP entry and the WARC
+  record. A poster capture is now recorded as a still rather than as the video it replaced, says
+  how large the video it left out was, and refuses to store anything at all when the video has no
+  poster instead of quietly saving the whole file.
 - **The outbound network policy now fails closed.** It started permissive and relied on boot
   reaching its install line, which sits after storage, profile, diagnostics, usage and the settings
   load, so the default contradicted the setting it enforces. Nothing outbound is permitted until a

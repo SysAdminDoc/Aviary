@@ -64,8 +64,12 @@ export interface MediaCaptureReduction {
   imageScale?: number;
   /** True when a video's poster frame was stored in place of the video. */
   posterFrameOnly?: true;
-  /** What the host served, so the size of the reduction is legible without the original. */
+  /** True when poster-frames-only was on but the video had no poster, so nothing was stored. */
+  posterMissing?: true;
+  /** What the host served for the asset that was stored, before it was rescaled. */
   originalByteLength?: number;
+  /** Known size of the asset that was left out, when a poster replaced a video. */
+  replacedByteLength?: number;
 }
 
 export interface ExportMedia {

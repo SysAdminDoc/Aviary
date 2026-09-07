@@ -751,10 +751,16 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-/** A `{ name: bytes }` map that survived a message boundary with every value still a real count. */
+/**
+ * A `{ name: bytes }` map that survived a message boundary with every value still a real count.
+ *
+ * An empty object is not a map: Chromium reports `usageDetails: {}` when nothing is stored, and
+ * treating that as "the browser provided a breakdown" rendered an empty value where the row is
+ * supposed to say the browser does not publish one.
+ */
 function isByteMap(value: unknown): value is Record<string, number> {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
-  return Object.values(value as Record<string, unknown>).every(
-    (entry) => typeof entry === "number" && Number.isFinite(entry) && entry >= 0
-  );
+  const entries = Object.values(value as Record<string, unknown>);
+  if (entries.length === 0) return false;
+  return entries.every((entry) => typeof entry === "number" && Number.isFinite(entry) && entry >= 0);
 }

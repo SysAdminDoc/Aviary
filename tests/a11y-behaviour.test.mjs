@@ -414,27 +414,53 @@ test("no control is left focused entirely behind the save row or the rail", asyn
   await page.setViewportSize({ width: 1440, height: 900 });
 });
 
+/**
+ * A key that tells two controls apart.
+ *
+ * `tagName.className` collapsed thirteen rail buttons and eleven toggle rows into a handful of
+ * repeated strings, so any reordering was invisible and the comparison was mostly a repeated label
+ * matching itself. The key is now the control's position in the panel's own focusable list plus a
+ * short description: two controls can share a description, but not a position, and a Tab order
+ * that visits them in a different sequence produces a different list of positions.
+ */
+const FOCUS_KEY_SOURCE = `window.__focusKey = function (node) {
+  const index = (window.__focusOrder || []).indexOf(node);
+  const label = (node.getAttribute("aria-label") || node.textContent || "").trim().slice(0, 32);
+  return index + "|" + node.tagName + "." + (node.className || "") + "|" + label;
+};`;
+
 test("real Tab presses visit the controls this sweep measures", async () => {
   // The sweep focuses controls in document order. This is what says that is the tab order.
+  //
+  // Driven on a destination with real content rather than on Presets, which contributes exactly
+  // one non-rail control: an order this only ever checked across the rail would say nothing about
+  // the 373 focus calls the occlusion sweep makes inside the sections.
   await openPanelAt({ width: 1440, height: 900 });
   await page.evaluate(() => {
     const shadow = document.getElementById("av-control-center").shadowRoot;
-    shadow.querySelector('[data-av-section="presets"]').click();
+    shadow.querySelector('[data-av-section="appearance"]').click();
   });
 
   // Scoped to the panel: the launcher sits outside it and Tab starts inside once it is open.
+  // Injected as a script rather than passed as an argument: Playwright cannot serialize a
+  // function, and building one from a string inside the page is the eval the lint rules refuse.
+  await page.addScriptTag({ content: FOCUS_KEY_SOURCE });
   const expected = await page.evaluate((focusable) => {
     const shadow = document.getElementById("av-control-center").shadowRoot;
     const panel = shadow.querySelector(".av-panel");
-    return [...shadow.querySelectorAll(focusable)]
-      .filter((node) => panel.contains(node))
+    window.__focusOrder = [...shadow.querySelectorAll(focusable)].filter((node) => panel.contains(node));
+    return window.__focusOrder
       .filter((node) => {
         node.focus();
         return shadow.activeElement === node;
       })
-      .map((node) => `${node.tagName}.${node.className || ""}`);
+      .map(window.__focusKey);
   }, FOCUSABLE);
-  assert.ok(expected.length >= 10, `expected a real destination, saw ${expected.length} controls`);
+  assert.ok(expected.length >= 20, `expected a content destination, saw ${expected.length} controls`);
+  assert.ok(
+    new Set(expected).size >= expected.length - 2,
+    `the comparison key collapses ${expected.length - new Set(expected).size} controls into duplicates, so a reorder would be invisible`
+  );
 
   await page.evaluate(() => {
     const shadow = document.getElementById("av-control-center").shadowRoot;
@@ -448,7 +474,7 @@ test("real Tab presses visit the controls this sweep measures", async () => {
     const current = await page.evaluate(() => {
       const shadow = document.getElementById("av-control-center").shadowRoot;
       const node = shadow.activeElement;
-      return node ? `${node.tagName}.${node.className || ""}` : null;
+      return node ? window.__focusKey(node) : null;
     });
     if (current === null) break;
     if (visited.length > 0 && current === visited[0]) break;
@@ -488,14 +514,30 @@ const TARGET_SIZE_SWEEP = (options) => {
     for (const { node, target, rect } of targets) {
       if (rect.width >= options.minimum && rect.height >= options.minimum) continue;
 
-      // The spacing exception: a circle of the minimum diameter centred on the target must not
-      // reach another target's circle.
+      // The spacing exception, as 2.5.8 actually defines it: a circle of the minimum diameter
+      // centred on the undersized target must not intersect *another target*, nor the circle of
+      // another undersized one. Comparing centre to centre was wrong -- it ignores the neighbour's
+      // size, so a 20 by 20 button flush against a 200 by 40 one measured 110 pixels apart and
+      // read as exempt while the spec's circle overlapped the neighbour's box by 10 pixels.
       const centre = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+      const radius = options.minimum / 2;
+      const distanceToBox = (box) => {
+        const dx = Math.max(box.left - centre.x, 0, centre.x - box.right);
+        const dy = Math.max(box.top - centre.y, 0, centre.y - box.bottom);
+        return Math.hypot(dx, dy);
+      };
       const crowded = targets.some((other) => {
         if (other.target === target) return false;
         const box = other.rect;
-        const otherCentre = { x: box.left + box.width / 2, y: box.top + box.height / 2 };
-        return Math.hypot(centre.x - otherCentre.x, centre.y - otherCentre.y) < options.minimum;
+        const undersized = box.width < options.minimum || box.height < options.minimum;
+        if (undersized) {
+          // Two undersized targets: the two circles must not touch, so their centres must be at
+          // least one full diameter apart.
+          const otherCentre = { x: box.left + box.width / 2, y: box.top + box.height / 2 };
+          return Math.hypot(centre.x - otherCentre.x, centre.y - otherCentre.y) < options.minimum;
+        }
+        // A full-sized neighbour: the circle must not reach its box at all.
+        return distanceToBox(box) < radius;
       });
       if (!crowded) {
         small.push(`${entry.id}: ${node.className || node.tagName} is ${Math.round(rect.width)}x${Math.round(rect.height)}, exempt by spacing`);
@@ -527,6 +569,51 @@ test("every interactive target is 24 by 24, or names the exception that lets it 
     shrunk.some((entry) => entry.includes("no exception")),
     "an 8-pixel row must be reported, or this sweep cannot see a small target"
   );
+
+  // The exemption branch never runs on the real panel -- every focusable resolves through its
+  // label to a box comfortably over 24 -- so it is driven here instead. Shipping an unexercised
+  // exemption is how a wrong one survives: this is the geometry the spec defines, and the
+  // centre-to-centre version that stood before called the first of these exempt.
+  const geometry = await page.evaluate((minimum) => {
+    const surface = document.createElement("div");
+    surface.style.cssText = "position:fixed;inset:0;background:#fff;";
+    const place = (left, top, width, height, id) => {
+      const node = document.createElement("button");
+      node.type = "button";
+      node.id = id;
+      node.textContent = id;
+      node.style.cssText = `position:absolute;left:${left}px;top:${top}px;width:${width}px;height:${height}px;margin:0;padding:0;`;
+      surface.append(node);
+      return node;
+    };
+    // A 20x20 target flush against a 200x40 one. Their centres are 110px apart, so a centre-to-
+    // centre rule calls it exempt; the spec's 24px circle overlaps the neighbour's box.
+    place(0, 0, 20, 20, "crowded-small");
+    place(20, 0, 200, 40, "crowded-neighbour");
+    // The same small target with the neighbour moved well clear.
+    place(0, 400, 20, 20, "lonely-small");
+    place(300, 400, 200, 40, "lonely-neighbour");
+    document.body.append(surface);
+
+    const rectOf = (id) => document.getElementById(id).getBoundingClientRect();
+    const measure = (id) => {
+      const rect = rectOf(id);
+      const centre = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+      const radius = minimum / 2;
+      const others = ["crowded-neighbour", "lonely-neighbour"].map(rectOf);
+      return others.some((box) => {
+        const dx = Math.max(box.left - centre.x, 0, centre.x - box.right);
+        const dy = Math.max(box.top - centre.y, 0, centre.y - box.bottom);
+        return Math.hypot(dx, dy) < radius;
+      });
+    };
+    const result = { crowded: measure("crowded-small"), lonely: measure("lonely-small") };
+    surface.remove();
+    return result;
+  }, 24);
+
+  assert.equal(geometry.crowded, true, "a 24px circle overlapping a full-sized neighbour is not exempt");
+  assert.equal(geometry.lonely, false, "and one that reaches nothing is");
 });
 
 test("nothing in the panel can only be operated by dragging", async () => {

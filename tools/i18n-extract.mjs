@@ -41,6 +41,17 @@ function stubs(variant) {
   return `{
   getMediaStatus: () => ({ historySize: ${v ? 4 : 9}, completed: ${v ? 2 : 7}, failed: ${v ? 1 : 5}, duplicate: ${v ? 1 : 6}, running: ${v ? 0 : 3} }),
   clearMediaHistory: async () => {},
+  // The Library storage rows only draw their measured branch when a breakdown exists, and copy
+  // that never renders never reaches the manifest -- which ships English in every locale while
+  // the coverage gate reports 100%. The two variants differ so the diff keeps the numbers as data.
+  getLibraryStorage: () => ({
+    totalBytes: ${v ? 1_200_000 : 2_400_000},
+    collections: [
+      { key: "aviary.library.bookmarks.v1", bytes: ${v ? 900_000 : 1_800_000}, records: ${v ? 12 : 34} },
+      { key: "aviary.media.history.v1", bytes: ${v ? 300_000 : 600_000}, records: 1 }
+    ],
+    usageDetails: ${v ? '{ indexedDB: 1_400_000 }' : "null"}
+  }),
   getExportStatus: () => ({ jobCount: ${v ? 2 : 8}, knownQueries: ${v ? 3 : 11} }),
   runExport: async () => ({ records: 0, filename: "aviary.json" }),
   copyDiagnostics: async () => {},

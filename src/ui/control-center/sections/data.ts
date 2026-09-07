@@ -451,18 +451,30 @@ function libraryStorageRows(ctx: PanelContext): HTMLElement[] {
     ];
   }
 
+  // One template per sentence, interpolated. Concatenating translated fragments in English word
+  // order produced something ungrammatical in every locale that does not share it, and the
+  // singular/plural pick was an English two-form rule applied to eight languages.
   const rows: HTMLElement[] = [
     ctx.dataRow(
       "Library storage",
-      `${ctx.formatBytes(breakdown.totalBytes)} ${ctx.t("across")} ${breakdown.collections.length} ${ctx.t("collections")}`
+      ctx.formatCopy(ctx.t("{bytes} across {count} collections"), {
+        bytes: ctx.formatBytes(breakdown.totalBytes),
+        count: breakdown.collections.length
+      })
     )
   ];
 
-  for (const entry of breakdown.collections.slice(0, 8)) {
+  // One row, with the store names as data in its value. A store key is an identifier, not copy,
+  // and passing one as a row label puts it in the translation manifest and then demands eight
+  // translations of `aviary.library.bookmarks.v1`.
+  if (breakdown.collections.length > 0) {
     rows.push(
       ctx.dataRow(
-        entry.key,
-        `${ctx.formatBytes(entry.bytes)} · ${entry.records} ${entry.records === 1 ? ctx.t("record") : ctx.t("records")}`
+        "Largest collections",
+        breakdown.collections
+          .slice(0, 8)
+          .map((entry) => `${entry.key} ${ctx.formatBytes(entry.bytes)}`)
+          .join(" · ")
       )
     );
   }

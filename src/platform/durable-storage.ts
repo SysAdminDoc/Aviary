@@ -822,8 +822,14 @@ export class IndexedDbStorageBackend implements DurableStorageBackend {
     // `usageDetails` is Chromium-only and is not in the Storage Standard, so it is carried when it
     // is there and left absent when it is not. An absent split is reported as absent, never as 0.
     const details = (measured as { usageDetails?: unknown }).usageDetails;
-    const withDetails = details && typeof details === "object" && !Array.isArray(details)
-      ? { ...measured, usageDetails: onlyFiniteNumbers(details as Record<string, unknown>) }
+    const clean = details && typeof details === "object" && !Array.isArray(details)
+      ? onlyFiniteNumbers(details as Record<string, unknown>)
+      : null;
+    // An empty split is not a split. Chromium answers `{}` when nothing is stored, and carrying
+    // that through made the readout print an empty value instead of saying the browser publishes
+    // no breakdown.
+    const withDetails = clean && Object.keys(clean).length > 0
+      ? { ...measured, usageDetails: clean }
       : measured;
     return persisted === undefined ? withDetails : { ...withDetails, persisted };
   }

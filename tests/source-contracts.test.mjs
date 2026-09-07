@@ -184,9 +184,15 @@ test("a name declared twice does not clear itself, and two dead copies do not cl
 });
 
 test("a form the scan cannot check by name is refused, not skipped", async () => {
+  // Every one of these used to bind nothing and be dropped in silence, which is worse than a
+  // refusal: an export written that way could rot to nothing with preflight green.
   for (const [label, body] of [
     ["a default export", `export default function ${PLANTED_NAME}(): void {}\n`],
-    ["a star re-export", 'export * from "./template.ts";\n']
+    ["a star re-export", 'export * from "./template.ts";\n'],
+    ["a destructured export", `export const { ${PLANTED_NAME} } = globalThis as never;\n`],
+    ["an array-destructured export", `export const [ ${PLANTED_NAME} ] = [] as never[];\n`],
+    ["an exported namespace", `export namespace ${PLANTED_NAME} { export const a = 1; }\n`],
+    ["a name on the next line", `export const\n  ${PLANTED_NAME} = 1;\n`]
   ]) {
     const graph = await sourceExportReferences(
       root,

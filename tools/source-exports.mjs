@@ -29,9 +29,12 @@ import path from "node:path";
  *   - `export type { X }`, a multi-line export list, and a multi-declarator `export const a, b`
  *     were not recognised as exports at all. `src/ui/control-center.ts` has the first of those.
  *
- * `export default` and `export * from` are refused rather than analysed. A default export has no
- * name at the definition site, and a star re-export names nothing, so neither can be checked the
- * way everything else here is; refusing them keeps the gate from quietly having a blind spot.
+ * Five shapes are refused rather than analysed: `export default` and `export * from` name nothing
+ * at the definition site, a destructured `export const { a }` binds through a pattern, an
+ * `export namespace` is not a value binding, and an `export const` whose name is on the next line
+ * is not on the line these patterns are anchored to. Refusing them keeps the gate from quietly
+ * having a blind spot -- each one previously bound nothing and was silently dropped, so an export
+ * written that way could rot to nothing with preflight green.
  */
 
 const SCAN_ROOTS = [
@@ -162,6 +165,24 @@ export function exportedNames(lines) {
     }
     if (/^\s*export\s+default\b/.test(line)) {
       refusals.push({ line: index, reason: "`export default` has no name at the definition site" });
+      return;
+    }
+    // A destructured export binds names through a pattern rather than after a keyword, and
+    // `namesInDeclarators` reads the identifier that opens each piece -- which for `{ a }` or
+    // `[ a ]` is a brace. It used to fall through and bind nothing at all, so an export written
+    // that way could rot to nothing with the gate green. Refused rather than half-parsed.
+    if (/^\s*export\s+(?:declare\s+)?(?:const|let|var)\s*[[{]/.test(line)) {
+      refusals.push({ line: index, reason: "a destructured export binds names this scan cannot read" });
+      return;
+    }
+    if (/^\s*export\s+namespace\b/.test(line)) {
+      refusals.push({ line: index, reason: "`export namespace` is not a shape this scan reads" });
+      return;
+    }
+    // `export const` with the name on the next line. The declaration patterns are anchored to one
+    // line, so this bound nothing; it is rare enough to refuse rather than to parse.
+    if (/^\s*export\s+(?:declare\s+)?(?:async\s+)?(?:abstract\s+)?(?:function\*?|const\s+enum|const|let|var|class|interface|type|enum)\s*$/.test(line)) {
+      refusals.push({ line: index, reason: "an export whose name is on the next line is not read by this scan" });
       return;
     }
 

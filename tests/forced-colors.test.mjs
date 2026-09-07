@@ -323,10 +323,9 @@ test("every authored palette keeps its states distinguishable in forced colors",
         }
       }
 
-      // Off paints none of these rules, so it makes no claim to check. What it must not do is
-      // introduce a shadow or a gradient of its own.
+      // Off paints none of these rules, so it makes no claim about them here. What it must not do
+      // is add a shadow of its own, which is checked with forced colors switched off below.
       await page.evaluate((settings) => globalThis.__theme.applyTheme(settings), themeSettings("off"));
-      assert.deepEqual(await lostAffordances(page), [], "Off must not add a shadow-only affordance");
     } finally {
       await context.close();
     }
@@ -361,18 +360,75 @@ test("removing one restoring border makes the sweep stop finding a difference", 
   }
 });
 
-/** Every element the themed page draws, so a shadow or gradient cannot hide in a corner. */
-async function lostAffordances(page) {
-  return page.evaluate(() => {
-    const found = [];
-    for (const node of document.querySelectorAll("*")) {
-      const style = getComputedStyle(node);
-      if (style.boxShadow && style.boxShadow !== "none") found.push(`shadow:${node.tagName}`);
-      const image = style.backgroundImage;
-      if (image && image !== "none" && !image.includes("url(")) found.push(`image:${node.tagName}`);
-    }
+/**
+ * Every element whose only affordance was a shadow or a gradient, and whether it got an edge.
+ *
+ * Reading computed style *in* forced colors cannot find these: the user agent has already zeroed
+ * `box-shadow` and non-url `background-image` before `getComputedStyle` runs, so a sweep looking
+ * for them there returns an empty list whatever the stylesheet says. The measurement has to happen
+ * with forced colors off -- that is where the shadows are still visible -- and the verdict has to
+ * be taken with them on.
+ */
+async function unrestoredAffordances(browser, themeBundle, theme, route) {
+  const shadowed = await measureShadowed(browser, themeBundle, theme, route, "none");
+  if (shadowed.length === 0) return { shadowed, unrestored: [] };
+  const edged = await measureShadowed(browser, themeBundle, theme, route, "active");
+  const restored = new Set(edged);
+  return { shadowed, unrestored: shadowed.filter((path) => !restored.has(path)) };
+}
+
+/**
+ * With forced colors off: which elements paint a shadow or a gradient and nothing else.
+ * With forced colors on: which of those now paint a border or an outline instead.
+ */
+async function measureShadowed(browser, themeBundle, theme, route, forcedColors) {
+  const context = await browser.newContext({ viewport: { width: 1400, height: 900 }, forcedColors });
+  const page = await context.newPage();
+  try {
+    await page.goto(await captureUrl(route));
+    await page.addScriptTag({ content: themeBundle });
+    await page.evaluate((settings) => {
+      const style = document.createElement("style");
+      style.textContent = globalThis.__theme.THEME_CSS;
+      document.head.append(style);
+      globalThis.__theme.applyTheme(settings);
+    }, themeSettings(theme));
+
+    // Awaited here, not returned: `return promise` inside try/finally resolves after the finally
+    // runs, so the context would be closed before the evaluation came back.
+    const found = await page.evaluate((wantEdges) => {
+      const pathOf = (node) => {
+        const parts = [];
+        for (let current = node; current && parts.length < 6; current = current.parentElement) {
+          const id = current.getAttribute?.("data-testid");
+          parts.unshift(id ? `[${id}]` : current.tagName.toLowerCase());
+        }
+        return parts.join(">");
+      };
+      const found = [];
+      // Keyed by document position as well as by path: the generated document has many identical
+      // `div>div>div` chains, and a collision would let an unrestored element borrow a restored
+      // one's edge. The two runs render the same document, so the ordinals line up.
+      const all = [...document.querySelectorAll("*")];
+      for (const [index, node] of all.entries()) {
+        const style = getComputedStyle(node);
+        const shadow = style.boxShadow && style.boxShadow !== "none";
+        const image = style.backgroundImage &&
+          style.backgroundImage !== "none" &&
+          !style.backgroundImage.includes("url(");
+        const edge =
+          (style.outlineStyle !== "none" && style.outlineWidth !== "0px") ||
+          ["borderTopWidth", "borderRightWidth", "borderBottomWidth", "borderLeftWidth"].some(
+            (side) => style[side] !== "0px" && style[side] !== ""
+          );
+        if (wantEdges ? edge : shadow || image) found.push(`${index}:${pathOf(node)}`);
+      }
+      return found;
+    }, forcedColors === "active");
     return found;
-  });
+  } finally {
+    await context.close();
+  }
 }
 
 async function bundleTheme() {
@@ -395,3 +451,35 @@ async function bundleTheme() {
   });
   return readFile(outfile, "utf8");
 }
+
+test("every element that spoke through a shadow or a gradient gets an edge instead", async () => {
+  // The element sweep the criterion asks for, measured where it can actually see anything. Under
+  // forced colors the user agent has already dropped every shadow and gradient, so this reads the
+  // page twice: once with them on, to find what relies on them, and once with them off, to check
+  // the same elements now carry a border or an outline.
+  const themeBundle = await bundleTheme();
+
+  let totalShadowed = 0;
+  for (const route of ["home", "status"]) {
+    for (const theme of PALETTES) {
+      const { shadowed, unrestored } = await unrestoredAffordances(browser, themeBundle, theme, route);
+      totalShadowed += shadowed.length;
+      assert.deepEqual(
+        unrestored,
+        [],
+        `${theme} on ${route}: these lose their only affordance in forced colors`
+      );
+    }
+  }
+  // Not per palette: all eighteen shadow and gradient declarations are noir's, and five of the six
+  // palettes legitimately paint none. Across the sweep there has to be something to find, or every
+  // empty list above means only that nothing was measured.
+  assert.ok(
+    totalShadowed > 0,
+    "the sweep found no shadowed element in any palette, so it is measuring nothing"
+  );
+
+  // Off adds nothing of its own, which is what "plus Off" means here.
+  const off = await measureShadowed(browser, themeBundle, "off", "home", "none");
+  assert.deepEqual(off, [], "Off must not paint a shadow or a gradient of its own");
+});

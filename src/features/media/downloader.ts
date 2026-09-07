@@ -208,19 +208,43 @@ export async function captureExportRecordMedia(
   options: CaptureMediaOptions & CaptureSizeOptions = {}
 ): Promise<ExportRecord> {
   const media = await Promise.all(record.media.map(async (entry): Promise<ExportMedia> => {
-    const posterOnly = options.posterFrameOnly === true && entry.kind === "video";
+    const wantsPosterOnly = options.posterFrameOnly === true && entry.kind === "video";
     // The poster is a still the host already serves, so this is a different asset rather than a
     // shrunken version of the same one. Saying so on the record is what stops a later export from
     // presenting a thumbnail as the video.
-    const posterUrl = posterOnly ? (entry.poster ?? "").trim() : "";
-    const sourceUrl = posterOnly && posterUrl
-      ? posterUrl
-      : (entry.sourceUrl ?? entry.url).trim();
-    try {
-      const captured = await captureMediaBytes(sourceUrl, options);
-      const reduced = await applyCaptureSize(captured, options, posterOnly && Boolean(posterUrl));
+    const posterUrl = wantsPosterOnly ? (entry.poster ?? "").trim() : "";
+    const videoUrl = (entry.sourceUrl ?? entry.url).trim();
+    // A video with no poster cannot honour the setting. Storing the whole file with nothing on the
+    // record saying so is the failure: a person who turned this on to stay under a storage cap
+    // would get the full video and no trace of why.
+    if (wantsPosterOnly && !posterUrl) {
       return {
         ...entry,
+        sourceUrl: videoUrl,
+        capturedAt: entry.capturedAt ?? new Date().toISOString(),
+        captureStatus: "remote-reference",
+        captureError: "Poster frames only is on and this video has no poster, so nothing was stored.",
+        reduction: { posterFrameOnly: true, posterMissing: true }
+      };
+    }
+    const posterOnly = wantsPosterOnly && Boolean(posterUrl);
+    const sourceUrl = posterOnly ? posterUrl : videoUrl;
+    try {
+      const captured = await captureMediaBytes(sourceUrl, options);
+      const reduced = await applyCaptureSize(
+        captured,
+        options,
+        posterOnly,
+        posterOnly ? (typeof entry.byteLength === "number" ? entry.byteLength : null) : null
+      );
+      // The previous reduction is dropped from the base rather than carried through the spread: a
+      // re-capture with the setting off must not keep claiming a reduction that did not happen.
+      const { reduction: _previousReduction, ...base } = entry;
+      return {
+        ...base,
+        // A poster is a photo. Leaving `kind: "video"` on it made the ZIP write a still under a
+        // video name and let any consumer keying off `kind` or `url` read it as the video.
+        ...(posterOnly ? { kind: "thumbnail" as const, url: posterUrl } : {}),
         sourceUrl: captured.sourceUrl,
         capturedAt: captured.capturedAt,
         byteLength: reduced.bytes.byteLength,
@@ -228,7 +252,13 @@ export async function captureExportRecordMedia(
         bytes: reduced.bytes,
         httpStatus: captured.httpStatus,
         httpHeaders: captured.httpHeaders,
-        type: reduced.contentType || (entry.type?.includes("/") ? entry.type : captured.contentType),
+        // Only a re-encode changes the type. Otherwise the DOM-observed type wins over the response
+        // header, which matters because `captureMediaBytes` defaults a missing `Content-Type` to
+        // `application/octet-stream` -- and that value goes straight into the ZIP entry and the
+        // WARC record. The exception is a poster capture: the entry's declared type describes the
+        // video that was left out, and the bytes on disk are a still.
+        type: reduced.reencodedType ??
+          (posterOnly || !entry.type?.includes("/") ? captured.contentType : entry.type),
         captureStatus: "captured-bytes",
         ...(reduced.reduction ? { reduction: reduced.reduction } : {})
       };
@@ -255,21 +285,32 @@ export async function captureExportRecordMedia(
 async function applyCaptureSize(
   captured: CapturedMediaBytes,
   options: CaptureSizeOptions,
-  posterFrameOnly: boolean
-): Promise<{ bytes: Uint8Array; sha256: string; contentType: string; reduction?: MediaCaptureReduction }> {
+  posterFrameOnly: boolean,
+  replacedByteLength: number | null
+): Promise<{
+  bytes: Uint8Array;
+  sha256: string;
+  /** Set only when the bytes were re-encoded into a different format. */
+  reencodedType?: string;
+  reduction?: MediaCaptureReduction;
+}> {
   const scale = options.imageScale ?? 1;
   const isImage = captured.contentType.startsWith("image/");
   const wantsScale = isImage && Number.isFinite(scale) && scale > 0 && scale < 1;
 
   const reduction: MediaCaptureReduction = {};
-  if (posterFrameOnly) reduction.posterFrameOnly = true;
+  if (posterFrameOnly) {
+    reduction.posterFrameOnly = true;
+    // The size of the thing that was left out, not the size of the still that replaced it.
+    // Recording the poster's own length here understated the reduction by orders of magnitude
+    // and made the receipt read as though almost nothing had been dropped.
+    if (replacedByteLength !== null) reduction.replacedByteLength = replacedByteLength;
+  }
 
   if (!wantsScale) {
-    if (posterFrameOnly) reduction.originalByteLength = captured.byteLength;
     return {
       bytes: captured.bytes,
       sha256: captured.sha256,
-      contentType: captured.contentType,
       ...(posterFrameOnly ? { reduction } : {})
     };
   }
@@ -279,14 +320,13 @@ async function applyCaptureSize(
     return {
       bytes: captured.bytes,
       sha256: captured.sha256,
-      contentType: captured.contentType,
-      ...(posterFrameOnly ? { reduction: { ...reduction, originalByteLength: captured.byteLength } } : {})
+      ...(posterFrameOnly ? { reduction } : {})
     };
   }
   return {
     bytes: rescaled.bytes,
     sha256: await sha256HexAsync(rescaled.bytes),
-    contentType: rescaled.contentType,
+    reencodedType: rescaled.contentType,
     reduction: { ...reduction, imageScale: scale, originalByteLength: captured.byteLength }
   };
 }

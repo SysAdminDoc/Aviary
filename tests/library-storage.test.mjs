@@ -244,6 +244,155 @@ test("poster-frames-only captures the still and says the video was left out", as
   }
 });
 
+test("a capture that was not re-encoded keeps the type the page observed", async () => {
+  // `captureMediaBytes` defaults a missing `Content-Type` to `application/octet-stream`, and that
+  // value goes straight into the ZIP entry and the WARC record. Letting the response header win
+  // over the DOM-observed type on the untouched path put the wrong MIME on every capture from a
+  // host that omits the header.
+  const { captureExportRecordMedia } = await importSourceModule("src/features/media/downloader.ts");
+  const originalFetch = globalThis.fetch;
+  try {
+    globalThis.fetch = async () => ({
+      ok: true,
+      headers: new Headers({}),
+      async arrayBuffer() {
+        return new Uint8Array([1, 2, 3]).buffer;
+      }
+    });
+    const captured = await captureExportRecordMedia(
+      fixtureRecord({
+        media: [
+          { kind: "video", url: "https://video.twimg.com/amplify_video/1/vid/a.mp4", type: "video/mp4" }
+        ]
+      })
+    );
+    assert.equal(captured.media[0].type, "video/mp4", "the observed type must survive a missing header");
+    assert.notEqual(captured.media[0].type, "application/octet-stream");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("a poster capture is recorded as a still, and says how much it left out", async () => {
+  const { captureExportRecordMedia } = await importSourceModule("src/features/media/downloader.ts");
+  const originalFetch = globalThis.fetch;
+  const poster = "https://pbs.twimg.com/amplify_video_thumb/1900000000000000901/img/AviaryFixture.jpg";
+
+  try {
+    globalThis.fetch = async () => ({
+      ok: true,
+      headers: new Headers({ "content-type": "image/jpeg", "content-length": "3" }),
+      async arrayBuffer() {
+        return new Uint8Array([9, 9, 9]).buffer;
+      }
+    });
+
+    const captured = await captureExportRecordMedia(
+      fixtureRecord({
+        media: [
+          {
+            kind: "video",
+            url: "https://video.twimg.com/amplify_video/1900000000000000901/vid/a.mp4",
+            poster,
+            type: "video/mp4",
+            byteLength: 48_000_000
+          }
+        ]
+      }),
+      { posterFrameOnly: true }
+    );
+
+    const entry = captured.media[0];
+    // A consumer keying off `kind` or `url` must not read a still as the video it replaced.
+    assert.equal(entry.kind, "thumbnail");
+    assert.equal(entry.url, poster);
+    assert.equal(entry.type, "image/jpeg");
+    assert.equal(entry.reduction?.posterFrameOnly, true);
+    assert.equal(
+      entry.reduction?.replacedByteLength,
+      48_000_000,
+      "the size of what was left out, not the size of the still that replaced it"
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("poster-frames-only stores nothing when the video has no poster", async () => {
+  // Storing the whole video with nothing on the record is the failure: someone who turned this on
+  // to stay under a storage cap would get the full file and no trace of why.
+  const { captureExportRecordMedia } = await importSourceModule("src/features/media/downloader.ts");
+  const originalFetch = globalThis.fetch;
+  const requested = [];
+
+  try {
+    globalThis.fetch = async (url) => {
+      requested.push(String(url));
+      return {
+        ok: true,
+        headers: new Headers({ "content-type": "video/mp4", "content-length": "3" }),
+        async arrayBuffer() {
+          return new Uint8Array([1, 2, 3]).buffer;
+        }
+      };
+    };
+
+    const captured = await captureExportRecordMedia(
+      fixtureRecord({
+        media: [
+          { kind: "video", url: "https://video.twimg.com/amplify_video/1/vid/no-poster.mp4", type: "video/mp4" }
+        ]
+      }),
+      { posterFrameOnly: true }
+    );
+
+    const entry = captured.media[0];
+    assert.deepEqual(requested, [], "nothing may be fetched when the setting cannot be honoured");
+    assert.equal(entry.captureStatus, "remote-reference");
+    assert.equal(entry.reduction?.posterMissing, true, "the record has to say why nothing was stored");
+    assert.match(entry.captureError ?? "", /no poster/i);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("a re-capture with the setting off drops a reduction the record used to carry", async () => {
+  const { captureExportRecordMedia } = await importSourceModule("src/features/media/downloader.ts");
+  const originalFetch = globalThis.fetch;
+
+  try {
+    globalThis.fetch = async () => ({
+      ok: true,
+      headers: new Headers({ "content-type": "image/jpeg", "content-length": "3" }),
+      async arrayBuffer() {
+        return new Uint8Array([4, 5, 6]).buffer;
+      }
+    });
+
+    const captured = await captureExportRecordMedia(
+      fixtureRecord({
+        media: [
+          {
+            kind: "photo",
+            url: "https://pbs.twimg.com/media/AviaryFixture?format=jpg&name=orig",
+            // What a previous run wrote, when the setting was on.
+            reduction: { imageScale: 0.25, originalByteLength: 900_000 }
+          }
+        ]
+      }),
+      {}
+    );
+
+    assert.equal(
+      captured.media[0].reduction,
+      undefined,
+      "a record must not keep claiming a reduction the capture that just ran did not make"
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("the downscale actually runs where a browser can decode an image", async () => {
   // Node has no image decoder, so the case above only ever exercises the fallback. This drives the
   // real path: a 200 by 100 PNG captured at half scale has to come back 100 by 50, and the record
