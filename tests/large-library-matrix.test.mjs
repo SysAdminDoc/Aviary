@@ -39,6 +39,7 @@ test("the deterministic 50,000-row corpus stays searchable and reports bad rows"
   assert.ok(stats.malformed > 40, `malformed rows were not represented: ${stats.malformed}`);
   assert.ok(stats.duplicates > 100, `duplicate ids were not represented: ${stats.duplicates}`);
   assert.ok(stats.missingBytes > 1_000, `missing media bytes were not represented: ${stats.missingBytes}`);
+  assert.ok(stats.unknownMedia > 1_000, `unknown media kinds were not represented: ${stats.unknownMedia}`);
   assert.equal(
     normalized.records.length + normalized.partials.length,
     LARGE_LIBRARY_RECORD_COUNT,

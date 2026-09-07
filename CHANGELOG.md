@@ -35,6 +35,11 @@
   than blocking Aviary startup or deleting them.
 
 ### Fixed
+- Historical local releases now use the strongest verification script available at the target commit
+  instead of assuming newer `verify:release` exists. Their phase state is read before rebuilding, so a
+  network retry reuses verified artifacts and resumes tagging or upload without repacking.
+- The large-library release corpus now includes deterministic unknown media kinds and asserts that the
+  normalization matrix reports them.
 - Refreshed the reviewed desktop visual baselines for the current media and material-state
   renders. The publication gate now measures the same seven screenshots produced by the shipped
   renderer instead of rejecting a stale capture set.

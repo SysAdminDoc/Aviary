@@ -5,7 +5,7 @@ import path from "node:path";
 import { test } from "node:test";
 
 import { ensureSigningKey, packCrx3, verifyCrx3 } from "../tools/release-crx.mjs";
-import { assertAlignedVersions, parseReleaseArgs } from "../tools/release-local.mjs";
+import { assertAlignedVersions, parseReleaseArgs, selectVerificationScript } from "../tools/release-local.mjs";
 import { missingReleaseReport, reconcileReleaseLedger } from "../tools/release-ledger.mjs";
 import { importSourceModule } from "./helpers/source-import.mjs";
 
@@ -78,6 +78,13 @@ test("local release CLI makes publishing explicit and supports historical rebuil
   assert.equal(parseReleaseArgs(["--publish", "--version=1.47.2"]).publish, true);
   assert.equal(parseReleaseArgs(["--publish", "--historical", "1.44.1"]).historical, "1.44.1");
   assert.throws(() => parseReleaseArgs(["--unknown"]), /Unknown release option/);
+});
+
+test("historical releases use the strongest verification script available at that commit", () => {
+  assert.equal(selectVerificationScript({ scripts: { verify: "npm run test" } }), "verify");
+  assert.equal(selectVerificationScript({ scripts: { "verify:fast": "npm run test" } }), "verify:fast");
+  assert.equal(selectVerificationScript({ scripts: { "verify:release": "npm run verify:fast" } }), "verify:release");
+  assert.equal(selectVerificationScript({ scripts: {} }), null);
 });
 
 test("release planning rejects drifted version markers", async () => {

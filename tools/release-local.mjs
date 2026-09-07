@@ -106,6 +106,11 @@ export async function assertAlignedVersions(projectRoot, version) {
   return true;
 }
 
+export function selectVerificationScript(packageJson) {
+  const scripts = packageJson?.scripts ?? {};
+  return ["verify:release", "verify:fast", "verify"].find((name) => typeof scripts[name] === "string") ?? null;
+}
+
 export async function prepareReleaseArtifacts({
   buildRoot,
   releaseRoot = buildRoot,
@@ -292,10 +297,26 @@ async function publishHistoricalRelease({ root: projectRoot, options, plan }) {
   const tempParent = await mkdtemp(path.join(os.tmpdir(), "aviary-release-worktree-"));
   const worktree = path.join(tempParent, `v${version}`);
   const statePath = path.join(options.stateDir, `v${version}.json`);
+  let state = await readState(statePath);
+  validateState(state, { version, commit: ledgerEntry.commit });
+  if (state?.assets) {
+    await verifyReleaseArtifacts(state.releaseDir, state.assets, state.digests);
+    await ensureTag(projectRoot, `v${version}`, ledgerEntry.commit);
+    state.phase = "tagged";
+    await writeState(statePath, state);
+    await ensureRemoteRelease(projectRoot, `v${version}`, version, state);
+    state.phase = "published";
+    await writeState(statePath, state);
+    console.log(`[release:local] resumed ${version} from ${state.phase} phase.`);
+    return;
+  }
   try {
     await runGit(["worktree", "add", "--detach", worktree, ledgerEntry.commit], { cwd: projectRoot, inherit: true });
     await runNpm(["ci", "--ignore-scripts"], { cwd: worktree, inherit: true });
-    await runNpm(["run", "verify:release"], { cwd: worktree, inherit: true });
+    const historicalPackage = JSON.parse(await readFile(path.join(worktree, "package.json"), "utf8"));
+    const verificationScript = selectVerificationScript(historicalPackage);
+    if (!verificationScript) throw new Error(`Historical ${version} has no local verification script.`);
+    await runNpm(["run", verificationScript], { cwd: worktree, inherit: true });
     const prepared = await prepareReleaseArtifacts({
       buildRoot: worktree,
       releaseRoot: projectRoot,
@@ -306,7 +327,7 @@ async function publishHistoricalRelease({ root: projectRoot, options, plan }) {
       historical: true
     });
     await verifyReleaseArtifacts(prepared.releaseDir, prepared.assets, prepared.digests);
-    const state = {
+    state = {
       format: CURRENT_FORMAT,
       version,
       tag: `v${version}`,
@@ -316,7 +337,6 @@ async function publishHistoricalRelease({ root: projectRoot, options, plan }) {
       assets: prepared.assets,
       digests: prepared.digests,
       keyFingerprint: prepared.keyFingerprint,
-      verifiedWorktree: worktree
     };
     await writeState(statePath, state);
     await ensureTag(projectRoot, `v${version}`, ledgerEntry.commit);

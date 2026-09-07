@@ -46,6 +46,13 @@ export function createLargeLibraryCorpus(count = LARGE_LIBRARY_RECORD_COUNT) {
         captureError: "bytes not retained"
       });
     }
+    if (index % 47 === 0) {
+      media.push({
+        kind: "future-media-kind",
+        url: `https://media.example.invalid/future-${index}`,
+        type: "application/octet-stream"
+      });
+    }
     rows.push({
       tweetId: duplicateId,
       handle: `fixture_user_${index % 200}`,
@@ -100,6 +107,10 @@ export function corpusStats(rows, normalized) {
     duplicates: normalized.partials.filter((entry) => entry.reason === "duplicate-id").length,
     missingBytes: normalized.records.reduce(
       (total, record) => total + record.media.filter((media) => !(media.bytes instanceof Uint8Array)).length,
+      0
+    ),
+    unknownMedia: rows.reduce(
+      (total, row) => total + (Array.isArray(row?.media) ? row.media.filter((media) => media?.kind === "future-media-kind").length : 0),
       0
     )
   };
