@@ -109,12 +109,6 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
 ### P1, Next
 
 ### P2, Later
-
-- [ ] F303, P2: Target the published WACZ specification and settle the signature interop story
-  Why: preserve Aviary's corrected WACZ 1.1.1 target. The 1.2.0 draft carries "This document is a draft of a potential specification. It has no official standing of any kind", has not moved since 2022, and webrecorder/specs#124 proposes deleting it. Separately, `wacz-signing.ts` invents `ECDSA-P384-SHA256` with an Aviary-specific block, so no third-party tool can verify an Aviary signature even though a signing spec exists.
-  Evidence: https://specs.webrecorder.net/wacz/1.1.1/ (Recommendation, 2021-06-03), https://specs.webrecorder.net/wacz/1.2.0/ (draft disclaimer), https://github.com/webrecorder/specs/issues/124, https://specs.webrecorder.net/wacz-auth/0.1.0/, https://specs.webrecorder.net/cdxj/0.1.0/ (seven required fields), https://github.com/webrecorder/py-wacz/releases (0.5.0, 2024-04-11), https://github.com/iipc/jwarc/releases (0.37.0, 2026-09-01); `src/features/export/wacz.ts:69-134`, `src/features/export/wacz-signing.ts:8-13,147-151`
-  Touches: `src/features/export/wacz.ts`, `src/features/export/wacz-signing.ts`, `src/features/export/warc.ts`, the WACZ worker, `tests/wacz.test.mjs`, `tests/wacz-signing.test.mjs`, export panel copy, `docs/FAQ.md`
-  Acceptance: `datapackage.json` declares `profile: "data-package"` and keeps `wacz_version`, `mainPageUrl`, and `mainPageDate`, and a test fails if a 1.2.0-draft field is introduced; every CDXJ line carries all seven required fields with a three-digit status; validation runs against py-wacz and is cross-checked against jwarc for the WARC records, with both versions recorded in the test output; the signature either conforms to the wacz-auth 0.1.0 anonymous format and verifies with an external verifier, or the panel and `docs/FAQ.md` state that the signature is verifiable only by Aviary and name the algorithm, and the export never uses the word signed without that qualification.
   Complexity: M
   Depends: None. Preserve the 1.1.1 target and the external cross-validator rather than shipping the draft shape.
 
