@@ -128,6 +128,10 @@ export function serializeExportMedia(
   if (media.altText !== undefined) serialized.altText = media.altText;
   if (media.language !== undefined) serialized.language = media.language;
   if (media.label !== undefined) serialized.label = media.label;
+  const httpStatus = media.httpStatus;
+  if (typeof httpStatus === "number" && Number.isInteger(httpStatus) && httpStatus >= 100 && httpStatus <= 599) {
+    serialized.httpStatus = httpStatus;
+  }
   return serialized;
 }
 

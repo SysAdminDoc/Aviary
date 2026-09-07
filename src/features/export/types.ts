@@ -52,6 +52,10 @@ export interface ExportMedia {
   /** Byte metadata learned by a downloader or a HEAD request. */
   byteLength?: number;
   sha256?: string;
+  /** HTTP response status retained when the capture included the status line. */
+  httpStatus?: number;
+  /** Safe response headers retained for truthful WARC response records. */
+  httpHeaders?: Record<string, string>;
   captureStatus?: MediaCaptureStatus;
   captureError?: string;
   /**

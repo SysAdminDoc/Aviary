@@ -252,10 +252,14 @@ The Control Center "Export" section exposes:
   contains stable event ids, severity, timestamps, operation codes, and detail-key names only.
 - **Preservation archive** keeps WARC and WACZ together. WARC is the raw record stream. WACZ 1.1.1
   adds a byte-sorted CDXJ index, a page list, and checksummed package metadata for direct use in
-  [replayweb.page](https://replayweb.page/). The panel shows the expected WACZ size before download
-  because its WARC and index members stay uncompressed for reliable byte-range replay. Assembly
-  runs in a dedicated local worker, can be cancelled while it reports progress, and refuses an
-  estimate above 256 MiB. An opt-in Signed WACZ action adds an anonymous ECDSA P-384 signature over
+  [replayweb.page](https://replayweb.page/). Every CDXJ entry points at an exact WARC byte range and
+  carries a three-digit HTTP status. Captured media with a known response status is replayable as an
+  HTTP response; bytes without that status remain honest WARC resources and are not indexed. The
+  package records title, description, modified time, and the first page URL and capture date. Pages
+  show authored time separately from capture time. The panel shows the expected WACZ size before
+  download because its WARC and index members stay uncompressed for reliable byte-range replay.
+  Assembly runs in a dedicated local worker, can be cancelled while it reports progress, and refuses
+  an estimate above 256 MiB. An opt-in Signed WACZ action adds an anonymous ECDSA P-384 signature over
   the exact datapackage digest. The signing identity stays local and its keypair has a separate
   export action.
 

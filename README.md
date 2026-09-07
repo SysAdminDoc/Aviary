@@ -105,8 +105,9 @@ The full reference lives in [docs/FEATURES.md](docs/FEATURES.md). The short vers
   separator, and no unread badge anywhere.
 - **Export.** JSON, CSV, HTML, Markdown and XLSX bundled into a ZIP with per-file checksums, plus a
   local viewer with virtualized scrolling and reconstructed thread reading.
-- **Preservation.** WARC record streams and WACZ 1.1.1 packages that open directly in
-  [replayweb.page](https://replayweb.page/), with an optional anonymous ECDSA signature.
+- **Preservation.** WARC record streams and validator-clean WACZ 1.1.1 packages that open directly in
+  [replayweb.page](https://replayweb.page/). CDXJ entries carry exact WARC offsets and HTTP statuses,
+  while authored and captured times stay distinct. An optional anonymous ECDSA signature is available.
 - **Library.** Local bookmarks with tags and folders, per-handle account notes, t.co unshortening
   with no network call, snapshots, X archive import, and one search that ranks across all of it.
 - **Backups.** One versioned envelope covering every profile, not just the one you have open.

@@ -10,15 +10,6 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
 
 ### P1, Next
 
-- [ ] F282, P1: Produce validator-clean CDXJ and WACZ packages
-  Why: synthetic HTTPS resources are indexed with `status: "-"`, although CDXJ defines the field as an HTTP response status. Current tests check ordering and offsets but not external conformance or replay.
-  Evidence: `src/features/export/warc.ts:103-183`, `src/features/export/wacz.ts:69-134`, `tests/wacz.test.mjs`; https://specs.webrecorder.net/cdxj/0.1.0/; https://specs.webrecorder.net/wacz/1.1.1/
-  Touches: `src/features/export/warc.ts`, `src/features/export/wacz.ts`, WACZ worker, package metadata, preservation tests and fixtures
-  Acceptance: every indexed entry resolves to the exact WARC offset and has a three-digit status; synthetic pages are valid HTTP 200 response records or are omitted from CDXJ; the package includes title, description, modified time, and first-page URL/date when available; the reference validator exits cleanly; ReplayWeb opens the first page and one captured media response in an isolated browser test.
-  Complexity: M
-  Depends: None.
-  Research update 2026-09-05: when Aviary retained payload bytes but not the received status line and headers, emit `WARC-Type: resource` instead of the invented `HTTP/1.1 200 OK` block in `src/features/export/warc.ts`; use `createdAt` as the visible post time, label `capturedAt` separately, and keep `capturedAt` for `WARC-Date`. Evidence: https://iipc.github.io/warc-specifications/specifications/warc-format/warc-1.1/ and https://iipc.github.io/warc-specifications/guidelines/warc-implementation-guidelines/
-
 ### P2, Later
 
 - [ ] F283, P2: Offer an observed-adaptive yt-dlp handoff when it improves saved quality
@@ -68,7 +59,7 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
   Touches: synthetic fixture generator, export/import/media job harnesses, worker restart helpers, release matrix
   Acceptance: a deterministic 50,000-record corpus includes tombstones, unknown media, duplicate IDs, malformed rows, and missing bytes; search, backup, restore, ZIP, WARC/WACZ, and media selection complete or report row-level partials; one malformed record never aborts the job; forced content and service-worker restarts resume from checkpoints; Chromium peak heap stays below the documented test budget and any estimate refusal occurs before allocation.
   Complexity: L
-  Depends: F273, F277, and F282.
+  Depends: F273 and F277.
 
 - [ ] F289, P2: Replace the TypeScript 7 nightly with the stable compiler
   Why: the repository pins `@typescript/native-preview` even though stable TypeScript 7.0.2 now owns the CLI and Microsoft publishes a side-by-side TypeScript 6 API package for typescript-eslint.
@@ -106,7 +97,7 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
   Touches: export formatters, viewer routes, thread reconstruction, RSS generator, ZIP packaging and tests
   Acceptance: one local export produces a static index, per-post pages, reconstructed thread links, copied media when bytes exist, explicit placeholders when they do not, and valid RSS 2.0; every page opens with network disabled; canonical links point to the original X URL while archive navigation stays local; repeated export is deterministic apart from the declared generated time.
   Complexity: L
-  Depends: F282 and F288.
+  Depends: F288.
 
 - [ ] F293, P3: Import a Scrollmark portable bundle without losing provenance
   Why: a concrete passive-archive import gives users a migration path without introducing a generic plugin system.
@@ -171,12 +162,12 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
 ### P2, Later
 
 - [ ] F303, P2: Target the published WACZ specification and settle the signature interop story
-  Why: preserve F282's corrected WACZ 1.1.1 target. The 1.2.0 draft carries "This document is a draft of a potential specification. It has no official standing of any kind", has not moved since 2022, and webrecorder/specs#124 proposes deleting it. Separately, `wacz-signing.ts` invents `ECDSA-P384-SHA256` with an Aviary-specific block, so no third-party tool can verify an Aviary signature even though a signing spec exists.
+  Why: preserve Aviary's corrected WACZ 1.1.1 target. The 1.2.0 draft carries "This document is a draft of a potential specification. It has no official standing of any kind", has not moved since 2022, and webrecorder/specs#124 proposes deleting it. Separately, `wacz-signing.ts` invents `ECDSA-P384-SHA256` with an Aviary-specific block, so no third-party tool can verify an Aviary signature even though a signing spec exists.
   Evidence: https://specs.webrecorder.net/wacz/1.1.1/ (Recommendation, 2021-06-03), https://specs.webrecorder.net/wacz/1.2.0/ (draft disclaimer), https://github.com/webrecorder/specs/issues/124, https://specs.webrecorder.net/wacz-auth/0.1.0/, https://specs.webrecorder.net/cdxj/0.1.0/ (seven required fields), https://github.com/webrecorder/py-wacz/releases (0.5.0, 2024-04-11), https://github.com/iipc/jwarc/releases (0.37.0, 2026-09-01); `src/features/export/wacz.ts:69-134`, `src/features/export/wacz-signing.ts:8-13,147-151`
   Touches: `src/features/export/wacz.ts`, `src/features/export/wacz-signing.ts`, `src/features/export/warc.ts`, the WACZ worker, `tests/wacz.test.mjs`, `tests/wacz-signing.test.mjs`, export panel copy, `docs/FAQ.md`
   Acceptance: `datapackage.json` declares `profile: "data-package"` and keeps `wacz_version`, `mainPageUrl`, and `mainPageDate`, and a test fails if a 1.2.0-draft field is introduced; every CDXJ line carries all seven required fields with a three-digit status; validation runs against py-wacz and is cross-checked against jwarc for the WARC records, with both versions recorded in the test output; the signature either conforms to the wacz-auth 0.1.0 anonymous format and verifies with an external verifier, or the panel and `docs/FAQ.md` state that the signature is verifiable only by Aviary and name the algorithm, and the export never uses the word signed without that qualification.
   Complexity: M
-  Depends: None. Modifies F282: adopt the 1.1.1 target and the external cross-validator there rather than shipping the draft shape.
+  Depends: None. Preserve the 1.1.1 target and the external cross-validator rather than shipping the draft shape.
 
 - [ ] F304, P2: Send the completion-limit parameter current OpenAI models accept
   Why: the OpenAI-compatible path always sends `max_tokens`, which reasoning models reject with `unsupported_parameter`. The user sees `Provider HTTP 400` with no explanation, on a correctly configured account.
@@ -301,7 +292,7 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
   Touches: `src/features/export/types.ts`, `src/features/export/thread-capture.ts`, `src/features/export/collector.ts`, export preview and formatters, WARC/WACZ metadata, static viewer, backup and migration tests
   Acceptance: `ExportRecord` carries `audience: "public" | "protected" | "unknown"`; GraphQL capture maps a real boolean and DOM-only or old records remain `unknown`, never inferred public; local library backup retains all records unchanged; before HTML, Markdown, WARC, WACZ, ActivityStreams, or static share export, the preview reports public, protected, and unknown counts and excludes protected and unknown records until the user explicitly includes each group; JSON and CSV include the field and state their archival rather than share-oriented behavior; quoted-post media inherits its owning record's audience; round-trip tests cover all three states and an old record with no field.
   Complexity: M
-  Depends: F282 for preservation-package validation. Extend F292 and F315 to consume the audience field when they land.
+  Depends: None for preservation-package validation. Extend F292 and F315 to consume the audience field when they land.
 
 - [ ] F320, P1: Stage large archive imports without whole-file base64 duplication
   Why: a 256 MiB import is encoded into roughly 341 MiB of base64, persisted, decoded into another complete byte array, and then parsed, creating avoidable quota and memory failures before useful work begins.

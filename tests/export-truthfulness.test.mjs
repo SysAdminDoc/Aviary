@@ -54,7 +54,14 @@ test("WARC stores captured bytes as responses and remote media as metadata-only"
   const bytes = new TextEncoder().encode("captured media");
   const artifact = buildWarcArchive([sampleRecord({
     media: [
-      { kind: "photo", url: "https://pbs.twimg.com/media/c.jpg", bytes, type: "image/jpeg" },
+      {
+        kind: "photo",
+        url: "https://pbs.twimg.com/media/c.jpg",
+        bytes,
+        type: "image/jpeg",
+        httpStatus: 200,
+        httpHeaders: { "content-type": "image/jpeg" }
+      },
       { kind: "photo", url: "https://pbs.twimg.com/media/d.jpg" }
     ]
   })]);
@@ -77,7 +84,8 @@ test("WARC record ids remain unique when two captured records are byte-identical
     kind: "photo",
     url: "https://pbs.twimg.com/media/same.jpg",
     bytes: new Uint8Array([0x89, 0x50, 0x4e, 0x47]),
-    type: "image/jpeg"
+    type: "image/jpeg",
+    httpStatus: 200
   };
   const record = sampleRecord({
     tweetId: null,
@@ -137,6 +145,34 @@ test("media capture records failures as retryable metadata", async () => {
     assert.equal(result.media[0].captureStatus, "remote-reference");
     assert.equal(result.media[0].bytes, undefined);
     assert.match(result.media[0].captureError, /HTTP 503/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("media capture retains the response status and safe headers", async () => {
+  const { captureExportRecordMedia } = await importSourceModule("src/features/media/downloader.ts");
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(new Uint8Array([1, 2, 3]), {
+    status: 206,
+    headers: {
+      "Content-Type": "image/png",
+      "Content-Range": "bytes 0-2/3",
+      "Cache-Control": "public, max-age=60",
+      "Set-Cookie": "must-not-be-retained"
+    }
+  });
+  try {
+    const result = await captureExportRecordMedia(sampleRecord({
+      media: [{ kind: "photo", url: "https://pbs.twimg.com/media/range.png" }]
+    }));
+    assert.equal(result.media[0].httpStatus, 206);
+    assert.deepEqual(result.media[0].httpHeaders, {
+      "cache-control": "public, max-age=60",
+      "content-range": "bytes 0-2/3",
+      "content-type": "image/png"
+    });
+    assert.equal(result.media[0].bytes?.byteLength, 3);
   } finally {
     globalThis.fetch = originalFetch;
   }

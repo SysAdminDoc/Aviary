@@ -27,7 +27,7 @@ export interface WarcIndexEntry {
   timestamp: string;
   digest: string;
   mime: string;
-  status: string;
+  status: number;
   offset: number;
   length: number;
 }
@@ -36,6 +36,8 @@ export interface WarcPageEntry {
   url: string;
   ts: string;
   title?: string;
+  capturedAt?: string;
+  publishedAt?: string;
 }
 
 export interface IndexedWarcArchive {
@@ -113,12 +115,6 @@ export function buildIndexedWarcArchive(
       recordType: "resource",
       recordedAt,
       payloadDigest: summaryDigest
-    }, {
-      url: summaryUrl,
-      timestamp,
-      digest: summaryDigest,
-      mime: "application/json",
-      status: "-"
     });
 
     const pageUrl = syntheticPageUrl(record, recordIndex);
@@ -127,9 +123,9 @@ export function buildIndexedWarcArchive(
     const pageDigest = digestValue(pageBytes);
     append({
       url: pageUrl,
-      mime: "text/html; charset=utf-8",
-      body: pageBytes,
-      recordType: "resource",
+      mime: "application/http; msgtype=response",
+      body: httpResponseBlock(pageBytes, "text/html; charset=utf-8", 200),
+      recordType: "response",
       recordedAt,
       payloadDigest: pageDigest
     }, {
@@ -137,9 +133,16 @@ export function buildIndexedWarcArchive(
       timestamp,
       digest: pageDigest,
       mime: "text/html",
-      status: "-"
+      status: 200
     });
-    pages.push({ url: pageUrl, ts: timestamp, title: pageTitle });
+    const publishedAt = validDate(record.createdAt);
+    pages.push({
+      url: pageUrl,
+      ts: timestamp,
+      title: pageTitle,
+      capturedAt: timestamp,
+      ...(publishedAt ? { publishedAt: toWarcDate(publishedAt) } : {})
+    });
 
     for (const [mediaIndex, media] of mediaOf(record).entries()) {
       const capture = describeMediaCapture(media, record.capturedAt);
@@ -151,21 +154,33 @@ export function buildIndexedWarcArchive(
       if (capture.status === "captured-bytes" && media.bytes instanceof Uint8Array) {
         const payloadDigest = digestValue(media.bytes);
         if (sourceUrl) {
-          const responseBlock = httpResponseBlock(media.bytes, mime);
-          append({
-            url: sourceUrl,
-            mime: "application/http; msgtype=response",
-            body: responseBlock,
-            recordType: "response",
-            recordedAt: mediaRecordedAt,
-            payloadDigest
-          }, {
-            url: sourceUrl,
-            timestamp: mediaTimestamp,
-            digest: payloadDigest,
-            mime,
-            status: "200"
-          });
+          const responseStatus = validHttpStatus(media.httpStatus);
+          if (responseStatus !== null) {
+            const responseBlock = httpResponseBlock(media.bytes, mime, responseStatus, media.httpHeaders);
+            append({
+              url: sourceUrl,
+              mime: "application/http; msgtype=response",
+              body: responseBlock,
+              recordType: "response",
+              recordedAt: mediaRecordedAt,
+              payloadDigest
+            }, {
+              url: sourceUrl,
+              timestamp: mediaTimestamp,
+              digest: payloadDigest,
+              mime,
+              status: responseStatus
+            });
+          } else {
+            append({
+              url: sourceUrl,
+              mime,
+              body: media.bytes,
+              recordType: "resource",
+              recordedAt: mediaRecordedAt,
+              payloadDigest
+            });
+          }
         } else {
           const syntheticUrl = syntheticMediaUrl(recordIndex, mediaIndex, media);
           append({
@@ -175,12 +190,6 @@ export function buildIndexedWarcArchive(
             recordType: "resource",
             recordedAt: mediaRecordedAt,
             payloadDigest
-          }, {
-            url: syntheticUrl,
-            timestamp: mediaTimestamp,
-            digest: payloadDigest,
-            mime,
-            status: "-"
           });
         }
         continue;
@@ -281,6 +290,10 @@ function normalizeHttpUrl(value: string | null | undefined): string | null {
 
 function renderReplayPage(record: ExportRecord, title: string): string {
   const original = normalizeHttpUrl(record.permalink);
+  const authoredAt = validDate(record.createdAt) ?? validDate(record.capturedAt);
+  const capturedAt = validDate(record.capturedAt);
+  const authoredIso = authoredAt?.toISOString() ?? "unknown";
+  const capturedIso = capturedAt?.toISOString() ?? "unknown";
   const media = mediaOf(record).map((entry) => {
     const source = normalizeHttpUrl(entry.sourceUrl || entry.url);
     if (!source) return "";
@@ -314,7 +327,7 @@ p{white-space:pre-wrap;font-size:18px}.media{display:grid;gap:10px;margin-top:18
 a{display:inline-block;margin-top:18px;color:#7dd3fc;text-underline-offset:3px}
 </style>
 </head>
-<body><main><article><header><strong>${escapeHtml(record.handle ? `@${record.handle}` : record.displayName ?? "Captured post")}</strong><time datetime="${escapeHtml(record.capturedAt ?? "")}">${escapeHtml(record.capturedAt ?? "")}</time></header><p>${escapeHtml(record.text ?? "")}</p>${media ? `<div class="media">${media}</div>` : ""}${originalLink}</article></main></body>
+<body><main><article><header><strong>${escapeHtml(record.handle ? `@${record.handle}` : record.displayName ?? "Captured post")}</strong><span><time datetime="${escapeHtml(authoredIso)}">Posted ${escapeHtml(authoredIso)}</time><br><small>Captured ${escapeHtml(capturedIso)}</small></span></header><p>${escapeHtml(record.text ?? "")}</p>${media ? `<div class="media">${media}</div>` : ""}${originalLink}</article></main></body>
 </html>`;
 }
 
@@ -327,26 +340,36 @@ function escapeHtml(value: string): string {
     .replaceAll("'", "&#39;");
 }
 
-function httpResponseBlock(payload: Uint8Array, mime: string): Uint8Array {
-  const headers = ENCODER.encode([
-    "HTTP/1.1 200 OK",
+function httpResponseBlock(
+  payload: Uint8Array,
+  mime: string,
+  status: number,
+  extraHeaders: Readonly<Record<string, string>> = {}
+): Uint8Array {
+  const headers = [
+    `HTTP/1.1 ${status} ${status === 200 ? "OK" : "Captured"}`,
+    ...Object.entries(extraHeaders)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .filter(([name]) => !/^(?:content-type|content-length|connection)$/i.test(name))
+      .map(([name, value]) => `${sanitizeHeaderName(name)}: ${sanitizeHeaderValue(value)}`),
     `Content-Type: ${sanitizeHeaderValue(mime) || "application/octet-stream"}`,
     `Content-Length: ${payload.length}`,
     "Connection: close",
     "",
     ""
-  ].join("\r\n"));
-  return concatenate([headers, payload], headers.length + payload.length);
+  ];
+  const headerBytes = ENCODER.encode(headers.join("\r\n"));
+  return concatenate([headerBytes, payload], headerBytes.length + payload.length);
+}
+
+function validHttpStatus(value: number | undefined): number | null {
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 100 || value > 599) return null;
+  return value;
 }
 
 /** Strip control characters from untrusted WARC header values. */
 function sanitizeHeaderValue(value: string): string {
-  let out = "";
-  for (const ch of value) {
-    const code = ch.codePointAt(0) ?? 0;
-    out += code < 0x20 || code === 0x7f ? " " : ch;
-  }
-  return out.split(" ").filter((part) => part.length > 0).join(" ");
+  return value.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim();
 }
 
 export function formatRecord(input: WarcRecordInput): Uint8Array {

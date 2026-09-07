@@ -49,6 +49,8 @@ export interface CapturedMediaBytes {
   byteLength: number;
   sha256: string;
   contentType: string;
+  httpStatus: number;
+  httpHeaders: Record<string, string>;
 }
 
 export interface CaptureMediaOptions {
@@ -105,6 +107,8 @@ export async function captureMediaBytes(
     return {
       bytes,
       contentType: response.headers.get("content-type")?.split(";", 1)[0]?.trim() || "application/octet-stream",
+      httpStatus: response.status,
+      httpHeaders: safeResponseHeaders(response.headers),
       sha256
     };
   }, options.timeoutMs ?? NETWORK_TIMEOUTS.mediaTransfer);
@@ -114,7 +118,9 @@ export async function captureMediaBytes(
     bytes: captured.bytes,
     byteLength: captured.bytes.byteLength,
     sha256: captured.sha256,
-    contentType: captured.contentType
+    contentType: captured.contentType,
+    httpStatus: captured.httpStatus,
+    httpHeaders: captured.httpHeaders
   };
 }
 
@@ -186,6 +192,8 @@ export async function captureExportRecordMedia(
         byteLength: captured.byteLength,
         sha256: captured.sha256,
         bytes: captured.bytes,
+        httpStatus: captured.httpStatus,
+        httpHeaders: captured.httpHeaders,
         type: entry.type?.includes("/") ? entry.type : captured.contentType,
         captureStatus: "captured-bytes"
       };
@@ -200,6 +208,17 @@ export async function captureExportRecordMedia(
     }
   }));
   return { ...record, media };
+}
+
+function safeResponseHeaders(headers: Headers): Record<string, string> {
+  const output: Record<string, string> = {};
+  headers.forEach((value, name) => {
+    const normalized = name.toLowerCase();
+    if (/^(?:accept-ranges|cache-control|content-disposition|content-range|content-type|etag|expires|last-modified)$/.test(normalized)) {
+      output[normalized] = value;
+    }
+  });
+  return output;
 }
 
 /**

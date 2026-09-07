@@ -35,6 +35,10 @@
   implying a guarantee.
 
 ### Added
+- **Validator-clean preservation packages.** WACZ exports now carry CDXJ entries with exact WARC
+  offsets and three-digit HTTP statuses, truthful response or resource records for captured media,
+  package metadata for direct replay, and separate authored and capture times. The archive is
+  cross-checked with py-wacz and a headless ReplayWeb load before release.
 - **Suppress hover previews** in Reading, on by default in the Minimal preset. X stops opening a profile card or tooltip when the pointer rests on a name, avatar or control, and native tooltip bubbles are removed and given back exactly when the setting is turned off. Menus you click, visible labels, and screen-reader names are untouched, and nothing listens for the pointer, so a touch-only session costs nothing.
 - **Early media replay** keeps a bounded, metadata-only set of direct image and video candidates seen
   while Aviary is opening. The media controls consume it once after storage is ready, so a blob-backed

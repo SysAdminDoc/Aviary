@@ -157,11 +157,14 @@ list, and checksums so a replay tool can find individual captures without scanni
 Open **Export → Preservation archive** to download either one. The WACZ action shows an estimated
 size before it runs, then **Open replayweb.page** takes you to the compatible browser viewer.
 
-Aviary writes captured media as real HTTP responses and gives each derived post page a synthetic
-archive URL. Missing media remains honest metadata rather than a fake response. WACZ keeps the WARC
-and index members uncompressed because replay depends on their exact byte offsets, so it can be
-larger than a normal export ZIP. The archive is assembled in a local worker, with a 256 MiB estimate
-guard and a cancel action, then downloaded locally.
+Aviary writes captured media as real HTTP responses when the received status is available, and gives
+each derived post page a synthetic HTTP 200 response. If only bytes were retained, the media stays a
+truthful WARC resource and is left out of CDXJ rather than receiving an invented status. WACZ keeps
+the WARC and index members uncompressed because replay depends on their exact byte offsets, so it can
+be larger than a normal export ZIP. The archive includes title, description, modified time, and the
+first page URL and capture date when available. Authored post time is shown separately from capture
+time. The archive is assembled in a local worker, with a 256 MiB estimate guard and a cancel action,
+then downloaded locally.
 
 The optional **Signed WACZ** action creates an anonymous ECDSA P-384 identity on first use and signs
 the exact SHA-256 hash of `datapackage.json`. The public key and signature travel inside
