@@ -43,7 +43,7 @@ test("share exports exclude protected and unknown records while archival JSON an
     ["3", "unknown"]
   ]);
   const csv = decoder.decode(formatExport("csv", records).data);
-  assert.match(csv, /tweetId,handle,displayName,capturedAt,surface,permalink,audience/);
+  assert.match(csv, /tweetId,handle,displayName,capturedAt,surface,permalink,language,audience/);
   assert.match(csv, /protected/);
   assert.match(csv, /unknown/);
 

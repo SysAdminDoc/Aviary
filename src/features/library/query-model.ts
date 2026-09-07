@@ -360,6 +360,7 @@ export function documentFromExportRecord(record: ExportRecord): OfflineQueryDocu
     record.rootId ?? "",
     record.parentId ?? "",
     record.authorId ?? "",
+    record.language ?? "",
     ...(record.participants ?? []).flatMap((participant) =>
       [participant.id, participant.handle ?? "", participant.label]
     ),

@@ -35,6 +35,10 @@
   than blocking Aviary startup or deleting them.
 
 ### Fixed
+- Export records now keep canonical BCP 47 post language from DOM, GraphQL, and archive inputs.
+  JSON and CSV carry the value, Markdown writes it in frontmatter, and HTML, replay pages, and the
+  offline viewer isolate each post with its own language and automatic direction. Invalid tags and
+  legacy records become null instead of reaching markup.
 - Large X archive imports now stage a File in fixed 3 MiB base64 chunks. Extension chunks stay in
   the background-owned durable store, userscript values stay under manager limits, and the ZIP
   reader consumes bounded source ranges instead of decoding a second full archive. Paused,

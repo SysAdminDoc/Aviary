@@ -17,6 +17,7 @@ import {
   buildArchiveParticipant,
   buildMentionParticipant
 } from "./archive-repair.ts";
+import { normalizePostLanguage } from "../export/language.ts";
 
 export type ArchiveCollectionName =
   | "authored-posts"
@@ -415,6 +416,7 @@ function mapTweets(parsed: unknown, surface: string): ExportRecord[] {
       surface,
       media: [],
       permalink: id ? `https://x.com/i/web/status/${id}` : null,
+      language: normalizePostLanguage(stringField(tweet, "lang", "language")),
       audience: "unknown"
     };
     const conversationId = stringField(tweet, "conversation_id_str", "conversationId");
@@ -454,6 +456,7 @@ function mapLikes(parsed: unknown, surface: string): ExportRecord[] {
       surface: `${surface}.likes`,
       media: [],
       permalink: id ? `https://x.com/i/web/status/${id}` : null,
+      language: normalizePostLanguage(stringField(like, "lang", "language")),
       audience: "unknown"
     };
     const participants = mentionParticipants(like);

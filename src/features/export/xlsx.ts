@@ -1,6 +1,7 @@
 import type { ExportArtifact, ExportRecord } from "./types.ts";
 import { describeMediaCapture } from "./assets.ts";
 import { buildStoreZip } from "./zip-store.ts";
+import { normalizePostLanguage } from "./language.ts";
 
 const ENCODER = new TextEncoder();
 
@@ -13,6 +14,7 @@ export function formatXlsx(records: readonly ExportRecord[]): ExportArtifact {
       "capturedAt",
       "surface",
       "permalink",
+      "language",
       "text",
       "mediaUrls",
       "mediaStatus",
@@ -28,6 +30,7 @@ export function formatXlsx(records: readonly ExportRecord[]): ExportArtifact {
       record.capturedAt,
       record.surface,
       record.permalink ?? "",
+      normalizePostLanguage(record.language) ?? "",
       record.text,
       captures.map((media) => media.sourceUrl).filter(Boolean).join("|"),
       captures.map((media) => media.status).join("|"),

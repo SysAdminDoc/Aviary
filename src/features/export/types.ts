@@ -9,6 +9,8 @@ export interface ExportRecord {
   surface: string;
   media: ExportMedia[];
   permalink: string | null;
+  /** Canonical BCP 47 language supplied by X, or null when it was not supplied. */
+  language?: string | null;
   /** Audience state observed at capture time. Missing legacy records normalize to `unknown`. */
   audience?: ExportAudience;
   poll?: ExportPoll;

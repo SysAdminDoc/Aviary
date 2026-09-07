@@ -3,6 +3,7 @@ import { describeMediaCapture, serializeExportRecords } from "./assets.ts";
 import { reconstructThreads } from "./thread-reconstruction.ts";
 import { formatXlsx } from "./xlsx.ts";
 import { normalizeAudience } from "./audience.ts";
+import { languageAttribute, normalizePostLanguage } from "./language.ts";
 
 const TEXT_ENCODER = new TextEncoder();
 
@@ -57,6 +58,7 @@ function csvArtifact(records: ExportRecord[]): ExportArtifact {
     "capturedAt",
     "surface",
     "permalink",
+    "language",
     "audience",
     "text",
     "mediaUrls",
@@ -76,6 +78,7 @@ function csvArtifact(records: ExportRecord[]): ExportArtifact {
         record.capturedAt,
         record.surface,
         record.permalink ?? "",
+        normalizePostLanguage(record.language) ?? "",
         normalizeAudience(record.audience),
         record.text,
         mediaUrls,
@@ -156,7 +159,7 @@ function htmlArtifact(records: ExportRecord[]): ExportArtifact {
     <span class="handle">@${escapeHtml(record.handle ?? "")}</span>
     <time datetime="${escapeHtml(record.capturedAt)}">${escapeHtml(record.capturedAt)}</time>
   </header>
-  <p>${escapeHtml(record.text).replace(/\n/g, "<br>")}</p>
+  <p${languageAttribute(record.language)} dir="auto"><bdi dir="auto">${escapeHtml(record.text).replace(/\n/g, "<br>")}</bdi></p>
   <ul>${media}</ul>
   <footer>${permalink}</footer>
 </article>`;
@@ -164,7 +167,7 @@ function htmlArtifact(records: ExportRecord[]): ExportArtifact {
     .join("\n");
 
   const html = `<!doctype html>
-<html lang="en"><head>
+<html lang="en" dir="ltr"><head>
 <meta charset="utf-8" />
 <title>Aviary export</title>
 <style>
@@ -193,6 +196,8 @@ ${rows}
 function markdownArtifact(records: ExportRecord[]): ExportArtifact {
   const sections = records.map((record) => {
     const header = `## ${record.displayName ?? record.handle ?? "Unknown"} (@${record.handle ?? "anon"}) · ${record.capturedAt}`;
+    const language = normalizePostLanguage(record.language);
+    const frontmatter = `---\nlanguage: ${language ?? "null"}\n---`;
     const body = record.text.split("\n").map((line) => `> ${line}`).join("\n");
     const media =
       record.media.length === 0
@@ -206,7 +211,7 @@ function markdownArtifact(records: ExportRecord[]): ExportArtifact {
             return `- ${link} (${details})`;
           }).join("\n")}`;
     const permalink = record.permalink ? `\n\n${record.permalink}` : "";
-    return `${header}\n\nAudience: ${normalizeAudience(record.audience)}\n\n${body}${media}${permalink}`;
+    return `${frontmatter}\n\n${header}\n\nAudience: ${normalizeAudience(record.audience)}\n\n${body}${media}${permalink}`;
   });
 
   const md = `# Aviary export\n\nGenerated ${new Date().toISOString()} · ${records.length} records. Media links marked remote-reference are not fetched automatically.\n\n${sections.join("\n\n---\n\n")}\n`;

@@ -369,8 +369,8 @@ later working tree.
 - **Presets**, Quiet Reader, Media Archivist, Creator, Researcher, Classic, Minimal. The Control Center "Presets" section applies any preset in one click and reports the exact deltas in the status line.
 - **i18n + RTL**, 9-locale translation table with English fallback, browser-native `_locales`
   bundles for Chrome and Firefox, localized manifest and media context-menu copy, shared direction
-  metadata on the Options page, `av-rtl`/`av-ltr` HTML classes, and Arabic/Hebrew bidi-safe tweet
-  text.
+  metadata on the Options page, `av-rtl`/`av-ltr` HTML classes, canonical post-language fields, and
+  Arabic/Hebrew bidi-safe tweet text in exports, replay pages, and the offline viewer.
 - **Large-library matrix**, a deterministic 50,000-row release fixture with tombstones, malformed
   rows, duplicate ids, unknown media, and missing bytes. Search, backup/restore, ZIP, WARC/WACZ,
   media selection, and content or service-worker restart recovery either complete or return a

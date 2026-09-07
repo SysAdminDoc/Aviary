@@ -185,7 +185,8 @@ function mergeNode(existing: ThreadNode, incoming: ExportRecord): ThreadNode {
     "authorId",
     "createdAt",
     "threadId",
-    "birdwatch"
+    "birdwatch",
+    "language"
   ];
   for (const field of stringFields) {
     const value = incoming[field];

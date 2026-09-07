@@ -416,7 +416,15 @@ function viewerScript(labels: string, locales: readonly string[], rtl: readonly 
     return sort === "newest" ? rightTime - leftTime : leftTime - rightTime;
   }
   function appendPost(card, entry) {
-    const body = text("p", entry.text || "", "body");
+    const body = document.createElement("p");
+    body.className = "body";
+    body.dir = "auto";
+    body.style.unicodeBidi = "plaintext";
+    if (typeof entry.language === "string") body.lang = entry.language;
+    const bidi = document.createElement("bdi");
+    bidi.dir = "auto";
+    bidi.textContent = entry.text || "";
+    body.append(bidi);
     if (entry.__differentAuthor) body.classList.add("different-author");
     card.append(body);
   }

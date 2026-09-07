@@ -144,14 +144,6 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
 
 ## Research-Driven Additions (2026-09-05)
 
-- [ ] F321, P1: Preserve post language and bidirectional isolation end to end
-  Why: X exposes post language, but `ExportRecord` drops it, exported HTML hardcodes English, and mixed RTL content can reorder punctuation, handles, and links in portable output.
-  Evidence: `src/features/export/types.ts`, `src/features/export/collector.ts`, `src/features/export/thread-capture.ts`, `src/features/export/formatters.ts` (`<html lang="en">`), `src/features/export/warc.ts`; https://www.w3.org/International/questions/qa-html-language-declarations.html and https://www.w3.org/International/articles/inline-bidi-markup/
-  Touches: export record schema and migration, DOM and GraphQL collectors, JSON/CSV/HTML/Markdown/WARC formatters, offline viewer, search documents, export and accessibility tests
-  Acceptance: collectors retain a canonical BCP 47 post language when X supplied one and store `null` when it did not; invalid tags never reach markup; JSON and CSV include the value; HTML, replay pages, and the viewer keep the shell locale on the document and render each post body with its own `lang` plus `dir="auto"` or an equivalent `bdi` boundary; Markdown preserves language in frontmatter without injecting raw HTML into post text; fixtures cover Arabic and Hebrew with Latin handles and punctuation, plus Japanese, Thai, Lao, Khmer, Myanmar, emoji, an invalid tag, and an old record with no language.
-  Complexity: M
-  Depends: None. Reuse F287's locale metadata when that item lands.
-
 ### P2, Later
 
 - [ ] F322, P2: Replace draft `aria-description` with a real referenced description

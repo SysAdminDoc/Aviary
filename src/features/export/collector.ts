@@ -9,6 +9,7 @@ import type {
   ExportQuoteSummary,
   ExportRecord
 } from "./types.ts";
+import { normalizePostLanguage } from "./language.ts";
 
 export interface CollectExportOptions {
   mediaMetadata?: ExtractTweetOptions["mediaMetadata"];
@@ -111,6 +112,7 @@ export function collectExportRecords(
       surface,
       media,
       permalink,
+      language: readPostLanguage(article),
       audience: "unknown"
     };
     for (const entry of record.media) {
@@ -124,6 +126,15 @@ export function collectExportRecords(
   }
 
   return records;
+}
+
+function readPostLanguage(article: Element): string | null {
+  const textNode = article.querySelector('[data-testid="tweetText"]');
+  return normalizePostLanguage(
+    textNode?.getAttribute("lang") ??
+      textNode?.closest("[lang]")?.getAttribute("lang") ??
+      article.getAttribute("lang")
+  );
 }
 
 export function collectProfileAbout(root: ParentNode): ExportProfileAbout | null {

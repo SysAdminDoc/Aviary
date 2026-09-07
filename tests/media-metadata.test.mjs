@@ -338,6 +338,27 @@ test("export collection includes direct audio and caption downloads", async () =
   ]);
 });
 
+test("DOM export collection keeps a tweet language tag and rejects markup-looking tags", async () => {
+  const result = await page.evaluate(() => {
+    const make = (language) => {
+      const article = document.createElement("article");
+      article.setAttribute("data-testid", "tweet");
+      const status = document.createElement("a");
+      status.href = "/someone/status/246813580";
+      const text = document.createElement("div");
+      text.setAttribute("data-testid", "tweetText");
+      text.setAttribute("lang", language);
+      text.textContent = language === "ar" ? "مرحبا, @alice" : "invalid";
+      article.append(status, text);
+      return article;
+    };
+    document.body.replaceChildren(make("ar"), make("<script>"));
+    return AviaryMedia.collectExportRecords(document, "home").map((record) => record.language);
+  });
+
+  assert.deepEqual(result, ["ar", null]);
+});
+
 test("MSE extraction keeps the real player as the video and thumbnail anchor", async () => {
   const result = await page.evaluate((body) => {
     const article = document.createElement("article");

@@ -6,6 +6,7 @@ import {
 } from "./assets.ts";
 import type { ExportArtifact, ExportMedia, ExportRecord } from "./types.ts";
 import { filterShareRecords, normalizeAudienceSelection, type ExportAudienceSelection } from "./audience.ts";
+import { languageAttribute } from "./language.ts";
 
 const ENCODER = new TextEncoder();
 const WARC_VERSION = "WARC/1.1";
@@ -321,7 +322,7 @@ function renderReplayPage(record: ExportRecord, title: string): string {
     ? `<a href="${escapeHtml(original)}" rel="noreferrer">Original post</a>`
     : "";
   return `<!doctype html>
-<html lang="en">
+<html lang="en" dir="ltr">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -335,7 +336,7 @@ p{white-space:pre-wrap;font-size:18px}.media{display:grid;gap:10px;margin-top:18
 a{display:inline-block;margin-top:18px;color:#7dd3fc;text-underline-offset:3px}
 </style>
 </head>
-<body><main><article><header><strong>${escapeHtml(record.handle ? `@${record.handle}` : record.displayName ?? "Captured post")}</strong><span><time datetime="${escapeHtml(authoredIso)}">Posted ${escapeHtml(authoredIso)}</time><br><small>Captured ${escapeHtml(capturedIso)}</small></span></header><p>${escapeHtml(record.text ?? "")}</p>${media ? `<div class="media">${media}</div>` : ""}${originalLink}</article></main></body>
+<body><main><article><header><strong>${escapeHtml(record.handle ? `@${record.handle}` : record.displayName ?? "Captured post")}</strong><span><time datetime="${escapeHtml(authoredIso)}">Posted ${escapeHtml(authoredIso)}</time><br><small>Captured ${escapeHtml(capturedIso)}</small></span></header><p${languageAttribute(record.language)} dir="auto"><bdi dir="auto">${escapeHtml(record.text ?? "")}</bdi></p>${media ? `<div class="media">${media}</div>` : ""}${originalLink}</article></main></body>
 </html>`;
 }
 

@@ -1,4 +1,5 @@
 import type { ExportRecord } from "./types.ts";
+import { normalizePostLanguage } from "./language.ts";
 
 const MAX_NODES = 30_000;
 const MAX_RECORDS = 2_000;
@@ -68,6 +69,9 @@ function readTweet(
   const user = findUser(value, legacy);
   const userLegacy = asRecord(user?.legacy);
   const audience = readAudience(user, userLegacy);
+  const language = normalizePostLanguage(
+    legacy?.lang ?? legacy?.language ?? value.lang ?? value.language ?? value.content_language
+  );
   const handle = cleanHandle(
     user?.screen_name ?? user?.screenName ?? user?.username ?? userLegacy?.screen_name ?? userLegacy?.screenName ?? value.screen_name ?? value.username
   );
@@ -97,6 +101,7 @@ function readTweet(
     surface: `graphql:${safeOperation(operationName)}`,
     media: [],
     permalink,
+    language,
     audience,
     ...(conversationId ? { conversationId, rootId: conversationId } : {}),
     ...(parentId ? { parentId } : {}),
@@ -149,7 +154,8 @@ function recordRichness(record: ExportRecord): number {
     record.conversationId,
     record.parentId,
     record.authorId,
-    record.createdAt
+    record.createdAt,
+    record.language
   ].filter(Boolean).length;
 }
 
