@@ -20,14 +20,6 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
   Complexity: XL
   Depends: F277 and F332. Authentic quality proof remains in `Roadmap_Blocked.md`.
 
-- [ ] F290, P2: Make local releases atomic and reconcile the missing release ledger
-  Why: GitHub has no releases for 1.38.0 through 1.44.1 or 1.46.0 despite exact version commits, and the current release steps can leave commit, tag, artifacts, and release metadata out of sync.
-  Evidence: `package.json`, `tools/build.mjs`, `tools/preflight.mjs`, local git history; https://github.com/SysAdminDoc/Aviary/releases
-  Touches: a local release tool, package script, artifact manifest/checksums, release tests and documentation
-  Acceptance: one idempotent local command requires a clean tree, verifies aligned versions, cleans old artifacts, runs the full gate, builds signed ZIP/CRX outputs, creates and pushes the tag, publishes assets, and verifies remote checksums; rerun resumes after a network failure without duplicating the release; a report maps missing versions to exact commits; historical releases are created only from artifacts rebuilt and verified in temporary worktrees at those commits.
-  Complexity: L
-  Depends: F289 for the settled compiler command. This does not replace the Firefox identity and store-publication decision held as F125 in `Roadmap_Blocked.md`.
-
 ### P3, Under Consideration
 
 - [ ] F291, P3: Generate documentation facts from runtime contracts

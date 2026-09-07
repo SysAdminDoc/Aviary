@@ -90,6 +90,15 @@ Chromium heap budget, exercises backup/restore and ZIP/WARC/WACZ packaging, and 
 service-worker restart recovery. WACZ size estimates refuse an oversized export before allocating
 a worker.
 
+For a release, run `npm run release:local -- --plan` first. It reports the exact package commit for
+each version whose tag or GitHub release is missing. `npm run release:local -- --publish` requires a
+clean checkout, runs `verify:release`, builds the ZIP assets, signs and verifies the secondary
+Chrome CRX3, writes a release manifest and SHA-256 checksums, then pushes the tag and uploads the
+assets. Phase state is kept in local application data, so a network failure can be retried without
+creating a second release. A historical version uses `--historical <version>` and is rebuilt in a
+temporary worktree before any tag or asset is published. The stable self-host key is created at the
+local application-data path on first use, or can be supplied with `--key`.
+
 ## Browser floors
 
 Both floors are declared once, in `src/extension/browser-floors.ts`, and preflight fails the build

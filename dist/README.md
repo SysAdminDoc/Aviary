@@ -194,6 +194,8 @@ so instead of blaming whichever feature the halving happened to land on.
 npm ci --ignore-scripts
 npm run verify:fast       # local feedback
 npm run verify:release    # publication gate
+npm run release:local -- --plan
+npm run release:local -- --publish
 ```
 
 `verify:fast` runs the TypeScript check, pinned ESLint, full test suite, esbuild bundle, and
@@ -202,6 +204,13 @@ coverage at 320, 768, 1280, and 1920 CSS pixels with 200 and 400 percent zoom, p
 browser smoke lane. The release gate removes `dist/` when any step fails, so an incomplete build
 cannot be loaded or published. Each extension directory carries a source fingerprint and per-file
 digests; visual captures and smoke tests refuse a same-version bundle that does not match them.
+
+`release:local -- --plan` prints the release ledger, including versions that have a package commit
+but no tag or GitHub release. `release:local -- --publish` is the one publishing command. It only
+runs from a clean checkout, writes its resumable state under the local application-data folder,
+and checks every remote asset against the published SHA-256 manifest. The ZIP remains the primary
+self-hosted extension install; the signed CRX3 is a secondary asset for tooling that accepts it.
+Use `--historical <version>` to rebuild an older version in a temporary worktree before publishing.
 
 The preflight gate is where the project's rules are actually enforced: manifest version has
 to match `package.json`, `host_permissions` can't be `<all_urls>`, no bundle may contain `eval` or

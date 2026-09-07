@@ -30,6 +30,7 @@
     "smoke": "node tests/smoke/dnr-chromium.smoke.mjs && node tests/smoke/dnr-firefox.smoke.mjs && node tests/smoke/aviary.smoke.mjs && node tests/smoke/incognito-chromium.smoke.mjs && node tests/smoke/externally-gated.smoke.mjs",
     "verify:fast": "node tools/verify-fast.mjs",
     "verify:release": "node tools/release-gate.mjs",
+    "release:local": "node tools/release-local.mjs",
     "verify": "npm run verify:fast"
   },
   "devDependencies": {

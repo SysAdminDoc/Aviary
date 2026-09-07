@@ -346,6 +346,12 @@ The build also produces `dist/extension-chrome-v<version>.zip` and
 timestamps). They are packaged for upload, but Aviary is not published to any store: the Firefox
 manifest still carries a placeholder add-on id, so an AMO submission needs a real one first.
 
+`npm run release:local -- --plan` reconciles package versions, git tags, and GitHub releases to
+exact commits. The explicit `--publish` command requires a clean tree, reruns the release gate,
+creates checksummed ZIP and signed CRX3 assets, and keeps resumable state outside the checkout.
+Historical versions use detached temporary worktrees, so an old release is never rebuilt from a
+later working tree.
+
 ## Presets, i18n, desktop interaction, cleanup, bookmarks, snippets, capture
 
 - **Presets**, Quiet Reader, Media Archivist, Creator, Researcher, Classic, Minimal. The Control Center "Presets" section applies any preset in one click and reports the exact deltas in the status line.

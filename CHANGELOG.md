@@ -54,6 +54,12 @@
   live for integrations loaded from the separate panel chunk.
 
 ### Added
+- **Atomic local releases.** `npm run release:local -- --plan` reports missing release versions
+  against their exact package commits. The explicit `--publish` path requires a clean tree, runs
+  the full release gate, rebuilds ZIP assets, signs and verifies a secondary CRX3, writes checksums
+  and a release manifest, pushes one tag, and resumes from a machine-local phase file after a
+  network failure. Historical versions are rebuilt and verified in temporary worktrees before
+  publication.
 - **Artifact-matched release gate.** `npm run verify:fast` gives quick local feedback, while
   `npm run verify:release` adds visual, reflow, and every browser smoke lane before publication.
   Builds carry source fingerprints and per-file digests, stale or modified bundles are rejected, and

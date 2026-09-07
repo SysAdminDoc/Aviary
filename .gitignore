@@ -17,6 +17,7 @@ dist/extension-*-v*.zip
 # and `dist/aviary.user.js` stay tracked because a manager polls them by raw URL.
 dist/extension-chrome/
 dist/extension-firefox/
+dist/release/
 
 # Dependencies. These were tracked while the repository was private; a public repository has no
 # business vendoring 3,227 files of ESLint, TypeScript and Playwright, two of them Windows .exe
