@@ -10,14 +10,6 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
 
 ### P1, Next
 
-- [ ] F280, P1: Scope the network shield to the tab that enabled it
-  Why: the control is profile-scoped, but `src/extension/ad-rule.ts` replaces one extension-global dynamic rule. Two tabs with opposing profiles race and the last message changes both tabs.
-  Evidence: `src/extension/ad-rule.ts`, `src/main.ts:161-300`; https://developer.chrome.com/docs/extensions/reference/api/declarativeNetRequest; https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/declarativeNetRequest/updateSessionRules
-  Touches: `src/extension/ad-rule.ts`, `src/entrypoints/extension-background.ts`, extension API types, DNR smoke tests
-  Acceptance: the background owns session rules conditioned by `tabIds`; enabling one tab and disabling another blocks the promoted logger only in the enabled tab; navigation, tab close, profile switch, browser-session restart, and service-worker restart leave no stale rule; the userscript path remains document-local.
-  Complexity: M
-  Depends: None.
-
 - [ ] F281, P1: Persist diagnostic codes without provider or page values
   Why: the page diagnostic store retains raw `message`, `error`, or `reason` detail values despite the privacy statement, while background task failures vanish into `console.warn` when the worker is suspended.
   Evidence: `src/platform/diagnostics-store.ts:36-55`, `src/features/ai/command-menu.ts:257-265`, `src/entrypoints/extension-background.ts:474-477`, `docs/PRIVACY.md:66`; https://developer.chrome.com/docs/extensions/develop/concepts/service-workers/lifecycle

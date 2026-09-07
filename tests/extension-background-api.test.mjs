@@ -17,7 +17,15 @@ import { after, test } from "node:test";
  * and a `send` that drives the message listener the way `chrome.runtime.sendMessage` does.
  */
 async function loadBackground(overrides = {}) {
-  const registered = { message: null, action: null, contextMenu: null, installed: null, startup: null };
+  const registered = {
+    message: null,
+    action: null,
+    contextMenu: null,
+    installed: null,
+    startup: null,
+    tabRemoved: null,
+    tabUpdated: null
+  };
   const calls = { openOptions: 0, downloads: [], permissionQueries: [] };
 
   const chrome = {
@@ -48,6 +56,11 @@ async function loadBackground(overrides = {}) {
       },
       onChanged: { addListener() {} }
     },
+    tabs: overrides.tabs ?? {
+      async query() { return []; },
+      onRemoved: { addListener(listener) { registered.tabRemoved = listener; } },
+      onUpdated: { addListener(listener) { registered.tabUpdated = listener; } }
+    },
     storage: {
       local: {
         async get() { return {}; },
@@ -67,10 +80,10 @@ async function loadBackground(overrides = {}) {
     assert.equal(typeof registered.message, "function", "the background registered no message listener");
 
     /** Resolves with whatever the listener passes to `sendResponse`. */
-    const send = (message) =>
+    const send = (message, sender = { id: "test" }) =>
       new Promise((resolve, reject) => {
         const timer = setTimeout(() => reject(new Error(`no response to ${JSON.stringify(message)}`)), 2000);
-        const async = registered.message(message, { id: "test" }, (response) => {
+        const async = registered.message(message, sender, (response) => {
           clearTimeout(timer);
           resolve(response);
         });
@@ -210,79 +223,139 @@ test("a download that exhausts every candidate reports the last failure rather t
   assert.match(response.error, /disk full/);
 });
 
-/** A `chrome` stub that records DNR rule changes and remembers the mirrored choice. */
-function dnrStub({ mirrored } = {}) {
-  const state = { rules: [], updates: [], stored: mirrored === undefined ? {} : { "aviary.runtime.adLoggerRule.v1": mirrored } };
+/** A `chrome` stub that records tab-scoped session rule changes and legacy cleanup. */
+function dnrStub({ sessionRules = [], dynamicRules = [] } = {}) {
+  const state = { sessionRules: [...sessionRules], dynamicRules: [...dynamicRules], updates: [], legacyUpdates: [], removedStorageKeys: [] };
   return {
     state,
     declarativeNetRequest: {
-      async getDynamicRules() {
-        return state.rules;
+      async getSessionRules() {
+        return state.sessionRules;
       },
-      async updateDynamicRules(update) {
+      async updateSessionRules(update) {
         state.updates.push({
           added: (update.addRules ?? []).map((rule) => rule.id),
-          removed: update.removeRuleIds ?? []
+          removed: update.removeRuleIds ?? [],
+          rules: structuredClone(update.addRules ?? [])
         });
         const removed = new Set(update.removeRuleIds ?? []);
-        state.rules = [...state.rules.filter((rule) => !removed.has(rule.id)), ...(update.addRules ?? [])];
+        state.sessionRules = [
+          ...state.sessionRules.filter((rule) => !removed.has(rule.id)),
+          ...(update.addRules ?? [])
+        ];
+      },
+      async updateDynamicRules(update) {
+        state.legacyUpdates.push(update);
+        const removed = new Set(update.removeRuleIds ?? []);
+        state.dynamicRules = [
+          ...state.dynamicRules.filter((rule) => !removed.has(rule.id)),
+          ...(update.addRules ?? [])
+        ];
       }
     },
     storage: {
       local: {
-        async get(key) {
-          const name = typeof key === "string" ? key : Object.keys(key ?? {})[0];
-          return name in state.stored ? { [name]: state.stored[name] } : {};
-        },
-        async set(values) {
-          Object.assign(state.stored, values);
-        },
         async remove(key) {
-          delete state.stored[key];
+          state.removedStorageKeys.push(key);
         }
       }
     }
   };
 }
 
-test("a fresh install turns the request rule on before the first X tab opens", async () => {
+test("install and update remove the legacy global rule without creating a cross-tab rule", async () => {
   const dnr = dnrStub();
-  const background = await loadBackground({ chrome: dnr });
+  const background = await loadBackground({ chrome: dnr, tabs: { query: async () => [] } });
 
   assert.equal(typeof background.registered.installed, "function", "no onInstalled listener");
   background.registered.installed({ reason: "install" });
   await new Promise((resolve) => setTimeout(resolve, 30));
 
-  // Default-on ad protection has to hold from the moment the extension is installed; waiting for
-  // the first content boot leaves the first page load unprotected.
-  assert.equal(dnr.state.rules.length, 1, "the install did not add the rule");
-  assert.equal(dnr.state.stored["aviary.runtime.adLoggerRule.v1"], true, "the choice must be mirrored for the next start");
+  assert.deepEqual(dnr.state.sessionRules, [], "install must wait for a tab's resolved settings");
+  assert.equal(dnr.state.legacyUpdates.length, 1, "the legacy dynamic rule was not removed");
+  assert.deepEqual(dnr.state.removedStorageKeys, ["aviary.runtime.adLoggerRule.v1"]);
 });
 
-test("an update restores the choice the user last made rather than re-enabling", async () => {
-  const dnr = dnrStub({ mirrored: false });
-  const background = await loadBackground({ chrome: dnr });
-
-  background.registered.installed({ reason: "update" });
-  await new Promise((resolve) => setTimeout(resolve, 30));
-
-  // Re-enabling on every update would silently undo a user who turned ad protection off.
-  assert.deepEqual(dnr.state.rules, [], "an update turned the rule back on");
-});
-
-test("the content script can turn the rule on and off through the background", async () => {
+test("two tabs can hold opposing rule states without changing each other", async () => {
   const dnr = dnrStub();
   const background = await loadBackground({ chrome: dnr });
 
-  const on = await background.send({ type: "AVIARY_SYNC_AD_RULE", enabled: true });
+  const on = await background.send(
+    { type: "AVIARY_SYNC_AD_RULE", enabled: true },
+    { tab: { id: 41 } }
+  );
   assert.deepEqual(on, { ok: true, enabled: true });
-  assert.equal(dnr.state.rules.length, 1);
+  assert.deepEqual(dnr.state.sessionRules.map((rule) => rule.condition.tabIds), [[41]]);
 
-  const off = await background.send({ type: "AVIARY_SYNC_AD_RULE", enabled: false });
+  const off = await background.send(
+    { type: "AVIARY_SYNC_AD_RULE", enabled: false },
+    { tab: { id: 42 } }
+  );
   assert.deepEqual(off, { ok: true, enabled: false });
-  assert.deepEqual(dnr.state.rules, [], "turning it off must remove the rule, not leave it installed");
-  assert.equal(dnr.state.stored["aviary.runtime.adLoggerRule.v1"], false);
+  assert.deepEqual(dnr.state.sessionRules.map((rule) => rule.condition.tabIds), [[41]], "tab 41 was changed by tab 42");
+
+  const tab41Off = await background.send(
+    { type: "AVIARY_SYNC_AD_RULE", enabled: false },
+    { tab: { id: 41 } }
+  );
+  assert.deepEqual(tab41Off, { ok: true, enabled: false });
+  assert.deepEqual(dnr.state.sessionRules, []);
 });
+
+test("a rule is removed when its tab navigates away or closes", async () => {
+  const dnr = dnrStub();
+  const background = await loadBackground({ chrome: dnr });
+  await background.send({ type: "AVIARY_SYNC_AD_RULE", enabled: true }, { tab: { id: 55 } });
+  assert.equal(dnr.state.sessionRules.length, 1);
+
+  assert.equal(typeof background.registered.tabUpdated, "function");
+  background.registered.tabUpdated(55, { url: "https://example.com/" });
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  assert.deepEqual(dnr.state.sessionRules, []);
+
+  await background.send({ type: "AVIARY_SYNC_AD_RULE", enabled: true }, { tab: { id: 56 } });
+  background.registered.tabRemoved(56, {});
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  assert.deepEqual(dnr.state.sessionRules, []);
+});
+
+test("a privileged sender must name a target tab, while content senders use sender.tab", async () => {
+  const dnr = dnrStub();
+  const background = await loadBackground({ chrome: dnr });
+  const missing = await background.send({ type: "AVIARY_SYNC_AD_RULE", enabled: true });
+  assert.deepEqual(missing, { ok: false, enabled: true, error: "tab context unavailable" });
+
+  const named = await background.send({ type: "AVIARY_SYNC_AD_RULE", enabled: true, tabId: 77 });
+  assert.deepEqual(named, { ok: true, enabled: true });
+  assert.deepEqual(dnr.state.sessionRules[0].condition.tabIds, [77]);
+});
+
+test("startup prunes closed tabs and clears the legacy global rule", async () => {
+  const dnr = dnrStub({ sessionRules: [{ id: 21, priority: 1, action: { type: "block" }, condition: { ...dnrRuleCondition(), tabIds: [21] } }] });
+  const background = await loadBackground({ chrome: dnr, tabs: { query: async () => [{ id: 22 }] } });
+  background.registered.startup();
+  await new Promise((resolve) => setTimeout(resolve, 30));
+  assert.deepEqual(dnr.state.sessionRules, []);
+  assert.equal(dnr.state.legacyUpdates.length, 1);
+});
+
+test("a service-worker start prunes stale session rules before any browser event", async () => {
+  const dnr = dnrStub({ sessionRules: [
+    { id: 31, priority: 1, action: { type: "block" }, condition: { ...dnrRuleCondition(), tabIds: [31] } }
+  ] });
+  await loadBackground({ chrome: dnr, tabs: { query: async () => [{ id: 32 }] } });
+  await new Promise((resolve) => setTimeout(resolve, 30));
+  assert.deepEqual(dnr.state.sessionRules, []);
+  assert.equal(dnr.state.legacyUpdates.length, 1);
+});
+
+function dnrRuleCondition() {
+  return {
+    regexFilter: "^https://[^/]+/i/api/1[.]1/promoted_content/log[.]json([?].*)?$",
+    requestDomains: ["x.com"],
+    resourceTypes: ["xmlhttprequest"]
+  };
+}
 
 test("a background with no declarativeNetRequest reports the failure instead of claiming success", async () => {
   const background = await loadBackground({ chrome: { declarativeNetRequest: undefined } });

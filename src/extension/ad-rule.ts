@@ -1,5 +1,10 @@
 export const AD_RULE_SYNC_MESSAGE = "AVIARY_SYNC_AD_RULE";
+/**
+ * The id used by the pre-1.48 dynamic rule. It is retired, but kept so upgrades can remove it.
+ * Session rules use the browser tab id as their own id and never share this global rule.
+ */
 export const AD_LOGGER_RULE_ID = 73_001;
+export const AD_LOGGER_SESSION_RULE_ID_MAX = 2_147_483_647;
 export const AD_LOGGER_STATE_KEY = "aviary.runtime.adLoggerRule.v1";
 
 export interface DynamicNetRequestRule {
@@ -10,6 +15,7 @@ export interface DynamicNetRequestRule {
     regexFilter: string;
     requestDomains: string[];
     resourceTypes: string[];
+    tabIds?: number[];
   };
 }
 
@@ -18,15 +24,21 @@ export interface ExtensionAdRuleApi {
     sendMessage?: (message: unknown) => Promise<unknown>;
   };
   declarativeNetRequest?: {
-    updateDynamicRules(options: {
+    updateSessionRules?(options: {
       removeRuleIds: number[];
       addRules: DynamicNetRequestRule[];
     }): Promise<void>;
+    updateDynamicRules?(options: {
+      removeRuleIds: number[];
+      addRules: DynamicNetRequestRule[];
+    }): Promise<void>;
+    getSessionRules?(): Promise<DynamicNetRequestRule[]>;
   };
   storage?: {
     local?: {
       get(keys?: string | string[] | Record<string, unknown> | null): Promise<Record<string, unknown>>;
       set(items: Record<string, unknown>): Promise<void>;
+      remove?(keys: string | string[]): Promise<void>;
     };
   };
 }
@@ -34,6 +46,8 @@ export interface ExtensionAdRuleApi {
 export interface AdRuleSyncMessage {
   type: typeof AD_RULE_SYNC_MESSAGE;
   enabled: boolean;
+  /** Optional privileged-page target. Content scripts rely on sender.tab instead. */
+  tabId?: number;
 }
 
 export interface AdRuleSyncResult {
@@ -67,57 +81,156 @@ export const AD_LOGGER_RULE: DynamicNetRequestRule = {
   }
 };
 
+/**
+ * DNR rule ids are scoped to a ruleset, so a tab id is a stable, collision-free owner for one
+ * session rule. Chrome and Firefox both expose non-negative integer tab ids; tab 0 maps to rule 1
+ * because DNR reserves zero. Keeping the mapping deterministic lets a service-worker restart
+ * update or remove a rule without a second durable allocation table.
+ */
+export function adLoggerRuleIdForTab(tabId: number): number {
+  const normalized = validateTabId(tabId);
+  return normalized === 0 ? 1 : normalized;
+}
+
+/** Creates the one rule that is allowed to exist for a particular tab. */
+export function createAdLoggerSessionRule(tabId: number): DynamicNetRequestRule {
+  const normalized = validateTabId(tabId);
+  return {
+    ...AD_LOGGER_RULE,
+    id: adLoggerRuleIdForTab(normalized),
+    condition: {
+      ...AD_LOGGER_RULE.condition,
+      tabIds: [normalized]
+    }
+  };
+}
+
 export function isAdRuleSyncMessage(value: unknown): value is AdRuleSyncMessage {
   if (!value || typeof value !== "object") {
     return false;
   }
   const candidate = value as Partial<AdRuleSyncMessage>;
-  return candidate.type === AD_RULE_SYNC_MESSAGE && typeof candidate.enabled === "boolean";
+  return (
+    candidate.type === AD_RULE_SYNC_MESSAGE &&
+    typeof candidate.enabled === "boolean" &&
+    (candidate.tabId === undefined || isValidTabId(candidate.tabId))
+  );
 }
 
-/** Atomically replaces Aviary's one owned dynamic rule and mirrors the applied state. */
-export async function syncDynamicAdRule(
+let sessionMutationTail: Promise<void> = Promise.resolve();
+
+/** Serializes session-rule writes so a prune cannot erase a concurrent tab enable. */
+function enqueueSessionMutation<T>(task: () => Promise<T>): Promise<T> {
+  const run = sessionMutationTail.then(task);
+  sessionMutationTail = run.then(() => undefined, () => undefined);
+  return run;
+}
+
+/** Atomically replaces this tab's session rule. The setting never becomes extension-global. */
+export function syncSessionAdRule(
   api: ExtensionAdRuleApi,
+  tabId: number,
   enabled: boolean
 ): Promise<void> {
-  const dnr = api.declarativeNetRequest;
-  if (!dnr?.updateDynamicRules) {
-    throw new Error("declarativeNetRequest is unavailable");
-  }
-  const storage = api.storage?.local;
-  if (!storage?.set) {
-    throw new Error("extension storage is unavailable");
-  }
-
-  // The mirror is written first on purpose. Committing the rule and then failing the write left the
-  // rule applied while the caller reported failure and the mirror still held the previous value --
-  // so the next restore after a restart reverted a rule the user had actually enabled. Ad protection
-  // is on by default, so that failure direction silently removed protection.
-  //
-  // Writing the mirror first inverts the failure into the safe direction: a mirror that ran ahead of
-  // a rule that never applied is corrected by the very next restore, which re-applies it.
-  await storage.set({ [AD_LOGGER_STATE_KEY]: enabled });
-  await dnr.updateDynamicRules({
-    removeRuleIds: [AD_LOGGER_RULE_ID],
-    addRules: enabled ? [AD_LOGGER_RULE] : []
+  const normalized = validateTabId(tabId);
+  const ruleId = adLoggerRuleIdForTab(normalized);
+  return enqueueSessionMutation(async () => {
+    const dnr = api.declarativeNetRequest;
+    if (!dnr?.updateSessionRules) {
+      throw new Error("declarativeNetRequest session rules are unavailable");
+    }
+    await dnr.updateSessionRules({
+      removeRuleIds: [ruleId],
+      addRules: enabled ? [createAdLoggerSessionRule(normalized)] : []
+    });
   });
 }
 
-/** Re-applies the last content-script decision after a browser or event-page restart. */
-export async function restoreDynamicAdRule(
-  api: ExtensionAdRuleApi
-): Promise<boolean | null> {
+/** Removes one tab's session rule after navigation, profile switch, or tab close. */
+export function clearSessionAdRule(api: ExtensionAdRuleApi, tabId: number): Promise<void> {
+  const ruleId = adLoggerRuleIdForTab(tabId);
+  return enqueueSessionMutation(async () => {
+    const dnr = api.declarativeNetRequest;
+    if (!dnr?.updateSessionRules) {
+      throw new Error("declarativeNetRequest session rules are unavailable");
+    }
+    await dnr.updateSessionRules({ removeRuleIds: [ruleId], addRules: [] });
+  });
+}
+
+/**
+ * Removes stale Aviary session rules after a worker restart. The caller supplies the currently
+ * open tab ids, so a closed tab cannot leave a blocker behind even if its close event was missed.
+ */
+export function pruneSessionAdRules(
+  api: ExtensionAdRuleApi,
+  liveTabIds: readonly number[]
+): Promise<number> {
+  const live = new Set(liveTabIds.filter(isValidTabId));
+  return enqueueSessionMutation(async () => {
+    const dnr = api.declarativeNetRequest;
+    if (!dnr?.getSessionRules || !dnr.updateSessionRules) {
+      return 0;
+    }
+    const rules = await dnr.getSessionRules();
+    const removeRuleIds = rules
+      .filter((rule) => {
+        const tabId = ownedRuleTabId(rule);
+        return tabId !== null && !live.has(tabId);
+      })
+      .map((rule) => rule.id);
+    if (removeRuleIds.length === 0) {
+      return 0;
+    }
+    await dnr.updateSessionRules({ removeRuleIds, addRules: [] });
+    return removeRuleIds.length;
+  }).then((count) => count);
+}
+
+/** Removes the pre-1.48 global dynamic rule and its global state mirror during upgrade/startup. */
+export async function removeLegacyDynamicAdRule(api: ExtensionAdRuleApi): Promise<void> {
+  const dnr = api.declarativeNetRequest;
+  if (dnr?.updateDynamicRules) {
+    await dnr.updateDynamicRules({
+      removeRuleIds: [AD_LOGGER_RULE_ID],
+      addRules: []
+    });
+  }
   const storage = api.storage?.local;
-  if (!storage?.get) {
+  if (storage?.remove) {
+    await storage.remove(AD_LOGGER_STATE_KEY);
+  }
+}
+
+/** Returns the tab id encoded by an Aviary-owned session rule, or null for unrelated rules. */
+function ownedRuleTabId(rule: DynamicNetRequestRule): number | null {
+  const tabIds = rule.condition?.tabIds;
+  if (
+    !Array.isArray(tabIds) ||
+    tabIds.length !== 1 ||
+    !isValidTabId(tabIds[0]) ||
+    rule.condition.regexFilter !== AD_LOGGER_RULE.condition.regexFilter ||
+    rule.action?.type !== "block"
+  ) {
     return null;
   }
-  const stored = await storage.get(AD_LOGGER_STATE_KEY);
-  const enabled = stored[AD_LOGGER_STATE_KEY];
-  if (typeof enabled !== "boolean") {
-    return null;
+  return tabIds[0]!;
+}
+
+function isValidTabId(value: unknown): value is number {
+  return (
+    typeof value === "number" &&
+    Number.isSafeInteger(value) &&
+    value >= 0 &&
+    value <= AD_LOGGER_SESSION_RULE_ID_MAX
+  );
+}
+
+function validateTabId(value: number): number {
+  if (!isValidTabId(value)) {
+    throw new Error("tab id must be a non-negative safe integer");
   }
-  await syncDynamicAdRule(api, enabled);
-  return enabled;
+  return value;
 }
 
 /**

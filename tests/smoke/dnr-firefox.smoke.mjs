@@ -50,6 +50,12 @@ async function main() {
   const extensionClient = driver;
   const extensionContext = null;
   const messageClient = driver;
+  const extensionTabId = await extensionClient.evaluate(extensionContext, async () => {
+    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    const tab = tabs[0];
+    if (typeof tab?.id !== "number") throw new Error("could not identify the Firefox extension tab");
+    return tab.id;
+  });
 
   // The eviction exemption, on the other engine. Firefox applies the IndexedDB quota to extension
   // storage and wants the same `unlimitedStorage` permission Chrome does, so the library is only
@@ -70,31 +76,47 @@ async function main() {
     "an exempt add-on must not report its library as best effort"
   );
 
+  // The Firefox smoke surface is the extension page itself, so provide its tab target explicitly
+  // to exercise the same background protocol a content script uses through sender.tab.
+  assert.deepEqual(
+    await messageClient.evaluate(extensionContext, (tabId) =>
+      chrome.runtime.sendMessage({ type: "AVIARY_SYNC_AD_RULE", enabled: true, tabId }), extensionTabId
+    ),
+    { ok: true, enabled: true }
+  );
+
   await waitFor(
     extensionClient,
     extensionContext,
-    () => chrome.declarativeNetRequest.getDynamicRules().then((rules) =>
-      rules.some((rule) => rule.id === 73001)
+    () => chrome.tabs.query({ active: true, currentWindow: true }).then(([tab]) =>
+      chrome.declarativeNetRequest.getSessionRules().then((rules) =>
+        rules.some((rule) => rule.condition?.tabIds?.includes(tab.id))
+      )
     ),
-    "default-on dynamic rule was not installed"
+    "default-on tab session rule was not installed"
   );
 
-  const outcomes = await extensionClient.evaluate(extensionContext, () => Promise.all([
-    "https://x.com/i/api/1.1/promoted_content/log.json?event=impression",
-    "https://x.com/i/api/graphql/query/HomeTimeline",
-    "https://x.com/i/api/1.1/promoted_content/content.json",
-    "https://video.twimg.com/ext_tw_video/fixture.mp4",
-    "https://evil.example/i/api/1.1/promoted_content/log.json"
-  ].map(async (url) => ({
-    url,
-    matches: (await chrome.declarativeNetRequest.testMatchOutcome({
+  const outcomes = await extensionClient.evaluate(
+    extensionContext,
+    (tabId) => Promise.all([
+      "https://x.com/i/api/1.1/promoted_content/log.json?event=impression",
+      "https://x.com/i/api/graphql/query/HomeTimeline",
+      "https://x.com/i/api/1.1/promoted_content/content.json",
+      "https://video.twimg.com/ext_tw_video/fixture.mp4",
+      "https://evil.example/i/api/1.1/promoted_content/log.json"
+    ].map(async (url) => ({
       url,
-      initiator: "https://x.com",
-      method: "post",
-      type: "xmlhttprequest"
-    })).matchedRules.map((rule) => rule.ruleId)
-  }))));
-  assert.deepEqual(outcomes[0].matches, [73001]);
+      matches: (await chrome.declarativeNetRequest.testMatchOutcome({
+        url,
+        initiator: "https://x.com",
+        method: "post",
+        type: "xmlhttprequest",
+        tabId
+      })).matchedRules.map((rule) => rule.ruleId)
+    }))),
+    extensionTabId
+  );
+  assert.deepEqual(outcomes[0].matches, [extensionTabId === 0 ? 1 : extensionTabId]);
   for (const outcome of outcomes.slice(1)) {
     assert.deepEqual(outcome.matches, [], `control request matched: ${outcome.url}`);
   }
@@ -105,17 +127,19 @@ async function main() {
   await delay(250);
   assert.equal(xConnectCount(proxy.seen), connectsBefore, "enabled logger reached the proxy");
 
-  const disabled = await messageClient.evaluate(extensionContext, () =>
-    chrome.runtime.sendMessage({ type: "AVIARY_SYNC_AD_RULE", enabled: false })
+  const disabled = await messageClient.evaluate(extensionContext, (tabId) =>
+    chrome.runtime.sendMessage({ type: "AVIARY_SYNC_AD_RULE", enabled: false, tabId }), extensionTabId
   );
   assert.deepEqual(disabled, { ok: true, enabled: false });
   await waitFor(
     extensionClient,
     extensionContext,
-    () => chrome.declarativeNetRequest.getDynamicRules().then((rules) =>
-      rules.every((rule) => rule.id !== 73001)
+    () => chrome.tabs.query({ active: true, currentWindow: true }).then(([tab]) =>
+      chrome.declarativeNetRequest.getSessionRules().then((rules) =>
+        rules.every((rule) => !rule.condition?.tabIds?.includes(tab.id))
+      )
     ),
-    "dynamic rule did not disable"
+    "tab session rule did not disable"
   );
 
   const disabledRequest = await requestLogger(extensionClient, extensionContext);
@@ -125,17 +149,19 @@ async function main() {
     "disabled logger never reached the loopback proxy"
   );
 
-  const enabled = await messageClient.evaluate(extensionContext, () =>
-    chrome.runtime.sendMessage({ type: "AVIARY_SYNC_AD_RULE", enabled: true })
+  const enabled = await messageClient.evaluate(extensionContext, (tabId) =>
+    chrome.runtime.sendMessage({ type: "AVIARY_SYNC_AD_RULE", enabled: true, tabId }), extensionTabId
   );
   assert.deepEqual(enabled, { ok: true, enabled: true });
   await waitFor(
     extensionClient,
     extensionContext,
-    () => chrome.declarativeNetRequest.getDynamicRules().then((rules) =>
-      rules.some((rule) => rule.id === 73001)
+    () => chrome.tabs.query({ active: true, currentWindow: true }).then(([tab]) =>
+      chrome.declarativeNetRequest.getSessionRules().then((rules) =>
+        rules.some((rule) => rule.condition?.tabIds?.includes(tab.id))
+      )
     ),
-    "dynamic rule did not re-enable"
+    "tab session rule did not re-enable"
   );
 
   const reenabledRequest = await requestLogger(extensionClient, extensionContext);
@@ -146,15 +172,6 @@ async function main() {
     connectsBefore + 1,
     "re-enabled logger escaped to the proxy"
   );
-  assert.equal(
-    await extensionClient.evaluate(extensionContext, () =>
-      chrome.storage.local.get("aviary.runtime.adLoggerRule.v1").then((state) =>
-        state["aviary.runtime.adLoggerRule.v1"]
-      )
-    ),
-    true
-  );
-
   const pendingWrite = {
     id: "firefox-smoke-put",
     key: "aviary.firefox.reconcileScratch.v1",

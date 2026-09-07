@@ -38434,6 +38434,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
 
   // src/extension/ad-rule.ts
   var AD_RULE_SYNC_MESSAGE = "AVIARY_SYNC_AD_RULE";
+  var sessionMutationTail = Promise.resolve();
   async function requestExtensionAdRuleSync(source, enabled2) {
     if (source !== "extension") {
       return { ok: true, enabled: enabled2, skipped: true };

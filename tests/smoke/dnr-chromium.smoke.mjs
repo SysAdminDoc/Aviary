@@ -117,15 +117,23 @@ try {
     "Chrome now sets the Storage Standard persistence bit for extensions; simplify the fallback"
   );
 
+  const extensionPage = await context.newPage();
+  await extensionPage.goto(`chrome-extension://${extensionId}/options.html`);
+  const xTabId = await extensionPage.evaluate(async () => {
+    const tabs = await chrome.tabs.query({});
+    const xTab = tabs.find((tab) => typeof tab.url === "string" && tab.url.startsWith("https://x.com/"));
+    if (typeof xTab?.id !== "number") throw new Error("could not identify the X smoke tab");
+    return xTab.id;
+  });
+
   try {
     await waitFor(async () => {
-      const rules = await worker.evaluate(() => chrome.declarativeNetRequest.getDynamicRules());
-      return rules.some((rule) => rule.id === 73001);
-    }, "default-on dynamic rule was not installed");
+      const rules = await worker.evaluate(() => chrome.declarativeNetRequest.getSessionRules());
+      return rules.some((rule) => rule.condition?.tabIds?.includes(xTabId));
+    }, "default-on tab session rule was not installed");
   } catch (error) {
     const diagnostics = await worker.evaluate(async () => ({
-      rules: await chrome.declarativeNetRequest.getDynamicRules(),
-      state: await chrome.storage.local.get("aviary.runtime.adLoggerRule.v1"),
+      rules: await chrome.declarativeNetRequest.getSessionRules(),
       regex: await chrome.declarativeNetRequest.isRegexSupported({
         regex: "^https://[^/]+/i/api/1[.]1/promoted_content/log[.]json([?].*)?$"
       })
@@ -133,15 +141,9 @@ try {
     throw new Error(`${error.message}: ${JSON.stringify(diagnostics)}`);
   }
 
-  const matched = await worker.evaluate(async () =>
-    chrome.declarativeNetRequest.testMatchOutcome({
-      url: "https://x.com/i/api/1.1/promoted_content/log.json?event=impression",
-      initiator: "https://x.com",
-      method: "post",
-      type: "xmlhttprequest"
-    })
-  );
-  assert.deepEqual(matched.matchedRules.map((rule) => rule.ruleId), [73001]);
+  const matched = await matchLogger(worker, xTabId);
+  assert.equal(matched.matchedRules.length, 1);
+  assert.equal(matched.matchedRules[0].ruleId, xTabId === 0 ? 1 : xTabId);
 
   for (const url of [
     "https://x.com/i/api/graphql/query/HomeTimeline",
@@ -149,63 +151,66 @@ try {
     "https://video.twimg.com/ext_tw_video/fixture.mp4",
     "https://evil.example/i/api/1.1/promoted_content/log.json"
   ]) {
-    const outcome = await worker.evaluate(async (requestUrl) =>
+    const outcome = await worker.evaluate(async ({ requestUrl, tabId }) =>
       chrome.declarativeNetRequest.testMatchOutcome({
         url: requestUrl,
         initiator: "https://x.com",
         method: "post",
-        type: "xmlhttprequest"
-      }), url
+        type: "xmlhttprequest",
+        tabId
+      }), { requestUrl: url, tabId: xTabId }
     );
     assert.deepEqual(outcome.matchedRules, [], `control request matched: ${url}`);
   }
 
-  let routeHits = 0;
-  await context.route("https://x.com/i/api/1.1/promoted_content/log.json**", async (route) => {
-    routeHits += 1;
-    await route.fulfill({
-      status: 204,
-      headers: { "access-control-allow-origin": "*" },
-      body: ""
-    });
-  });
+  assert.equal((await matchLogger(worker, xTabId)).matchedRules.length, 1, "enabled DNR did not match the logger");
 
-  const extensionPage = await context.newPage();
-  await extensionPage.goto(`chrome-extension://${extensionId}/options.html`);
-
-  const enabledRequest = await requestLogger(extensionPage);
-  assert.equal(enabledRequest.ok, false, "enabled DNR allowed the logger request");
-  assert.equal(routeHits, 0, "enabled logger reached the loopback route");
-
-  const disabled = await extensionPage.evaluate(() =>
-    chrome.runtime.sendMessage({ type: "AVIARY_SYNC_AD_RULE", enabled: false })
+  const disabled = await extensionPage.evaluate((tabId) =>
+    chrome.runtime.sendMessage({ type: "AVIARY_SYNC_AD_RULE", enabled: false, tabId }), xTabId
   );
   assert.deepEqual(disabled, { ok: true, enabled: false });
   await waitFor(async () => (await worker.evaluate(() =>
-    chrome.declarativeNetRequest.getDynamicRules()
-  )).every((rule) => rule.id !== 73001), "dynamic rule did not disable");
+    chrome.declarativeNetRequest.getSessionRules()
+  )).every((rule) => !rule.condition?.tabIds?.includes(xTabId)), "tab session rule did not disable");
 
-  const disabledRequest = await requestLogger(extensionPage);
-  assert.deepEqual(disabledRequest, { ok: true, status: 204 });
-  assert.equal(routeHits, 1, "disabled logger did not reach the loopback route exactly once");
+  assert.equal((await matchLogger(worker, xTabId)).matchedRules.length, 0, "disabled DNR still matched the logger");
 
-  const enabled = await extensionPage.evaluate(() =>
-    chrome.runtime.sendMessage({ type: "AVIARY_SYNC_AD_RULE", enabled: true })
+  const enabled = await extensionPage.evaluate((tabId) =>
+    chrome.runtime.sendMessage({ type: "AVIARY_SYNC_AD_RULE", enabled: true, tabId }), xTabId
   );
   assert.deepEqual(enabled, { ok: true, enabled: true });
   await waitFor(async () => (await worker.evaluate(() =>
-    chrome.declarativeNetRequest.getDynamicRules()
-  )).some((rule) => rule.id === 73001), "dynamic rule did not re-enable");
+    chrome.declarativeNetRequest.getSessionRules()
+  )).some((rule) => rule.condition?.tabIds?.includes(xTabId)), "tab session rule did not re-enable");
 
-  const reenabledRequest = await requestLogger(extensionPage);
-  assert.equal(reenabledRequest.ok, false, "re-enabled DNR allowed the logger request");
-  assert.equal(routeHits, 1, "re-enabled logger escaped to the loopback route");
-  assert.equal(
-    await worker.evaluate(async () =>
-      (await chrome.storage.local.get("aviary.runtime.adLoggerRule.v1"))["aviary.runtime.adLoggerRule.v1"]
-    ),
-    true
+  assert.equal((await matchLogger(worker, xTabId)).matchedRules.length, 1, "re-enabled DNR did not match the logger");
+
+  // A second tab can be explicitly disabled without changing the first tab's blocker.
+  const secondPage = await context.newPage();
+  await secondPage.goto("https://x.com/storage-smoke-second");
+  await secondPage.waitForFunction(() => document.documentElement.dataset.avReady === "true", null, {
+    timeout: 15_000
+  });
+  const secondTabId = await extensionPage.evaluate(async () => {
+    const tabs = await chrome.tabs.query({});
+    const candidates = tabs.filter((tab) => typeof tab.url === "string" && tab.url.startsWith("https://x.com/"));
+    const tab = candidates.at(-1);
+    if (typeof tab?.id !== "number") throw new Error("could not identify the second X smoke tab");
+    return tab.id;
+  });
+  await extensionPage.evaluate((tabId) =>
+    chrome.runtime.sendMessage({ type: "AVIARY_SYNC_AD_RULE", enabled: false, tabId }), secondTabId
   );
+  await waitFor(async () => {
+    const rules = await worker.evaluate(() => chrome.declarativeNetRequest.getSessionRules());
+    return rules.some((rule) => rule.condition?.tabIds?.includes(xTabId)) &&
+      !rules.some((rule) => rule.condition?.tabIds?.includes(secondTabId));
+  }, "opposing tab state raced");
+  assert.equal((await matchLogger(worker, xTabId)).matchedRules.length, 1, "disabling the second tab changed the first tab");
+  assert.equal((await matchLogger(worker, secondTabId)).matchedRules.length, 0, "the disabled second tab still matched the logger");
+  await secondPage.close();
+  await waitFor(async () => (await worker.evaluate(() => chrome.declarativeNetRequest.getSessionRules()))
+    .every((rule) => !rule.condition?.tabIds?.includes(secondTabId)), "tab close left a stale session rule");
 
   // Stop at the reconciliation await boundary after staging. The marker must survive a full
   // browser restart, then the next worker must commit the value and consume that marker together.
@@ -320,7 +325,13 @@ try {
       value: "remove me"
     }), tombstoneKey
   );
-  const tombstone = { id: "smoke-remove", key: tombstoneKey, kind: "remove" };
+  const tombstone = {
+    id: "smoke-remove",
+    key: tombstoneKey,
+    kind: "remove",
+    operationId: "smoke-remove-op",
+    operationOrder: Number.MAX_SAFE_INTEGER
+  };
   await restartedPage.evaluate((write) =>
     chrome.runtime.sendMessage({ type: "AVIARY_DURABLE_STORAGE", operation: "stage-pending", write }),
     tombstone
@@ -330,7 +341,10 @@ try {
       chrome.runtime.sendMessage({ type: "AVIARY_DURABLE_STORAGE", operation: "commit-pending", write }),
       tombstone
     ),
-    { ok: true, result: { ...tombstone, valueHash: null } }
+    {
+      ok: true,
+      result: { id: tombstone.id, key: tombstone.key, kind: tombstone.kind, valueHash: null }
+    }
   );
   assert.deepEqual(
     await restartedPage.evaluate((key) =>
@@ -341,7 +355,7 @@ try {
   );
 
   console.log(
-    "[dnr-chromium] atomic storage reconciliation/restart, migration, DNR controls, persistence, and loopback blocking passed."
+    "[dnr-chromium] atomic storage reconciliation/restart, migration, tab-scoped DNR controls, persistence, and request matching passed."
   );
 } finally {
   await seedContext?.close().catch(() => {});
@@ -413,18 +427,14 @@ async function seedLegacyHostDatabase(profile) {
   return seeded;
 }
 
-async function requestLogger(page) {
-  return page.evaluate(async () => {
-    try {
-      const response = await fetch(
-        "https://x.com/i/api/1.1/promoted_content/log.json?event=smoke",
-        { method: "POST", body: "fixture" }
-      );
-      return { ok: true, status: response.status };
-    } catch (error) {
-      return { ok: false, error: String(error) };
-    }
-  });
+async function matchLogger(worker, tabId) {
+  return worker.evaluate((targetTabId) => chrome.declarativeNetRequest.testMatchOutcome({
+    url: "https://x.com/i/api/1.1/promoted_content/log.json?event=smoke",
+    initiator: "https://x.com",
+    method: "post",
+    type: "xmlhttprequest",
+    tabId: targetTabId
+  }), tabId);
 }
 
 async function waitFor(check, message, timeout = 15_000) {

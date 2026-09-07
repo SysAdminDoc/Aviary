@@ -33,7 +33,8 @@ form a phrase with the account name or another unrelated value.
 
 Aviary starts its narrow ad guard at document start. The userscript answers X's separable
 `/i/api/1.1/promoted_content/log.json` event locally, and the extension blocks that same exact URL
-through a host-scoped dynamic request rule before a connection. It then removes evidenced native sponsored posts,
+through a host-scoped session rule for the enabled X tab before a connection. Each tab is
+independent, and closing or leaving X removes its rule. It then removes evidenced native sponsored posts,
 paid-partnership cards, promoted trends, house promos, and visible video-ad containers without
 leaving an empty virtualized row. It does not block HomeTimeline: X includes native sponsored
 records in the same essential first-party response as organic posts, so blocking that request

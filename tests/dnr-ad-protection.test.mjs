@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
-test("the dynamic rule matches only the separable promoted-content logger", async () => {
+test("the promoted-logger rule matches only the separable endpoint", async () => {
   const mod = await importSourceModule("src/extension/ad-rule.ts");
   const matcher = new RegExp(mod.AD_LOGGER_RULE.condition.regexFilter);
   const requestDomains = new Set(mod.AD_LOGGER_RULE.condition.requestDomains);
@@ -49,48 +49,88 @@ test("the dynamic rule matches only the separable promoted-content logger", asyn
   ]);
 });
 
-test("enable, disable, and restart reconciliation own exactly one dynamic rule", async () => {
+test("session rules are tab-scoped and use one deterministic id per tab", async () => {
+  const mod = await importSourceModule("src/extension/ad-rule.ts");
+  const first = mod.createAdLoggerSessionRule(41);
+  const second = mod.createAdLoggerSessionRule(42);
+
+  assert.notEqual(first.id, second.id);
+  assert.deepEqual(first.condition.tabIds, [41]);
+  assert.deepEqual(second.condition.tabIds, [42]);
+  assert.equal(first.condition.regexFilter, mod.AD_LOGGER_RULE.condition.regexFilter);
+  assert.equal(mod.adLoggerRuleIdForTab(0), 1, "DNR rule ids cannot be zero");
+  assert.throws(() => mod.adLoggerRuleIdForTab(-1), /tab id/);
+  assert.equal(mod.isAdRuleSyncMessage({ type: mod.AD_RULE_SYNC_MESSAGE, enabled: true, tabId: 41 }), true);
+  assert.equal(mod.isAdRuleSyncMessage({ type: mod.AD_RULE_SYNC_MESSAGE, enabled: true, tabId: -1 }), false);
+});
+
+test("enable and disable replace only the requested tab session rule", async () => {
   const mod = await importSourceModule("src/extension/ad-rule.ts");
   const updates = [];
-  const stored = new Map();
+  const state = new Map();
   const api = {
     declarativeNetRequest: {
-      async updateDynamicRules(options) {
+      async updateSessionRules(options) {
         updates.push(structuredClone(options));
-      }
-    },
-    storage: {
-      local: {
-        async get(key) {
-          return stored.has(key) ? { [key]: stored.get(key) } : {};
-        },
-        async set(items) {
-          for (const [key, value] of Object.entries(items)) stored.set(key, value);
-        }
+        for (const id of options.removeRuleIds ?? []) state.delete(id);
+        for (const rule of options.addRules ?? []) state.set(rule.id, rule);
+      },
+      async getSessionRules() {
+        return [...state.values()];
       }
     }
   };
 
-  await mod.syncDynamicAdRule(api, true);
+  await mod.syncSessionAdRule(api, 17, true);
   assert.deepEqual(updates[0], {
-    removeRuleIds: [mod.AD_LOGGER_RULE_ID],
-    addRules: [mod.AD_LOGGER_RULE]
+    removeRuleIds: [17],
+    addRules: [mod.createAdLoggerSessionRule(17)]
   });
-  assert.equal(stored.get(mod.AD_LOGGER_STATE_KEY), true);
+  assert.deepEqual([...state.values()].map((rule) => rule.condition.tabIds), [[17]]);
 
-  await mod.syncDynamicAdRule(api, false);
+  await mod.syncSessionAdRule(api, 18, true);
+  assert.deepEqual([...state.values()].map((rule) => rule.condition.tabIds), [[17], [18]]);
+
+  await mod.syncSessionAdRule(api, 17, false);
   assert.deepEqual(updates[1], {
-    removeRuleIds: [mod.AD_LOGGER_RULE_ID],
+    removeRuleIds: [18],
+    addRules: [mod.createAdLoggerSessionRule(18)]
+  });
+  assert.deepEqual(updates[2], {
+    removeRuleIds: [17],
     addRules: []
   });
-  assert.equal(stored.get(mod.AD_LOGGER_STATE_KEY), false);
+  assert.deepEqual([...state.values()].map((rule) => rule.condition.tabIds), [[18]]);
+});
 
-  stored.set(mod.AD_LOGGER_STATE_KEY, true);
-  assert.equal(await mod.restoreDynamicAdRule(api), true);
-  assert.deepEqual(updates[2].addRules, [mod.AD_LOGGER_RULE]);
-  stored.delete(mod.AD_LOGGER_STATE_KEY);
-  assert.equal(await mod.restoreDynamicAdRule(api), null, "an upgrade without a mirror must wait for content settings");
-  assert.equal(updates.length, 3);
+test("pruning removes only stale owned session rules and legacy migration clears the global rule", async () => {
+  const mod = await importSourceModule("src/extension/ad-rule.ts");
+  const state = new Map([
+    [11, mod.createAdLoggerSessionRule(11)],
+    [12, mod.createAdLoggerSessionRule(12)],
+    [999, { id: 999, priority: 1, action: { type: "block" }, condition: { regexFilter: "other", requestDomains: [], resourceTypes: [] } }]
+  ]);
+  const updates = [];
+  const legacy = [];
+  const api = {
+    declarativeNetRequest: {
+      async getSessionRules() { return [...state.values()]; },
+      async updateSessionRules(options) {
+        updates.push(options);
+        for (const id of options.removeRuleIds ?? []) state.delete(id);
+      },
+      async updateDynamicRules(options) { legacy.push(options); }
+    },
+    storage: { local: { async remove(key) { legacy.push({ key }); } } }
+  };
+
+  assert.equal(await mod.pruneSessionAdRules(api, [12]), 1);
+  assert.deepEqual(updates[0].removeRuleIds, [11]);
+  assert.ok(state.has(12));
+  assert.ok(state.has(999), "unrelated session rules must not be pruned");
+  await mod.removeLegacyDynamicAdRule(api);
+  assert.deepEqual(legacy[0], { removeRuleIds: [mod.AD_LOGGER_RULE_ID], addRules: [] });
+  assert.deepEqual(legacy[1], { key: mod.AD_LOGGER_STATE_KEY });
 });
 
 test("content-to-background synchronization is extension-only and validates the reply", async () => {
@@ -215,36 +255,13 @@ test("the page-world stub never refuses X's own detection probes", async () => {
   assert.equal(mod.isAdRequestUrl("https://x.com/i/api/1.1/promoted_content/log.json"), true);
 });
 
-test("a failed mirror write cannot leave the rule and its record disagreeing", async () => {
-  const { syncDynamicAdRule, restoreDynamicAdRule } =
-    await importSourceModule("src/extension/ad-rule.ts");
-
-  const applied = [];
-  const mirror = new Map();
+test("a failed session-rule update is reported without falling back to a global rule", async () => {
+  const { syncSessionAdRule } = await importSourceModule("src/extension/ad-rule.ts");
   const api = {
     declarativeNetRequest: {
-      async updateDynamicRules(update) {
-        applied.push(update.addRules.length > 0);
-      }
-    },
-    storage: {
-      local: {
-        async set() {
-          throw new Error("quota exceeded");
-        },
-        async get(key) {
-          return mirror.has(key) ? { [key]: mirror.get(key) } : {};
-        }
-      }
+      async updateSessionRules() { throw new Error("session quota exceeded"); }
     }
   };
 
-  // Ad protection is on by default, so the failure direction matters. Committing the rule first and
-  // then failing the write left the rule applied while the mirror still held the old value -- and
-  // the next restore after a restart reverted a rule the user had actually enabled.
-  await assert.rejects(() => syncDynamicAdRule(api, true), /quota exceeded/);
-  assert.deepEqual(applied, [], "no rule may be committed once its record cannot be written");
-
-  const restored = await restoreDynamicAdRule(api);
-  assert.notEqual(restored, false, "a failed sync must not be recorded as a deliberate disable");
+  await assert.rejects(() => syncSessionAdRule(api, 7, true), /session quota exceeded/);
 });

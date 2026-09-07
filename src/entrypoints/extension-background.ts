@@ -1,7 +1,9 @@
 import {
+  clearSessionAdRule,
   isAdRuleSyncMessage,
-  restoreDynamicAdRule,
-  syncDynamicAdRule,
+  pruneSessionAdRules,
+  removeLegacyDynamicAdRule,
+  syncSessionAdRule,
   type ExtensionAdRuleApi
 } from "../extension/ad-rule.ts";
 import {
@@ -29,6 +31,7 @@ import {
 const runtime = globalThis.chrome?.runtime;
 const extensionApi = globalThis.chrome as unknown as ExtensionAdRuleApi | undefined;
 const contextMenus = globalThis.chrome?.contextMenus;
+const tabs = globalThis.chrome?.tabs;
 // The only IndexedDB constructor in the extension build. Content and options use the typed runtime
 // protocol above, so their host/extension documents never open a second storage authority.
 const durableStorageBackend = createIndexedDbStorageBackend();
@@ -39,6 +42,8 @@ const DOWNLOAD_TERMINAL_KEY = "aviary.downloadTerminal.v1";
 const DOWNLOAD_TRACKING_LIMIT = 64;
 /** Terminal receipts are retained so a fallback can answer for its original report id. */
 const DOWNLOAD_TERMINAL_LIMIT = 64;
+/** One reconciliation per worker lifetime is enough; a failed pass may be retried by a lifecycle event. */
+let sessionReconciliation: Promise<void> | null = null;
 
 /**
  * A download the browser accepted but has not finished.
@@ -81,28 +86,44 @@ let trackingStoreTail: Promise<void> = Promise.resolve();
 export const DOWNLOAD_PERMISSION_CODE = "downloads-permission-missing";
 
 runtime?.onInstalled?.addListener((details) => {
-  // Fresh installs inherit the product's default-on ad protection before the first X tab opens.
-  // Updates preserve the content script's last mirrored choice; an older build has no mirror, so
-  // its document-start page guard remains the safe parity path until the first content boot.
-  const task =
-    details?.reason === "install" && extensionApi
-      ? syncDynamicAdRule(extensionApi, true)
-      : extensionApi
-        ? restoreDynamicAdRule(extensionApi)
-        : Promise.resolve(null);
-  settleBackgroundTask(task, "install/update");
+  // The old build owned one extension-global dynamic rule. Remove it on both install and update;
+  // the first content script in each X tab installs its own session rule after resolving profile
+  // settings. Session rules cannot be restored from a global preference without recreating the
+  // very cross-tab race this migration fixes.
+  scheduleSessionReconciliation(`install/update (${details?.reason ?? "unknown"})`);
   settleBackgroundTask(installMediaContextMenu(), "context-menu install/update");
 });
 
 runtime?.onStartup?.addListener(() => {
-  if (extensionApi) {
-    settleBackgroundTask(restoreDynamicAdRule(extensionApi), "startup");
-  }
+  // Session rules are not carried across browser sessions. Pruning still matters for a worker
+  // restart, where session rules survive while a tab may have closed before the worker woke.
+  scheduleSessionReconciliation("startup");
   settleBackgroundTask(installMediaContextMenu(), "context-menu startup");
+});
+
+tabs?.onRemoved?.addListener((tabId) => {
+  if (extensionApi) {
+    settleBackgroundTask(clearSessionAdRule(extensionApi, tabId), "tab close");
+  }
+});
+
+tabs?.onUpdated?.addListener((tabId, changeInfo) => {
+  // `status: loading` covers reloads and same-tab navigations before a new content script can
+  // reconcile. The URL check covers an already-loaded tab that leaves X without a loading event.
+  if (
+    !extensionApi ||
+    (changeInfo.status !== "loading" &&
+      (typeof changeInfo.url !== "string" || isSupportedXUrl(changeInfo.url)))
+  ) {
+    return;
+  }
+  settleBackgroundTask(clearSessionAdRule(extensionApi, tabId), "tab navigation");
 });
 
 // No popup: the toolbar button opens the durable permission-management surface. The native media
 // context-menu action can also request download access from its own explicit user gesture.
+scheduleSessionReconciliation("worker start");
+
 globalThis.chrome?.action?.onClicked?.addListener(() => {
   void openOptions();
 });
@@ -175,7 +196,14 @@ runtime?.onMessage?.addListener((message, sender, sendResponse) => {
       sendResponse({ ok: false, enabled: message.enabled, error: "extension APIs unavailable" });
       return false;
     }
-    syncDynamicAdRule(extensionApi, message.enabled).then(
+    // Content scripts get their owner from sender.tab. Privileged options pages may target a tab
+    // explicitly, so an explicit id takes precedence when present.
+    const tabId = message.tabId ?? tabIdOf(sender);
+    if (tabId === undefined || tabId === null) {
+      sendResponse({ ok: false, enabled: message.enabled, error: "tab context unavailable" });
+      return false;
+    }
+    syncSessionAdRule(extensionApi, tabId, message.enabled).then(
       () => sendResponse({ ok: true, enabled: message.enabled }),
       (error: unknown) =>
         sendResponse({ ok: false, enabled: message.enabled, error: errorMessage(error) })
@@ -220,6 +248,58 @@ runtime?.onMessage?.addListener((message, sender, sendResponse) => {
 
 function isType<T extends string>(message: unknown, type: T): message is { type: T } {
   return typeof message === "object" && message !== null && (message as { type?: unknown }).type === type;
+}
+
+/** Reconciles legacy global state and removes rules for tabs no longer present. */
+async function reconcileSessionRules(): Promise<void> {
+  if (!extensionApi) {
+    return;
+  }
+  await removeLegacyDynamicAdRule(extensionApi);
+  const liveTabIds = await listLiveTabIds();
+  if (liveTabIds === null) {
+    return;
+  }
+  await pruneSessionAdRules(extensionApi, liveTabIds);
+}
+
+function scheduleSessionReconciliation(lifecycle: string): void {
+  if (sessionReconciliation) {
+    return;
+  }
+  const task = reconcileSessionRules();
+  sessionReconciliation = task.catch((error: unknown) => {
+    sessionReconciliation = null;
+    throw error;
+  });
+  settleBackgroundTask(sessionReconciliation, lifecycle);
+}
+
+async function listLiveTabIds(): Promise<number[] | null> {
+  if (typeof tabs?.query !== "function") {
+    return null;
+  }
+  try {
+    const openTabs = await tabs.query({});
+    return openTabs
+      .map((tab) => tab.id)
+      .filter((id): id is number => typeof id === "number" && Number.isSafeInteger(id) && id >= 0);
+  } catch {
+    // Cleanup must not prevent content scripts from installing a fresh session rule.
+    return null;
+  }
+}
+
+function isSupportedXUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return (
+      (url.protocol === "https:" || url.protocol === "http:") &&
+      ["x.com", "www.x.com", "twitter.com", "www.twitter.com", "pro.x.com"].includes(url.hostname)
+    );
+  } catch {
+    return false;
+  }
 }
 
 async function installMediaContextMenu(): Promise<void> {

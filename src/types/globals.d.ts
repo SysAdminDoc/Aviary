@@ -71,15 +71,45 @@ declare global {
       };
     };
     declarativeNetRequest?: {
-      updateDynamicRules(options: {
+      updateSessionRules?(options: {
         removeRuleIds: number[];
         addRules: Array<{
           id: number;
           priority: number;
           action: { type: "block" };
-          condition: { regexFilter: string; requestDomains: string[]; resourceTypes: string[] };
+          condition: {
+            regexFilter: string;
+            requestDomains: string[];
+            resourceTypes: string[];
+            tabIds?: number[];
+          };
         }>;
       }): Promise<void>;
+      updateDynamicRules?(options: {
+        removeRuleIds: number[];
+        addRules: Array<{
+          id: number;
+          priority: number;
+          action: { type: "block" };
+          condition: {
+            regexFilter: string;
+            requestDomains: string[];
+            resourceTypes: string[];
+            tabIds?: number[];
+          };
+        }>;
+      }): Promise<void>;
+      getSessionRules?(): Promise<Array<{
+        id: number;
+        priority: number;
+        action: { type: "block" };
+        condition: {
+          regexFilter: string;
+          requestDomains: string[];
+          resourceTypes: string[];
+          tabIds?: number[];
+        };
+      }>>;
     };
     downloads?: {
       download(options: { url: string; filename?: string; conflictAction?: "uniquify" | "overwrite" | "prompt" }): Promise<number>;
@@ -131,6 +161,22 @@ declare global {
     };
     tabs?: {
       sendMessage(tabId: number, message: unknown): Promise<unknown>;
+      query?(queryInfo?: { windowId?: number; status?: "loading" | "complete" }): Promise<Array<{
+        id?: number;
+        url?: string;
+      }>>;
+      onRemoved?: {
+        addListener(listener: (tabId: number, removeInfo?: unknown) => void): void;
+      };
+      onUpdated?: {
+        addListener(
+          listener: (
+            tabId: number,
+            changeInfo: { status?: "loading" | "complete"; url?: string },
+            tab?: { id?: number; url?: string }
+          ) => void
+        ): void;
+      };
     };
   } | undefined;
 }

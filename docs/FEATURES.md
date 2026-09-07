@@ -12,8 +12,9 @@ map, [FAQ.md](FAQ.md) for the selector-regression workflow and export tips.
 - Userscript entry: `src/entrypoints/userscript.ts`
 - MV3 content entry: `src/entrypoints/extension-content.ts`
 - MV3 background entry: `src/entrypoints/extension-background.ts`
-- MV3 promoted-logger rule: `src/extension/ad-rule.ts` (dynamic, synchronized to
-  `privacy.blockAds`; Firefox uses an event-page background plus an empty static compatibility set)
+- MV3 promoted-logger rule: `src/extension/ad-rule.ts` (tab-scoped session rules synchronized to the
+  resolved `privacy.blockAds` setting; the background prunes closed tabs and retires the old global
+  dynamic rule; Firefox uses an event-page background plus an empty static compatibility set)
 - MV3 page-world entry: `src/entrypoints/extension-page.ts` (declared `"world": "MAIN"`; the userscript reaches the same place through `unsafeWindow`)
 - Page bridge and agent: `src/platform/page-bridge.ts`, `src/page/page-agent.ts`
 - Document-start ad protection: `src/features/privacy/ad-protection.ts` plus the page-agent's exact
@@ -87,10 +88,11 @@ API keys or raw prompts. Local-only mode and disabled integrations make zero pro
 
 Aviary can also refuse X's general analytics beacons, the tracking pings sent as you scroll,
 click and pause. That broader privacy control is off by default. Ad protection is separate: the
-userscript answers only X's exact promoted-content logger locally at document start, while the
-extension blocks the same URL before a connection through one host-scoped dynamic request rule.
-Timeline, media, login, and unrelated analytics traffic stay untouched. Turning off **Block ads**
-removes the dynamic rule immediately; turning it back on restores it, including after restart.
+  userscript answers only X's exact promoted-content logger locally at document start, while the
+  extension blocks the same URL before a connection through one host-scoped session rule for each
+  enabled X tab. Timeline, media, login, and unrelated analytics traffic stay untouched. Turning
+  off **Block ads** removes that tab's rule immediately; another tab's setting is unchanged. Closing
+  or leaving X removes the rule, and a worker startup prunes any rule whose tab no longer exists.
 
 ## Desktop ad protection
 

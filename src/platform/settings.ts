@@ -393,8 +393,8 @@ export interface AviarySettings {
     blockAds: boolean;
     /**
      * The network half of ad protection: the page-world promoted-logger stub and the extension's
-     * dynamic request rule. Structural suppression stays on `blockAds` alone, so turning this off
-     * keeps ads hidden while making Aviary stop refusing any request.
+     * tab-scoped session request rule. Structural suppression stays on `blockAds` alone, so turning
+     * this off keeps ads hidden while making Aviary stop refusing any request.
      */
     networkShield: boolean;
     blockAnalyticsBeacons: boolean;

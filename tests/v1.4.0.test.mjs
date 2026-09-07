@@ -405,7 +405,7 @@ test("smoke spec scaffold ships with explicit setup instructions", async () => {
     assert.match(source, /HomeTimeline/);
     assert.match(source, /promoted_content\/log/);
   }
-  assert.match(dnrChromium, /routeHits/);
+  assert.match(dnrChromium, /tab-scoped/);
   assert.match(dnrFirefox, /CONNECT x\.com:443/);
   const incognito = await readFile(
     path.join(root, "tests/smoke/incognito-chromium.smoke.mjs"),

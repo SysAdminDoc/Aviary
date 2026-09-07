@@ -63,6 +63,9 @@
   export from a redacted backup.
 
 ### Changed
+- Extension ad protection now installs one host-scoped session rule per enabled X tab, conditioned
+  by that tab's id. Opposing profile choices no longer race, and navigation, tab close, startup,
+  and upgrades remove stale rules. The userscript remains document-local.
 - Browser download handoffs now retain terminal results for every waiting consumer. Fast completions
   are reconciled before the response returns, and Resume checks the browser's retained download id
   before retrying, so an in-progress or completed file is never downloaded twice. A quality fallback

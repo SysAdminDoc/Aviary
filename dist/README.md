@@ -43,6 +43,9 @@ Two things are on out of the box, and everything else waits for you.
 trends and house promos, then collapses the timeline row so you don't get a dead gap where the ad
 was. It leaves HomeTimeline alone, because X delivers sponsored records inside the same first-party
 response as ordinary posts, and those bytes can't be separated. Only the rendering can.
+In the extension, the network guard is a session rule tied to the X tab that resolved the setting,
+so opposing profile choices in two tabs stay independent. Leaving X, closing a tab, or restarting
+the browser leaves no stale rule behind. The userscript keeps the same protection document-local.
 
 **Media saves are ready.** Every post with media grows one Download action that takes the photos,
 video, GIF, audio track and caption file belonging to that post. Quoted media and link-card previews
