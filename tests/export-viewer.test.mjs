@@ -26,7 +26,8 @@ test("standalone viewer is local-only, responsive, virtualized, searchable, and 
           retryable: true
         } }]
       : [],
-    permalink: `https://x.com/archivist/status/${index + 1}`
+    permalink: `https://x.com/archivist/status/${index + 1}`,
+    audience: "public"
   }));
   const html = new TextDecoder().decode(buildExportViewer(records));
   assert.match(html, /<title>Aviary archive<\/title>/);
@@ -81,7 +82,8 @@ test("thread view renders missing parents and collapses same-author runs", async
       createdAt: "2026-08-22T12:00:00Z",
       surface: "home",
       media: [],
-      permalink: "https://x.com/alice/status/root-1"
+      permalink: "https://x.com/alice/status/root-1",
+      audience: "public"
     },
     {
       tweetId: "reply-1",
@@ -96,7 +98,8 @@ test("thread view renders missing parents and collapses same-author runs", async
       createdAt: "2026-08-22T12:01:00Z",
       surface: "home",
       media: [],
-      permalink: "https://x.com/alice/status/reply-1"
+      permalink: "https://x.com/alice/status/reply-1",
+      audience: "public"
     },
     {
       tweetId: "reply-2",
@@ -111,7 +114,8 @@ test("thread view renders missing parents and collapses same-author runs", async
       createdAt: "2026-08-22T12:02:00Z",
       surface: "home",
       media: [],
-      permalink: "https://x.com/bob/status/reply-2"
+      permalink: "https://x.com/bob/status/reply-2",
+      audience: "public"
     }
   ];
   const html = new TextDecoder().decode(buildExportViewer(records));
@@ -143,7 +147,8 @@ test("thread sorting orders complete groups without breaking parent order", asyn
       createdAt: "2026-08-22T10:00:00Z",
       surface: "home",
       media: [],
-      permalink: "https://x.com/zeta/status/old-root"
+      permalink: "https://x.com/zeta/status/old-root",
+      audience: "public"
     },
     {
       tweetId: "new-root",
@@ -156,7 +161,8 @@ test("thread sorting orders complete groups without breaking parent order", asyn
       createdAt: "2026-08-22T12:00:00Z",
       surface: "home",
       media: [],
-      permalink: "https://x.com/alpha/status/new-root"
+      permalink: "https://x.com/alpha/status/new-root",
+      audience: "public"
     },
     {
       tweetId: "new-reply",
@@ -170,7 +176,8 @@ test("thread sorting orders complete groups without breaking parent order", asyn
       createdAt: "2026-08-22T12:01:00Z",
       surface: "home",
       media: [],
-      permalink: "https://x.com/alpha/status/new-reply"
+      permalink: "https://x.com/alpha/status/new-reply",
+      audience: "public"
     }
   ];
   const html = new TextDecoder().decode(buildExportViewer(records));

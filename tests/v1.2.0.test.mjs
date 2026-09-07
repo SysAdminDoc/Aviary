@@ -16,6 +16,7 @@ test("buildWarcArchive emits ISO-28500 WARC/1.1 headers and a metadata record", 
       capturedAt: "2026-05-19T12:00:00Z",
       surface: "home",
       permalink: "https://x.com/alpha/status/1",
+      audience: "public",
       media: [{ kind: "photo", url: "https://pbs.twimg.com/media/foo?name=orig", type: "jpg" }]
     }
   ];
@@ -50,7 +51,8 @@ test("renderForExternalTarget produces Obsidian frontmatter and Notion headings"
       capturedAt: "2026-05-19T12:00:00Z",
       surface: "home",
       media: [{ kind: "photo", url: "https://pbs.twimg.com/media/foo?name=orig", type: "jpg" }],
-      permalink: "https://x.com/alpha/status/42"
+      permalink: "https://x.com/alpha/status/42",
+      audience: "public"
     }
   ];
 

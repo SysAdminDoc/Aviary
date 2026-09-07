@@ -12,6 +12,21 @@ test("post language is canonicalized at the boundary and invalid tags become nul
   assert.equal(normalizePostLanguage("en_US"), null);
 });
 
+test("offline search indexes only normalized language tags", async () => {
+  const { documentFromExportRecord } = await importSourceModule("src/features/library/query-model.ts");
+  const document = documentFromExportRecord({
+    tweetId: "search-language",
+    handle: "reader",
+    displayName: "Reader",
+    text: "hello",
+    language: "<script>alert(1)</script>",
+    capturedAt: "2026-09-07T12:00:00Z",
+    surface: "home",
+    media: []
+  });
+  assert.doesNotMatch(document.text, /script|alert/);
+});
+
 test("GraphQL language survives capture and every portable representation", async () => {
   const { parseCapturedThreadRecords } = await importSourceModule("src/features/export/thread-capture.ts");
   const { formatExport } = await importSourceModule("src/features/export/formatters.ts");
@@ -60,10 +75,11 @@ test("GraphQL language survives capture and every portable representation", asyn
   const markdown = new TextDecoder().decode(formatExport("markdown", captured).data);
   assert.match(markdown, /---\nlanguage: he\n---/);
   assert.ok(!markdown.includes("<bdi>"));
-  const warc = new TextDecoder().decode(buildWarcArchive(captured).data);
+  const sharePolicy = { audience: { includeUnknown: true } };
+  const warc = new TextDecoder().decode(buildWarcArchive(captured, sharePolicy).data);
   assert.match(warc, /<html lang="en" dir="ltr">/);
   assert.match(warc, /<p lang="he" dir="auto"><bdi dir="auto">שלום, @alice!<\/bdi><\/p>/);
-  const viewer = new TextDecoder().decode(buildExportViewer(captured));
+  const viewer = new TextDecoder().decode(buildExportViewer(captured, sharePolicy));
   assert.match(viewer, /"language":"he"/);
   assert.match(viewer, /body\.dir = "auto"/);
 });

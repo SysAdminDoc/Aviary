@@ -112,7 +112,8 @@ test("the viewer's locale list comes from the shared registry, not a table of it
         capturedAt: "2026-08-18T10:00:00.000Z",
         surface: "home",
         media: [],
-        permalink: "https://x.com/alice/status/1"
+        permalink: "https://x.com/alice/status/1",
+        audience: "public"
       }
     ])
   );

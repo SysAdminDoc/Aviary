@@ -159,10 +159,10 @@ reason visible.
 Catch-up never marks anything read, requests another timeline, or claims to know what X did not
 render. It stores a bounded copy of the rendered text, account, permalink, media references, and
 basic engagement counts for up to 4,000 posts or 30 days. **Filtering → Dim posts you have already
-seen** enables the companion store. A timeline post must keep at least half its box visible for one
-second before it is recorded, with a 200 CSS pixel rule for posts taller than the viewport. Hidden
-tabs, fast scroll-through, detached nodes, and interrupted dwell do not count; a direct Status route
-records its focal post immediately. **Forget seen posts** clears both the id-only seen ledger and
+seen** enables the companion store. A timeline post must keep at least half its box or 200 CSS
+pixels visible for one second before it is recorded. Hidden tabs, fast scroll-through, detached
+nodes, and interrupted dwell do not count; a direct Status route records its focal post immediately.
+**Forget seen posts** clears both the id-only seen ledger and
 the catch-up copies. Media references stay inert until you click a preview.
 
 ## Audience-aware export

@@ -79,7 +79,7 @@ export async function importOfficialArchiveFromSource(
   }
   try {
     return importArchiveEntries(
-      await readZipSource(source),
+      await readZipSource(source, options.shouldContinue ? { shouldContinue: options.shouldContinue } : {}),
       surface,
       localCorpus,
       options.shouldContinue

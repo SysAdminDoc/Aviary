@@ -183,6 +183,7 @@ function sampleRecord() {
     capturedAt: "2026-08-21T11:59:00Z",
     surface: "home",
     media: [],
-    permalink: "https://x.com/alpha/status/1"
+    permalink: "https://x.com/alpha/status/1",
+    audience: "public"
   };
 }

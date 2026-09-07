@@ -14,6 +14,9 @@ const {
 const { readZipSource, ZIP_SOURCE_READ_BYTES } = await importSourceModule(
   "src/features/export/zip-reader.ts"
 );
+const { importOfficialArchiveFromSource } = await importSourceModule(
+  "src/features/library/archive-import.ts"
+);
 
 function recordingStorage(quotaBytes = null) {
   const values = new Map();
@@ -117,4 +120,30 @@ test("the staged ZIP reader uses bounded source reads for store and deflate entr
     assert.ok(Math.max(...reads) <= ZIP_SOURCE_READ_BYTES);
     assert.ok(Math.max(...reads) <= 4 * 1024 * 1024);
   }
+});
+
+test("archive import forwards pause cancellation into staged ZIP reads", async () => {
+  const payload = new TextEncoder().encode("window.YTD.tweets.part0 = [];");
+  const archive = buildStoreZip([
+    { filename: "data/tweets.js", data: payload },
+    { filename: "data/likes.js", data: payload }
+  ]);
+  let checks = 0;
+  const reads = [];
+  const source = {
+    size: archive.byteLength,
+    async read(offset, length) {
+      reads.push({ offset, length });
+      return archive.slice(offset, offset + length);
+    }
+  };
+  const result = await importOfficialArchiveFromSource(source, "archive", [], {
+    shouldContinue: () => {
+      checks += 1;
+      return checks < 2;
+    }
+  });
+  assert.equal(result.records.length, 0);
+  assert.ok(checks >= 2);
+  assert.equal(reads.length, 4, "the parser should stop after the central directory and first entry");
 });

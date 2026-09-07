@@ -69,6 +69,7 @@ test("the deterministic 50,000-row corpus stays searchable and reports bad rows"
 test("backup, restore, ZIP, WARC, WACZ, and restart checkpoints survive the large corpus", async () => {
   const rows = createLargeLibraryCorpus();
   const { records } = normalizeLargeLibraryRows(rows);
+  records.forEach((record) => { record.audience = "public"; });
   const [{ CheckpointStore, CHECKPOINT_KEY }, { buildStoreZip }, { readStoreZip }, { serializeExportRecords }, { buildIndexedWarcArchive }, { buildWaczArchive, estimateWaczBytes }, { buildWaczArchiveOffThread, MAX_WACZ_EXPORT_BYTES }, { createLibraryBackup, parseLibraryBackup, restoreLibraryBackup }, { pickPreferred }] = await Promise.all([
     importSourceModule("src/features/export/jobs.ts"),
     importSourceModule("src/features/export/zip-store.ts"),

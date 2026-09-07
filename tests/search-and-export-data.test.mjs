@@ -11,6 +11,7 @@ const record = (overrides = {}) => ({
   surface: "home",
   media: [],
   permalink: "https://x.com/someone/status/1",
+  audience: "public",
   ...overrides
 });
 
@@ -223,7 +224,8 @@ test("a hostile handle cannot break out of the Obsidian frontmatter or the clipb
     capturedAt: "2026-01-16T12:00:00.000Z",
     surface: "home",
     media: [],
-    permalink: "https://x.com/i/web/status/1) [PHISH](https://evil.example"
+    permalink: "https://x.com/i/web/status/1) [PHISH](https://evil.example",
+    audience: "public"
   };
 
   const note = new TextDecoder().decode(

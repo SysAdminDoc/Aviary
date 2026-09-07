@@ -192,6 +192,7 @@ function sampleRecord(overrides = {}) {
       httpHeaders: { "cache-control": "public, max-age=60" }
     }],
     permalink: "https://x.com/alpha/status/1",
+    audience: "public",
     ...overrides
   };
 }

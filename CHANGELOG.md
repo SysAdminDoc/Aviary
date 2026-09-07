@@ -38,7 +38,11 @@
 - Export records now keep canonical BCP 47 post language from DOM, GraphQL, and archive inputs.
   JSON and CSV carry the value, Markdown writes it in frontmatter, and HTML, replay pages, and the
   offline viewer isolate each post with its own language and automatic direction. Invalid tags and
-  legacy records become null instead of reaching markup.
+  legacy records become null instead of reaching markup, including in offline search metadata.
+- Share-oriented builders now apply the same fail-closed audience default even when called directly.
+  Viewer, WARC, WACZ, and external Markdown targets cannot emit protected or unknown rows without
+  an explicit selection. Staged archive reads also stop at the pause callback, and seen-post dwell
+  accepts 200 visible CSS pixels for any post rather than only posts taller than the viewport.
 - Large X archive imports now stage a File in fixed 3 MiB base64 chunks. Extension chunks stay in
   the background-owned durable store, userscript values stay under manager limits, and the ZIP
   reader consumes bounded source ranges instead of decoding a second full archive. Paused,
@@ -48,7 +52,7 @@
   exports exclude protected and unknown rows until their explicit controls are enabled, while JSON
   and CSV retain every row with the audience field for archival use.
 - Seen-post dimming now waits for a visible, one-second dwell before recording a timeline post. It
-  accepts half a post or 200 CSS pixels of a taller post, cancels work when a node leaves the
+  accepts half a post or 200 visible CSS pixels, cancels work when a node leaves the
   viewport or the tab is hidden, keeps candidates independent, and treats a direct Status route's
   focal post as immediately seen.
 - Passive request boundaries are now exercised directly: page-world capture stays idle until X

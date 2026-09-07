@@ -284,7 +284,8 @@ test("media terminal states and the standalone viewer have no serious accessibil
       url: "https://pbs.twimg.com/media/fixture.jpg",
       capture: { status: "remote-reference", sourceUrl: "https://pbs.twimg.com/media/fixture.jpg", capturedAt: null, byteLength: null, sha256: null, retryable: true }
     }],
-    permalink: "https://x.com/fixture/status/a11y-1"
+    permalink: "https://x.com/fixture/status/a11y-1",
+    audience: "public"
   }];
   const viewerHtml = new TextDecoder().decode(buildExportViewer(viewerRecords));
   for (const fixture of A11Y_FIXTURES) {

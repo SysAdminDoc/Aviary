@@ -277,7 +277,7 @@ function refreshTrackedVisibility(ctx: FeatureContext): void {
     const intersectionHeight = Math.max(0, Math.min(rect.bottom, viewportHeight) - Math.max(rect.top, 0));
     const ratio = height > 0 ? intersectionHeight / height : 0;
     const visible = document.visibilityState === "visible" && intersectionHeight > 0 && (
-      ratio >= MIN_VISIBLE_RATIO || (height > viewportHeight && intersectionHeight >= MIN_VISIBLE_PIXELS)
+      ratio >= MIN_VISIBLE_RATIO || intersectionHeight >= MIN_VISIBLE_PIXELS
     );
     updateVisibility(ctx, article, id, visible);
   }
@@ -305,8 +305,7 @@ function updateVisibility(ctx: FeatureContext, article: Element, id: string, vis
 
 function isVisibleEnough(entry: IntersectionObserverEntry): boolean {
   if (entry.intersectionRatio >= MIN_VISIBLE_RATIO) return true;
-  const height = entry.boundingClientRect.height;
-  return height > (entry.rootBounds?.height ?? window.innerHeight) && entry.intersectionRect.height >= MIN_VISIBLE_PIXELS;
+  return entry.intersectionRect.height >= MIN_VISIBLE_PIXELS;
 }
 
 function cancelDwell(article: Element): void {

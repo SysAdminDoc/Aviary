@@ -65,9 +65,7 @@ export function buildIndexedWarcArchive(
   records: readonly ExportRecord[],
   options: WarcBuildOptions = {}
 ): IndexedWarcArchive {
-  const selectedRecords = options.audience === undefined
-    ? [...records]
-    : filterShareRecords(records, normalizeAudienceSelection(options.audience));
+  const selectedRecords = filterShareRecords(records, normalizeAudienceSelection(options.audience));
   const generatedAt = validDate(options.generatedAt) ?? new Date();
   const filename = sanitizeFilename(options.filename ?? "tweets.warc");
   const generatedAtIso = toWarcDate(generatedAt);

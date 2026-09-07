@@ -3,6 +3,7 @@ import type { SemanticEntry } from "../integrations/semantic-search.ts";
 import type { BookmarkRecord } from "./bookmarks.ts";
 import type { SnapshotEntry } from "./snapshots.ts";
 import type { ArchiveLibrarySnapshot } from "./archive-library.ts";
+import { normalizePostLanguage } from "../export/language.ts";
 
 /** One bounded, searchable representation for every local library surface. */
 export type OfflineCollection =
@@ -360,7 +361,7 @@ export function documentFromExportRecord(record: ExportRecord): OfflineQueryDocu
     record.rootId ?? "",
     record.parentId ?? "",
     record.authorId ?? "",
-    record.language ?? "",
+    normalizePostLanguage(record.language) ?? "",
     ...(record.participants ?? []).flatMap((participant) =>
       [participant.id, participant.handle ?? "", participant.label]
     ),

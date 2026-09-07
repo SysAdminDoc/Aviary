@@ -77,13 +77,7 @@ export function buildExportViewer(
   records: readonly ExportRecord[],
   options: { audience?: Partial<ExportAudienceSelection> } = {}
 ): Uint8Array {
-  // Direct callers that are assembling a diagnostic fixture may omit policy. The ZIP/export
-  // entry points always pass the user's explicit share selection, so a standalone viewer remains
-  // useful for legacy records while actual share packages stay fail-closed.
-  const audience = options.audience === undefined
-    ? { includeProtected: true, includeUnknown: true }
-    : normalizeAudienceSelection(options.audience);
-  const visibleRecords = filterShareRecords(records, audience);
+  const visibleRecords = filterShareRecords(records, normalizeAudienceSelection(options.audience));
   const data = safeJson(serializeExportRecords(visibleRecords));
   const threads = safeJson(serializeThreads(reconstructThreads(visibleRecords)));
   const labels = safeJson(buildViewerLabels());

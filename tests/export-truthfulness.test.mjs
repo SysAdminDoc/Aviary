@@ -188,6 +188,7 @@ function sampleRecord(overrides = {}) {
     surface: "home",
     media: [],
     permalink: "https://x.com/alpha/status/1",
+    audience: "public",
     ...overrides
   };
 }

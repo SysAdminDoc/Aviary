@@ -17,9 +17,7 @@ export function renderForExternalTarget(
   records: readonly ExportRecord[],
   options: { audience?: Partial<ExportAudienceSelection> } = {}
 ): ExternalTargetResult {
-  const selected = options.audience === undefined
-    ? records
-    : filterShareRecords(records, normalizeAudienceSelection(options.audience));
+  const selected = filterShareRecords(records, normalizeAudienceSelection(options.audience));
   switch (target) {
     case "clipboard-markdown":
       return { id: target, payload: toPlainMarkdown(selected) };

@@ -587,7 +587,7 @@ test("a CRLF in a scraped value cannot inject WARC headers or split a record", a
 
   // The whole archive must still parse as the expected number of records.
   const archive = buildWarcArchive([
-    { tweetId: "1", handle: "a", text: "t", permalink: hostile, media: [{ url: hostile, kind: "photo", type: "image/jpeg" }] }
+    { tweetId: "1", handle: "a", text: "t", permalink: hostile, media: [{ url: hostile, kind: "photo", type: "image/jpeg" }], audience: "public" }
   ]);
   const all = new TextDecoder().decode(archive.data);
   const recordStarts = all.match(/(?:^|\r\n\r\n)WARC\/1\.1\r\n/g) ?? [];

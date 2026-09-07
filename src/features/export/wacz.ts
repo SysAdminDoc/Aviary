@@ -56,9 +56,7 @@ export function prepareWaczArchive(
   records: readonly ExportRecord[],
   options: WaczBuildOptions
 ): PreparedWacz {
-  const selectedRecords = options.audience === undefined
-    ? [...records]
-    : filterShareRecords(records, normalizeAudienceSelection(options.audience));
+  const selectedRecords = filterShareRecords(records, normalizeAudienceSelection(options.audience));
   const generatedAt = validDate(options.generatedAt) ?? new Date();
   const warc = buildIndexedWarcArchive(selectedRecords, {
     generatedAt,
@@ -125,9 +123,7 @@ export function estimateWaczBytes(
   records: readonly ExportRecord[],
   options: { audience?: Partial<ExportAudienceSelection> } = {}
 ): WaczEstimate {
-  const selectedRecords = options.audience === undefined
-    ? records
-    : filterShareRecords(records, normalizeAudienceSelection(options.audience));
+  const selectedRecords = filterShareRecords(records, normalizeAudienceSelection(options.audience));
   let contentBytes = 12_000;
   for (const record of selectedRecords) {
     contentBytes += ENCODER.encode(JSON.stringify(serializeExportRecord(record))).length + 1_500;

@@ -251,6 +251,61 @@ test("dwell is independent per post and cancels when a post leaves the viewport"
   assert.deepEqual(result, { size: 1, firstCancelled: true, secondCancelled: true });
 });
 
+test("a 200px slice qualifies even when a tall post is below half visible", async () => {
+  const result = await page.evaluate(async () => {
+    AviarySeen.resetSeenPostsState();
+    let now = 0;
+    const timers = [];
+    const observers = [];
+    AviarySeen.setSeenPostsTestSeams({
+      now: () => now,
+      setTimeout(callback, delay) {
+        const timer = { callback, due: now + delay, cancelled: false };
+        timers.push(timer);
+        return timer;
+      },
+      clearTimeout(timer) { timer.cancelled = true; },
+      createObserver(callback) {
+        const observer = { callback, observe() {}, disconnect() {} };
+        observers.push(observer);
+        return observer;
+      }
+    });
+    const values = new Map();
+    const storage = {
+      async get(key, fallback) { return values.has(key) ? values.get(key) : fallback; },
+      async set(key, value) { values.set(key, structuredClone(value)); }
+    };
+    const ctx = {
+      settings: AviarySeen.normalizeSettings({ filter: { dimSeenPosts: true } }),
+      storage,
+      route: { href: "https://x.com/home", path: "/home", surface: "home" },
+      diagnostics: { info() {}, warn() {}, error() {} }
+    };
+    document.body.innerHTML = `<article data-testid="tweet" id="post-tall"><a href="/someone/status/444">link</a></article>`;
+    await AviarySeen.seenPostsFeature.init(ctx);
+    observers.at(-1)?.callback([{
+      target: document.getElementById("post-tall"),
+      isIntersecting: true,
+      intersectionRatio: 0.4,
+      boundingClientRect: { height: 500 },
+      intersectionRect: { height: 200 },
+      rootBounds: { height: 800 }
+    }]);
+    now = 1000;
+    for (const timer of timers) {
+      if (!timer.cancelled && timer.due <= now) {
+        timer.cancelled = true;
+        timer.callback();
+      }
+    }
+    const size = AviarySeen.getSeenPostStore()?.size ?? 0;
+    await AviarySeen.seenPostsFeature.destroy(ctx);
+    return size;
+  });
+  assert.equal(result, 1);
+});
+
 test("background-tab time never qualifies a visible candidate", async () => {
   const result = await page.evaluate(async () => {
     AviarySeen.resetSeenPostsState();

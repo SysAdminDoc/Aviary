@@ -80,6 +80,29 @@ test("preservation builders apply the same audience policy", async () => {
   assert.doesNotMatch(archive, /protected text/);
 });
 
+test("share-oriented builders fail closed when no audience policy is supplied", async () => {
+  const { buildWarcArchive } = await importSourceModule("src/features/export/warc.ts");
+  const { buildWaczArchive } = await importSourceModule("src/features/export/wacz.ts");
+  const { buildExportViewer } = await importSourceModule("src/features/export/viewer.ts");
+  const { renderForExternalTarget } = await importSourceModule("src/features/export/external-targets.ts");
+  const records = [
+    sampleRecord("1", "public text", "public"),
+    sampleRecord("2", "protected text", "protected"),
+    sampleRecord("3", "unknown text")
+  ];
+  assert.match(decoder.decode(buildWarcArchive(records).data), /public text/);
+  assert.doesNotMatch(decoder.decode(buildWarcArchive(records).data), /protected text|unknown text/);
+  const wacz = decoder.decode((await importSourceModule("src/features/export/zip-reader.ts")).readStoreZip(buildWaczArchive(records).data).find((entry) => entry.filename === "archive/aviary.warc").data);
+  assert.match(wacz, /public text/);
+  assert.doesNotMatch(wacz, /protected text|unknown text/);
+  const viewer = decoder.decode(buildExportViewer(records));
+  assert.match(viewer, /public text/);
+  assert.doesNotMatch(viewer, /protected text|unknown text/);
+  const clipboard = renderForExternalTarget("clipboard-markdown", records).payload;
+  assert.match(clipboard, /public text/);
+  assert.doesNotMatch(clipboard, /protected text|unknown text/);
+});
+
 test("library backup retains audience fields without rewriting the checkpoint value", async () => {
   const { createLibraryBackup, parseLibraryBackup } = await importSourceModule("src/features/core/library-backup.ts");
   const { CHECKPOINT_KEY } = await importSourceModule("src/features/export/jobs.ts");
