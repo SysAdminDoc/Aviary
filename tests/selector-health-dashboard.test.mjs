@@ -232,19 +232,39 @@ test("a renamed post action bar signals once, opens Trust, and copies a content-
       missing: read("Missing required surfaces")
     };
 
-    settings.media.buttons = false;
-    settings.ai.commandMenu = false;
-    settings.composer.snippets = [];
     actions.removeAttribute("data-testid");
     actions.removeAttribute("role");
     await AviarySelectorHealth.selectorHealthFeature.apply(context, document);
-    const off = {
+    const degradedAgain = {
       state: AviarySelectorHealth.getSelectorHealthSnapshot().state,
-      missing: AviarySelectorHealth.getSelectorHealthSnapshot().missingRequired
+      launcherState: host.dataset.avSelectorHealth,
+      toastHost: Boolean(document.getElementById("av-feature-toast"))
+    };
+    settings.media.buttons = false;
+    settings.ai.commandMenu = false;
+    settings.composer.snippets = [];
+    await AviarySelectorHealth.selectorHealthFeature.apply(context);
+    const featuresOff = {
+      state: AviarySelectorHealth.getSelectorHealthSnapshot().state,
+      missing: AviarySelectorHealth.getSelectorHealthSnapshot().missingRequired,
+      launcherState: host.dataset.avSelectorHealth,
+      selectorSummary: read("Selector health"),
+      toastHost: Boolean(document.getElementById("av-feature-toast"))
+    };
+    settings.media.buttons = true;
+    await AviarySelectorHealth.selectorHealthFeature.apply(context);
+    settings.diagnostics.selectorHealth = false;
+    await AviarySelectorHealth.selectorHealthFeature.apply(context);
+    const diagnosticsOff = {
+      state: AviarySelectorHealth.getSelectorHealthSnapshot().state,
+      missing: AviarySelectorHealth.getSelectorHealthSnapshot().missingRequired,
+      launcherState: host.dataset.avSelectorHealth,
+      selectorSummary: read("Selector health"),
+      toastHost: Boolean(document.getElementById("av-feature-toast"))
     };
     panel.destroy();
     AviarySelectorHealth.selectorHealthFeature.destroy(context);
-    return { firstDegraded, secondDegraded, restored, off, report: reports[0] ?? "" };
+    return { firstDegraded, secondDegraded, restored, degradedAgain, featuresOff, diagnosticsOff, report: reports[0] ?? "" };
   });
 
   assert.equal(result.firstDegraded.snapshot.state, "degraded");
@@ -263,8 +283,19 @@ test("a renamed post action bar signals once, opens Trust, and copies a content-
   assert.equal(result.restored.state, "healthy");
   assert.equal(result.restored.launcherState, "healthy");
   assert.equal(result.restored.missing, "None");
-  assert.equal(result.off.state, "healthy");
-  assert.deepEqual(result.off.missing, []);
+  assert.equal(result.degradedAgain.state, "degraded");
+  assert.equal(result.degradedAgain.launcherState, "degraded");
+  assert.equal(result.degradedAgain.toastHost, true);
+  assert.equal(result.featuresOff.state, "healthy");
+  assert.deepEqual(result.featuresOff.missing, []);
+  assert.equal(result.featuresOff.launcherState, "healthy");
+  assert.match(result.featuresOff.selectorSummary, /^Healthy/);
+  assert.equal(result.featuresOff.toastHost, false);
+  assert.equal(result.diagnosticsOff.state, "healthy");
+  assert.deepEqual(result.diagnosticsOff.missing, []);
+  assert.equal(result.diagnosticsOff.launcherState, "healthy");
+  assert.equal(result.diagnosticsOff.selectorSummary, "Disabled");
+  assert.equal(result.diagnosticsOff.toastHost, false);
 });
 
 test("Trust surfaces content-free ad-contract drift and resets its bounded history", async () => {

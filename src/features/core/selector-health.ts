@@ -65,8 +65,10 @@ export const selectorHealthFeature: FeatureModule = {
 
   async apply(ctx) {
     if (!ctx.settings.diagnostics.selectorHealth) {
-      if (currentSnapshot.enabled) {
+      if (currentSnapshot.enabled || lastNoticeSignature) {
         resetState();
+        removeFeatureToast();
+        ctx.refreshControlCenter?.();
       }
       return;
     }
@@ -84,6 +86,8 @@ export const selectorHealthFeature: FeatureModule = {
           `${ft(ctx, "Selector health")}: ${ft(ctx, "Missing required surfaces")}`,
           { tone: "error", ctx }
         );
+      } else {
+        removeFeatureToast();
       }
     }
     const missingCritical = currentSnapshot.surfaces.filter(

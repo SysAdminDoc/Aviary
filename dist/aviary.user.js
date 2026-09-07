@@ -11923,8 +11923,10 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     },
     async apply(ctx) {
       if (!ctx.settings.diagnostics.selectorHealth) {
-        if (currentSnapshot.enabled) {
+        if (currentSnapshot.enabled || lastNoticeSignature) {
           resetState();
+          removeFeatureToast();
+          ctx.refreshControlCenter?.();
         }
         return;
       }
@@ -11939,6 +11941,8 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
             `${ft(ctx, "Selector health")}: ${ft(ctx, "Missing required surfaces")}`,
             { tone: "error", ctx }
           );
+        } else {
+          removeFeatureToast();
         }
       }
       const missingCritical = currentSnapshot.surfaces.filter(

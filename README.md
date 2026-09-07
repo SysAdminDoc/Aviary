@@ -40,6 +40,8 @@ catalog load from an exact X-only panel chunk after you click the launcher. A fa
 the launcher in a named Retry state. The userscript remains a readable single file with the full
 feature set inline. Panel actions keep the live storage and privacy state from the document-start
 bundle, so a late-loaded integration follows the same Local-only choice and cross-tab write rules.
+If selector health detects a missing required surface, the launcher opens Trust with the affected
+feature and the warning clears as soon as the surface or feature returns to a healthy state.
 
 ## What a fresh install actually does
 
