@@ -1,7 +1,8 @@
 import { importSourceModule } from "./helpers/source-import.mjs";
 import { captureHtml, captureSchema, captureUrl } from "./helpers/synthetic-capture.mjs";
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
+import { execFileSync } from "node:child_process";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
@@ -171,6 +172,42 @@ test("the generated documents carry no real identity", async () => {
       assert.match(id[1], /^1900000000000000/, `${route} carries a post id that is not synthetic`);
     }
   }
+});
+
+test("no tracked file names a real account or a saved post page", async () => {
+  // The generated documents were guarded; the prose around them was not, so a real handle, that
+  // person's post text and the status URL for it sat in CHANGELOG.md and in a test title until
+  // 2026-09-08. Both rules below are shapes rather than names, so this guard does not have to
+  // carry the identity it exists to keep out -- and the banned title shape is assembled rather
+  // than written, because a literal here would trip the scan against this very file.
+  const savedPostTitle = ` on X${"_"} `;
+  const tracked = execFileSync("git", ["ls-files", "-z"], {
+    cwd: root,
+    encoding: "utf8",
+    maxBuffer: 64 * 1024 * 1024
+  })
+    .split("\0")
+    .filter(Boolean);
+  const textual = /\.(md|mjs|js|cjs|ts|json|html|css|txt|yml|yaml)$/;
+  let scanned = 0;
+  for (const relative of tracked) {
+    if (!textual.test(relative)) continue;
+    const contents = await readFile(path.join(root, relative), "utf8");
+    scanned += 1;
+    for (const match of contents.matchAll(/\/status\/(\d+)/g)) {
+      const id = match[1];
+      assert.ok(
+        id.length < 16 || id.startsWith("190000000000"),
+        `${relative} names a real post id (${id}); a synthetic one is short or starts 190000000000`
+      );
+    }
+    assert.ok(
+      !contents.includes(savedPostTitle),
+      `${relative} names a saved authenticated post page, which carries a real handle and body`
+    );
+  }
+  // A silent pass because nothing was read would make this guard worthless.
+  assert.ok(scanned > 50, `expected the tracked text tree, scanned ${scanned} files`);
 });
 
 test("the capture decoder extracts and scrubs a saved MHTML", async () => {

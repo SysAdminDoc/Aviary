@@ -3,6 +3,12 @@
 ## Unreleased
 
 ### Fixed
+- **A real person's handle, post text and post URL are out of the tracked tree.** The saved pages
+  that carried them were deleted in v1.48.1, but the research tables in this file still named the
+  account, quoted the post and linked straight to it, and a test title used the handle as sample
+  text. All of it now reads as an unnamed status capture. A new check walks every tracked text file
+  and fails on a real post id or on the title shape X gives a saved post page, so this cannot come
+  back the way it survived the last cleanup: by sitting in prose nobody was scanning.
 - **The packaged Firefox proof runs again.** The lane that installs the built add-on in a real
   Firefox and checks that its blocking rules actually stop traffic had been stalling with no output
   at all, so the Firefox half of the release matrix went unverified. geckodriver was handing its
