@@ -3,6 +3,12 @@
 ## Unreleased
 
 ### Fixed
+- **A test that watched an animation on a stopwatch.** The RTL Control Center test waited a fixed
+  180ms for a 140ms transition and then read the result, which is a bet that the browser got 140ms
+  of frames inside that window. On a busy machine it does not, and the test failed once in a full
+  run and passed on its own. It waits for the transitions themselves to finish now. Proved by
+  slowing the transition to two seconds: the old test reads the knob 1/14th of the way through its
+  travel, the new one waits and passes.
 - **Two guards that could not have caught what they were written for.** The check that keeps a real
   account out of the tree skipped any tracked file containing a NUL byte, because git calls such a
   file binary and the search was told to ignore binary files; 361 of the repository's own files were

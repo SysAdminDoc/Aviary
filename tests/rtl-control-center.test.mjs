@@ -71,12 +71,21 @@ test("the Control Center mirrors RTL direction and returns to LTR immediately", 
 
     const host = document.getElementById("av-control-center");
     const shadow = host.shadowRoot;
+    // The knob is moved by `transition: transform 140ms ease`, so a fixed sleep is a bet that the
+    // renderer got 140ms of frames inside it. On a loaded machine it does not, and the computed
+    // transform is read part-way through: at a 5ms wait this reads matrix(1,0,0,1,0,0) against the
+    // expected -16 every time. Wait for the transitions themselves to finish instead.
+    const settle = async () => {
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      await Promise.all(shadow.getAnimations({ subtree: true }).map((animation) => animation.finished.catch(() => {})));
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+    };
     shadow.querySelector(".av-launcher").click();
     shadow.querySelector('[data-av-section="appearance"]').click();
     const checkbox = shadow.querySelector('.av-section input[type="checkbox"]');
     const toggle = checkbox.nextElementSibling;
     checkbox.checked = true;
-    await new Promise((resolve) => setTimeout(resolve, 180));
+    await settle();
 
     const snapshot = () => ({
       hostDir: host.getAttribute("dir"),
@@ -88,12 +97,12 @@ test("the Control Center mirrors RTL direction and returns to LTR immediately", 
 
     settings.i18n.locale = "he";
     AviaryRTL.i18nFeature.apply(context);
-    await new Promise((resolve) => setTimeout(resolve, 180));
+    await settle();
     const hebrew = snapshot();
 
     settings.i18n.locale = "en";
     AviaryRTL.i18nFeature.apply(context);
-    await new Promise((resolve) => setTimeout(resolve, 180));
+    await settle();
     const english = snapshot();
 
     panelHandle.destroy();

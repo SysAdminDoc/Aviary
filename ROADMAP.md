@@ -12,15 +12,18 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
 
 ### P2, Later
 
-- **P2. `tests/rtl-control-center.test.mjs` fails under full-suite load and passes alone.**
-  Observed 2026-09-08 on v1.49.2: `the Control Center mirrors RTL direction and returns to LTR
-  immediately` failed once in a full `npm test` run, then passed in isolation and passed on the
-  next full run. It drives a real browser, so the likely shape is the one
-  `tests/reading-marker-ui.test.mjs` already hit: a fixed wait standing in for a state change.
-  WHEN the full suite runs on a loaded machine, the RTL Control Center test SHALL either pass or
-  fail for a reason the failure message names, and SHALL NOT depend on a fixed delay. Find the
-  wait, replace it with a poll for the direction actually applied, and prove it by running the
-  file in a loop while the rest of the suite runs.
+- **P2. `prefers-reduced-motion: reduce` leaves most of the Control Center still animating.**
+  Found 2026-09-08 while fixing the RTL test's fixed waits. `src/ui/control-center.ts` declares
+  around a dozen 140ms and 150ms transitions -- the toggle knob's `transform`, section buttons,
+  inputs, the nav pill -- and the two `@media (prefers-reduced-motion: reduce)` blocks cover only
+  `.av-launcher`, `.av-panel` and `.av-nav-launcher-pill`. The `:host([data-av-motion="reduce"])`
+  rules, which the in-app reduce-motion setting drives, cover the same three. So a reader who has
+  asked their system for less motion still gets an animated toggle knob every time they change a
+  setting. WHEN `prefers-reduced-motion: reduce` is set, or the host carries
+  `data-av-motion="reduce"`, every transition in the Control Center's shadow tree SHALL be none.
+  Prefer one rule that disables transitions across the tree over extending the selector list a
+  fourth time, and assert it in a test that reads a computed transition from more than one control,
+  since a rule naming three selectors is exactly how this was missed.
 
 ### P3, Under Consideration
 
