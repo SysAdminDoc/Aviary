@@ -52,7 +52,7 @@ export function buildStaticArchive(
   // rather than in whatever order the collector happened to fill.
   const ordered = [...visible]
     .filter((record) => record.tweetId !== null)
-    .sort((left, right) => compareIds(left.tweetId, right.tweetId));
+    .sort((left, right) => compareRecordIds(left.tweetId, right.tweetId));
 
   const slugs = new Map<string, string>();
   for (const record of ordered) slugs.set(record.tweetId!, `posts/${slugFor(record.tweetId!)}.html`);
@@ -102,7 +102,7 @@ export function buildStaticArchive(
 }
 
 /** Numeric where both ids are numeric, so 10 sorts after 9 rather than before it. */
-function compareIds(left: string | null, right: string | null): number {
+export function compareRecordIds(left: string | null, right: string | null): number {
   const a = left ?? "";
   const b = right ?? "";
   if (/^\d+$/.test(a) && /^\d+$/.test(b)) {

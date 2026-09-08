@@ -22447,7 +22447,7 @@ a { color: var(--accent); }
     const generatedAt = options.generatedAt ?? /* @__PURE__ */ new Date();
     const title = options.title ?? "Aviary archive";
     const description = options.description ?? "A local archive of captured posts.";
-    const ordered = [...visible].filter((record) => record.tweetId !== null).sort((left, right) => compareIds(left.tweetId, right.tweetId));
+    const ordered = [...visible].filter((record) => record.tweetId !== null).sort((left, right) => compareRecordIds(left.tweetId, right.tweetId));
     const slugs = /* @__PURE__ */ new Map();
     for (const record of ordered) slugs.set(record.tweetId, `posts/${slugFor(record.tweetId)}.html`);
     const entries = [];
@@ -22484,7 +22484,7 @@ a { color: var(--accent); }
     });
     return entries.sort((left, right) => left.filename < right.filename ? -1 : left.filename > right.filename ? 1 : 0);
   }
-  function compareIds(left, right) {
+  function compareRecordIds(left, right) {
     const a = left ?? "";
     const b = right ?? "";
     if (/^\d+$/.test(a) && /^\d+$/.test(b)) {
@@ -22671,6 +22671,117 @@ ${threadLinks.join("\n")}
   }
   function escapeXml2(value) {
     return escapeText(value).replaceAll('"', "&quot;").replaceAll("'", "&apos;");
+  }
+
+  // src/features/export/activitystreams.ts
+  var AS2_CONTEXT = "https://www.w3.org/ns/activitystreams";
+  var INTEROP_NOTICE = "Activity Streams 2.0 is an interoperability format, not a migration path. No major platform currently imports posts from an AS2 outbox: Mastodon's importer takes the social graph only. This file exists so the archive can be read by tooling that already understands AS2.";
+  function buildActivityStreamsOutbox(records, options = {}) {
+    const visible = filterShareRecords(records, normalizeAudienceSelection(options.audience));
+    const generatedAt = options.generatedAt ?? /* @__PURE__ */ new Date();
+    const known = /* @__PURE__ */ new Map();
+    for (const record of visible) {
+      if (record.tweetId) known.set(record.tweetId, record);
+    }
+    const ordered = [...visible].filter((record) => record.tweetId !== null).sort((left, right) => compareRecordIds(left.tweetId, right.tweetId));
+    const missing = /* @__PURE__ */ new Set();
+    for (const thread of reconstructThreads(visible)) {
+      for (const gap of thread.gaps) {
+        if (gap.missingId && !known.has(gap.missingId)) missing.add(gap.missingId);
+      }
+    }
+    const items = [];
+    for (const record of ordered) {
+      items.push({ id: record.tweetId, value: createActivity(record, known) });
+    }
+    for (const id of missing) {
+      items.push({ id, value: tombstone(id) });
+    }
+    items.sort((left, right) => compareRecordIds(left.id, right.id));
+    return {
+      "@context": AS2_CONTEXT,
+      type: "OrderedCollection",
+      ...options.id ? { id: options.id } : {},
+      summary: INTEROP_NOTICE,
+      generator: "Aviary",
+      published: generatedAt.toISOString(),
+      totalItems: items.length,
+      orderedItems: items.map((item) => item.value)
+    };
+  }
+  function serializeActivityStreamsOutbox(records, options = {}) {
+    return new TextEncoder().encode(
+      `${JSON.stringify(buildActivityStreamsOutbox(records, options), null, 2)}
+`
+    );
+  }
+  function createActivity(record, known) {
+    const noteId = objectId(record.tweetId, record.permalink);
+    const actor = actorId(record.handle);
+    const published = publishedAt(record);
+    const note = {
+      type: "Note",
+      id: noteId,
+      ...published ? { published } : {},
+      attributedTo: actor,
+      content: record.text,
+      ...record.language ? { contentMap: { [record.language]: record.text } } : {},
+      ...record.permalink ? { url: record.permalink } : {}
+    };
+    const parent = record.parentId ?? null;
+    if (parent) {
+      note["inReplyTo"] = objectId(parent, known.get(parent)?.permalink ?? null);
+    }
+    if (record.conversationId) note["context"] = objectId(record.conversationId, null);
+    const attachment = record.media.map(attachmentFor).filter((entry) => entry !== null);
+    if (attachment.length > 0) note["attachment"] = attachment;
+    return {
+      type: "Create",
+      id: `${noteId}#create`,
+      ...published ? { published } : {},
+      actor,
+      object: note
+    };
+  }
+  function tombstone(missingId) {
+    return {
+      type: "Tombstone",
+      id: objectId(missingId, null),
+      formerType: "Note",
+      summary: "This post was referenced by a captured reply but was never captured, so its content is unavailable."
+    };
+  }
+  function attachmentFor(media) {
+    const kind = media.kind === "video" ? "Video" : media.kind === "audio" ? "Audio" : "Document";
+    const base = {
+      type: media.kind === "photo" || media.kind === "thumbnail" ? "Image" : kind,
+      ...media.type ? { mediaType: media.type } : {},
+      ...media.altText ? { name: media.altText } : {},
+      ...typeof media.width === "number" ? { width: media.width } : {},
+      ...typeof media.height === "number" ? { height: media.height } : {}
+    };
+    if (media.assetPath) {
+      return { ...base, url: media.assetPath };
+    }
+    const address = media.url || media.sourceUrl || "";
+    if (!address) return null;
+    return {
+      ...base,
+      url: address,
+      summary: "The bytes were not captured; this points at the original address rather than a file in this package."
+    };
+  }
+  function objectId(tweetId, permalink2) {
+    return permalink2 ?? `urn:x-aviary:post:${encodeURIComponent(tweetId)}`;
+  }
+  function actorId(handle) {
+    return handle ? `https://x.com/${encodeURIComponent(handle)}` : "urn:x-aviary:actor:unknown";
+  }
+  function publishedAt(record) {
+    const raw = record.createdAt ?? null;
+    if (!raw) return null;
+    const parsed = new Date(raw);
+    return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
   }
 
   // src/features/export/export-feature.ts
@@ -22933,6 +23044,16 @@ ${threadLinks.join("\n")}
         sha256: sha256Hex(entry.data)
       });
     }
+    const outbox = serializeActivityStreamsOutbox(prepared.records, { audience, generatedAt });
+    const outboxPath = packagePath(safeFolder, "outbox.json");
+    entries.push({ filename: outboxPath, data: outbox });
+    packageFiles.push({
+      path: outboxPath,
+      kind: "artifact",
+      contentType: "application/activity+json",
+      byteLength: outbox.byteLength,
+      sha256: sha256Hex(outbox)
+    });
     const manifestPath = packagePath(safeFolder, "manifest.json");
     const manifest = buildExportPackageManifest(
       prepared.records,
@@ -26890,13 +27011,13 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
         mime: "text/html",
         status: 200
       });
-      const publishedAt = validDate(record.createdAt);
+      const publishedAt2 = validDate(record.createdAt);
       pages.push({
         url: pageUrl,
         ts: timestamp,
         title: pageTitle,
         capturedAt: timestamp,
-        ...publishedAt ? { publishedAt: toWarcDate(publishedAt) } : {}
+        ...publishedAt2 ? { publishedAt: toWarcDate(publishedAt2) } : {}
       });
       for (const [mediaIndex, media] of mediaOf2(record).entries()) {
         const capture = describeMediaCapture(media, record.capturedAt);

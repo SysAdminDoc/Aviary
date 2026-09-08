@@ -123,6 +123,13 @@
   extension and manager lanes.
 
 ### Added
+- **An Activity Streams 2.0 outbox in every export.** `outbox.json` is an `OrderedCollection` of
+  `Create` activities wrapping `Note` objects, with attachments pointing at the media files in the
+  same package. A post that was referenced by a captured reply but never captured is a `Tombstone`
+  rather than a missing entry, and no deletion time is invented for it. The file says in its own
+  `summary` that AS2 is an interoperability format and that no major platform imports posts from
+  one, so nobody reads it as a migration path. A repeated export is byte-identical apart from the
+  generated time.
 - **A static archive in every export.** An export package now carries plain HTML beside the
   viewer: an index, one page per post, thread links that stay inside the folder, and an RSS 2.0
   feed. Media the capture kept is shown from the package's own copy, and media it never got says

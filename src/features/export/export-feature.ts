@@ -20,6 +20,7 @@ import { discoverQueryIds, type QueryRegistry } from "./query-discovery.ts";
 import { reconstructExportOrder, reconstructThreads } from "./thread-reconstruction.ts";
 import { buildExportViewer } from "./viewer.ts";
 import { buildStaticArchive } from "./static-archive.ts";
+import { serializeActivityStreamsOutbox } from "./activitystreams.ts";
 import { buildZip, type ZipFileEntry } from "./zip-store.ts";
 import type { ExportFormat, ExportRecord } from "./types.ts";
 import {
@@ -389,6 +390,19 @@ export async function buildExportZip(
       sha256: sha256Hex(entry.data)
     });
   }
+
+  // AS2 beside the rest of it. Nothing imports posts from it today; it is here because it is the
+  // one social-post schema with tooling that already parses it, and it costs one mapping.
+  const outbox = serializeActivityStreamsOutbox(prepared.records, { audience, generatedAt });
+  const outboxPath = packagePath(safeFolder, "outbox.json");
+  entries.push({ filename: outboxPath, data: outbox });
+  packageFiles.push({
+    path: outboxPath,
+    kind: "artifact",
+    contentType: "application/activity+json",
+    byteLength: outbox.byteLength,
+    sha256: sha256Hex(outbox)
+  });
 
   const manifestPath = packagePath(safeFolder, "manifest.json");
   const manifest = buildExportPackageManifest(
