@@ -4,7 +4,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import esbuild from "esbuild";
 
 import { artifactDigests, sourceFingerprint } from "./build-fingerprint.mjs";
-import { ignoredPaths, isPrivateSourcePath } from "./source-archive.mjs";
+import { ignoredPaths, isExcludedSourcePath } from "./source-archive.mjs";
 import { repositoryUrl, userscriptUrls } from "./userscript-meta.mjs";
 
 const CRC32_TABLE = (() => {
@@ -344,12 +344,13 @@ for await (const filePath of walkSource(root)) {
 }
 
 // The archive is published, so anything git ignores stays out of it: private working notes and
-// generated files are not checkout inputs. Git is asked because it owns that answer; where git
-// cannot be reached, the declared private paths are still refused rather than shipped.
+// generated files are not checkout inputs. Git owns that answer, and the declared floor is applied
+// either way, so a checkout with no git still refuses the paths that are never source.
 const ignoredSource = ignoredPaths(root, sourceCandidates);
-const excludedSource = new Set(
-  ignoredSource.checked ? ignoredSource.ignored : sourceCandidates.filter(isPrivateSourcePath)
-);
+const excludedSource = new Set([
+  ...ignoredSource.ignored,
+  ...sourceCandidates.filter(isExcludedSourcePath)
+]);
 
 const sourceEntries = [];
 for (const filename of sourceCandidates) {

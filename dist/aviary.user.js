@@ -1038,7 +1038,7 @@ var Aviary = (() => {
   var CONVERSATION_LINE_MAX_WIDTH = 3;
   var CONVERSATION_LINE_MIN_HEIGHT = 12;
   var CONVERSATION_LINE_CENTER_TOLERANCE = 4;
-  var MEDIA_EXCLUSIONS = ':not([role="link"] *):not([data-av-conversation-role="reply"] *)';
+  var MEDIA_EXCLUSIONS = ':not([data-testid="quoteTweet"] *):not([aria-labelledby="quoted"] *):not(div[role="link"][tabindex="0"] *):not([data-av-conversation-role="reply"] *)';
   var themeFeature = {
     id: "appearance.theme",
     title: "Theme foundation",
@@ -1161,16 +1161,30 @@ var Aviary = (() => {
     if (!enabled2) return;
     const primary = document.querySelector('[data-testid="primaryColumn"]');
     if (!primary) return;
-    let postIndex = 0;
+    const posts = [];
     for (const cell of Array.from(primary.querySelectorAll('[data-testid="cellInnerDiv"]'))) {
       const article = cell.querySelector('article[data-testid="tweet"]');
       if (!article || article.closest('[data-testid="cellInnerDiv"]') !== cell) continue;
-      const role = postIndex === 0 ? "focal" : "reply";
+      posts.push({ cell, article });
+    }
+    const focalIndex = focalPostIndex(posts);
+    posts.forEach(({ cell, article }, index) => {
+      const role = index === focalIndex ? "focal" : "reply";
       cell.setAttribute(CONVERSATION_ROLE_ATTRIBUTE, role);
       article.setAttribute(CONVERSATION_ROLE_ATTRIBUTE, role);
       if (role === "reply") stampConversationLines(article);
-      postIndex += 1;
-    }
+    });
+  }
+  function focalPostIndex(posts) {
+    const statusId = /(?:^|\/)status\/(\d{1,25})(?:\/|$)/.exec(globalThis.location?.pathname ?? "")?.[1];
+    if (!statusId) return 0;
+    const permalink2 = new RegExp(`/status/${statusId}(?:[/?#]|$)`);
+    const found = posts.findIndex(
+      ({ article }) => Array.from(article.querySelectorAll("a[href]")).some(
+        (link) => link.closest('[role="link"][tabindex="0"]') === null && permalink2.test(link.getAttribute("href") ?? "")
+      )
+    );
+    return found === -1 ? 0 : found;
   }
   function stampConversationLines(article) {
     const avatar = article.querySelector('[data-testid="Tweet-User-Avatar"]');
@@ -26484,6 +26498,7 @@ html[data-av-motion="reduce"] article[data-testid="tweet"][${MARKER3}="1"] {
   var TOAST_TIMEOUT_MS = 8e3;
   var DEAD_ZONE_PAD_PX = 14;
   var DEAD_ZONE_MAX_HEIGHT_PX = 64;
+  var DEAD_ZONE_SWEEP_PX = 48;
   var DEAD_ZONE_MAX_WIDTH_RATIO = 0.5;
   var DEAD_ZONE_EVENTS = ["mousedown", "mouseup", "click", "auxclick"];
   var INTERACTIVE_SELECTOR = 'a, button, input, textarea, select, video, audio, summary, label, [role="button"], [role="link"], [role="menuitem"], [role="checkbox"], [role="switch"], [role="tab"], [contenteditable="true"]';
@@ -26855,14 +26870,18 @@ html[data-av-motion="reduce"] article[data-testid="tweet"][${MARKER3}="1"] {
     }
     const left = Math.min(...controls.map((rect) => rect.left));
     const right = Math.max(...controls.map((rect) => rect.right));
+    const top = Math.min(...controls.map((rect) => rect.top));
     const bottom = Math.max(...controls.map((rect) => rect.bottom));
-    const towardEnd = articleRect.right - right <= left - articleRect.left;
+    const gapToEnd = articleRect.right - right;
+    const gapToStart = left - articleRect.left;
+    const towardEnd = gapToEnd <= gapToStart;
+    const sweep = towardEnd ? gapToEnd <= DEAD_ZONE_SWEEP_PX : gapToStart <= DEAD_ZONE_SWEEP_PX;
     const maxWidth = articleRect.width * DEAD_ZONE_MAX_WIDTH_RATIO;
     return {
-      left: towardEnd ? Math.max(left - DEAD_ZONE_PAD_PX, articleRect.right - maxWidth) : articleRect.left,
-      right: towardEnd ? articleRect.right : Math.min(right + DEAD_ZONE_PAD_PX, articleRect.left + maxWidth),
-      top: articleRect.top,
-      bottom: Math.min(bottom + DEAD_ZONE_PAD_PX, articleRect.top + DEAD_ZONE_MAX_HEIGHT_PX)
+      left: sweep && !towardEnd ? articleRect.left : Math.max(left - DEAD_ZONE_PAD_PX, right - maxWidth),
+      right: sweep && towardEnd ? articleRect.right : Math.min(right + DEAD_ZONE_PAD_PX, left + maxWidth),
+      top: Math.max(articleRect.top, top - DEAD_ZONE_MAX_HEIGHT_PX),
+      bottom: Math.min(bottom + DEAD_ZONE_PAD_PX, top + DEAD_ZONE_MAX_HEIGHT_PX)
     };
   }
   async function hidePost(article, key, button3, ctx) {
@@ -41549,7 +41568,7 @@ html.av-mobile [data-testid="primaryColumn"] {
     style.textContent = PRESENTATION_CSS;
     (document.head ?? document.documentElement).append(style);
   }
-  var NOT_BORROWED = ':not([role="link"] *):not([data-av-conversation-role="reply"] *)';
+  var NOT_BORROWED = ':not([data-testid="quoteTweet"] *):not([aria-labelledby="quoted"] *):not(div[role="link"][tabindex="0"] *):not([data-av-conversation-role="reply"] *)';
   var PRESENTATION_CSS = `
 html.av-media-layout-stacked article[data-testid="tweet"] [data-testid="tweetPhoto"]${NOT_BORROWED} {
   display: block !important;

@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { captureAgeReport, readCaptureManifest } from "./capture-manifest.mjs";
 import { browserFloorFailures, readBrowserFloors } from "./browser-floors.mjs";
 import { fileDigest, sourceFingerprint } from "./build-fingerprint.mjs";
-import { ignoredPaths, zipEntryNames } from "./source-archive.mjs";
+import { ignoredPaths, isExcludedSourcePath, zipEntryNames } from "./source-archive.mjs";
 import { sourceExportReferences } from "./source-exports.mjs";
 import { versionMarkerFailures } from "./version-markers.mjs";
 import { repositoryUrl, userscriptUrls } from "./userscript-meta.mjs";
@@ -792,14 +792,23 @@ async function checkSourceArchiveContents() {
     return;
   }
 
+  // The declared floor is checked first, and without git, so the paths that are never source stay
+  // refused even where the ignore rules cannot be read at all.
+  for (const name of names.filter(isExcludedSourcePath)) {
+    failures.push(
+      `${relative} ships ${name}, which is never a checkout input. The archive is published; ` +
+        "exclude it in the source walk in tools/build.mjs."
+    );
+  }
+
   const { checked, ignored } = ignoredPaths(root, names);
   if (!checked) {
     warnings.push(
-      `${relative}: git could not report which paths it ignores, so the archive contents were not checked`
+      `${relative}: git could not report which paths it ignores, so only the declared floor was checked`
     );
     return;
   }
-  for (const name of ignored) {
+  for (const name of ignored.filter((name) => !isExcludedSourcePath(name))) {
     failures.push(
       `${relative} ships ${name}, which git ignores. The archive is published, so it carries ` +
         "checkout inputs only. Exclude it in the source walk in tools/build.mjs."

@@ -70,9 +70,10 @@ const PAGE = `<!doctype html><meta charset=utf-8>
   .trailing { display: flex; align-items: center; gap: 12px; padding: 4px 6px; }
   [data-testid="caret"] { width: 22px; height: 22px; }
   [data-testid="tweetText"] { margin-top: 6px; }
+  [data-testid="socialContext"] { padding-bottom: 6px; font-size: 13px; }
 </style>
 <body>
-  <div data-testid="cellInnerDiv">
+  <div data-testid="cellInnerDiv" id="plain">
     <article data-testid="tweet">
       <div class="head">
         <div data-testid="User-Name"><a href="#/author1">@author1</a></div>
@@ -81,6 +82,18 @@ const PAGE = `<!doctype html><meta charset=utf-8>
         <div class="trailing"><button data-testid="caret" type="button">...</button></div>
       </div>
       <div data-testid="tweetText">post one, long enough that its line reaches the far edge of the row</div>
+    </article>
+  </div>
+  <div data-testid="cellInnerDiv" id="social">
+    <article data-testid="tweet">
+      <div data-testid="socialContext"><a href="#/someone">Someone reposted</a></div>
+      <div class="head">
+        <div data-testid="User-Name"><a href="#/author2">@author2</a></div>
+        <a href="#/author2/status/2">2h</a>
+        <div class="spacer"></div>
+        <div class="trailing"><button data-testid="caret" type="button">...</button></div>
+      </div>
+      <div data-testid="tweetText">post two, under a repost line that pushes the header down</div>
     </article>
   </div>
 </body>`;
@@ -125,12 +138,16 @@ async function boot(overrides = {}) {
     window.__timestamp = 0;
     if (!window.__wired) {
       window.__wired = true;
-      document.querySelector("article").addEventListener("click", () => {
-        window.__opened += 1;
-      });
-      document.querySelector('[data-testid="caret"]').addEventListener("click", () => {
-        window.__caret += 1;
-      });
+      for (const article of document.querySelectorAll("article")) {
+        article.addEventListener("click", () => {
+          window.__opened += 1;
+        });
+      }
+      for (const caret of document.querySelectorAll('[data-testid="caret"]')) {
+        caret.addEventListener("click", () => {
+          window.__caret += 1;
+        });
+      }
       document.querySelector('[data-role="timestamp"]').addEventListener("click", () => {
         window.__timestamp += 1;
       });
@@ -151,15 +168,15 @@ async function counters() {
     caret: window.__caret,
     timestamp: window.__timestamp,
     blocked: AviaryHidden.hideDeadZoneBlocks(),
-    hidden: document.querySelector('[data-testid="cellInnerDiv"]').getAttribute("data-av-hidden")
+    hidden: document.getElementById("plain").getAttribute("data-av-hidden")
   }));
 }
 
 test("a press beside the Hide button does not open the post", async () => {
   await boot();
-  const button = await rectOf("[data-av-hide-button]");
-  const caret = await rectOf('[data-testid="caret"]');
-  const article = await rectOf("article");
+  const button = await rectOf("#plain [data-av-hide-button]");
+  const caret = await rectOf('#plain [data-testid="caret"]');
+  const article = await rectOf("#plain article");
 
   const before = await counters();
 
@@ -178,25 +195,25 @@ test("a press beside the Hide button does not open the post", async () => {
 
 test("the controls inside the zone still work", async () => {
   await boot();
-  const caret = await rectOf('[data-testid="caret"]');
+  const caret = await rectOf('#plain [data-testid="caret"]');
   await page.mouse.click((caret.left + caret.right) / 2, (caret.top + caret.bottom) / 2);
   assert.equal((await counters()).caret, 1, "the More menu is inside the zone and must still fire");
 
-  const stamp = await rectOf('[data-role="timestamp"]');
+  const stamp = await rectOf('#plain [data-role="timestamp"]');
   await page.mouse.click((stamp.left + stamp.right) / 2, (stamp.top + stamp.bottom) / 2);
   assert.equal((await counters()).timestamp, 1, "the timestamp link must still fire");
 
-  const button = await rectOf("[data-av-hide-button]");
+  const button = await rectOf("#plain [data-av-hide-button]");
   await page.mouse.click((button.left + button.right) / 2, (button.top + button.bottom) / 2);
   await page.waitForFunction(
-    () => document.querySelector('[data-testid="cellInnerDiv"]').getAttribute("data-av-hidden") === "1"
+    () => document.getElementById("plain").getAttribute("data-av-hidden") === "1"
   );
 });
 
 test("the rest of the post still opens", async () => {
   await boot();
-  const text = await rectOf('[data-testid="tweetText"]');
-  const article = await rectOf("article");
+  const text = await rectOf('#plain [data-testid="tweetText"]');
+  const article = await rectOf("#plain article");
 
   // The body text, including the end of its first line -- which runs to the same edge the
   // controls sit against, and must not be swallowed with them.
@@ -216,7 +233,7 @@ test("the rest of the post still opens", async () => {
  */
 test("with the Hide buttons off, the same corner opens the post again", async () => {
   await boot({ buttons: false });
-  const article = await rectOf("article");
+  const article = await rectOf("#plain article");
   assert.equal(
     await page.evaluate(() => document.querySelectorAll("[data-av-hide-button]").length),
     0,
@@ -233,7 +250,7 @@ test("with the Hide buttons off, the same corner opens the post again", async ()
 
 test("with hiding switched off entirely, nothing is swallowed", async () => {
   await boot();
-  const article = await rectOf("article");
+  const article = await rectOf("#plain article");
   await page.evaluate(() => {
     window.__ctx.settings.hidden.enabled = false;
   });
@@ -244,4 +261,36 @@ test("with hiding switched off entirely, nothing is swallowed", async () => {
 
   assert.equal(after.opened - before.opened, 1, "a disabled feature guards nothing");
   assert.equal(after.blocked, before.blocked);
+});
+
+/**
+ * X puts a social-context row ("Someone reposted", "Pinned") inside the article, above the header,
+ * which pushes the Hide control down the post.
+ *
+ * The height clamp was measured from the top of the article, so on those posts it cut the zone off
+ * at or above the button's own bottom edge: a press 40px above the button was absorbed while a
+ * press 2px below it opened the tweet. Measuring the clamp from the controls is what keeps the pad
+ * attached to the thing it pads.
+ */
+test("a repost line above the header does not cut the pad off the Hide button", async () => {
+  await boot();
+  const button = await rectOf("#social [data-av-hide-button]");
+  const caret = await rectOf('#social [data-testid="caret"]');
+  const article = await rectOf("#social article");
+
+  assert.ok(
+    button.top - article.top > 12,
+    `the social row must push the control down for this to test anything, saw ${button.top - article.top}px`
+  );
+
+  const before = await counters();
+  // Straight below the Hide button and the More menu, in the pad that belongs to them.
+  await page.mouse.click((button.left + button.right) / 2, button.bottom + 6);
+  await page.mouse.click((caret.left + caret.right) / 2, caret.bottom + 6);
+  // And the corner beside them, level with the controls.
+  await page.mouse.click(article.right - 2, (button.top + button.bottom) / 2);
+
+  const after = await counters();
+  assert.equal(after.opened, before.opened, "no press around the control may open the post");
+  assert.equal(after.blocked - before.blocked, 3, "all three presses are absorbed");
 });

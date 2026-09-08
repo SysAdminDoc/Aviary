@@ -77,8 +77,12 @@ function ensurePresentationStyle(): void {
 // reply under a conversation, because that media belongs to a post the reader is not on: stretched
 // to the full column it buried the thread under banners. The exclusions are written as `:not()`
 // rather than as a second rule that puts the values back, so X's own layout is never overridden in
-// the first place and there is nothing to restore it to.
-const NOT_BORROWED = ':not([role="link"] *):not([data-av-conversation-role="reply"] *)';
+// the first place and there is nothing to restore it to. The quote boundary matches the one
+// `features/media/extract.ts` documents; the reply half reads the marker the theme stamps, so with
+// the theme off these layouts stretch a reply as they always did.
+const NOT_BORROWED =
+  ':not([data-testid="quoteTweet"] *):not([aria-labelledby="quoted"] *)' +
+  ':not(div[role="link"][tabindex="0"] *):not([data-av-conversation-role="reply"] *)';
 
 const PRESENTATION_CSS = `
 html.av-media-layout-stacked article[data-testid="tweet"] [data-testid="tweetPhoto"]${NOT_BORROWED} {

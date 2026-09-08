@@ -1,13 +1,15 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { execFileSync } from "node:child_process";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
 import {
-  PRIVATE_SOURCE_PATHS,
+  EXCLUDED_SOURCE_PATHS,
   ignoredPaths,
-  isPrivateSourcePath,
+  isExcludedSourcePath,
   zipEntryNames
 } from "../tools/source-archive.mjs";
 
@@ -32,13 +34,15 @@ test("git's ignore rules decide what may travel in the source archive", () => {
   assert.deepEqual(clean.ignored, [], "check-ignore exits 1 when nothing matches, which is not an error");
 });
 
-test("the private paths are refused by name where git cannot answer", () => {
-  assert.ok(PRIVATE_SOURCE_PATHS.includes("CLAUDE.md"));
-  assert.equal(isPrivateSourcePath("CLAUDE.md"), true);
-  assert.equal(isPrivateSourcePath(".claude/settings.json"), true, "a declared directory covers what is under it");
-  assert.equal(isPrivateSourcePath(".claude"), true);
-  assert.equal(isPrivateSourcePath("src/main.ts"), false);
-  assert.equal(isPrivateSourcePath("docs/CLAUDE.md"), false, "the rule is a path, not a filename anywhere");
+test("the declared floor refuses what is never source, with or without git", () => {
+  assert.ok(EXCLUDED_SOURCE_PATHS.includes("CLAUDE.md"));
+  assert.equal(isExcludedSourcePath("CLAUDE.md"), true);
+  assert.equal(isExcludedSourcePath(".claude/settings.json"), true, "a declared directory covers what is under it");
+  assert.equal(isExcludedSourcePath(".claude"), true);
+  assert.equal(isExcludedSourcePath("aviary-downloads/clip.mp4"), true);
+  assert.equal(isExcludedSourcePath("tools/i18n-manifest.json"), true);
+  assert.equal(isExcludedSourcePath("src/main.ts"), false);
+  assert.equal(isExcludedSourcePath("docs/CLAUDE.md"), false, "the rule is a path, not a filename anywhere");
 });
 
 test("a malformed central directory throws instead of reporting a short, clean listing", () => {
@@ -73,6 +77,53 @@ test("the built source archive carries checkout inputs and nothing git ignores",
   assert.equal(checked, true);
   assert.deepEqual(ignored, [], `the published archive ships ignored files: ${ignored.join(", ")}`);
   for (const name of names) {
-    assert.equal(isPrivateSourcePath(name), false, `the published archive ships ${name}`);
+    assert.equal(isExcludedSourcePath(name), false, `the published archive ships ${name}`);
+  }
+});
+
+/**
+ * `git check-ignore` C-quotes any path outside ASCII unless it is asked not to.
+ *
+ * Without `-z` the ignored path came back as `"docs/notas-caf\303\251.md"`, which matches nothing
+ * the build walked, so the file was packed anyway and the gate then refused the archive naming a
+ * path that does not exist. Rebuilding could never clear it. `aviary-downloads/` is gitignored,
+ * sits at the repository root outside the walk's skip list, and holds media named from post
+ * titles, so a non-ASCII name there is ordinary rather than exotic.
+ */
+test("a gitignored path outside ASCII comes back as the path that was asked about", async () => {
+  const temp = await mkdtemp(path.join(tmpdir(), "aviary-ignore-"));
+  try {
+    await mkdir(path.join(temp, "media"), { recursive: true });
+    await writeFile(path.join(temp, ".gitignore"), "media/\n", "utf8");
+    await writeFile(path.join(temp, "media", "notas-café.mp4"), "x", "utf8");
+    await writeFile(path.join(temp, "src.ts"), "x", "utf8");
+    execFileSync("git", ["init", "-q", "."], { cwd: temp, stdio: "ignore" });
+
+    const asked = ["src.ts", "media/notas-café.mp4", ".gitignore"];
+    const { checked, ignored } = ignoredPaths(temp, asked);
+    assert.equal(checked, true);
+    assert.deepEqual(ignored, ["media/notas-café.mp4"]);
+
+    const excluded = new Set(ignored);
+    assert.deepEqual(
+      asked.filter((name) => !excluded.has(name)),
+      ["src.ts", ".gitignore"],
+      "the build's Set lookup only excludes a path git names exactly"
+    );
+  } finally {
+    await rm(temp, { recursive: true, force: true });
+  }
+});
+
+test("a directory that is not a repository is reported as unanswered, not as clean", async () => {
+  const temp = await mkdtemp(path.join(tmpdir(), "aviary-norepo-"));
+  try {
+    const { checked, ignored } = ignoredPaths(temp, ["CLAUDE.md", "src.ts"]);
+    assert.equal(checked, false, "an unanswered check must not look like a clean one");
+    assert.deepEqual(ignored, []);
+    // Which is why the floor is applied whether or not git answered.
+    assert.equal(isExcludedSourcePath("CLAUDE.md"), true);
+  } finally {
+    await rm(temp, { recursive: true, force: true });
   }
 });

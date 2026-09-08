@@ -175,3 +175,34 @@ test("a quoted post's media is not stretched either", async () => {
     `the quoted post's photo keeps the host's ceiling, saw ${seen.quotedPhoto}px`
   );
 });
+
+/**
+ * Opening a reply's permalink renders the parent chain above it, so the post being read is not the
+ * first cell on the page.
+ *
+ * The focal post was picked by DOM order, which made the parent focal and the post the reader
+ * actually opened a "reply". That only shifted typography until media sizing started reading the
+ * same marker; then the post being read had its media capped and the parent got the full-width
+ * treatment, which is the acceptance criterion inverted.
+ */
+test("the post the route names is the focal one, not whichever renders first", async () => {
+  const seen = await measure("https://x.com/author/status/2", CONVERSATION, {
+    parentPhoto: "#photo-1",
+    readPhoto: "#photo-2",
+    replyPhoto: "#photo-3"
+  });
+
+  assert.equal(seen.roles.focal, 1, "exactly one post is the focal one");
+  assert.ok(
+    seen.readPhoto > 500,
+    `the post the URL names must fill the column, saw ${seen.readPhoto}px`
+  );
+  assert.ok(
+    seen.parentPhoto <= CEILING_WITH_BORDER_PX,
+    `the parent above it is context, not the subject, saw ${seen.parentPhoto}px`
+  );
+  assert.ok(
+    seen.replyPhoto <= CEILING_WITH_BORDER_PX,
+    `and the reply below it keeps X's ceiling, saw ${seen.replyPhoto}px`
+  );
+});

@@ -27,8 +27,10 @@ const TOAST_TIMEOUT_MS = 8000;
  * make sense read as one rule.
  */
 const DEAD_ZONE_PAD_PX = 14;
-/** The zone can never grow past the post header, whatever the button ends up measuring. */
+/** How far above and below the controls the zone may reach, whatever they end up measuring. */
 const DEAD_ZONE_MAX_HEIGHT_PX = 64;
+/** A control this close to the post's edge owns the corner beyond it; further away it does not. */
+const DEAD_ZONE_SWEEP_PX = 48;
 /** Nor past the corner it guards: the rest of the row keeps opening the tweet. */
 const DEAD_ZONE_MAX_WIDTH_RATIO = 0.5;
 const DEAD_ZONE_EVENTS = ["mousedown", "mouseup", "click", "auxclick"] as const;
@@ -560,22 +562,37 @@ function deadZoneRect(article: Element): DeadZone | null {
 
   const left = Math.min(...controls.map((rect) => rect.left));
   const right = Math.max(...controls.map((rect) => rect.right));
+  const top = Math.min(...controls.map((rect) => rect.top));
   const bottom = Math.max(...controls.map((rect) => rect.bottom));
 
-  // Reach out to whichever edge of the post the controls already sit against, so the gap between
-  // the last control and the corner is covered too. That edge is the inline end in either
-  // direction, which is why it is measured rather than assumed to be the right.
-  const towardEnd = articleRect.right - right <= left - articleRect.left;
+  // Every bound is measured from the controls, never from the article.
+  //
+  // The height clamp used to run from the top of the article, which held only for a post whose
+  // header is the first thing in it. X puts a social-context row ("Someone reposted", "Pinned")
+  // above the header, and that pushed the controls past the clamp: a press well above the button
+  // was absorbed while a press just below it opened the tweet, which is the misclick this exists
+  // to stop. The clamps still bound a pathological control rect, they just bound it around the
+  // control.
+  const gapToEnd = articleRect.right - right;
+  const gapToStart = left - articleRect.left;
+  const towardEnd = gapToEnd <= gapToStart;
+  // Sweep out to the post's edge only when the controls genuinely sit against it, so the gap
+  // between the last control and the corner is covered. A button that ended up somewhere else
+  // entirely -- the `User-Name` fallback, with no caret to sit beside -- keeps a zone that is
+  // still its own padded box rather than claiming a corner it is nowhere near.
+  const sweep = towardEnd ? gapToEnd <= DEAD_ZONE_SWEEP_PX : gapToStart <= DEAD_ZONE_SWEEP_PX;
   const maxWidth = articleRect.width * DEAD_ZONE_MAX_WIDTH_RATIO;
   return {
-    left: towardEnd
-      ? Math.max(left - DEAD_ZONE_PAD_PX, articleRect.right - maxWidth)
-      : articleRect.left,
-    right: towardEnd
-      ? articleRect.right
-      : Math.min(right + DEAD_ZONE_PAD_PX, articleRect.left + maxWidth),
-    top: articleRect.top,
-    bottom: Math.min(bottom + DEAD_ZONE_PAD_PX, articleRect.top + DEAD_ZONE_MAX_HEIGHT_PX)
+    left:
+      sweep && !towardEnd
+        ? articleRect.left
+        : Math.max(left - DEAD_ZONE_PAD_PX, right - maxWidth),
+    right:
+      sweep && towardEnd
+        ? articleRect.right
+        : Math.min(right + DEAD_ZONE_PAD_PX, left + maxWidth),
+    top: Math.max(articleRect.top, top - DEAD_ZONE_MAX_HEIGHT_PX),
+    bottom: Math.min(bottom + DEAD_ZONE_PAD_PX, top + DEAD_ZONE_MAX_HEIGHT_PX)
   };
 }
 

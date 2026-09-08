@@ -17,8 +17,14 @@ const CONVERSATION_LINE_CENTER_TOLERANCE = 4;
  * Written once because the full-width rule and anything else that reshapes media has to agree on
  * what it may reshape. The reply half reads the marker `syncConversationStructure` stamps, so it
  * costs no extra DOM work.
+ *
+ * The quote half is the same three-part boundary `QUOTE_BOUNDARY_SELECTOR` uses in
+ * `features/media/extract.ts`, and for the reason recorded there: X uses `role="link"` widely for
+ * things that are not quotes, so the bare role would exclude far more of the page than intended.
  */
-const MEDIA_EXCLUSIONS = ':not([role="link"] *):not([data-av-conversation-role="reply"] *)';
+const MEDIA_EXCLUSIONS =
+  ':not([data-testid="quoteTweet"] *):not([aria-labelledby="quoted"] *)' +
+  ':not(div[role="link"][tabindex="0"] *):not([data-av-conversation-role="reply"] *)';
 
 export const themeFeature: FeatureModule = {
   id: "appearance.theme",
@@ -182,16 +188,48 @@ function syncConversationStructure(enabled: boolean): void {
   const primary = document.querySelector<HTMLElement>('[data-testid="primaryColumn"]');
   if (!primary) return;
 
-  let postIndex = 0;
+  const posts: { cell: HTMLElement; article: HTMLElement }[] = [];
   for (const cell of Array.from(primary.querySelectorAll<HTMLElement>('[data-testid="cellInnerDiv"]'))) {
     const article = cell.querySelector<HTMLElement>('article[data-testid="tweet"]');
     if (!article || article.closest('[data-testid="cellInnerDiv"]') !== cell) continue;
-    const role = postIndex === 0 ? "focal" : "reply";
+    posts.push({ cell, article });
+  }
+
+  const focalIndex = focalPostIndex(posts);
+  posts.forEach(({ cell, article }, index) => {
+    const role = index === focalIndex ? "focal" : "reply";
     cell.setAttribute(CONVERSATION_ROLE_ATTRIBUTE, role);
     article.setAttribute(CONVERSATION_ROLE_ATTRIBUTE, role);
     if (role === "reply") stampConversationLines(article);
-    postIndex += 1;
-  }
+  });
+}
+
+/**
+ * Which rendered post the route is actually about.
+ *
+ * Position alone is wrong: opening a reply's permalink renders the parent chain above it, so the
+ * first cell is someone else's post. That only shifted typography until the media rules started
+ * reading this marker, at which point the post being read had its media capped while a parent got
+ * the full-width treatment. The status id in the URL is the one thing that names the subject, so
+ * it is matched against each post's own permalink.
+ *
+ * Links inside a quoted post are skipped: a reply quoting the focal post carries its id too, and
+ * would otherwise claim the role from the post that owns it. Falling back to the first post keeps
+ * the previous behaviour for a conversation whose subject has not rendered yet.
+ */
+function focalPostIndex(posts: { article: HTMLElement }[]): number {
+  const statusId = /(?:^|\/)status\/(\d{1,25})(?:\/|$)/.exec(globalThis.location?.pathname ?? "")?.[1];
+  if (!statusId) return 0;
+
+  const permalink = new RegExp(`/status/${statusId}(?:[/?#]|$)`);
+  const found = posts.findIndex(({ article }) =>
+    Array.from(article.querySelectorAll("a[href]")).some(
+      (link) =>
+        link.closest('[role="link"][tabindex="0"]') === null &&
+        permalink.test(link.getAttribute("href") ?? "")
+    )
+  );
+  return found === -1 ? 0 : found;
 }
 
 /**

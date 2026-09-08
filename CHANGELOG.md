@@ -5,6 +5,17 @@
 ## 1.48.1 (2026-09-08)
 
 ### Fixed
+- **An adversarial review of the three fixes above found four more, all fixed here.** The dead
+  zone's height clamp was measured from the top of the post, so on a post carrying a social-context
+  row ("Someone reposted", "Pinned") the pad was cut off above the Hide button: a press well above
+  the button was absorbed while a press just below it opened the tweet. Every bound is measured
+  from the controls now. The focal post of a conversation was picked by position, so opening a
+  reply's permalink made the parent post focal and capped the media of the post being read; the
+  status id in the URL decides it now, which fixes the typography that had the same flaw. The quote
+  exclusion used a bare `role="link"`, which X uses widely for things that are not quotes; it uses
+  the same boundary the media extractor documents. And `git check-ignore` C-quotes non-ASCII paths
+  unless asked not to, so a gitignored file with an accent in its name would have been packed into
+  the source archive and then named, in mangled form, by the gate refusing it.
 - **The published source archive no longer carries private working notes.** `dist/aviary-source-v*.zip`
   was assembled by a file walk that skipped a fixed list of directories and never consulted
   `.gitignore`, so `CLAUDE.md` and a generated `tools/i18n-manifest.json` travelled inside a release
