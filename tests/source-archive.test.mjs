@@ -45,6 +45,41 @@ test("the declared floor refuses what is never source, with or without git", () 
   assert.equal(isExcludedSourcePath("docs/CLAUDE.md"), false, "the rule is a path, not a filename anywhere");
 });
 
+test("nothing git ignores is still tracked, dependencies most of all", () => {
+  // `.gitignore` listed `node_modules/` with a paragraph explaining why a public repository has no
+  // business vendoring 3,227 files of ESLint, TypeScript and Playwright -- and all 3,227 stayed in
+  // the tree anyway, because an ignore rule says nothing about what is already tracked. A comment
+  // is not a guard. This asks the index.
+  //
+  // `ignoredPaths` is the wrong instrument for this question and answers it vacuously: plain
+  // `git check-ignore` consults the index, so it never calls a tracked path ignored, which is
+  // right for the walked working-tree paths the archive asks it about and useless here.
+  // `ls-files --cached --ignored` asks the question directly.
+  const trackedAndIgnored = execFileSync(
+    "git",
+    ["ls-files", "-z", "--cached", "--ignored", "--exclude-standard"],
+    { cwd: root, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 }
+  )
+    .split("\0")
+    .filter(Boolean);
+
+  // The control: the query has to be able to see the tree at all.
+  const tracked = execFileSync("git", ["ls-files", "-z"], {
+    cwd: root,
+    encoding: "utf8",
+    maxBuffer: 64 * 1024 * 1024
+  })
+    .split("\0")
+    .filter(Boolean);
+  assert.ok(tracked.length > 100, `expected the tracked tree, saw ${tracked.length} paths`);
+
+  assert.deepEqual(
+    trackedAndIgnored,
+    [],
+    "a tracked path matches an ignore rule; `git rm -r --cached` it rather than widening the rule"
+  );
+});
+
 test("a malformed central directory throws instead of reporting a short, clean listing", () => {
   assert.throws(() => zipEntryNames(new Uint8Array(64)), /no end-of-central-directory record/);
 

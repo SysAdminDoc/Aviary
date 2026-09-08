@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### Fixed
+- **The repository stopped shipping its own dependencies.** `.gitignore` has listed `node_modules/`
+  since the repository went public, with a paragraph explaining why a public project has no business
+  vendoring 3,227 files of ESLint, TypeScript and Playwright including two Windows `.exe` binaries.
+  All 3,227 were still tracked, because an ignore rule says nothing about what is already tracked and
+  nobody ran the command that removes them. They are untracked now, `npm ci --ignore-scripts` rebuilds
+  the directory exactly, and a test asks the index directly so a comment is never again the only thing
+  standing between the repository and its dependencies.
+
 ## 1.49.2 (2026-09-08)
 
 ### Fixed
