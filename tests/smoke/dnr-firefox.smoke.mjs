@@ -416,8 +416,13 @@ export class WebDriverClient {
       "--allow-system-access",
       "--profile-root",
       profileRoot,
+      // `error` captured nothing geckodriver said: measured on 2026-09-08, a failing run at that
+      // level yields 2,457 bytes of Firefox's own console noise and not one geckodriver line, so
+      // the error thrown below carried a bare timeout. `info` is the level that logs
+      // `mozrunner::runner Running command: ...`, which is what a launch failure has to be read
+      // against, and it stays far inside the 50,000-character cap `remember` applies.
       "--log",
-      "error"
+      "info"
     ], { stdio: ["ignore", "pipe", "pipe"], windowsHide: true });
     let output = "";
     const remember = (chunk) => {
@@ -456,13 +461,11 @@ export class WebDriverClient {
                 sslProxy: `127.0.0.1:${proxyPort}`
               },
               "moz:firefoxOptions": {
-                args: [
-                  "-headless",
-                  // Without this Firefox hands the command line to an already-running instance and
-                  // geckodriver waits for a Marionette port that instance never opens.
-                  "-no-remote",
-                  ...(options.profileDir ? ["-profile", options.profileDir] : [])
-                ],
+                // No `-no-remote` here: mozrunner appends it itself unless the caller already did,
+                // so passing it only suppresses geckodriver's own copy. Measured on 2026-09-08 with
+                // `--log trace` and this exact capability set, the launched command line is
+                // `firefox.exe --marionette -headless -no-remote -profile ...` either way.
+                args: ["-headless", ...(options.profileDir ? ["-profile", options.profileDir] : [])],
                 prefs: firefoxPreferences()
               }
             }

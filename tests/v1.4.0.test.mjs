@@ -413,7 +413,9 @@ test("smoke spec scaffold ships with explicit setup instructions", async () => {
   }
   assert.match(dnrChromium, /tab-scoped/);
   assert.match(dnrFirefox, /CONNECT x\.com:443/);
-  assert.match(dnrFirefox, /"-no-remote"/);
+  // `error` logs nothing geckodriver said, so a failed launch has to be read at `info` or the
+  // captured output the throw below carries is only Firefox's console noise.
+  assert.match(dnrFirefox, /"--log",\s+"info"/);
   assert.match(dnrFirefox, /geckodriver could not start a Firefox session/);
   const incognito = await readFile(
     path.join(root, "tests/smoke/incognito-chromium.smoke.mjs"),

@@ -3,6 +3,13 @@
 ## Unreleased
 
 ### Fixed
+- **Two guards that could not have caught what they were written for.** The check that keeps a real
+  account out of the tree skipped any tracked file containing a NUL byte, because git calls such a
+  file binary and the search was told to ignore binary files; 361 of the repository's own files were
+  invisible to it, one of which is a test. It also allowed post ids of up to 15 digits, where a real
+  one is 18 or 19. Both are fixed and each was proved by planting a real id and watching the check
+  fail. The check now also says plainly, in the file, what it cannot catch: a real name in ordinary
+  prose has the same shape as a made-up one, and no rule separates them.
 - **The repository stopped shipping its own dependencies.** `.gitignore` has listed `node_modules/`
   since the repository went public, with a paragraph explaining why a public project has no business
   vendoring 3,227 files of ESLint, TypeScript and Playwright including two Windows `.exe` binaries.
@@ -28,12 +35,13 @@
   and fails on a real post id or on the title shape X gives a saved post page, so this cannot come
   back the way it survived the last cleanup: by sitting in prose nobody was scanning.
 - **The packaged Firefox proof runs again.** The lane that installs the built add-on in a real
-  Firefox and checks that its blocking rules actually stop traffic had been stalling with no output
-  at all, so the Firefox half of the release matrix went unverified. geckodriver was handing its
-  command line to whatever Firefox the machine already had open instead of the fresh profile it had
-  just made, and then waiting forever on a browser that was never listening. It launches with
-  `-no-remote` now, and when a session still fails to start the error carries geckodriver's own log
-  rather than a bare timeout.
+  Firefox and checks that its blocking rules actually stop traffic had been written off as unable to
+  run on the maintainer's machine, so the Firefox half of the release matrix went unverified. It
+  runs: the full lane passes against Firefox 155.0.1. What made it look otherwise is that a failed
+  launch said nothing at all. geckodriver was being run at its `error` log level, which carries none
+  of geckodriver's own lines, so a stall produced a bare timeout with no trace of what the browser
+  had been asked to do. It runs at `info` now and a failed session start carries the log, including
+  the exact command line Firefox was launched with.
 
 ## 1.49.1 (2026-09-08)
 

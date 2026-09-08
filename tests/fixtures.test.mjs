@@ -174,40 +174,67 @@ test("the generated documents carry no real identity", async () => {
   }
 });
 
-test("no tracked file names a real account or a saved post page", () => {
+test("no tracked file names a real account or a saved post page", (t) => {
   // The generated documents were guarded; the prose around them was not, so a real handle, that
   // person's post text and the status URL for it sat in CHANGELOG.md and in a test title until
-  // 2026-09-08. Both rules below are shapes rather than names, so this guard does not have to
-  // carry the identity it exists to keep out -- and the banned title shape is assembled rather
-  // than written, because a literal here would trip the scan against this very file.
+  // 2026-09-08. The rules are shapes rather than names, so this guard does not have to carry the
+  // identity it exists to keep out, and the banned filename shape is assembled rather than written
+  // because a literal here would trip the scan against this very file.
+  //
+  // What this does NOT catch, so that nobody reads more into a pass than is there: a real display
+  // name or handle in ordinary prose. `Someone Real on X: "..."` is the same shape as the synthetic
+  // sample on line 164 of tests/title-badge-counts.test.mjs, and no rule can separate them. Sample
+  // names are a review question. What is mechanical, and therefore here, is the post id and the
+  // filename Windows gives a saved X post page, where the title's colon becomes an underscore.
   //
   // It reads the index rather than the working tree: a tracked file can be missing from disk while
   // a build is rewriting dist/, and a guard that throws ENOENT proves nothing about what is tracked.
-  const savedPostTitle = ` on X${"_"} `;
+  const savedPageFilename = ` on X${"_"} `;
   const search = (args) => {
-    const result = spawnSync("git", ["grep", "--cached", "-I", ...args], {
+    // `-a`, not `-I`: a tracked text file that happens to contain a NUL is classified binary and
+    // skipped whole, and tests/scrollmark-import.test.mjs holds one inside a SQLite header string.
+    // 361 of the tracked files were invisible to the first version of this guard for that reason.
+    const result = spawnSync("git", ["grep", "--cached", "-a", ...args], {
       cwd: root,
       encoding: "utf8",
-      maxBuffer: 64 * 1024 * 1024
+      maxBuffer: 256 * 1024 * 1024
     });
     if (result.status === 1) return [];
-    if (result.status !== 0) throw new Error(result.stderr || `git grep exited ${result.status}`);
+    // No index to read: `dist/aviary-source-v<version>.zip` ships `tests/` without `.git`, so the
+    // suite has to stay runnable from an unpacked source archive. Skipping says so out loud, which
+    // a silent pass would not.
+    if (result.status !== 0) return null;
     return result.stdout.split("\n").filter(Boolean);
   };
+  if (search(["-l", "-F", "-e", "react-root"]) === null) {
+    t.skip("no git index to read; this guard only means anything inside a checkout");
+    return;
+  }
 
   // A negative result is only worth something if the search can find anything at all.
   assert.ok(search(["-l", "-F", "-e", "react-root"]).length > 0, "the index search found nothing");
 
-  for (const hit of search(["-o", "-E", "-e", "/status/[0-9]+"])) {
-    const [file, id] = [hit.slice(0, hit.lastIndexOf(":/status/")), hit.slice(hit.lastIndexOf("/") + 1)];
-    assert.ok(
-      id.length < 16 || id.startsWith("190000000000"),
-      `${file} names a real post id (${id}); a synthetic one is short or starts 190000000000`
-    );
+  // Every id the fixtures use is either a placeholder (`42`, `9001`, `1234567890`) or carries the
+  // declared synthetic prefix. A real post id from a capture this project could take is 18 or 19
+  // digits, so the ceiling sits well below that rather than at the 16 the first version allowed.
+  // It cannot go lower: 10-digit placeholders are already in the tree. An id from 2007-2010 is
+  // short enough to pass this and no shape can say otherwise; the exposure this closes is a
+  // modern capture, which is the only kind anyone here can take.
+  const synthetic = (id) => id.length <= 10 || id.startsWith("190000000000");
+  for (const hit of search(["-o", "-E", "-e", "/status(es)?/[0-9]+"])) {
+    const id = hit.slice(hit.lastIndexOf("/") + 1);
+    const file = hit.slice(0, hit.lastIndexOf(":/status"));
+    assert.ok(synthetic(id), `${file} names a real post id (${id})`);
   }
 
+  // A bare id with no URL around it is the same disclosure, and it is deliberately not checked. The
+  // fixtures use synthetic 17-to-19 digit ids under several era prefixes on purpose -- 1000000...,
+  // 1150000..., 1750000..., 999999999999999999 -- so a rule on digit runs alone flags all of them,
+  // and an allowlist of prefixes would have to be kept in step with every new fixture era. A real
+  // capture's id reaches this tree inside a status URL, which the rule above covers precisely.
+
   assert.deepEqual(
-    search(["-l", "-F", "-e", savedPostTitle]),
+    search(["-l", "-F", "-e", savedPageFilename]),
     [],
     "a tracked file names a saved authenticated post page, which carries a real handle and body"
   );
