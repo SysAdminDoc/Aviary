@@ -84,6 +84,11 @@ import {
   type ArchiveImportJobActionResult
 } from "../library/archive-import-jobs.ts";
 import { ArchiveLibraryStore } from "../library/archive-library.ts";
+import {
+  classifyScrollmarkSource,
+  importScrollmarkBundle,
+  previewScrollmarkBundle
+} from "../library/scrollmark-import.ts";
 import { previewCleanup } from "../library/cleanup-preview.ts";
 import { CleanupQueue } from "../library/cleanup-queue.ts";
 import {
@@ -877,6 +882,13 @@ export const controlCenterFeature: FeatureModule = {
         if (typeof file.size === "number" && file.size > MAX_ARCHIVE_BYTES) {
           throw new Error("Archive exceeds the 256 MiB input limit.");
         }
+        // A Scrollmark bundle and an X archive are both ZIPs, and its SQLite companion is neither.
+        // The head of the file settles which before anything is staged, so the person who picked
+        // the wrong file is told which file they picked rather than watching an import find
+        // nothing.
+        const scrollmark = await readScrollmarkBundle(ctx, file);
+        if (scrollmark) return scrollmark;
+
         const jobs = archiveImportJobs ?? new ArchiveImportJobStore(ctx.storage);
         archiveImportJobs = jobs;
         const job = await jobs.startBlob(file.name, file);
@@ -1375,6 +1387,107 @@ export function openMountedControlCenter(options: { focusSelectorHealth?: boolea
   }
   const launcher = shadow?.querySelector<HTMLButtonElement>(".av-nav-launcher, .av-launcher");
   launcher?.click();
+}
+
+/**
+ * Reads a Scrollmark portable bundle, or answers `null` when the file is not one.
+ *
+ * `null` means "this is something else, carry on with the X archive path". A refusal that names
+ * the file the person actually picked -- the SQLite companion, most often -- comes back as a
+ * result with the reason on it rather than as a silent zero.
+ */
+async function readScrollmarkBundle(
+  ctx: FeatureContext,
+  file: File
+): Promise<Awaited<ReturnType<typeof processArchiveImport>> | null> {
+  const head = new Uint8Array(await file.slice(0, 4096).arrayBuffer());
+  const classified = classifyScrollmarkSource(head);
+
+  // A ZIP head is ambiguous: an X archive is one too. Only a ZIP that actually holds a bundle
+  // manifest is treated as one, so an ordinary archive still takes the ordinary path.
+  if (classified.kind === "canonical-zip") {
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    // Preview first: it settles whether this ZIP is a bundle at all, and it is what reports the
+    // counts and the fields that will not survive before anything is written.
+    const preview = await previewScrollmarkBundle(bytes);
+    if (preview.errors.length > 0) return null;
+    return finishScrollmarkImport(ctx, preview, await importScrollmarkBundle(bytes));
+  }
+  if (classified.kind === "legacy-json") {
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const preview = await previewScrollmarkBundle(bytes);
+    return finishScrollmarkImport(ctx, preview, await importScrollmarkBundle(bytes));
+  }
+  if (classified.reason?.includes("SQLite")) {
+    return {
+      records: 0,
+      warnings: 0,
+      errors: 1,
+      recognizedFiles: 0,
+      skippedFiles: 1,
+      malformedFiles: 0,
+      archiveLinksExpanded: 0,
+      corpusLinksExpanded: 0,
+      participantIdsResolved: 0,
+      participantIdsUnresolved: 0
+    };
+  }
+  return null;
+}
+
+/** Puts an imported bundle's records where every other import puts them. */
+async function finishScrollmarkImport(
+  ctx: FeatureContext,
+  preview: Awaited<ReturnType<typeof previewScrollmarkBundle>>,
+  result: Awaited<ReturnType<typeof importScrollmarkBundle>>
+): Promise<Awaited<ReturnType<typeof processArchiveImport>>> {
+  // The bundle's own format number and the release that wrote it are recorded separately, because
+  // one schema has shipped from several releases and reading either as the other misdates a record.
+  ctx.diagnostics.info("Scrollmark bundle read", {
+    kind: preview.kind,
+    schemaVersion: preview.schemaVersion,
+    appVersion: preview.appVersion,
+    posts: preview.counts.posts,
+    mediaReferences: preview.counts.mediaReferences,
+    unknown: preview.counts.unknown,
+    unsupportedFields: preview.unsupportedFields.join(", ")
+  });
+
+  const store = getCheckpointStore();
+  if (result.records.length > 0 && store) {
+    const jobId = `scrollmark-${Date.now()}`;
+    await store.start(jobId, "archive", ["json"], false);
+    // The checkpoint store dedupes by tweet identity, so a second import of the same bundle
+    // cannot double the library.
+    await store.append(jobId, result.records);
+    await store.finish(jobId);
+    rebuildSearchIndex();
+    void ctx.auditLog.record("settings.import", {
+      archive: "scrollmark-bundle",
+      records: result.records.length,
+      collections: 0,
+      warnings: result.warnings.length,
+      repairs: {
+        archiveLinksExpanded: 0,
+        corpusLinksExpanded: 0,
+        participantIdsResolved: 0,
+        participantIdsUnresolved: 0
+      }
+    });
+  }
+  return {
+    records: result.records.length,
+    warnings: result.warnings.length,
+    errors: result.errors.length,
+    // A bundle is one file with one record stream, so "files" is one of each rather than a walk.
+    recognizedFiles: result.records.length > 0 ? 1 : 0,
+    skippedFiles: 0,
+    malformedFiles: result.malformedRows,
+    archiveLinksExpanded: 0,
+    corpusLinksExpanded: 0,
+    participantIdsResolved: 0,
+    participantIdsUnresolved: 0
+  };
 }
 
 async function processArchiveImport(

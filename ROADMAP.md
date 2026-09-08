@@ -22,14 +22,6 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
   Complexity: L
   Depends: F288.
 
-- [ ] F293, P3: Import a Scrollmark portable bundle without losing provenance
-  Why: a concrete passive-archive import gives users a migration path without introducing a generic plugin system.
-  Evidence: `src/features/library/archive-import.ts`, `src/features/library/archive-import-jobs.ts`; https://github.com/kmccleary3301/scrollmark/releases/tag/v1.5.0
-  Touches: archive classifier, import jobs, provenance metadata, deduplication, fixture and round-trip tests
-  Acceptance: checked-in scrubbed fixtures identify the bundle's declared schema version separately from the Scrollmark application release; support the canonical older v1.2-era bundle and current v1.5.0 export when their schemas differ; preview counts and unsupported fields, import posts/media references/tags, retain bounded unknown records with provenance, deduplicate canonical post/media IDs, and resume after interruption; malformed rows report errors without aborting valid rows; SQLite companion storage is not mistaken for the portable bundle.
-  Complexity: M
-  Depends: F288. F320 supplies bounded source staging.
-
 - [ ] F315, P3: Emit an ActivityStreams 2.0 outbox alongside the local export
   Why: there is no converged cross-platform social-archive format to adopt, and the standards work has moved to IETF working groups that have shipped nothing usable. AS2 is the one widely parseable social-post schema with existing tooling, it is what Mastodon's own account export emits, and mapping to it costs one layer over records Aviary already holds.
   Evidence: https://docs.joinmastodon.org/user/moving/ (account archive is Activity Streams 2.0 JSON; note that Mastodon imports only the social graph, never posts, so this is an interop output rather than a migration path), https://dtinit.org/blog/2026/08/18/ietf-work-data-portability (PDPArchive is a mail, calendar, and contacts format still in a working group); `src/features/export/formatters.ts`, `src/features/export/types.ts`

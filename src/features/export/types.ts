@@ -10,6 +10,19 @@ export interface ExportRecord {
    * merging two partial views into one wrong record. Absent on anything captured from a page.
    */
   archiveVintage?: "current" | "tweet-js" | "grailbird";
+  /**
+   * Where a record imported from a third-party archive came from.
+   *
+   * `schemaVersion` is the bundle format's own number and `appVersion` is the release of the
+   * application that wrote it. They are different facts: one schema version has been written by
+   * several application releases, so reading either as the other misdates the record.
+   */
+  importSource?: {
+    app: string;
+    schemaVersion: number | null;
+    appVersion: string | null;
+    bundleId: string | null;
+  };
 
   tweetId: string | null;
   handle: string | null;

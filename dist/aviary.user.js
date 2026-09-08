@@ -27890,6 +27890,32 @@ ${entry.ts}`;
       this.name = "ZipLimitError";
     }
   };
+  async function readZip(data) {
+    const results = [];
+    let totalUncompressed = 0;
+    for (const entry of parseEntries(data)) {
+      if (entry.method === METHOD_STORE2) {
+        totalUncompressed += entry.raw.length;
+        if (totalUncompressed > ZIP_LIMITS.maxTotalUncompressedBytes) {
+          throw new ZipLimitError("ZIP expands beyond the 100 MiB archive limit.");
+        }
+        results.push(finish(entry, entry.raw));
+        continue;
+      }
+      if (entry.method !== METHOD_DEFLATE2) {
+        throw new UnsupportedZipMethodError(entry.method, entry.filename);
+      }
+      const remaining = ZIP_LIMITS.maxTotalUncompressedBytes - totalUncompressed;
+      const inflated = await inflateRaw(
+        entry.raw,
+        entry.filename,
+        Math.min(entry.uncompressedSize, remaining)
+      );
+      totalUncompressed += inflated.length;
+      results.push(finish(entry, inflated));
+    }
+    return results;
+  }
   async function readZipSource(source, options = {}) {
     if (!Number.isInteger(source.size) || source.size < 0) {
       throw new ZipLimitError("ZIP source has an invalid byte length.");
@@ -28000,6 +28026,61 @@ ${entry.ts}`;
       // Checked against the inflated bytes, which is what the CRC in the header describes.
       crcOk: crc32(data) === entry.declaredCrc && data.length === entry.uncompressedSize
     };
+  }
+  function parseEntries(data) {
+    const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
+    const eocd = locateEOCD(view, data.length);
+    if (eocd === -1) {
+      return [];
+    }
+    const entryCount = view.getUint16(eocd + 10, true);
+    if (entryCount > ZIP_LIMITS.maxEntries) {
+      throw new ZipLimitError(`ZIP contains more than ${ZIP_LIMITS.maxEntries} entries.`);
+    }
+    const centralOffset = view.getUint32(eocd + 16, true);
+    const results = [];
+    let cursor = centralOffset;
+    for (let i = 0; i < entryCount; i++) {
+      if (cursor + 46 > data.length || view.getUint32(cursor, true) !== CENTRAL_HEADER) {
+        break;
+      }
+      const entryStart = cursor;
+      const method = view.getUint16(entryStart + 10, true);
+      const declaredCrc = view.getUint32(entryStart + 16, true);
+      const compressedSize = view.getUint32(entryStart + 20, true);
+      const uncompressedSize = view.getUint32(entryStart + 24, true);
+      if (uncompressedSize > ZIP_LIMITS.maxEntryUncompressedBytes) {
+        throw new ZipLimitError(
+          `ZIP entry exceeds the ${ZIP_LIMITS.maxEntryUncompressedBytes / (1024 * 1024)} MiB entry limit.`
+        );
+      }
+      const nameLength = view.getUint16(entryStart + 28, true);
+      const extraLength = view.getUint16(entryStart + 30, true);
+      const commentLength = view.getUint16(entryStart + 32, true);
+      const localOffset = view.getUint32(entryStart + 42, true);
+      const filename = TEXT_DECODER.decode(
+        data.subarray(entryStart + 46, entryStart + 46 + nameLength)
+      );
+      cursor = entryStart + 46 + nameLength + extraLength + commentLength;
+      if (filename.endsWith("/")) {
+        continue;
+      }
+      if (localOffset + 30 > data.length || view.getUint32(localOffset, true) !== LOCAL_HEADER) {
+        continue;
+      }
+      const localNameLength = view.getUint16(localOffset + 26, true);
+      const localExtraLength = view.getUint16(localOffset + 28, true);
+      const fileStart = localOffset + 30 + localNameLength + localExtraLength;
+      const fileEnd = Math.min(fileStart + compressedSize, data.length);
+      results.push({
+        filename,
+        method,
+        uncompressedSize,
+        declaredCrc,
+        raw: data.subarray(fileStart, fileEnd)
+      });
+    }
+    return results;
   }
   function parseSourceEntries(view, length, entryCount) {
     const results = [];
@@ -29635,6 +29716,361 @@ a.av-link-clean {
   }
   function isList(value) {
     return isRecord10(value) && Array.isArray(value.memberIds) && Array.isArray(value.subscriberIds);
+  }
+
+  // src/features/library/scrollmark-import.ts
+  var SCROLLMARK_UNKNOWN_LIMIT = 200;
+  var UNKNOWN_PREVIEW_BYTES = 240;
+  var SQLITE_MAGIC = "SQLite format 3";
+  var TEXT_DECODER3 = new TextDecoder();
+  var UNSUPPORTED_FIELDS = ["sensitivity", "sourceExtension", "socialEdges", "privacy.warnings"];
+  function classifyScrollmarkSource(bytes) {
+    const head = TEXT_DECODER3.decode(bytes.slice(0, 16));
+    if (head.startsWith(SQLITE_MAGIC)) {
+      return {
+        kind: null,
+        reason: "This is Scrollmark's SQLite companion database, not its portable bundle. Export a bundle and choose that file."
+      };
+    }
+    if (bytes[0] === 80 && bytes[1] === 75) return { kind: "canonical-zip" };
+    const text = TEXT_DECODER3.decode(bytes.slice(0, 4096)).trimStart();
+    if (text.startsWith("[")) return { kind: "legacy-json" };
+    if (text.startsWith("{")) {
+      return {
+        kind: null,
+        reason: "This looks like a single JSON object. A legacy Scrollmark export is an array of rows, and a current one is a ZIP."
+      };
+    }
+    return { kind: null, reason: "This is not a Scrollmark bundle: it is neither a ZIP nor a JSON array." };
+  }
+  async function previewScrollmarkBundle(bytes) {
+    const result = await importScrollmarkBundle(bytes, { startIndex: 0, shouldContinue: () => false });
+    return result.preview;
+  }
+  async function importScrollmarkBundle(bytes, options = {}) {
+    const classified = classifyScrollmarkSource(bytes);
+    if (classified.kind === null) {
+      return emptyResult(classified.reason ?? "This is not a Scrollmark bundle.");
+    }
+    return classified.kind === "canonical-zip" ? importCanonicalBundle(bytes, options) : importLegacyExport(bytes, options);
+  }
+  async function importCanonicalBundle(bytes, options) {
+    let entries;
+    try {
+      entries = await readZip(bytes);
+    } catch (error) {
+      return emptyResult(`The bundle could not be opened: ${error.message}`);
+    }
+    const manifestEntry = entries.find((entry) => normalizePath2(entry.filename) === "manifest.json");
+    const recordsEntry = entries.find((entry) => normalizePath2(entry.filename) === "records/records.jsonl");
+    if (!manifestEntry || !recordsEntry) {
+      return emptyResult(
+        "A Scrollmark bundle needs manifest.json and records/records.jsonl. This ZIP has neither, so nothing was read."
+      );
+    }
+    const errors = [];
+    const warnings = [];
+    const manifest = safeJson2(TEXT_DECODER3.decode(manifestEntry.data));
+    const producer = isRecord11(manifest) && isRecord11(manifest.producer) ? manifest.producer : {};
+    const schemaVersion = typeof producer.schemaVersion === "number" ? producer.schemaVersion : null;
+    const appVersion = typeof producer.appVersion === "string" ? producer.appVersion : null;
+    const app = typeof producer.app === "string" ? producer.app : null;
+    const bundleId = isRecord11(manifest) && typeof manifest.id === "string" ? manifest.id : null;
+    const title = isRecord11(manifest) && typeof manifest.title === "string" ? manifest.title : null;
+    if (schemaVersion === null) {
+      warnings.push("The bundle declares no schema version, so its shape is being assumed.");
+    }
+    const lines = TEXT_DECODER3.decode(recordsEntry.data).split(/\r?\n/);
+    const read = await readEnvelopes(lines, { bundleId, schemaVersion, app, appVersion }, options);
+    if (UNSUPPORTED_FIELDS.length > 0) {
+      warnings.push(`These bundle fields have no place in Aviary and were not imported: ${UNSUPPORTED_FIELDS.join(", ")}.`);
+    }
+    return {
+      preview: {
+        kind: "canonical-zip",
+        schemaVersion,
+        appVersion,
+        app,
+        bundleId,
+        title,
+        counts: {
+          records: read.records.length + read.unknown.length,
+          posts: read.records.length,
+          mediaReferences: read.mediaReferences,
+          unknown: read.unknownTotal
+        },
+        unsupportedFields: [...UNSUPPORTED_FIELDS],
+        errors
+      },
+      records: read.records,
+      unknown: read.unknown,
+      malformedRows: read.malformed,
+      errors,
+      warnings: [...warnings, ...read.warnings],
+      nextRecordIndex: read.nextIndex,
+      completed: read.completed
+    };
+  }
+  async function importLegacyExport(bytes, options) {
+    const parsed = safeJson2(TEXT_DECODER3.decode(bytes));
+    if (!Array.isArray(parsed)) {
+      return emptyResult("A legacy Scrollmark export is a JSON array of rows. This file is not one.");
+    }
+    const provenance = { bundleId: null, schemaVersion: null, app: null, appVersion: null };
+    const read = await readLegacyRows(parsed, provenance, options);
+    return {
+      preview: {
+        kind: "legacy-json",
+        schemaVersion: null,
+        appVersion: null,
+        app: null,
+        bundleId: null,
+        title: null,
+        counts: {
+          records: read.records.length + read.unknown.length,
+          posts: read.records.length,
+          mediaReferences: read.mediaReferences,
+          unknown: read.unknownTotal
+        },
+        // A legacy row has no envelope, so none of the envelope-only fields can be lost from it.
+        unsupportedFields: ["metadata.twe_private_fields"],
+        errors: []
+      },
+      records: read.records,
+      unknown: read.unknown,
+      malformedRows: read.malformed,
+      errors: [],
+      warnings: read.warnings,
+      nextRecordIndex: read.nextIndex,
+      completed: read.completed
+    };
+  }
+  async function readEnvelopes(lines, provenance, options) {
+    const outcome = emptyOutcome();
+    const seenPosts = /* @__PURE__ */ new Set();
+    const seenMedia = /* @__PURE__ */ new Set();
+    const start = Math.max(0, options.startIndex ?? 0);
+    for (let index = start; index < lines.length; index += 1) {
+      if (options.shouldContinue && !await options.shouldContinue()) {
+        outcome.nextIndex = index;
+        outcome.completed = false;
+        return outcome;
+      }
+      const line = lines[index].trim();
+      if (line.length === 0) continue;
+      const envelope = safeJson2(line);
+      if (!isRecord11(envelope) || typeof envelope.id !== "string") {
+        outcome.malformed += 1;
+        outcome.warnings.push(`records/records.jsonl line ${index + 1} could not be read.`);
+        continue;
+      }
+      if (envelope.kind !== "tweet") {
+        outcome.unknownTotal += 1;
+        if (outcome.unknown.length < SCROLLMARK_UNKNOWN_LIMIT) {
+          outcome.unknown.push({
+            id: envelope.id,
+            kind: typeof envelope.kind === "string" ? envelope.kind : "unknown",
+            preview: line.slice(0, UNKNOWN_PREVIEW_BYTES),
+            bundleId: provenance.bundleId,
+            schemaVersion: provenance.schemaVersion
+          });
+        }
+        continue;
+      }
+      if (seenPosts.has(envelope.id)) continue;
+      seenPosts.add(envelope.id);
+      const data = isRecord11(envelope.data) ? envelope.data : {};
+      const record = buildRecord(
+        {
+          id: envelope.id,
+          text: stringOf(data.full_text, data.text),
+          handle: stringOf(data.screen_name, data.handle),
+          displayName: stringOf(data.profile_name, data.name),
+          language: stringOf(data.lang, data.language),
+          observedAt: typeof envelope.observedAt === "number" ? envelope.observedAt : null,
+          tags: Array.isArray(envelope.tags) ? envelope.tags.filter((tag) => typeof tag === "string") : []
+        },
+        mediaFromRefs(envelope.mediaRefs, seenMedia, outcome),
+        provenance,
+        options.surface ?? "scrollmark"
+      );
+      outcome.records.push(record);
+    }
+    outcome.nextIndex = lines.length;
+    outcome.completed = true;
+    return outcome;
+  }
+  async function readLegacyRows(rows, provenance, options) {
+    const outcome = emptyOutcome();
+    const seenPosts = /* @__PURE__ */ new Set();
+    const seenMedia = /* @__PURE__ */ new Set();
+    const start = Math.max(0, options.startIndex ?? 0);
+    for (let index = start; index < rows.length; index += 1) {
+      if (options.shouldContinue && !await options.shouldContinue()) {
+        outcome.nextIndex = index;
+        outcome.completed = false;
+        return outcome;
+      }
+      const row = rows[index];
+      if (!isRecord11(row) || typeof row.id !== "string") {
+        outcome.malformed += 1;
+        outcome.warnings.push(`Row ${index + 1} could not be read.`);
+        continue;
+      }
+      const text = stringOf(row.full_text, row.text);
+      if (text === null) {
+        outcome.unknownTotal += 1;
+        if (outcome.unknown.length < SCROLLMARK_UNKNOWN_LIMIT) {
+          outcome.unknown.push({
+            id: row.id,
+            kind: "user",
+            preview: JSON.stringify(row).slice(0, UNKNOWN_PREVIEW_BYTES),
+            bundleId: null,
+            schemaVersion: null
+          });
+        }
+        continue;
+      }
+      if (seenPosts.has(row.id)) continue;
+      seenPosts.add(row.id);
+      outcome.records.push(
+        buildRecord(
+          {
+            id: row.id,
+            text,
+            handle: stringOf(row.screen_name, row.handle),
+            displayName: stringOf(row.profile_name, row.name),
+            language: stringOf(row.lang, row.language),
+            observedAt: null,
+            tags: []
+          },
+          legacyMedia(row.media, seenMedia, outcome),
+          provenance,
+          options.surface ?? "scrollmark"
+        )
+      );
+    }
+    outcome.nextIndex = rows.length;
+    outcome.completed = true;
+    return outcome;
+  }
+  function buildRecord(fields, media, provenance, surface) {
+    const record = {
+      tweetId: fields.id,
+      handle: fields.handle,
+      displayName: fields.displayName,
+      text: fields.text ?? "",
+      // The import time, not the post's. `capturedAt` is what the WARC writer puts in WARC-Date.
+      capturedAt: (/* @__PURE__ */ new Date()).toISOString(),
+      surface,
+      media,
+      permalink: fields.handle ? `https://x.com/${fields.handle}/status/${fields.id}` : null,
+      language: normalizePostLanguage(fields.language),
+      audience: "unknown",
+      importSource: {
+        app: provenance.app ?? "scrollmark",
+        schemaVersion: provenance.schemaVersion,
+        appVersion: provenance.appVersion,
+        bundleId: provenance.bundleId
+      }
+    };
+    if (fields.observedAt !== null) record.createdAt = new Date(fields.observedAt).toISOString();
+    return record;
+  }
+  function mediaFromRefs(refs, seen, outcome) {
+    if (!Array.isArray(refs)) return [];
+    const media = [];
+    for (const ref of refs) {
+      if (!isRecord11(ref)) continue;
+      const url = stringOf(ref.url, ref.previewUrl);
+      if (!url) continue;
+      const id = typeof ref.id === "string" ? ref.id : url;
+      if (seen.has(id)) continue;
+      seen.add(id);
+      outcome.mediaReferences += 1;
+      media.push({
+        kind: mediaKind(ref.type),
+        url,
+        captureStatus: "remote-reference",
+        ...typeof ref.altText === "string" ? { altText: ref.altText } : {},
+        ...typeof ref.width === "number" ? { width: ref.width } : {},
+        ...typeof ref.height === "number" ? { height: ref.height } : {}
+      });
+    }
+    return media;
+  }
+  function legacyMedia(value, seen, outcome) {
+    if (!Array.isArray(value)) return [];
+    const media = [];
+    for (const entry of value) {
+      if (!isRecord11(entry)) continue;
+      const url = stringOf(entry.original, entry.thumbnail);
+      if (!url) continue;
+      if (seen.has(url)) continue;
+      seen.add(url);
+      outcome.mediaReferences += 1;
+      media.push({ kind: mediaKind(entry.type), url, captureStatus: "remote-reference" });
+    }
+    return media;
+  }
+  function mediaKind(value) {
+    if (value === "video") return "video";
+    if (value === "animated_gif") return "video";
+    if (value === "thumbnail") return "thumbnail";
+    return "photo";
+  }
+  function emptyOutcome() {
+    return {
+      records: [],
+      unknown: [],
+      unknownTotal: 0,
+      mediaReferences: 0,
+      malformed: 0,
+      warnings: [],
+      nextIndex: 0,
+      completed: true
+    };
+  }
+  function emptyResult(error) {
+    return {
+      preview: {
+        kind: "legacy-json",
+        schemaVersion: null,
+        appVersion: null,
+        app: null,
+        bundleId: null,
+        title: null,
+        counts: { records: 0, posts: 0, mediaReferences: 0, unknown: 0 },
+        unsupportedFields: [],
+        errors: [error]
+      },
+      records: [],
+      unknown: [],
+      malformedRows: 0,
+      errors: [error],
+      warnings: [],
+      nextRecordIndex: 0,
+      completed: false
+    };
+  }
+  function normalizePath2(name) {
+    return name.replace(/\\/g, "/").replace(/^\.\//, "").toLowerCase();
+  }
+  function safeJson2(text) {
+    try {
+      return JSON.parse(text);
+    } catch {
+      return void 0;
+    }
+  }
+  function isRecord11(value) {
+    return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+  }
+  function stringOf(...values) {
+    for (const value of values) {
+      if (typeof value === "string" && value.trim().length > 0) return value;
+    }
+    return null;
   }
 
   // src/features/library/cleanup-queue.ts
@@ -32604,7 +33040,7 @@ ${COLOR_CSS}`;
       errors.push(`Invalid JSON: ${error.message}`);
       return { applied: false, errors, warnings, settings: normalizeSettings({}) };
     }
-    if (!isRecord11(parsed)) {
+    if (!isRecord12(parsed)) {
       errors.push("Top-level value must be an object.");
       return { applied: false, errors, warnings, settings: normalizeSettings({}) };
     }
@@ -32618,7 +33054,7 @@ ${COLOR_CSS}`;
         `Import version ${version} is newer than supported ${SETTINGS_EXPORT_VERSION}; unknown fields are dropped.`
       );
     }
-    const rawSettings = isRecord11(parsed.settings) ? parsed.settings : parsed;
+    const rawSettings = isRecord12(parsed.settings) ? parsed.settings : parsed;
     const envelope = readSettingsEnvelope(rawSettings);
     const normalized = envelope.settings;
     if (envelope.applied.length > 0) {
@@ -32645,7 +33081,7 @@ ${COLOR_CSS}`;
     }
     return { applied: true, errors, warnings, settings: normalized };
   }
-  function isRecord11(value) {
+  function isRecord12(value) {
     return typeof value === "object" && value !== null && !Array.isArray(value);
   }
 
@@ -32677,7 +33113,7 @@ ${COLOR_CSS}`;
       root = payload;
     }
     const source = unwrapReport(root);
-    if (!isRecord12(source)) {
+    if (!isRecord13(source)) {
       return { report: null, warnings, errors: ["The file does not contain an X Under the Hood report."] };
     }
     const period = parsePeriod(source, warnings);
@@ -32817,7 +33253,7 @@ ${COLOR_CSS}`;
     };
   }
   function unwrapReport(value) {
-    if (!isRecord12(value)) return value;
+    if (!isRecord13(value)) return value;
     if (typeof value.reportJson === "string") {
       try {
         return JSON.parse(value.reportJson);
@@ -32825,12 +33261,12 @@ ${COLOR_CSS}`;
         return null;
       }
     }
-    if (isRecord12(value.reportJson)) return value.reportJson;
-    if (isRecord12(value.report)) return value.report;
+    if (isRecord13(value.reportJson)) return value.reportJson;
+    if (isRecord13(value.report)) return value.report;
     return value;
   }
   function parsePeriod(value, warnings) {
-    const raw = isRecord12(value.period) ? value.period : null;
+    const raw = isRecord13(value.period) ? value.period : null;
     let start = raw?.startDate;
     let end = raw?.endDate;
     if (typeof start !== "string" || typeof end !== "string") {
@@ -32852,7 +33288,7 @@ ${COLOR_CSS}`;
   function parsePostLabels(value, warnings) {
     const result = [];
     for (const entry of value.slice(0, MAX_LABELS_PER_REPORT)) {
-      if (!isRecord12(entry)) {
+      if (!isRecord13(entry)) {
         warnings.push("A post label entry was ignored because it was not an object.");
         continue;
       }
@@ -32876,7 +33312,7 @@ ${COLOR_CSS}`;
   function parseAccountLabels(value, warnings) {
     const result = [];
     for (const entry of value.slice(0, MAX_LABELS_PER_REPORT)) {
-      if (!isRecord12(entry)) {
+      if (!isRecord13(entry)) {
         warnings.push("An account label entry was ignored because it was not an object.");
         continue;
       }
@@ -32967,7 +33403,7 @@ ${COLOR_CSS}`;
     return [...left].filter((value) => !right.has(value)).sort((a, b) => a.localeCompare(b));
   }
   function normalizeState3(value, limit) {
-    if (!isRecord12(value)) return cloneState3(EMPTY_STATE);
+    if (!isRecord13(value)) return cloneState3(EMPTY_STATE);
     const reports = Array.isArray(value.reports) ? value.reports.map((entry) => normalizeReport(entry)).filter((entry) => entry !== null) : [];
     const unique = new Map(reports.map((entry) => [entry.id, entry]));
     return {
@@ -32976,7 +33412,7 @@ ${COLOR_CSS}`;
     };
   }
   function normalizeReport(value) {
-    if (!isRecord12(value) || value.source !== "x-under-the-hood") return null;
+    if (!isRecord13(value) || value.source !== "x-under-the-hood") return null;
     const period = parsePeriod(value, []);
     if (!period) return null;
     const postLabels = parsePostLabels(firstArray(value, ["postLabels"]), []);
@@ -33083,7 +33519,7 @@ ${COLOR_CSS}`;
   function clamp(value, min, max) {
     return Math.min(max, Math.max(min, value));
   }
-  function isRecord12(value) {
+  function isRecord13(value) {
     return typeof value === "object" && value !== null && !Array.isArray(value);
   }
 
@@ -33799,7 +34235,7 @@ ${COLOR_CSS}`;
     } catch (error) {
       throw new LibraryBackupError(`Invalid backup JSON: ${errorMessage(error)}`);
     }
-    if (!isRecord13(raw)) {
+    if (!isRecord14(raw)) {
       throw new LibraryBackupError("Backup top-level value must be an object.");
     }
     if (raw.generator !== "Aviary") {
@@ -33825,7 +34261,7 @@ ${COLOR_CSS}`;
     const seen = /* @__PURE__ */ new Set();
     const collections = [];
     for (const candidate of raw.collections) {
-      if (!isRecord13(candidate)) {
+      if (!isRecord14(candidate)) {
         throw new LibraryBackupError("Backup contains an invalid collection entry.");
       }
       const definition = definitionFor(candidate.key);
@@ -34250,15 +34686,15 @@ ${COLOR_CSS}`;
   }
   function collectionCount(key, value) {
     if (key === SETTINGS_KEY || key === LAST_DOWNLOAD_KEY) return 1;
-    if (key === CHECKPOINT_KEY && isRecord13(value)) {
-      const records = isRecord13(value.records) ? value.records : {};
+    if (key === CHECKPOINT_KEY && isRecord14(value)) {
+      const records = isRecord14(value.records) ? value.records : {};
       return Object.values(records).reduce(
         (total, entries) => total + (Array.isArray(entries) ? entries.length : 0),
         0
       );
     }
     if (Array.isArray(value)) return value.length;
-    if (!isRecord13(value)) return 1;
+    if (!isRecord14(value)) return 1;
     const arrayKeys = [
       "entries",
       "items",
@@ -34276,8 +34712,8 @@ ${COLOR_CSS}`;
     const counts = arrayKeys.flatMap((name) => {
       const candidate = value[name];
       if (Array.isArray(candidate)) return [candidate.length];
-      if (name === "jobs" && isRecord13(candidate)) return [Object.keys(candidate).length];
-      if (name === "records" && isRecord13(candidate)) {
+      if (name === "jobs" && isRecord14(candidate)) return [Object.keys(candidate).length];
+      if (name === "records" && isRecord14(candidate)) {
         return [Object.values(candidate).reduce((total, entries) => total + (Array.isArray(entries) ? entries.length : 0), 0)];
       }
       return [];
@@ -34323,7 +34759,7 @@ ${COLOR_CSS}`;
   }
   function deserializeBackupValue(text) {
     return JSON.parse(text, (_key, current) => {
-      if (!isRecord13(current) || current.__aviaryType !== "Uint8Array") return current;
+      if (!isRecord14(current) || current.__aviaryType !== "Uint8Array") return current;
       if (typeof current.base64 !== "string") {
         throw new Error("Uint8Array value is missing base64 data");
       }
@@ -34350,8 +34786,8 @@ ${COLOR_CSS}`;
     return bytes;
   }
   function parseManifest(value) {
-    const schemaVersion = isRecord13(value) ? SUPPORTED_LIBRARY_BACKUP_SCHEMAS.find((known) => known === value.schemaVersion) : void 0;
-    if (!isRecord13(value) || schemaVersion === void 0) {
+    const schemaVersion = isRecord14(value) ? SUPPORTED_LIBRARY_BACKUP_SCHEMAS.find((known) => known === value.schemaVersion) : void 0;
+    if (!isRecord14(value) || schemaVersion === void 0) {
       throw new LibraryBackupError("Backup manifest is missing or unsupported.", "unsupported");
     }
     return {
@@ -34363,7 +34799,7 @@ ${COLOR_CSS}`;
   }
   function parseProfile(value) {
     if (value === null) return null;
-    if (!isRecord13(value) || typeof value.id !== "string" || typeof value.label !== "string") {
+    if (!isRecord14(value) || typeof value.id !== "string" || typeof value.label !== "string") {
       throw new LibraryBackupError("Backup profile metadata is invalid.");
     }
     return { id: value.id.slice(0, 120), label: value.label.slice(0, 120) };
@@ -34394,7 +34830,7 @@ ${COLOR_CSS}`;
     return value.toLowerCase();
   }
   function signingFingerprint(value) {
-    if (!isRecord13(value)) return null;
+    if (!isRecord14(value)) return null;
     return typeof value.fingerprint === "string" && value.fingerprint.length > 0 ? value.fingerprint : null;
   }
   function parseProfiles(raw) {
@@ -34403,7 +34839,7 @@ ${COLOR_CSS}`;
       throw new LibraryBackupError("Backup profile list must be an array.");
     }
     return raw.map((entry) => {
-      if (!isRecord13(entry)) {
+      if (!isRecord14(entry)) {
         throw new LibraryBackupError("Backup profile list contains an invalid entry.");
       }
       const normalized = normalizeProfile2({
@@ -34441,7 +34877,7 @@ ${COLOR_CSS}`;
   function errorMessage(error) {
     return error instanceof Error ? error.message : String(error);
   }
-  function isRecord13(value) {
+  function isRecord14(value) {
     return typeof value === "object" && value !== null && !Array.isArray(value);
   }
 
@@ -35131,6 +35567,8 @@ ${COLOR_CSS}`;
           if (typeof file.size === "number" && file.size > MAX_ARCHIVE_BYTES) {
             throw new Error("Archive exceeds the 256 MiB input limit.");
           }
+          const scrollmark = await readScrollmarkBundle(ctx, file);
+          if (scrollmark) return scrollmark;
           const jobs = archiveImportJobs ?? new ArchiveImportJobStore(ctx.storage);
           archiveImportJobs = jobs;
           const job = await jobs.startBlob(file.name, file);
@@ -35593,6 +36031,80 @@ ${COLOR_CSS}`;
       ctx.diagnostics.info("Control Center destroyed");
     }
   };
+  async function readScrollmarkBundle(ctx, file) {
+    const head = new Uint8Array(await file.slice(0, 4096).arrayBuffer());
+    const classified = classifyScrollmarkSource(head);
+    if (classified.kind === "canonical-zip") {
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      const preview = await previewScrollmarkBundle(bytes);
+      if (preview.errors.length > 0) return null;
+      return finishScrollmarkImport(ctx, preview, await importScrollmarkBundle(bytes));
+    }
+    if (classified.kind === "legacy-json") {
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      const preview = await previewScrollmarkBundle(bytes);
+      return finishScrollmarkImport(ctx, preview, await importScrollmarkBundle(bytes));
+    }
+    if (classified.reason?.includes("SQLite")) {
+      return {
+        records: 0,
+        warnings: 0,
+        errors: 1,
+        recognizedFiles: 0,
+        skippedFiles: 1,
+        malformedFiles: 0,
+        archiveLinksExpanded: 0,
+        corpusLinksExpanded: 0,
+        participantIdsResolved: 0,
+        participantIdsUnresolved: 0
+      };
+    }
+    return null;
+  }
+  async function finishScrollmarkImport(ctx, preview, result) {
+    ctx.diagnostics.info("Scrollmark bundle read", {
+      kind: preview.kind,
+      schemaVersion: preview.schemaVersion,
+      appVersion: preview.appVersion,
+      posts: preview.counts.posts,
+      mediaReferences: preview.counts.mediaReferences,
+      unknown: preview.counts.unknown,
+      unsupportedFields: preview.unsupportedFields.join(", ")
+    });
+    const store6 = getCheckpointStore();
+    if (result.records.length > 0 && store6) {
+      const jobId = `scrollmark-${Date.now()}`;
+      await store6.start(jobId, "archive", ["json"], false);
+      await store6.append(jobId, result.records);
+      await store6.finish(jobId);
+      rebuildSearchIndex();
+      void ctx.auditLog.record("settings.import", {
+        archive: "scrollmark-bundle",
+        records: result.records.length,
+        collections: 0,
+        warnings: result.warnings.length,
+        repairs: {
+          archiveLinksExpanded: 0,
+          corpusLinksExpanded: 0,
+          participantIdsResolved: 0,
+          participantIdsUnresolved: 0
+        }
+      });
+    }
+    return {
+      records: result.records.length,
+      warnings: result.warnings.length,
+      errors: result.errors.length,
+      // A bundle is one file with one record stream, so "files" is one of each rather than a walk.
+      recognizedFiles: result.records.length > 0 ? 1 : 0,
+      skippedFiles: 0,
+      malformedFiles: result.malformedRows,
+      archiveLinksExpanded: 0,
+      corpusLinksExpanded: 0,
+      participantIdsResolved: 0,
+      participantIdsUnresolved: 0
+    };
+  }
   async function processArchiveImport(ctx, jobs, jobId) {
     const source = await jobs.sourceReader(jobId);
     if (!source) {
@@ -37179,7 +37691,7 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
   ]);
   var GRAPHQL_PATH_PATTERN = /^\/i\/api\/graphql\/([A-Za-z0-9_-]{1,200})\/([A-Za-z0-9_-]{1,100})$/;
   function isPageAgentEnvelope(value) {
-    if (!isRecord14(value) || value.channel !== PAGE_CHANNEL || typeof value.kind !== "string") {
+    if (!isRecord15(value) || value.channel !== PAGE_CHANNEL || typeof value.kind !== "string") {
       return false;
     }
     if (!PAGE_AGENT_KINDS.has(value.kind)) {
@@ -37188,7 +37700,7 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
     return value.nonce === void 0 || typeof value.nonce === "string" && value.nonce.length >= 16 && value.nonce.length <= MAX_NONCE_LENGTH;
   }
   function sanitizeCapturedGraphqlPayload(value, expectedOrigin) {
-    if (!isRecord14(value)) {
+    if (!isRecord15(value)) {
       return null;
     }
     const url = typeof value.url === "string" ? value.url : "";
@@ -37757,7 +38269,7 @@ article[data-testid="tweet"]:focus-within .av-ai-trigger,
   function now2() {
     return (/* @__PURE__ */ new Date()).toISOString();
   }
-  function isRecord14(value) {
+  function isRecord15(value) {
     return typeof value === "object" && value !== null && !Array.isArray(value);
   }
 

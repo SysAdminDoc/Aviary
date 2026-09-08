@@ -69,7 +69,9 @@ const DELIVERY_BUDGETS = [
   // adds 24 more, so 416 translations entered the catalog at once. Measured 2.62 MB against the
   // 2.575 MB that stood before; the new ceiling is 30 kB above the measurement, which is the same
   // narrow headroom every entry above it keeps.
-  { file: "aviary.user.js", maxBytes: 2_655_000 },
+  // F294 adds the batch review list and F293 the Scrollmark bundle reader, with the eight locale
+  // strings each of those needs. Measured 2.66 MB against the 2.655 MB that stood before.
+  { file: "aviary.user.js", maxBytes: 2_690_000 },
   { file: "aviary.meta.js", maxBytes: 4_000 },
   // F298 keeps the document-start bootstrap below half of the previous 2.42 MB ceiling. The
   // panel, archive, WACZ worker, viewer, and translated catalog live in the separately budgeted
@@ -78,8 +80,9 @@ const DELIVERY_BUDGETS = [
   { file: "extension-firefox/content.js", maxBytes: 1_210_000 },
   // Same F314 catalog growth as the userscript above, in the chunk that carries the panel and its
   // translations. Measured 2.18 MB against the 2.135 MB that stood before.
-  { file: "extension-chrome/chunks/extension-panel.js", maxBytes: 2_210_000 },
-  { file: "extension-firefox/chunks/extension-panel.js", maxBytes: 2_210_000 },
+  // Same F293 and F294 growth in the chunk that carries the panel. Measured 2.22 MB.
+  { file: "extension-chrome/chunks/extension-panel.js", maxBytes: 2_250_000 },
+  { file: "extension-firefox/chunks/extension-panel.js", maxBytes: 2_250_000 },
   { file: `aviary-source-v${pkg.version}.zip`, maxBytes: 10_000_000 }
 ];
 

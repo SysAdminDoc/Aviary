@@ -202,6 +202,15 @@
   export from a redacted backup.
 
 ### Added
+- **Scrollmark portable bundles import.** Both shapes: the current export, a ZIP holding
+  `manifest.json` and `records/records.jsonl`, and the older array-of-rows export that carries no
+  version at all. The bundle's own schema number and the release of the application that wrote it
+  are read as two separate facts, because one schema has shipped from several releases. Records
+  carry that provenance, posts and media references import, a record kind with no mapping is kept
+  with enough of itself to be traced rather than dropped, one unreadable row does not take the
+  readable ones with it, and a stopped import says where it got to so the next one continues.
+  Scrollmark's SQLite companion database is refused by name, since it sits beside the bundle and is
+  the file most likely to be picked by mistake.
 - **A review step before a media batch.** The Library's Download media action opened the queue on
   the whole local result set the moment it was clicked. It now opens a list built from stored
   records alone: select all or pick items, filter by media kind, see the name each file would be
