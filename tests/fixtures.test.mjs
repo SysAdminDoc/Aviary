@@ -1,8 +1,8 @@
 import { importSourceModule } from "./helpers/source-import.mjs";
 import { captureHtml, captureSchema, captureUrl } from "./helpers/synthetic-capture.mjs";
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { spawnSync } from "node:child_process";
+import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
@@ -174,40 +174,43 @@ test("the generated documents carry no real identity", async () => {
   }
 });
 
-test("no tracked file names a real account or a saved post page", async () => {
+test("no tracked file names a real account or a saved post page", () => {
   // The generated documents were guarded; the prose around them was not, so a real handle, that
   // person's post text and the status URL for it sat in CHANGELOG.md and in a test title until
   // 2026-09-08. Both rules below are shapes rather than names, so this guard does not have to
   // carry the identity it exists to keep out -- and the banned title shape is assembled rather
   // than written, because a literal here would trip the scan against this very file.
+  //
+  // It reads the index rather than the working tree: a tracked file can be missing from disk while
+  // a build is rewriting dist/, and a guard that throws ENOENT proves nothing about what is tracked.
   const savedPostTitle = ` on X${"_"} `;
-  const tracked = execFileSync("git", ["ls-files", "-z"], {
-    cwd: root,
-    encoding: "utf8",
-    maxBuffer: 64 * 1024 * 1024
-  })
-    .split("\0")
-    .filter(Boolean);
-  const textual = /\.(md|mjs|js|cjs|ts|json|html|css|txt|yml|yaml)$/;
-  let scanned = 0;
-  for (const relative of tracked) {
-    if (!textual.test(relative)) continue;
-    const contents = await readFile(path.join(root, relative), "utf8");
-    scanned += 1;
-    for (const match of contents.matchAll(/\/status\/(\d+)/g)) {
-      const id = match[1];
-      assert.ok(
-        id.length < 16 || id.startsWith("190000000000"),
-        `${relative} names a real post id (${id}); a synthetic one is short or starts 190000000000`
-      );
-    }
+  const search = (args) => {
+    const result = spawnSync("git", ["grep", "--cached", "-I", ...args], {
+      cwd: root,
+      encoding: "utf8",
+      maxBuffer: 64 * 1024 * 1024
+    });
+    if (result.status === 1) return [];
+    if (result.status !== 0) throw new Error(result.stderr || `git grep exited ${result.status}`);
+    return result.stdout.split("\n").filter(Boolean);
+  };
+
+  // A negative result is only worth something if the search can find anything at all.
+  assert.ok(search(["-l", "-F", "-e", "react-root"]).length > 0, "the index search found nothing");
+
+  for (const hit of search(["-o", "-E", "-e", "/status/[0-9]+"])) {
+    const [file, id] = [hit.slice(0, hit.lastIndexOf(":/status/")), hit.slice(hit.lastIndexOf("/") + 1)];
     assert.ok(
-      !contents.includes(savedPostTitle),
-      `${relative} names a saved authenticated post page, which carries a real handle and body`
+      id.length < 16 || id.startsWith("190000000000"),
+      `${file} names a real post id (${id}); a synthetic one is short or starts 190000000000`
     );
   }
-  // A silent pass because nothing was read would make this guard worthless.
-  assert.ok(scanned > 50, `expected the tracked text tree, scanned ${scanned} files`);
+
+  assert.deepEqual(
+    search(["-l", "-F", "-e", savedPostTitle]),
+    [],
+    "a tracked file names a saved authenticated post page, which carries a real handle and body"
+  );
 });
 
 test("the capture decoder extracts and scrubs a saved MHTML", async () => {
