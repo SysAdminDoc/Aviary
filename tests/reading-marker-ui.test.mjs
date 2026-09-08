@@ -97,7 +97,14 @@ test("rendering visible posts does not write a marker, but leaving upward does",
     await AviaryReading.readingMarkerFeature.init(ctx);
     const afterRender = values.has("aviary.readingMarkers.v1");
     window.scrollTo(0, 280);
-    await new Promise((resolve) => setTimeout(resolve, 25));
+    // Wait for the write, not for a guess at how long it takes. A flat 25ms sleep passed alone and
+    // failed inside a loaded full-suite run, where the scroll handler had not run yet: `settled()`
+    // then reported a store with nothing scheduled and the assertion read undefined.
+    const deadline = Date.now() + 5000;
+    while (!values.has("aviary.readingMarkers.v1") && Date.now() < deadline) {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      await AviaryReading.getReadingMarkerStore()?.settled();
+    }
     await AviaryReading.getReadingMarkerStore()?.settled();
     const afterScroll = values.get("aviary.readingMarkers.v1");
     await AviaryReading.readingMarkerFeature.destroy(ctx);
