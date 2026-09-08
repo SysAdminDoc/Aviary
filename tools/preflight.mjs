@@ -7,6 +7,7 @@ import { captureAgeReport, readCaptureManifest } from "./capture-manifest.mjs";
 import { browserFloorFailures, readBrowserFloors } from "./browser-floors.mjs";
 import { fileDigest, sourceFingerprint } from "./build-fingerprint.mjs";
 import { sourceExportReferences } from "./source-exports.mjs";
+import { versionMarkerFailures } from "./version-markers.mjs";
 import { repositoryUrl, userscriptUrls } from "./userscript-meta.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -98,6 +99,7 @@ const ALLOWED_UNREFERENCED_EXPORTS = new Map();
 /** Long enough that "ok" or a space cannot stand in for a reason. */
 const ALLOWLIST_REASON_MIN_LENGTH = 30;
 
+
 const failures = [];
 const warnings = [];
 
@@ -110,6 +112,7 @@ await checkSourcePolicy();
 await checkSourceExportReferences();
 await checkDependencyPolicy();
 await checkReleaseMetadata();
+failures.push(...(await versionMarkerFailures(root, pkg.version)));
 await checkDeliverySize();
 await checkArtifactManifests();
 
@@ -679,6 +682,8 @@ async function checkDependencyPolicy() {
     warnings.push("runtime dependencies present — confirm they are reviewed for the MV3 supply-chain audit");
   }
 }
+
+
 
 async function checkReleaseMetadata() {
   const required = [

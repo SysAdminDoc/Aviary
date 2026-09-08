@@ -30,7 +30,7 @@ This is correctness parity with reliable downloaders and archives. Aviary's usef
 
 The main users are daily feed readers, people collecting media, and researchers retaining searchable records. This is a product interpretation of those workflows, not a survey result. Chromium and Firefox extensions plus Tampermonkey/Violentmonkey userscripts share TypeScript modules. The package has no runtime dependencies; development uses esbuild, Node's test runner, and Playwright. `package.json`, both extension manifests, and `tools/build.mjs` define these contracts.
 
-The repository is private, MIT-licensed, and not a fork. Source is 1.48.0; the published release is 1.47.0. Distribution reconciliation belongs to F290 and the existing blocked release work. [Repository](https://github.com/SysAdminDoc/Aviary), [releases](https://github.com/SysAdminDoc/Aviary/releases).
+The repository is public as of 2026-09-06, MIT-licensed, and not a fork. Source is 1.48.0; the published release is 1.47.0. Distribution reconciliation belongs to F290 and the existing blocked release work. [Repository](https://github.com/SysAdminDoc/Aviary), [releases](https://github.com/SysAdminDoc/Aviary/releases).
 
 ## Competitive Landscape
 
@@ -119,7 +119,7 @@ F284 should retry transient failures at original image quality before falling ba
 
 **Verified headless inspection:** all 14 settings destinations and options were captured in dark and light; wide Status fixtures were checked in six palettes. The built interface uses flat rows, restrained borders, and readable grouping. Preserve this system. The useful gaps are terminal/error recovery, exact quality receipts, and full-width control clearance, not another page redesign. Sources: `tools/capture-settings.mjs`, `tools/capture-theme.mjs`, `tests/visual/baselines/`.
 
-Those captures used the available 1.48.0 bundle and do not certify the pending source changes. The settings harness checks version rather than source identity, refuses widths below 1000, and normalizes storage status. F302 must verify artifact fingerprints and permit reflow cases; F336 must test real state without screenshot normalization. F286 should cover Catch-up and all non-panel surfaces; F313 should exercise focus visibility and target size beyond axe. [WCAG 2.2](https://www.w3.org/TR/WCAG22/), [reflow](https://www.w3.org/WAI/WCAG22/Understanding/reflow.html).
+Those captures used the available 1.47.2 bundle and do not certify the pending source changes. The settings harness checks version rather than source identity, refuses widths below 1000, and normalizes storage status. F302 must verify artifact fingerprints and permit reflow cases; F336 must test real state without screenshot normalization. F286 should cover Catch-up and all non-panel surfaces; F313 should exercise focus visibility and target size beyond axe. [WCAG 2.2](https://www.w3.org/TR/WCAG22/), [reflow](https://www.w3.org/WAI/WCAG22/Understanding/reflow.html).
 
 **Verified automated result:** typecheck and all 920 tests passed. However, `tests/storage-authority-browser.test.mjs:216` substitutes a shared Node Map for extension and manager APIs. It is a cross-origin browser model, not installed Chrome/Firefox/Tampermonkey/Violentmonkey proof. F327 owns real extension lifecycle tests; F335 adds real manager persistence. No signed-in X download or installed-manager test was performed.
 

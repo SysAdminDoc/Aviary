@@ -4,6 +4,14 @@
 
 ## 1.48.0 (2026-09-07)
 
+### Fixed
+- **A version bump can no longer leave a marker behind.** Preflight checked only that a file
+  mentioned the current version, so a file still carrying an older one passed and a file nobody
+  edited failed nowhere. `tools/version-markers.mjs` now declares every place the repository writes
+  its own version, with the version as a capture group: a marker holding the wrong value fails and
+  names the file and the value, and a marker that has disappeared fails too. The changelog and the
+  release ledger are declared as history rather than exempt by accident.
+
 ### Security
 - **One set of escaping rules for every export artifact.** `safeExternalHref`, `safeRelativePath`,
   `stripInvalidXmlChars` and the post-id comparator now live in `src/features/export/text-safety.ts`
