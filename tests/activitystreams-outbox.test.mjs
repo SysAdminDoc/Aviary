@@ -36,7 +36,8 @@ function records() {
           altText: "a kept picture",
           width: 1,
           height: 1,
-          assetPath: "media/000001-photo.png"
+          assetPath: "media/000001-photo.png",
+          bytes: PNG
         },
         {
           kind: "photo",
@@ -87,7 +88,9 @@ test("the outbox is a valid AS2 OrderedCollection of Create activities wrapping 
   assert.equal(outbox.type, "OrderedCollection");
   assert.equal(outbox.id, "urn:x-aviary:outbox:test");
   assert.equal(outbox.published, "2026-09-07T10:30:00.000Z");
-  assert.equal(outbox.totalItems, outbox.orderedItems.length);
+  // Not `orderedItems.length`, which is the same expression the builder used; the count has to
+  // match the records that went in.
+  assert.equal(outbox.totalItems, 4);
 
   const creates = outbox.orderedItems.filter((item) => item.type === "Create");
   assert.equal(creates.length, 3);
@@ -97,7 +100,9 @@ test("the outbox is a valid AS2 OrderedCollection of Create activities wrapping 
     assert.ok(create.object.published, JSON.stringify(create));
     assert.ok(create.object.content, JSON.stringify(create));
     assert.ok(create.object.attributedTo, JSON.stringify(create));
-    assert.equal(create.actor, create.object.attributedTo);
+    assert.match(create.object.attributedTo, /^https:\/\/x\.com\/|^urn:x-aviary:actor:/);
+    // AS2 reads `content` as HTML unless the object says otherwise, and post text is not HTML.
+    assert.equal(create.object.mediaType, "text/plain");
   }
 
   const root = creates.find((item) => item.object.id === "https://x.com/archivist/status/9");
@@ -121,9 +126,148 @@ test("the outbox is a valid AS2 OrderedCollection of Create activities wrapping 
   assert.equal(kept.url, "media/000001-photo.png");
   assert.equal(kept.mediaType, "image/png");
   assert.equal(kept.name, "a kept picture");
-  assert.equal(kept.summary, undefined, "a file in the package needs no excuse");
+  assert.equal(kept.summary, undefined, "a file whose bytes are in the package needs no excuse");
   assert.equal(absent.url, "https://pbs.twimg.com/media/missing.jpg");
   assert.match(absent.summary, /bytes were not captured/);
+});
+
+test("a permalink that is not an http address never becomes an id, a url, or an attachment", async () => {
+  const { buildActivityStreamsOutbox } = await importSourceModule("src/features/export/activitystreams.ts");
+  const outbox = buildActivityStreamsOutbox(
+    [
+      {
+        tweetId: "9",
+        handle: "archivist",
+        displayName: "Archivist",
+        text: "<img src=x onerror=alert(1)>",
+        capturedAt: "2026-08-12T12:00:00Z",
+        createdAt: "2026-08-11T09:15:00Z",
+        surface: "home",
+        permalink: "javascript:alert(1)",
+        audience: "public",
+        media: [{ kind: "photo", url: "javascript:alert(2)", captureStatus: "remote-reference" }]
+      }
+    ],
+    { generatedAt: GENERATED }
+  );
+
+  const serialized = JSON.stringify(outbox);
+  assert.doesNotMatch(serialized, /javascript:/, serialized);
+  const note = outbox.orderedItems[0].object;
+  assert.equal(note.id, "urn:x-aviary:post:9");
+  assert.equal(note.url, undefined, "no url is better than one a consumer must not follow");
+  // The text is carried literally, which is safe only because the object declares it is not HTML.
+  assert.equal(note.content, "<img src=x onerror=alert(1)>");
+  assert.equal(note.mediaType, "text/plain");
+  // An attachment with no usable address and no bytes is dropped rather than pointed at nothing.
+  assert.equal(note.attachment, undefined);
+});
+
+test("an attachment path with no bytes behind it is not presented as a file in the package", async () => {
+  const { buildActivityStreamsOutbox } = await importSourceModule("src/features/export/activitystreams.ts");
+  // An assetPath is a promise the package builder makes when it writes bytes. Naming that path
+  // without them tells a consumer to open a file the ZIP does not contain.
+  const outbox = buildActivityStreamsOutbox(
+    [
+      {
+        tweetId: "9",
+        handle: "archivist",
+        displayName: "Archivist",
+        text: "t",
+        capturedAt: "2026-08-12T12:00:00Z",
+        createdAt: "2026-08-11T09:15:00Z",
+        surface: "home",
+        permalink: "https://x.com/archivist/status/9",
+        audience: "public",
+        media: [
+          { kind: "photo", url: "https://pbs.twimg.com/media/x.png", assetPath: "media/000001-photo.png" },
+          { kind: "photo", url: "https://pbs.twimg.com/media/y.png", assetPath: "../../../../etc/passwd", bytes: PNG }
+        ]
+      }
+    ],
+    { generatedAt: GENERATED }
+  );
+
+  const attachment = outbox.orderedItems[0].object.attachment;
+  assert.equal(attachment.length, 2, JSON.stringify(attachment));
+  // No bytes: the address, with the disclaimer, rather than a path into the package.
+  assert.equal(attachment[0].url, "https://pbs.twimg.com/media/x.png");
+  assert.match(attachment[0].summary, /bytes were not captured/);
+  // Bytes, but a path that would climb out of the package: refused the same way.
+  assert.equal(attachment[1].url, "https://pbs.twimg.com/media/y.png");
+  for (const entry of attachment) {
+    assert.doesNotMatch(entry.url, /\.\./, `${entry.url} escapes the package`);
+  }
+});
+
+test("a post held back by the audience setting is not called uncaptured", async () => {
+  const { buildActivityStreamsOutbox } = await importSourceModule("src/features/export/activitystreams.ts");
+  const base = {
+    handle: "archivist",
+    displayName: "Archivist",
+    text: "t",
+    capturedAt: "2026-08-12T12:00:00Z",
+    createdAt: "2026-08-11T09:15:00Z",
+    surface: "home",
+    permalink: null,
+    media: []
+  };
+  // The parent is captured and in the same library; the audience selection is why it is not in
+  // this file. Saying it was never captured would be a false claim about the archive's coverage.
+  const outbox = buildActivityStreamsOutbox(
+    [
+      { ...base, tweetId: "5", conversationId: "5", rootId: "5", audience: "protected" },
+      { ...base, tweetId: "11", conversationId: "5", rootId: "5", parentId: "5", audience: "public" }
+    ],
+    { generatedAt: GENERATED }
+  );
+
+  assert.deepEqual(
+    outbox.orderedItems.map((item) => [item.type, item.object?.id ?? item.id]),
+    [["Create", "urn:x-aviary:post:11"]]
+  );
+});
+
+test("a tombstone says the post is absent from this export, not that it was never captured", async () => {
+  const { buildActivityStreamsOutbox } = await importSourceModule("src/features/export/activitystreams.ts");
+  // buildExportZipChunks splits one library across several packages, so the post a tombstone names
+  // may be sitting in part two. "Never captured" would be wrong in exactly that case.
+  const outbox = buildActivityStreamsOutbox(records(), { generatedAt: GENERATED });
+  const tombstone = outbox.orderedItems.find((item) => item.type === "Tombstone");
+  assert.match(tombstone.summary, /not present in this export/);
+  assert.doesNotMatch(tombstone.summary, /never captured/);
+});
+
+test("an offset-less authored time is read the same on every host", async () => {
+  const { buildActivityStreamsOutbox } = await importSourceModule("src/features/export/activitystreams.ts");
+  const published = (zone) => {
+    const previous = process.env.TZ;
+    process.env.TZ = zone;
+    try {
+      return buildActivityStreamsOutbox(
+        [
+          {
+            tweetId: "9",
+            handle: "archivist",
+            displayName: "Archivist",
+            text: "t",
+            capturedAt: "2026-08-12T12:00:00Z",
+            createdAt: "2026-08-11T09:15:00",
+            surface: "home",
+            permalink: null,
+            audience: "public",
+            media: []
+          }
+        ],
+        { generatedAt: GENERATED }
+      ).orderedItems[0].object.published;
+    } finally {
+      if (previous === undefined) delete process.env.TZ;
+      else process.env.TZ = previous;
+    }
+  };
+  assert.equal(published("UTC"), "2026-08-11T09:15:00.000Z");
+  assert.equal(published("America/New_York"), published("Asia/Tokyo"));
 });
 
 test("a post the archive never captured is a tombstone rather than a silent hole", async () => {
@@ -134,7 +278,7 @@ test("a post the archive never captured is a tombstone rather than a silent hole
   assert.equal(tombstones.length, 1, JSON.stringify(outbox.orderedItems.map((item) => item.type)));
   assert.equal(tombstones[0].id, "urn:x-aviary:post:5");
   assert.equal(tombstones[0].formerType, "Note");
-  assert.match(tombstones[0].summary, /never captured/);
+  assert.match(tombstones[0].summary, /not present in this export/);
   // A time the archive does not know must not be invented.
   assert.equal(tombstones[0].deleted, undefined);
   assert.equal(outbox.totalItems, 4, "the tombstone counts toward the collection");
@@ -214,9 +358,7 @@ test("the export package carries the outbox beside everything else", async () =>
   const { readZip } = await importSourceModule("src/features/export/zip-reader.ts");
   const withBytes = records().map((record) => ({
     ...record,
-    media: record.media.map((media) =>
-      media.captureStatus === "captured-bytes" ? { ...media, assetPath: undefined, bytes: PNG } : media
-    )
+    media: record.media.map((media) => (media.assetPath ? { ...media, assetPath: undefined } : media))
   }));
 
   const entries = await readZip(await buildExportZip(withBytes, ["json"], "aviary"));

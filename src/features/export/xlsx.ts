@@ -1,4 +1,5 @@
 import type { ExportArtifact, ExportRecord } from "./types.ts";
+import { stripInvalidXmlChars } from "./text-safety.ts";
 import { describeMediaCapture } from "./assets.ts";
 import { buildStoreZip } from "./zip-store.ts";
 import { normalizePostLanguage } from "./language.ts";
@@ -72,24 +73,6 @@ function buildSheetXml(rows: readonly string[][]): string {
     xmlRows.push(`<row r="${r + 1}">${cells.join("")}</row>`);
   }
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${xmlRows.join("")}</sheetData></worksheet>`;
-}
-
-function stripInvalidXmlChars(value: string): string {
-  let output = "";
-  for (const char of value) {
-    const code = char.codePointAt(0) ?? 0;
-    const allowed =
-      code === 0x09 ||
-      code === 0x0a ||
-      code === 0x0d ||
-      (code >= 0x20 && code <= 0xd7ff) ||
-      (code >= 0xe000 && code <= 0xfffd) ||
-      (code >= 0x10000 && code <= 0x10ffff);
-    if (allowed) {
-      output += char;
-    }
-  }
-  return output;
 }
 
 function columnLetter(index: number): string {

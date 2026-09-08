@@ -1,4 +1,5 @@
 import type { ExportArtifact, ExportFormat, ExportRecord } from "./types.ts";
+import { safeExternalHref as safeHref, safeRelativePath } from "./text-safety.ts";
 import { describeMediaCapture, serializeExportRecords } from "./assets.ts";
 import { reconstructThreads } from "./thread-reconstruction.ts";
 import { formatXlsx } from "./xlsx.ts";
@@ -115,16 +116,6 @@ function csvCell(value: string): string {
   return needsQuotes ? `"${escaped}"` : escaped;
 }
 
-/** Exported HTML is opened from disk, where a javascript: href would run same-origin as the file. */
-function safeHref(value: string): string {
-  try {
-    const parsed = new URL(value, "https://x.com");
-    return parsed.protocol === "http:" || parsed.protocol === "https:" ? parsed.toString() : "";
-  } catch {
-    return "";
-  }
-}
-
 function htmlArtifact(records: ExportRecord[]): ExportArtifact {
   const rows = records
     .map((record) => {
@@ -233,7 +224,7 @@ function escapeHtml(value: string): string {
 }
 
 function safeRelativeHref(value: string): string {
-  return /^(?:[a-z0-9._-]+\/)*[a-z0-9._/-]+$/i.test(value) ? value : "";
+  return safeRelativePath(value);
 }
 
 function escapeMarkdownUrl(value: string): string {

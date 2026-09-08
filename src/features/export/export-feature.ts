@@ -385,7 +385,7 @@ export async function buildExportZip(
     packageFiles.push({
       path: filename,
       kind: "artifact",
-      contentType: entry.filename.endsWith(".xml") ? "application/rss+xml" : "text/html",
+      contentType: staticArchiveContentType(entry.filename),
       byteLength: entry.data.byteLength,
       sha256: sha256Hex(entry.data)
     });
@@ -471,6 +471,34 @@ function sanitizeFolder(folder: string): string {
   // imported settings file and from a library restore, and it becomes the ZIP entry prefix.
   return sanitizeFolderHint(folder, 80);
 }
+
+/**
+ * The manifest describes each file by what it is.
+ *
+ * `buildStaticArchive` normally emits pages and a feed only, because it reuses the asset paths
+ * `prepareExportPackage` already assigned. It still copies bytes of its own when an asset has none
+ * of those, and labelling a JPEG `text/html` in the manifest would be a false statement about the
+ * package rather than a cosmetic slip.
+ */
+function staticArchiveContentType(filename: string): string {
+  if (filename.endsWith(".xml")) return "application/rss+xml";
+  if (filename.endsWith(".html")) return "text/html";
+  const extension = /\.([A-Za-z0-9]{1,5})$/.exec(filename)?.[1]?.toLowerCase() ?? "";
+  return STATIC_ARCHIVE_MEDIA_TYPES[extension] ?? "application/octet-stream";
+}
+
+const STATIC_ARCHIVE_MEDIA_TYPES: Record<string, string> = {
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  gif: "image/gif",
+  webp: "image/webp",
+  mp4: "video/mp4",
+  m4a: "audio/mp4",
+  mp3: "audio/mpeg",
+  vtt: "text/vtt",
+  srt: "application/x-subrip"
+};
 
 function packagePath(folder: string, path: string): string {
   return folder ? `${folder}/${path}` : path;

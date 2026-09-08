@@ -21131,6 +21131,68 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
     return hash.toString(36);
   }
 
+  // src/features/export/text-safety.ts
+  function safeExternalHref(value) {
+    if (typeof value !== "string" || value.trim().length === 0) return "";
+    try {
+      const parsed = new URL(value, "https://x.com");
+      return parsed.protocol === "http:" || parsed.protocol === "https:" ? parsed.toString() : "";
+    } catch {
+      return "";
+    }
+  }
+  function safeRelativePath(value) {
+    if (!/^(?:[A-Za-z0-9._-]+\/)*[A-Za-z0-9._-]+$/.test(value)) return "";
+    const segments = value.split("/");
+    if (segments.some((segment) => segment === "." || segment === ".." || isReservedFileName(segment))) return "";
+    return value;
+  }
+  var RESERVED_FILE_NAMES = /^(?:CON|PRN|AUX|NUL|CLOCK\$|COM[1-9²³¹]|LPT[1-9²³¹])(?:\.|$)/i;
+  function isReservedFileName(value) {
+    return RESERVED_FILE_NAMES.test(value.trim());
+  }
+  function safeFileSlug(value) {
+    const slug = value.replace(/[^A-Za-z0-9_-]/g, "-").replace(/^-+|-+$/g, "");
+    if (slug.length === 0) return "post";
+    return isReservedFileName(slug) ? `${slug}-post` : slug;
+  }
+  function stripInvalidXmlChars(value) {
+    let output = "";
+    for (const char of value) {
+      const code = char.codePointAt(0) ?? 0;
+      const allowed = code === 9 || code === 10 || code === 13 || code >= 32 && code <= 55295 || code >= 57344 && code <= 65533 || code >= 65536 && code <= 1114111;
+      if (allowed) output += char;
+    }
+    return output;
+  }
+  function escapeXmlText(value) {
+    return stripInvalidXmlChars(value).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&apos;");
+  }
+  function parseExportDate(raw) {
+    if (typeof raw !== "string" || raw.trim().length === 0) return null;
+    const value = raw.trim();
+    const offsetless = /^\d{4}-\d{2}-\d{2}(?:[T ]\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?)?$/.test(value);
+    const parsed = new Date(offsetless ? `${value.replace(" ", "T")}Z` : value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+  function compareRecordIds(left, right) {
+    const a = left ?? "";
+    const b = right ?? "";
+    const numericA = /^\d+$/.test(a);
+    const numericB = /^\d+$/.test(b);
+    if (numericA && numericB) {
+      const trimmedA = a.replace(/^0+(?=\d)/, "");
+      const trimmedB = b.replace(/^0+(?=\d)/, "");
+      if (trimmedA.length !== trimmedB.length) return trimmedA.length - trimmedB.length;
+      return trimmedA < trimmedB ? -1 : trimmedA > trimmedB ? 1 : compareCodeUnits(a, b);
+    }
+    if (numericA !== numericB) return numericA ? -1 : 1;
+    return compareCodeUnits(a, b);
+  }
+  function compareCodeUnits(left, right) {
+    return left < right ? -1 : left > right ? 1 : 0;
+  }
+
   // src/features/export/thread-reconstruction.ts
   function reconstructThreads(records) {
     const nodes = dedupeNodes(records);
@@ -21707,17 +21769,6 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
     return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${xmlRows.join("")}</sheetData></worksheet>`;
   }
-  function stripInvalidXmlChars(value) {
-    let output = "";
-    for (const char of value) {
-      const code = char.codePointAt(0) ?? 0;
-      const allowed = code === 9 || code === 10 || code === 13 || code >= 32 && code <= 55295 || code >= 57344 && code <= 65533 || code >= 65536 && code <= 1114111;
-      if (allowed) {
-        output += char;
-      }
-    }
-    return output;
-  }
   function columnLetter(index) {
     let label = "";
     let n = index;
@@ -21830,19 +21881,11 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
     const escaped = safe.replace(/"/g, '""');
     return needsQuotes ? `"${escaped}"` : escaped;
   }
-  function safeHref(value) {
-    try {
-      const parsed = new URL(value, "https://x.com");
-      return parsed.protocol === "http:" || parsed.protocol === "https:" ? parsed.toString() : "";
-    } catch {
-      return "";
-    }
-  }
   function htmlArtifact(records) {
     const rows = records.map((record) => {
       const media = record.media.map((entry) => {
         const capture = describeMediaCapture(entry, record.capturedAt);
-        const href = capture.packagePath ? safeRelativeHref(capture.packagePath) : safeHref(capture.sourceUrl);
+        const href = capture.packagePath ? safeRelativeHref(capture.packagePath) : safeExternalHref(capture.sourceUrl);
         const label = `${entry.kind} \xB7 ${capture.status}`;
         const link = href ? `<a href="${escapeHtml(href)}" rel="noopener noreferrer">${escapeHtml(label)}</a>` : escapeHtml(label);
         const details = [
@@ -21853,7 +21896,7 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
         const source = capture.sourceUrl && capture.status !== "captured-bytes" ? ` <small>source: ${escapeHtml(capture.sourceUrl)}</small>` : "";
         return `<li data-capture-status="${escapeHtml(capture.status)}">${link} <small>${escapeHtml(details)}</small>${source}</li>`;
       }).join("");
-      const permalinkHref = record.permalink ? safeHref(record.permalink) : "";
+      const permalinkHref = record.permalink ? safeExternalHref(record.permalink) : "";
       const permalink2 = permalinkHref ? `<a href="${escapeHtml(permalinkHref)}" rel="noopener noreferrer">${escapeHtml(permalinkHref)}</a>` : "";
       return `<article class="record" data-audience="${normalizeAudience(record.audience)}">
   <header>
@@ -21936,7 +21979,7 @@ ${sections.join("\n\n---\n\n")}
     return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
   }
   function safeRelativeHref(value) {
-    return /^(?:[a-z0-9._-]+\/)*[a-z0-9._/-]+$/i.test(value) ? value : "";
+    return safeRelativePath(value);
   }
   function escapeMarkdownUrl(value) {
     return value.replace(/\\/g, "%5C").replace(/\)/g, "%29").replace(/\s/g, "%20");
@@ -22443,23 +22486,30 @@ a { color: var(--accent); }
   // src/features/export/static-archive.ts
   var ENCODER2 = new TextEncoder();
   function buildStaticArchive(records, options = {}) {
-    const visible = filterShareRecords(records, normalizeAudienceSelection(options.audience));
+    const withId = records.filter((record) => record.tweetId !== null);
+    const visible = filterShareRecords(withId, normalizeAudienceSelection(options.audience));
     const generatedAt = options.generatedAt ?? /* @__PURE__ */ new Date();
     const title = options.title ?? "Aviary archive";
     const description = options.description ?? "A local archive of captured posts.";
-    const ordered = [...visible].filter((record) => record.tweetId !== null).sort((left, right) => compareRecordIds(left.tweetId, right.tweetId));
+    const ordered = [...visible].sort((left, right) => compareRecordIds(left.tweetId, right.tweetId));
     const slugs = /* @__PURE__ */ new Map();
-    for (const record of ordered) slugs.set(record.tweetId, `posts/${slugFor(record.tweetId)}.html`);
+    const usedSlugs = /* @__PURE__ */ new Set();
+    for (const record of ordered) {
+      const id = record.tweetId;
+      if (slugs.has(id)) continue;
+      slugs.set(id, `posts/${uniqueName(`${safeFileSlug(id)}.html`, usedSlugs)}`);
+    }
     const entries = [];
     const mediaPaths = /* @__PURE__ */ new Map();
     const usedMediaNames = /* @__PURE__ */ new Set();
     for (const record of ordered) {
       for (const media of record.media) {
-        if (media.assetPath) {
-          mediaPaths.set(media, media.assetPath);
+        if (!media.bytes || media.bytes.byteLength === 0) continue;
+        const packaged = media.assetPath ? safeRelativePath(media.assetPath) : "";
+        if (packaged) {
+          mediaPaths.set(media, packaged);
           continue;
         }
-        if (!media.bytes || media.bytes.byteLength === 0) continue;
         const name = uniqueName(mediaName(record.tweetId, media), usedMediaNames);
         mediaPaths.set(media, `media/${name}`);
         entries.push({ filename: `media/${name}`, data: media.bytes, date: generatedAt });
@@ -22467,12 +22517,18 @@ a { color: var(--accent); }
     }
     entries.push({
       filename: "index.html",
-      data: ENCODER2.encode(indexPage(ordered, slugs, title, description, generatedAt)),
+      data: ENCODER2.encode(
+        indexPage(ordered, slugs, title, description, generatedAt, withId.length - ordered.length)
+      ),
       date: generatedAt
     });
+    const written = /* @__PURE__ */ new Set();
     for (const record of ordered) {
+      const filename = slugs.get(record.tweetId);
+      if (written.has(filename)) continue;
+      written.add(filename);
       entries.push({
-        filename: slugs.get(record.tweetId),
+        filename,
         data: ENCODER2.encode(postPage(record, ordered, slugs, mediaPaths, title)),
         date: generatedAt
       });
@@ -22484,21 +22540,10 @@ a { color: var(--accent); }
     });
     return entries.sort((left, right) => left.filename < right.filename ? -1 : left.filename > right.filename ? 1 : 0);
   }
-  function compareRecordIds(left, right) {
-    const a = left ?? "";
-    const b = right ?? "";
-    if (/^\d+$/.test(a) && /^\d+$/.test(b)) {
-      return a.length === b.length ? a.localeCompare(b) : a.length - b.length;
-    }
-    return a.localeCompare(b);
-  }
-  function slugFor(tweetId) {
-    return tweetId.replace(/[^A-Za-z0-9_-]/g, "-");
-  }
   function mediaName(tweetId, media) {
-    const source = media.assetPath ?? media.url ?? media.sourceUrl ?? "";
+    const source = media.url || media.sourceUrl || "";
     const extension = /\.([A-Za-z0-9]{2,5})(?:[?#]|$)/.exec(source)?.[1]?.toLowerCase() ?? "bin";
-    return `${slugFor(tweetId)}-${media.kind}.${extension}`;
+    return `${safeFileSlug(tweetId)}-${media.kind}.${extension}`;
   }
   function uniqueName(base, used) {
     if (!used.has(base)) {
@@ -22539,14 +22584,15 @@ nav.thread ul { list-style: none; margin: 4px 0 0; padding: 0; }
       '<meta charset="utf-8">',
       '<meta name="viewport" content="width=device-width, initial-scale=1">',
       `<title>${escapeText(pageTitle)}</title>`,
-      // The copy points at the original. Navigation below stays inside the folder.
+      // The copy points at the original. A permalink is captured data, so it goes through the
+      // scheme check first: a javascript: value here would run against the archive's own file origin.
       canonical ? `<link rel="canonical" href="${escapeAttribute(canonical)}">` : "",
       `<link rel="alternate" type="application/rss+xml" title="${escapeAttribute(pageTitle)}" href="${base}feed.xml">`,
       `<style>${STYLES}</style>`,
       "</head><body><main>"
     ].filter(Boolean).join("\n");
   }
-  function indexPage(records, slugs, title, description, generatedAt) {
+  function indexPage(records, slugs, title, description, generatedAt, heldBack) {
     const items = records.map((record) => {
       const href = slugs.get(record.tweetId);
       const when = authoredAt(record);
@@ -22561,7 +22607,10 @@ nav.thread ul { list-style: none; margin: 4px 0 0; padding: 0; }
       head(title, null, 0),
       `<h1>${escapeText(title)}</h1>`,
       `<p>${escapeText(description)}</p>`,
-      `<p class="meta">${records.length} ${records.length === 1 ? "post" : "posts"} \xB7 generated <time datetime="${escapeAttribute(generatedAt.toISOString())}">${escapeText(generatedAt.toISOString())}</time> \xB7 <a href="feed.xml">RSS feed</a></p>`,
+      // The held-back count is stated rather than left as a difference between this page and the
+      // package manifest. An index that says "0 posts" beside a manifest that counts one is an
+      // archive arguing with itself.
+      `<p class="meta">${records.length} ${records.length === 1 ? "post" : "posts"}${heldBack > 0 ? escapeText(`, ${heldBack} held back by the audience setting`) : ""} \xB7 generated <time datetime="${escapeAttribute(generatedAt.toISOString())}">${escapeText(generatedAt.toISOString())}</time> \xB7 <a href="feed.xml">RSS feed</a></p>`,
       '<ul class="posts">',
       items,
       "</ul>",
@@ -22570,6 +22619,7 @@ nav.thread ul { list-style: none; margin: 4px 0 0; padding: 0; }
   }
   function postPage(record, all, slugs, mediaPaths, title) {
     const when = authoredAt(record);
+    const original = safeExternalHref(record.permalink ?? "");
     const media = record.media.map((entry) => mediaBlock(entry, mediaPaths)).join("\n");
     const parent = record.parentId ? slugs.get(record.parentId) : void 0;
     const replies = all.filter((other) => other.parentId === record.tweetId);
@@ -22585,13 +22635,13 @@ nav.thread ul { list-style: none; margin: 4px 0 0; padding: 0; }
       );
     }
     return [
-      head(`${summarize(record.text, 60)} \xB7 ${title}`, record.permalink, 1),
+      head(`${summarize(record.text, 60)} \xB7 ${title}`, original || null, 1),
       '<p class="meta"><a href="../index.html">Back to the archive</a></p>',
       "<article>",
       `  <p class="meta">${escapeText(record.handle ? `@${record.handle}` : "unknown author")}${when ? ` \xB7 <time datetime="${escapeAttribute(when.toISOString())}">${escapeText(when.toISOString())}</time>` : ""}</p>`,
       `  <p lang="${escapeAttribute(record.language ?? "und")}" dir="auto">${escapeText(record.text)}</p>`,
       media,
-      record.permalink ? `  <p class="meta">Original: <a href="${escapeAttribute(record.permalink)}" rel="canonical">${escapeText(record.permalink)}</a></p>` : '  <p class="meta">No original address was recorded for this post.</p>',
+      original ? `  <p class="meta">Original: <a href="${escapeAttribute(original)}" rel="canonical">${escapeText(original)}</a></p>` : '  <p class="meta">No usable original address was recorded for this post.</p>',
       "</article>",
       threadLinks.length > 0 ? `<nav class="thread"><p>Thread</p><ul>
 ${threadLinks.join("\n")}
@@ -22604,7 +22654,13 @@ ${threadLinks.join("\n")}
     if (local) {
       const src = escapeAttribute(`../${local}`);
       const alt = escapeAttribute(media.altText ?? "");
-      return media.kind === "video" ? `  <figure><video controls preload="none" src="${src}"></video></figure>` : `  <figure><img src="${src}" alt="${alt}" loading="lazy"></figure>`;
+      if (media.kind === "video") return `  <figure><video controls preload="none" src="${src}"></video></figure>`;
+      if (media.kind === "audio") return `  <figure><audio controls preload="none" src="${src}"></audio></figure>`;
+      if (media.kind === "subtitle") {
+        const label = escapeText(media.label ?? media.language ?? "captions");
+        return `  <figure><p class="meta">Captions (${label}): <a href="${src}">${escapeText(local)}</a></p></figure>`;
+      }
+      return `  <figure><img src="${src}" alt="${alt}" loading="lazy"></figure>`;
     }
     const address = media.url || media.sourceUrl || "";
     const reason = media.captureError ?? (media.captureStatus === "remote-reference" ? "The bytes were not captured, so only the address was kept." : "No bytes and no address were kept for this item.");
@@ -22619,7 +22675,7 @@ ${threadLinks.join("\n")}
     const base = feedLink ?? "";
     const items = records.map((record) => {
       const when = authoredAt(record);
-      const link = record.permalink ?? `${base}${slugs.get(record.tweetId)}`;
+      const link = safeExternalHref(record.permalink ?? "") || `${base}${slugs.get(record.tweetId)}`;
       return [
         "    <item>",
         `      <title>${escapeXml2(summarize(record.text, 80))}</title>`,
@@ -22636,7 +22692,7 @@ ${threadLinks.join("\n")}
       '<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/">',
       "  <channel>",
       `    <title>${escapeXml2(title)}</title>`,
-      `    <link>${escapeXml2(base || "https://x.com/")}</link>`,
+      `    <link>${escapeXml2(base || "index.html")}</link>`,
       `    <description>${escapeXml2(description)}</description>`,
       `    <lastBuildDate>${escapeXml2(toRfc822(generatedAt))}</lastBuildDate>`,
       "    <generator>Aviary</generator>",
@@ -22653,10 +22709,7 @@ ${threadLinks.join("\n")}
     return `${DAYS[date.getUTCDay()]}, ${pad(date.getUTCDate())} ${MONTHS[date.getUTCMonth()]} ${date.getUTCFullYear()} ${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}:${pad(date.getUTCSeconds())} +0000`;
   }
   function authoredAt(record) {
-    const raw = record.createdAt ?? null;
-    if (!raw) return null;
-    const parsed = new Date(raw);
-    return Number.isNaN(parsed.getTime()) ? null : parsed;
+    return parseExportDate(record.createdAt);
   }
   function summarize(text, limit = 100) {
     const flat = text.replace(/\s+/g, " ").trim();
@@ -22664,13 +22717,13 @@ ${threadLinks.join("\n")}
     return flat.length <= limit ? flat : `${flat.slice(0, limit - 1)}\u2026`;
   }
   function escapeText(value) {
-    return String(value).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+    return stripInvalidXmlChars(String(value)).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
   }
   function escapeAttribute(value) {
     return escapeText(value).replaceAll('"', "&quot;");
   }
   function escapeXml2(value) {
-    return escapeText(value).replaceAll('"', "&quot;").replaceAll("'", "&apos;");
+    return escapeXmlText(value);
   }
 
   // src/features/export/activitystreams.ts
@@ -22680,7 +22733,7 @@ ${threadLinks.join("\n")}
     const visible = filterShareRecords(records, normalizeAudienceSelection(options.audience));
     const generatedAt = options.generatedAt ?? /* @__PURE__ */ new Date();
     const known = /* @__PURE__ */ new Map();
-    for (const record of visible) {
+    for (const record of records) {
       if (record.tweetId) known.set(record.tweetId, record);
     }
     const ordered = [...visible].filter((record) => record.tweetId !== null).sort((left, right) => compareRecordIds(left.tweetId, right.tweetId));
@@ -22724,9 +22777,13 @@ ${threadLinks.join("\n")}
       id: noteId,
       ...published ? { published } : {},
       attributedTo: actor,
+      // AS2 reads `content` as HTML by default, and post text is not HTML: a consumer rendering it
+      // as markup would run whatever a captured post happened to contain. Declaring the type is how
+      // the document says the string is literal text.
+      mediaType: "text/plain",
       content: record.text,
       ...record.language ? { contentMap: { [record.language]: record.text } } : {},
-      ...record.permalink ? { url: record.permalink } : {}
+      ...safeExternalHref(record.permalink ?? "") ? { url: safeExternalHref(record.permalink ?? "") } : {}
     };
     const parent = record.parentId ?? null;
     if (parent) {
@@ -22748,7 +22805,9 @@ ${threadLinks.join("\n")}
       type: "Tombstone",
       id: objectId(missingId, null),
       formerType: "Note",
-      summary: "This post was referenced by a captured reply but was never captured, so its content is unavailable."
+      // "not in this export" rather than "never captured": a chunked export splits one library
+      // across several packages, so the post named here may be sitting in part two.
+      summary: "This post was referenced by a captured reply but is not present in this export, so its content is unavailable."
     };
   }
   function attachmentFor(media) {
@@ -22760,10 +22819,11 @@ ${threadLinks.join("\n")}
       ...typeof media.width === "number" ? { width: media.width } : {},
       ...typeof media.height === "number" ? { height: media.height } : {}
     };
-    if (media.assetPath) {
-      return { ...base, url: media.assetPath };
+    const packaged = media.bytes && media.bytes.byteLength > 0 && media.assetPath ? safeRelativePath(media.assetPath) : "";
+    if (packaged) {
+      return { ...base, url: packaged };
     }
-    const address = media.url || media.sourceUrl || "";
+    const address = safeExternalHref(media.url || media.sourceUrl || "");
     if (!address) return null;
     return {
       ...base,
@@ -22772,16 +22832,13 @@ ${threadLinks.join("\n")}
     };
   }
   function objectId(tweetId, permalink2) {
-    return permalink2 ?? `urn:x-aviary:post:${encodeURIComponent(tweetId)}`;
+    return safeExternalHref(permalink2 ?? "") || `urn:x-aviary:post:${encodeURIComponent(tweetId)}`;
   }
   function actorId(handle) {
     return handle ? `https://x.com/${encodeURIComponent(handle)}` : "urn:x-aviary:actor:unknown";
   }
   function publishedAt(record) {
-    const raw = record.createdAt ?? null;
-    if (!raw) return null;
-    const parsed = new Date(raw);
-    return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
+    return parseExportDate(record.createdAt)?.toISOString() ?? null;
   }
 
   // src/features/export/export-feature.ts
@@ -23039,7 +23096,7 @@ ${threadLinks.join("\n")}
       packageFiles.push({
         path: filename,
         kind: "artifact",
-        contentType: entry.filename.endsWith(".xml") ? "application/rss+xml" : "text/html",
+        contentType: staticArchiveContentType(entry.filename),
         byteLength: entry.data.byteLength,
         sha256: sha256Hex(entry.data)
       });
@@ -23101,6 +23158,24 @@ ${threadLinks.join("\n")}
   function sanitizeFolder(folder) {
     return sanitizeFolderHint(folder, 80);
   }
+  function staticArchiveContentType(filename) {
+    if (filename.endsWith(".xml")) return "application/rss+xml";
+    if (filename.endsWith(".html")) return "text/html";
+    const extension = /\.([A-Za-z0-9]{1,5})$/.exec(filename)?.[1]?.toLowerCase() ?? "";
+    return STATIC_ARCHIVE_MEDIA_TYPES[extension] ?? "application/octet-stream";
+  }
+  var STATIC_ARCHIVE_MEDIA_TYPES = {
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    png: "image/png",
+    gif: "image/gif",
+    webp: "image/webp",
+    mp4: "video/mp4",
+    m4a: "audio/mp4",
+    mp3: "audio/mpeg",
+    vtt: "text/vtt",
+    srt: "application/x-subrip"
+  };
   function packagePath(folder, path) {
     return folder ? `${folder}/${path}` : path;
   }

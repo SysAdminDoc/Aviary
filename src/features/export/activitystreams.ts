@@ -1,6 +1,6 @@
 import type { ExportMedia, ExportRecord } from "./types.ts";
 import { filterShareRecords, normalizeAudienceSelection, type ExportAudienceSelection } from "./audience.ts";
-import { compareRecordIds } from "./static-archive.ts";
+import { compareRecordIds, parseExportDate, safeExternalHref, safeRelativePath } from "./text-safety.ts";
 import { reconstructThreads } from "./thread-reconstruction.ts";
 
 /**
@@ -53,8 +53,10 @@ export function buildActivityStreamsOutbox(
   const visible = filterShareRecords(records, normalizeAudienceSelection(options.audience));
   const generatedAt = options.generatedAt ?? new Date();
 
+  // Built from every record, not the audience-filtered view. A protected post held back by the
+  // selection is still a post this archive holds, and tombstoning it would say the opposite.
   const known = new Map<string, ExportRecord>();
-  for (const record of visible) {
+  for (const record of records) {
     if (record.tweetId) known.set(record.tweetId, record);
   }
 
@@ -111,9 +113,13 @@ function createActivity(record: ExportRecord, known: ReadonlyMap<string, ExportR
     id: noteId,
     ...(published ? { published } : {}),
     attributedTo: actor,
+    // AS2 reads `content` as HTML by default, and post text is not HTML: a consumer rendering it
+    // as markup would run whatever a captured post happened to contain. Declaring the type is how
+    // the document says the string is literal text.
+    mediaType: "text/plain",
     content: record.text,
     ...(record.language ? { contentMap: { [record.language]: record.text } } : {}),
-    ...(record.permalink ? { url: record.permalink } : {})
+    ...(safeExternalHref(record.permalink ?? "") ? { url: safeExternalHref(record.permalink ?? "") } : {})
   };
 
   const parent = record.parentId ?? null;
@@ -147,7 +153,9 @@ function tombstone(missingId: string): Record<string, unknown> {
     type: "Tombstone",
     id: objectId(missingId, null),
     formerType: "Note",
-    summary: "This post was referenced by a captured reply but was never captured, so its content is unavailable."
+    // "not in this export" rather than "never captured": a chunked export splits one library
+    // across several packages, so the post named here may be sitting in part two.
+    summary: "This post was referenced by a captured reply but is not present in this export, so its content is unavailable."
   };
 }
 
@@ -161,10 +169,16 @@ function attachmentFor(media: ExportMedia): Record<string, unknown> | null {
     ...(typeof media.height === "number" ? { height: media.height } : {})
   };
 
-  if (media.assetPath) {
-    return { ...base, url: media.assetPath };
+  // A path is only a package file when there are bytes to have written there. An `assetPath` with
+  // no bytes names a file nothing put in the ZIP, and an attachment pointing at it is the outbox
+  // asserting a capture that did not happen.
+  const packaged = media.bytes && media.bytes.byteLength > 0 && media.assetPath
+    ? safeRelativePath(media.assetPath)
+    : "";
+  if (packaged) {
+    return { ...base, url: packaged };
   }
-  const address = media.url || media.sourceUrl || "";
+  const address = safeExternalHref(media.url || media.sourceUrl || "");
   if (!address) return null;
   return {
     ...base,
@@ -181,7 +195,9 @@ function attachmentFor(media: ExportMedia): Record<string, unknown> | null {
  * `https://x.com/...` URL for a post whose address was never recorded would be a guess.
  */
 function objectId(tweetId: string, permalink: string | null): string {
-  return permalink ?? `urn:x-aviary:post:${encodeURIComponent(tweetId)}`;
+  // A permalink is captured data. Anything that is not http or https is not an address a consumer
+  // should follow, and a `javascript:` id would be handed straight to whatever renders the outbox.
+  return safeExternalHref(permalink ?? "") || `urn:x-aviary:post:${encodeURIComponent(tweetId)}`;
 }
 
 function actorId(handle: string | null): string {
@@ -190,8 +206,5 @@ function actorId(handle: string | null): string {
 
 /** The authored time. `capturedAt` is when Aviary saw the post, which is a different fact. */
 function publishedAt(record: ExportRecord): string | null {
-  const raw = record.createdAt ?? null;
-  if (!raw) return null;
-  const parsed = new Date(raw);
-  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
+  return parseExportDate(record.createdAt)?.toISOString() ?? null;
 }

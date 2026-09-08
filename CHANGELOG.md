@@ -3,6 +3,14 @@
 ## Unreleased
 
 ### Security
+- **One set of escaping rules for every export artifact.** `safeExternalHref`, `safeRelativePath`,
+  `stripInvalidXmlChars` and the post-id comparator now live in `src/features/export/text-safety.ts`
+  and are shared by the HTML formatter, the XLSX writer, the static site and the AS2 outbox. Each
+  of those had grown its own copy or gone without: a `javascript:` permalink could reach an `href`
+  on a page opened from disk, a control character in post text made the RSS feed ill-formed, and a
+  post id could produce a Windows device name or collide with another post's page. Post ids also
+  sort through a comparator that is a total order, so an archive no longer depends on the order the
+  records arrived in.
 - **Seeded parser fuzzing.** Custom CSS and regex boundaries now run deterministic 10,000-case
   mutation corpora. CSS output is checked for network hooks and selector escape in the fallback
   scoper, while accepted regexes run a long sentinel corpus in a time-bounded worker. Reduced cases
