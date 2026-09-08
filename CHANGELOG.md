@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.48.0 (2026-09-07)
+
 ### Security
 - **One set of escaping rules for every export artifact.** `safeExternalHref`, `safeRelativePath`,
   `stripInvalidXmlChars` and the post-id comparator now live in `src/features/export/text-safety.ts`

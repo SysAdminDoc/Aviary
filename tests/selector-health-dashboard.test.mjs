@@ -1,11 +1,17 @@
 import assert from "node:assert/strict";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { after, before, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { build } from "esbuild";
 import { chromium } from "playwright";
+
+// Read rather than written out: a hardcoded version here is a landmine that goes off on the next
+// bump, in a test that has nothing to do with versioning.
+const PACKAGE_VERSION = JSON.parse(
+  await readFile(new URL("../package.json", import.meta.url), "utf8")
+).version;
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 let browser;
@@ -21,6 +27,7 @@ before(async () => {
       `export { selectorHealthFeature, getSelectorHealthSnapshot, clearAdObservations } from ${JSON.stringify(path.join(root, "src/features/core/selector-health.ts").replace(/\\/g, "/"))};`,
       `export { getSelectorHealthForRoute, SURFACE_SELECTORS } from ${JSON.stringify(path.join(root, "src/platform/selectors.ts").replace(/\\/g, "/"))};`,
       `export { mountControlCenter } from ${JSON.stringify(path.join(root, "src/ui/control-center.ts").replace(/\\/g, "/"))};`,
+      `export { buildSelectorBreakReport } from ${JSON.stringify(path.join(root, "src/features/core/control-center.ts").replace(/\\/g, "/"))};`,
       `export { DEFAULT_SETTINGS, cloneSettings } from ${JSON.stringify(path.join(root, "src/platform/settings.ts").replace(/\\/g, "/"))};`
     ].join("\n"),
     "utf8"
@@ -34,6 +41,9 @@ before(async () => {
     globalName: "AviarySelectorHealth",
     platform: "browser",
     target: "es2022",
+    // The same define the real build uses. Without it the bundle falls back to "dev", so a report
+    // asserted here would say nothing about what a shipped build actually stamps.
+    define: { __AVIARY_VERSION__: JSON.stringify(PACKAGE_VERSION) },
     logLevel: "silent"
   });
 
@@ -183,7 +193,14 @@ test("a renamed post action bar signals once, opens Trust, and copies a content-
       onError: () => {},
       getSelectorHealth: () => AviarySelectorHealth.getSelectorHealthSnapshot(),
       copySelectorBreakReport: async () => {
-        reports.push("Aviary selector break report\nBuild: 1.47.2\nRoute: home\nMissing surfaces:\n- Post actions (Media buttons, AI menu, composer snippets)\nFeature IDs:\n- media.buttons\n- ai.commandMenu\n- composer.snippets");
+        // The product's own builder, against the live snapshot. A canned string here would make
+        // every assertion below a check on this fixture rather than on the report.
+        reports.push(
+          AviarySelectorHealth.buildSelectorBreakReport(
+            context,
+            AviarySelectorHealth.getSelectorHealthSnapshot()
+          )
+        );
       }
     });
     context.refreshControlCenter = () => panel.refresh();
@@ -275,7 +292,9 @@ test("a renamed post action bar signals once, opens Trust, and copies a content-
   assert.equal(result.secondDegraded.missing, "Post actions");
   assert.match(result.secondDegraded.affected, /Media buttons, AI menu, composer snippets/);
   assert.equal(result.secondDegraded.copyButtons, 1);
-  assert.match(result.report, /Build: 1\.47\.2/);
+  assert.match(result.report, new RegExp(`^Build: ${PACKAGE_VERSION.replace(/\./g, "\\.")}$`, "m"));
+  assert.match(result.report, /^Aviary selector break report$/m);
+  assert.match(result.report, /^- Post actions \(Media buttons, AI menu, composer snippets\)$/m);
   assert.match(result.report, /Route: home/);
   assert.match(result.report, /media\.buttons/);
   assert.doesNotMatch(result.report, /https?:\/\//);

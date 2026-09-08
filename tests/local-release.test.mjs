@@ -12,7 +12,7 @@ import { importSourceModule } from "./helpers/source-import.mjs";
 test("local release CRX3 output carries a verifiable proof and safe ZIP paths", async () => {
   const { buildStoreZip } = await importSourceModule("src/features/export/zip-store.ts");
   const archive = buildStoreZip([
-    { filename: "manifest.json", data: new TextEncoder().encode('{"version":"1.47.2"}') },
+    { filename: "manifest.json", data: new TextEncoder().encode('{"version":"1.48.0"}') },
     { filename: "chunks/panel.js", data: new TextEncoder().encode("panel") }
   ]);
   const temp = await mkdtemp(path.join(os.tmpdir(), "aviary-release-crx-test-"));
@@ -40,10 +40,10 @@ test("local release CRX3 output carries a verifiable proof and safe ZIP paths", 
 
 test("release ledger maps missing versions to exact package commits", () => {
   const ledger = reconcileReleaseLedger(
-    { "1.38.0": "commit-138", "1.44.1": "commit-1441", "1.45.0": "commit-145", "1.47.2": "commit-current" },
+    { "1.38.0": "commit-138", "1.44.1": "commit-1441", "1.45.0": "commit-145", "1.48.0": "commit-current" },
     ["v1.45.0"],
     ["v1.45.0"],
-    "1.47.2"
+    "1.48.0"
   );
   assert.deepEqual(missingReleaseReport(ledger), [
     {
@@ -63,9 +63,9 @@ test("release ledger maps missing versions to exact package commits", () => {
       status: "missing"
     },
     {
-      version: "1.47.2",
+      version: "1.48.0",
       commit: "commit-current",
-      tag: "v1.47.2",
+      tag: "v1.48.0",
       tagPresent: false,
       releasePresent: false,
       status: "missing"
@@ -75,7 +75,7 @@ test("release ledger maps missing versions to exact package commits", () => {
 
 test("local release CLI makes publishing explicit and supports historical rebuilds", () => {
   assert.equal(parseReleaseArgs(["--plan"]).plan, true);
-  assert.equal(parseReleaseArgs(["--publish", "--version=1.47.2"]).publish, true);
+  assert.equal(parseReleaseArgs(["--publish", "--version=1.48.0"]).publish, true);
   assert.equal(parseReleaseArgs(["--publish", "--historical", "1.44.1"]).historical, "1.44.1");
   assert.throws(() => parseReleaseArgs(["--unknown"]), /Unknown release option/);
 });
@@ -102,5 +102,5 @@ test("historical release state can resume only after the verified artifact set e
 });
 
 test("release planning rejects drifted version markers", async () => {
-  await assert.doesNotReject(() => assertAlignedVersions(process.cwd(), "1.47.2"));
+  await assert.doesNotReject(() => assertAlignedVersions(process.cwd(), "1.48.0"));
 });

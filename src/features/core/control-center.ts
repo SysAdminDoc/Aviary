@@ -1892,7 +1892,14 @@ function emptyPerformanceMetrics(): PerformanceMetricsSnapshot {
   };
 }
 
-function buildSelectorBreakReport(
+/**
+ * Exported so a test can assert on the report the product actually builds.
+ *
+ * It was private, so the dashboard test stubbed `copySelectorBreakReport` with a hand-written
+ * string and then asserted against that string: the assertion checked the fixture, not the
+ * report, and it went stale on a version bump rather than on a regression.
+ */
+export function buildSelectorBreakReport(
   ctx: FeatureContext,
   health: ReturnType<typeof getSelectorHealthSnapshot>
 ): string {
