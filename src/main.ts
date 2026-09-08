@@ -25,6 +25,7 @@ import { mobileTouchFeature } from "./features/core/mobile-touch.ts";
 import { pauseOffscreenVideoFeature } from "./features/performance/pause-offscreen-video.ts";
 import { videoPlaybackFeature } from "./features/performance/video-playback.ts";
 import { forceFollowingFeature } from "./features/layout/force-following.ts";
+import { postOpenGuardFeature } from "./features/layout/post-open-guard.ts";
 import { timelinePaginationFeature } from "./features/layout/timeline-pagination.ts";
 import { inlineOriginalImagesFeature } from "./features/media/inline-original-images.ts";
 import { mediaButtonsFeature } from "./features/media/media-buttons.ts";
@@ -434,6 +435,7 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
   registry.register(pauseOffscreenVideoFeature);
   registry.register(videoPlaybackFeature);
   registry.register(forceFollowingFeature);
+  registry.register(postOpenGuardFeature);
   registry.register(timelinePaginationFeature);
   registry.register(inlineOriginalImagesFeature);
   registry.register(mobileTouchFeature);

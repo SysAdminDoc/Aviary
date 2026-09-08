@@ -362,6 +362,15 @@ export function buildLayoutRows(ctx: PanelContext): HTMLElement[] {
           ctx.options.settings.layout.hideForYouTab = checked;
           await ctx.save(checked ? "For You tab hidden." : "For You tab restored.");
         }
+      ),
+      ctx.toggleRow(
+        "Open posts from the reply icon only",
+        "X makes the whole row a link, so a press on the text or beside a control opens a post you did not choose. This takes the click target off the row and gives it to the reply icon, which opens the post rather than the inline composer. Links, buttons, media and quoted posts keep working.",
+        ctx.options.settings.layout.openFromReplyOnly,
+        async (checked) => {
+          ctx.options.settings.layout.openFromReplyOnly = checked;
+          await ctx.save(checked ? "Posts open from the reply icon." : "Posts open from the row again.");
+        }
       )
   ];
   rows.push(

@@ -293,6 +293,15 @@ export interface AviarySettings {
     focusStart: string;
     /** End of the allowed reading window. An end before the start wraps midnight. */
     focusEnd: string;
+    /**
+     * Take the click target off the whole post and put it on the reply icon.
+     *
+     * X makes an entire row navigate, so a press on empty space, on the text, or a fraction off a
+     * control opens a post nobody asked for. With this on, a press that is not on a control does
+     * nothing, and the reply icon opens the post instead of the inline composer, which is where
+     * replying happens anyway.
+     */
+    openFromReplyOnly: boolean;
     /** Stop extending the feed past this many posts. Zero leaves X's endless scroll alone. */
     timelineStopAfter: number;
     /** Show a local position marker and "new since you last looked" separator. */
@@ -467,6 +476,7 @@ export const DEFAULT_SETTINGS: AviarySettings = {
     writerMode: false,
     forceFollowing: false,
     hideForYouTab: false,
+    openFromReplyOnly: false,
     focusMode: false,
     focusStart: "09:00",
     focusEnd: "18:00",
@@ -861,6 +871,10 @@ export function normalizeSettings(input: unknown): AviarySettings {
       writerMode: booleanValue(layout.writerMode, DEFAULT_SETTINGS.layout.writerMode),
       forceFollowing: booleanValue(layout.forceFollowing, DEFAULT_SETTINGS.layout.forceFollowing),
       hideForYouTab: booleanValue(layout.hideForYouTab, DEFAULT_SETTINGS.layout.hideForYouTab),
+      openFromReplyOnly: booleanValue(
+        layout.openFromReplyOnly,
+        DEFAULT_SETTINGS.layout.openFromReplyOnly
+      ),
       focusMode: booleanValue(layout.focusMode, DEFAULT_SETTINGS.layout.focusMode),
       focusStart: timeValue(layout.focusStart, DEFAULT_SETTINGS.layout.focusStart),
       focusEnd: timeValue(layout.focusEnd, DEFAULT_SETTINGS.layout.focusEnd),

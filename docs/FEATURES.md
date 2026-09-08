@@ -144,6 +144,28 @@ Filters process only tweet articles added by MutationObserver and re-evaluate ex
 
 Blocked-account (F032) and self-repost (F033) filters are deferred until an authenticated fixture capture lands; their settings keys are reserved.
 
+## Post opening
+
+X turns an entire post row into a click target, which is convenient until a press lands on the
+text, on the gap beside a control, or a few pixels off the one you meant. The post you never chose
+opens and your place in the feed is gone.
+
+**Open posts from the reply icon only** (Reading section, off by default) takes the click target
+off the row. A press that is not on a control does nothing at all, and the reply icon opens the
+post instead of X's inline composer, which is where a reply gets written anyway.
+
+- The guard is one capture-phase listener on `window`, upstream of X's own row handler. It reads
+  the setting per event, so the toggle takes effect without a reload.
+- Links, buttons, form controls, media and a quoted post all keep their press, because each is its
+  own destination. Only the row between them is inert. The quote boundary is the one
+  `src/features/media/extract.ts` declares.
+- The reply icon opens the post through the post's own permalink, so X's router handles it and the
+  feed is not reloaded. Ctrl, Cmd, Shift or a middle click opens it in a new tab instead.
+- The control's accessible name becomes "Open post" while the setting is on, so a screen reader is
+  not told "Reply" by something that opens a post. Turning the setting off restores X's own label.
+- Text selection is untouched: only `click` and `auxclick` are absorbed, never the press or release
+  that starts a drag.
+
 ## Hidden Posts
 
 Every post carries a **Hide** control next to its More menu. Clicking it records the post locally and collapses it for good, so the following post is promoted into the slot instead of leaving a gap, you can clear a timeline by tapping Hide rather than scrolling past.

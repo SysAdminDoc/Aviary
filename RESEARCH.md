@@ -3,7 +3,7 @@ Date: 2026-09-06. Replaces all prior research.
 
 ## Executive Summary
 
-Aviary v1.48.1 is a local-first X enhancement with feed-level media downloads, a compact Control Center, and a portable local archive. Its strongest direction is dependable capture and recovery, not another visual redesign. The current implementation can lose early video metadata, select a lower-resolution duplicate candidate, and leave a completed download disabled for five minutes. Storage experiments also found three independent lost-write paths. Fix those before adding formats or integrations. Evidence is in `src/main.ts`, `src/features/media/`, `src/platform/storage-lock.ts`, and `src/extension/durable-storage-api.ts`.
+Aviary v1.49.0 is a local-first X enhancement with feed-level media downloads, a compact Control Center, and a portable local archive. Its strongest direction is dependable capture and recovery, not another visual redesign. The current implementation can lose early video metadata, select a lower-resolution duplicate candidate, and leave a completed download disabled for five minutes. Storage experiments also found three independent lost-write paths. Fix those before adding formats or integrations. Evidence is in `src/main.ts`, `src/features/media/`, `src/platform/storage-lock.ts`, and `src/extension/durable-storage-api.ts`.
 
 Priority order, with user impact scored from 1 to 5:
 

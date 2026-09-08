@@ -73,7 +73,11 @@ const DELIVERY_BUDGETS = [
   // narrow headroom every entry above it keeps.
   // F294 adds the batch review list and F293 the Scrollmark bundle reader, with the eight locale
   // strings each of those needs. Measured 2.66 MB against the 2.655 MB that stood before.
-  { file: "aviary.user.js", maxBytes: 2_690_000 },
+  // The post-open guard adds a feature module and four panel strings, which is 32 translations
+  // across the eight locales, and the catalog is where most of that lands. Measured 2,702,647
+  // bytes against the 2,690,000 that stood before; the new ceiling keeps the same narrow headroom
+  // every entry above it does rather than buying room for the next feature as well.
+  { file: "aviary.user.js", maxBytes: 2_730_000 },
   { file: "aviary.meta.js", maxBytes: 4_000 },
   // F298 keeps the document-start bootstrap below half of the previous 2.42 MB ceiling. The
   // panel, archive, WACZ worker, viewer, and translated catalog live in the separately budgeted
@@ -83,8 +87,12 @@ const DELIVERY_BUDGETS = [
   // Same F314 catalog growth as the userscript above, in the chunk that carries the panel and its
   // translations. Measured 2.18 MB against the 2.135 MB that stood before.
   // Same F293 and F294 growth in the chunk that carries the panel. Measured 2.22 MB.
-  { file: "extension-chrome/chunks/extension-panel.js", maxBytes: 2_250_000 },
-  { file: "extension-firefox/chunks/extension-panel.js", maxBytes: 2_250_000 },
+  // The post-open guard's row and its 32 translations land here too. Measured 2,249,126 bytes,
+  // which is 874 bytes under the ceiling that stood before: close enough that the next translated
+  // string would have tripped a gate about something unrelated to it. Raised with the same narrow
+  // headroom as the userscript above.
+  { file: "extension-chrome/chunks/extension-panel.js", maxBytes: 2_280_000 },
+  { file: "extension-firefox/chunks/extension-panel.js", maxBytes: 2_280_000 },
   { file: `aviary-source-v${pkg.version}.zip`, maxBytes: 10_000_000 }
 ];
 

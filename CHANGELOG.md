@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+## 1.49.0 (2026-09-08)
+
+### Added
+- **Open posts from the reply icon only.** X makes an entire post row navigate, so a press on the
+  text, on the gap beside a control, or a few pixels off the one you meant opens a post you never
+  chose and takes your place in the feed with it. Turn this on and the row is inert: a press that
+  is not on a control does nothing, and the reply icon opens the post instead of the inline
+  composer, which is where a reply gets written anyway. Links, buttons, media and quoted posts keep
+  working, because each of those is its own destination. The post opens through its own permalink
+  so X's router handles it without reloading the feed, and Ctrl, Cmd, Shift or a middle click opens
+  it in a new tab. While the setting is on the control's accessible name reads "Open post", so a
+  screen reader is not told "Reply" by something that opens a post; turning it off restores X's own
+  label. Off by default, in Reading, translated into all nine languages. Only `click` and
+  `auxclick` are absorbed, so selecting text still works.
+
 ## 1.48.1 (2026-09-08)
 
 ### Fixed
