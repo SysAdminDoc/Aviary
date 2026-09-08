@@ -41380,16 +41380,20 @@ html.av-mobile [data-testid="primaryColumn"] {
     permalink2.click();
   }
   function postPermalink2(article) {
-    for (const link of Array.from(article.querySelectorAll('a[href*="/status/"]'))) {
-      if (link.closest(ARTICLE_SELECTOR5) !== article) continue;
-      if (link.closest('[data-testid="quoteTweet"], [aria-labelledby="quoted"], div[role="link"][tabindex="0"]')) {
-        continue;
-      }
-      if (/\/status\/\d{1,25}(?:$|[/?#])/.test(link.getAttribute("href") ?? "")) {
-        return link;
-      }
-    }
-    return null;
+    const candidates2 = Array.from(
+      article.querySelectorAll('a[href*="/status/"]')
+    ).filter(
+      (link) => link.closest(ARTICLE_SELECTOR5) === article && !link.closest('[data-testid="quoteTweet"], [aria-labelledby="quoted"], div[role="link"][tabindex="0"]')
+    );
+    const exact = candidates2.find(
+      (link) => /\/status\/\d{1,25}(?:$|[?#])/.test(link.getAttribute("href") ?? "")
+    );
+    if (exact) return exact;
+    return candidates2.find((link) => {
+      const href = link.getAttribute("href") ?? "";
+      if (/\/(?:photo|video|analytics|likes|retweets|quotes|history)(?:\/|$)/.test(href)) return false;
+      return /\/status\/\d{1,25}(?:$|[/?#])/.test(href);
+    }) ?? null;
   }
   function relabelReplyControls(root, ctx) {
     const label = ft(ctx, "Open post");

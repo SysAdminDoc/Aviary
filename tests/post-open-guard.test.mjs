@@ -73,13 +73,14 @@ const PAGE = `<!doctype html><meta charset=utf-8>
   .filler { height: 30px; }
 </style>
 <body>
-  <div data-testid="cellInnerDiv">
+  <div data-testid="cellInnerDiv" id="post">
     <article data-testid="tweet">
       <div class="head">
         <div data-testid="User-Name"><a href="#/author1">@author1</a></div>
         <a href="/author1/status/1" data-role="timestamp">2h</a>
       </div>
       <div data-testid="tweetText">post one, with an <a href="#/hashtag" data-role="inline">inline link</a> in it</div>
+      <div data-testid="tweetPhoto"><a href="/author1/status/1/photo/1" data-role="photo">photo</a></div>
       <div class="filler"></div>
       <div role="link" tabindex="0" data-role="quote">
         <div data-testid="User-Name"><a href="#/quoted">@quoted</a></div>
@@ -89,6 +90,16 @@ const PAGE = `<!doctype html><meta charset=utf-8>
         <button data-testid="reply" type="button" aria-label="42 Replies. Reply">42</button>
         <button data-testid="retweet" type="button" aria-label="Repost">128</button>
         <button data-testid="like" type="button" aria-label="Like">1.2K</button>
+      </div>
+    </article>
+  </div>
+  <div data-testid="cellInnerDiv" id="mediaonly">
+    <article data-testid="tweet">
+      <div class="head"><div data-testid="User-Name"><a href="#/author2">@author2</a></div></div>
+      <div data-testid="tweetText">a post whose only status link is its photo</div>
+      <div data-testid="tweetPhoto"><a href="/author2/status/2/photo/1" data-role="photo2">photo</a></div>
+      <div role="group" aria-label="Post actions">
+        <button data-testid="reply" type="button" aria-label="3 Replies. Reply">3</button>
       </div>
     </article>
   </div>
@@ -123,12 +134,16 @@ async function boot(openFromReplyOnly) {
     if (!window.__wired) {
       window.__wired = true;
       // X opens the post from a handler on the row, so that is where the counter goes.
-      document.querySelector("article").addEventListener("click", () => {
-        window.__opened += 1;
-      });
-      document.querySelector('[data-testid="reply"]').addEventListener("click", () => {
-        window.__replied += 1;
-      });
+      for (const article of document.querySelectorAll("article")) {
+        article.addEventListener("click", () => {
+          window.__opened += 1;
+        });
+      }
+      for (const reply of document.querySelectorAll('[data-testid="reply"]')) {
+        reply.addEventListener("click", () => {
+          window.__replied += 1;
+        });
+      }
       document.querySelector('[data-role="quote"]').addEventListener("click", () => {
         window.__quoted += 1;
       });
@@ -183,7 +198,7 @@ test("a press on the row itself no longer opens the post", async () => {
   await boot(true);
   const before = await counters();
 
-  await clickCenter('[data-testid="tweetText"]');
+  await clickCenter('#post [data-testid="tweetText"]');
   await clickCenter(".filler");
   const head = await rectOf(".head");
   await page.mouse.click(head.right - 8, (head.top + head.bottom) / 2);
@@ -196,7 +211,7 @@ test("a press on the row itself no longer opens the post", async () => {
 
 test("the reply icon opens the post through its own permalink", async () => {
   await boot(true);
-  await clickCenter('[data-testid="reply"]');
+  await clickCenter('#post [data-testid="reply"]');
 
   const after = await counters();
   assert.deepEqual(after.navigated, ["/author1/status/1"], "the post's permalink is what was followed");
@@ -230,7 +245,7 @@ test("controls and links inside the post keep working", async () => {
 test("the reply control says what it now does, and says what it did again afterwards", async () => {
   await boot(true);
   assert.equal(
-    await page.evaluate(() => document.querySelector('[data-testid="reply"]').getAttribute("aria-label")),
+    await page.evaluate(() => document.querySelector('#post [data-testid="reply"]').getAttribute("aria-label")),
     "Open post"
   );
 
@@ -239,7 +254,7 @@ test("the reply control says what it now does, and says what it did again afterw
     window.__ctx = undefined;
   });
   assert.equal(
-    await page.evaluate(() => document.querySelector('[data-testid="reply"]').getAttribute("aria-label")),
+    await page.evaluate(() => document.querySelector('#post [data-testid="reply"]').getAttribute("aria-label")),
     "42 Replies. Reply",
     "turning the feature off puts X's own name back"
   );
@@ -253,8 +268,8 @@ test("with the setting off, the row opens the post and the reply icon replies", 
   await boot(false);
   const before = await counters();
 
-  await clickCenter('[data-testid="tweetText"]');
-  await clickCenter('[data-testid="reply"]');
+  await clickCenter('#post [data-testid="tweetText"]');
+  await clickCenter('#post [data-testid="reply"]');
 
   const after = await counters();
   assert.equal(after.rowOpened, 2, "the row handler sees both presses, as X intends");
@@ -263,7 +278,29 @@ test("with the setting off, the row opens the post and the reply icon replies", 
   assert.equal(after.swallowed, before.swallowed, "nothing was absorbed");
   assert.equal(after.openedViaReply, before.openedViaReply, "and the feature opened nothing");
   assert.equal(
-    await page.evaluate(() => document.querySelector('[data-testid="reply"]').getAttribute("aria-label")),
+    await page.evaluate(() => document.querySelector('#post [data-testid="reply"]').getAttribute("aria-label")),
     "42 Replies. Reply"
   );
+});
+
+/**
+ * A post's media links are `/status/<id>` URLs with `/photo/1` on the end, and following one opens
+ * the lightbox rather than the post. The second fixture post has no other status link at all, so a
+ * match that merely looked for `/status/<digits>` would open the photo. Leaving the press to X is
+ * the right answer: opening the wrong thing is the failure this whole feature exists to stop.
+ */
+test("a media link is never mistaken for the post's permalink", async () => {
+  await boot(true);
+  const before = await counters();
+
+  await clickCenter('#mediaonly [data-testid="reply"]');
+
+  const after = await counters();
+  assert.deepEqual(after.navigated, [], "the photo URL was not followed");
+  assert.equal(after.openedViaReply, before.openedViaReply, "and nothing was opened");
+  assert.equal(after.replied, 1, "the press falls through to X, which still knows what to do");
+
+  // The post that does carry a permalink is unaffected by any of that.
+  await clickCenter('#post [data-testid="reply"]');
+  assert.deepEqual((await counters()).navigated, ["/author1/status/1"]);
 });

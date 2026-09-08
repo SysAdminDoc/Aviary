@@ -181,18 +181,35 @@ function openPost(article: Element, event: MouseEvent): void {
   permalink.click();
 }
 
-/** The post's own permalink anchor, never one belonging to a quoted post inside it. */
+/**
+ * The post's own permalink anchor, never one belonging to a quoted post inside it.
+ *
+ * A post's media links are `/status/<id>` URLs too, with `/photo/1` or `/video/1` on the end, and
+ * following one opens the lightbox rather than the post. So the id has to end the path: the loose
+ * form is accepted only as a fallback, and never for a media or analytics link, because opening
+ * the wrong thing is worse than leaving the press to X.
+ */
 function postPermalink(article: Element): HTMLAnchorElement | null {
-  for (const link of Array.from(article.querySelectorAll<HTMLAnchorElement>('a[href*="/status/"]'))) {
-    if (link.closest(ARTICLE_SELECTOR) !== article) continue;
-    if (link.closest('[data-testid="quoteTweet"], [aria-labelledby="quoted"], div[role="link"][tabindex="0"]')) {
-      continue;
-    }
-    if (/\/status\/\d{1,25}(?:$|[/?#])/.test(link.getAttribute("href") ?? "")) {
-      return link;
-    }
-  }
-  return null;
+  const candidates = Array.from(
+    article.querySelectorAll<HTMLAnchorElement>('a[href*="/status/"]')
+  ).filter(
+    (link) =>
+      link.closest(ARTICLE_SELECTOR) === article &&
+      !link.closest('[data-testid="quoteTweet"], [aria-labelledby="quoted"], div[role="link"][tabindex="0"]')
+  );
+
+  const exact = candidates.find((link) =>
+    /\/status\/\d{1,25}(?:$|[?#])/.test(link.getAttribute("href") ?? "")
+  );
+  if (exact) return exact;
+
+  return (
+    candidates.find((link) => {
+      const href = link.getAttribute("href") ?? "";
+      if (/\/(?:photo|video|analytics|likes|retweets|quotes|history)(?:\/|$)/.test(href)) return false;
+      return /\/status\/\d{1,25}(?:$|[/?#])/.test(href);
+    }) ?? null
+  );
 }
 
 /**
