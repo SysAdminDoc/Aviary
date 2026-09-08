@@ -123,6 +123,12 @@
   extension and manager lanes.
 
 ### Added
+- **A static archive in every export.** An export package now carries plain HTML beside the
+  viewer: an index, one page per post, thread links that stay inside the folder, and an RSS 2.0
+  feed. Media the capture kept is shown from the package's own copy, and media it never got says
+  so in place rather than leaving a broken image. Every page points its canonical link at the
+  original X post while navigating locally, opens with the network off, and a repeated export of
+  the same library is byte-identical apart from the generated time it declares.
 - **Dated selector evidence.** Aviary now keeps a checked-in comparison of its selector registry
   against browsertrix-behaviors 0.13.1 and twitter-web-exporter 1.4.3-beta.1. The comparison records
   disagreements and licenses, while structural fallbacks for plain tweets and profile photo media

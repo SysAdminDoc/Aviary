@@ -2035,12 +2035,12 @@ html.av-reduce-motion *::after {
     if (observer2 || typeof MutationObserver === "undefined") {
       return;
     }
-    const head = document.head;
-    if (!head) {
+    const head2 = document.head;
+    if (!head2) {
       return;
     }
     observer2 = new MutationObserver(() => swap());
-    observer2.observe(head, { childList: true, subtree: true, attributes: true, attributeFilter: ["href"] });
+    observer2.observe(head2, { childList: true, subtree: true, attributes: true, attributeFilter: ["href"] });
   }
   function iconLinks() {
     return Array.from(document.querySelectorAll("link[rel]")).filter(
@@ -5518,9 +5518,9 @@ ${body}
         for (const hit of hits.slice(0, 10)) {
           const item = ctx.el("div", "av-search-hit");
           item.setAttribute("role", "listitem");
-          const head = ctx.el("span", "av-row-label", `@${hit.handle ?? "anon"} \xB7 ${hit.tweetId ?? "unknown"}`);
+          const head2 = ctx.el("span", "av-row-label", `@${hit.handle ?? "anon"} \xB7 ${hit.tweetId ?? "unknown"}`);
           const body = ctx.el("span", "av-row-description", hit.text.slice(0, 140));
-          item.append(head, body);
+          item.append(head2, body);
           results.append(item);
         }
       };
@@ -6066,13 +6066,13 @@ ${body}
         for (const entry of matches2) {
           const item = ctx.el("div", "av-search-hit av-bookmark-hit");
           item.setAttribute("role", "listitem");
-          const head = ctx.el("span", "av-row-label", `@${entry.handle ?? "anon"} \xB7 ${entry.tweetId ?? entry.id}`);
+          const head2 = ctx.el("span", "av-row-label", `@${entry.handle ?? "anon"} \xB7 ${entry.tweetId ?? entry.id}`);
           const body = ctx.el(
             "span",
             "av-row-description",
             entry.text.slice(0, 180) || entry.url || ctx.t("(no text)")
           );
-          item.append(head, body);
+          item.append(head2, body);
           const editor = ctx.el("div", "av-bookmark-editor");
           const tags = ctx.bookmarkField("Bookmark tags", entry.tags.join(", "), "Tags, comma-separated");
           const folder = ctx.bookmarkField("Bookmark folder", entry.folder ?? "", "Folder");
@@ -22440,6 +22440,239 @@ a { color: var(--accent); }
 }
 `;
 
+  // src/features/export/static-archive.ts
+  var ENCODER2 = new TextEncoder();
+  function buildStaticArchive(records, options = {}) {
+    const visible = filterShareRecords(records, normalizeAudienceSelection(options.audience));
+    const generatedAt = options.generatedAt ?? /* @__PURE__ */ new Date();
+    const title = options.title ?? "Aviary archive";
+    const description = options.description ?? "A local archive of captured posts.";
+    const ordered = [...visible].filter((record) => record.tweetId !== null).sort((left, right) => compareIds(left.tweetId, right.tweetId));
+    const slugs = /* @__PURE__ */ new Map();
+    for (const record of ordered) slugs.set(record.tweetId, `posts/${slugFor(record.tweetId)}.html`);
+    const entries = [];
+    const mediaPaths = /* @__PURE__ */ new Map();
+    const usedMediaNames = /* @__PURE__ */ new Set();
+    for (const record of ordered) {
+      for (const media of record.media) {
+        if (media.assetPath) {
+          mediaPaths.set(media, media.assetPath);
+          continue;
+        }
+        if (!media.bytes || media.bytes.byteLength === 0) continue;
+        const name = uniqueName(mediaName(record.tweetId, media), usedMediaNames);
+        mediaPaths.set(media, `media/${name}`);
+        entries.push({ filename: `media/${name}`, data: media.bytes, date: generatedAt });
+      }
+    }
+    entries.push({
+      filename: "index.html",
+      data: ENCODER2.encode(indexPage(ordered, slugs, title, description, generatedAt)),
+      date: generatedAt
+    });
+    for (const record of ordered) {
+      entries.push({
+        filename: slugs.get(record.tweetId),
+        data: ENCODER2.encode(postPage(record, ordered, slugs, mediaPaths, title)),
+        date: generatedAt
+      });
+    }
+    entries.push({
+      filename: "feed.xml",
+      data: ENCODER2.encode(rssFeed(ordered, slugs, title, description, generatedAt, options.feedLink)),
+      date: generatedAt
+    });
+    return entries.sort((left, right) => left.filename < right.filename ? -1 : left.filename > right.filename ? 1 : 0);
+  }
+  function compareIds(left, right) {
+    const a = left ?? "";
+    const b = right ?? "";
+    if (/^\d+$/.test(a) && /^\d+$/.test(b)) {
+      return a.length === b.length ? a.localeCompare(b) : a.length - b.length;
+    }
+    return a.localeCompare(b);
+  }
+  function slugFor(tweetId) {
+    return tweetId.replace(/[^A-Za-z0-9_-]/g, "-");
+  }
+  function mediaName(tweetId, media) {
+    const source = media.assetPath ?? media.url ?? media.sourceUrl ?? "";
+    const extension = /\.([A-Za-z0-9]{2,5})(?:[?#]|$)/.exec(source)?.[1]?.toLowerCase() ?? "bin";
+    return `${slugFor(tweetId)}-${media.kind}.${extension}`;
+  }
+  function uniqueName(base, used) {
+    if (!used.has(base)) {
+      used.add(base);
+      return base;
+    }
+    const dot = base.lastIndexOf(".");
+    for (let index = 2; ; index += 1) {
+      const candidate = dot > 0 ? `${base.slice(0, dot)}-${index}${base.slice(dot)}` : `${base}-${index}`;
+      if (!used.has(candidate)) {
+        used.add(candidate);
+        return candidate;
+      }
+    }
+  }
+  var STYLES = `
+:root { color-scheme: light dark; --edge: rgba(128,128,128,0.4); }
+* { box-sizing: border-box; }
+body { margin: 0; padding: 24px; font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+main { max-width: 44rem; margin: 0 auto; }
+a { color: inherit; }
+h1 { font-size: 1.5rem; margin: 0 0 4px; }
+.meta { font-size: 0.85rem; opacity: 0.75; }
+ul.posts { list-style: none; margin: 24px 0 0; padding: 0; }
+ul.posts li { border-top: 1px solid var(--edge); padding: 12px 0; }
+article { border: 1px solid var(--edge); border-radius: 10px; padding: 16px; margin: 24px 0; }
+figure { margin: 16px 0; }
+figure img, figure video { max-width: 100%; height: auto; border-radius: 8px; }
+.missing { border: 1px dashed var(--edge); border-radius: 8px; padding: 12px; font-size: 0.9rem; opacity: 0.8; }
+nav.thread { border-top: 1px solid var(--edge); margin-top: 16px; padding-top: 12px; font-size: 0.9rem; }
+nav.thread ul { list-style: none; margin: 4px 0 0; padding: 0; }
+`.trim();
+  function head(pageTitle, canonical, depth) {
+    const base = depth === 0 ? "" : "../";
+    return [
+      "<!doctype html>",
+      '<html lang="en" dir="ltr"><head>',
+      '<meta charset="utf-8">',
+      '<meta name="viewport" content="width=device-width, initial-scale=1">',
+      `<title>${escapeText(pageTitle)}</title>`,
+      // The copy points at the original. Navigation below stays inside the folder.
+      canonical ? `<link rel="canonical" href="${escapeAttribute(canonical)}">` : "",
+      `<link rel="alternate" type="application/rss+xml" title="${escapeAttribute(pageTitle)}" href="${base}feed.xml">`,
+      `<style>${STYLES}</style>`,
+      "</head><body><main>"
+    ].filter(Boolean).join("\n");
+  }
+  function indexPage(records, slugs, title, description, generatedAt) {
+    const items = records.map((record) => {
+      const href = slugs.get(record.tweetId);
+      const when = authoredAt(record);
+      return [
+        "  <li>",
+        `    <a href="${escapeAttribute(href)}">${escapeText(summarize(record.text))}</a>`,
+        `    <p class="meta">${escapeText(record.handle ? `@${record.handle}` : "unknown author")}${when ? ` \xB7 <time datetime="${escapeAttribute(when.toISOString())}">${escapeText(when.toISOString().slice(0, 10))}</time>` : ""}</p>`,
+        "  </li>"
+      ].join("\n");
+    }).join("\n");
+    return [
+      head(title, null, 0),
+      `<h1>${escapeText(title)}</h1>`,
+      `<p>${escapeText(description)}</p>`,
+      `<p class="meta">${records.length} ${records.length === 1 ? "post" : "posts"} \xB7 generated <time datetime="${escapeAttribute(generatedAt.toISOString())}">${escapeText(generatedAt.toISOString())}</time> \xB7 <a href="feed.xml">RSS feed</a></p>`,
+      '<ul class="posts">',
+      items,
+      "</ul>",
+      "</main></body></html>"
+    ].join("\n");
+  }
+  function postPage(record, all, slugs, mediaPaths, title) {
+    const when = authoredAt(record);
+    const media = record.media.map((entry) => mediaBlock(entry, mediaPaths)).join("\n");
+    const parent = record.parentId ? slugs.get(record.parentId) : void 0;
+    const replies = all.filter((other) => other.parentId === record.tweetId);
+    const threadLinks = [];
+    if (record.parentId) {
+      threadLinks.push(
+        parent ? `    <li>In reply to <a href="${escapeAttribute(`../${parent}`)}">${escapeText(record.parentId)}</a></li>` : `    <li>In reply to ${escapeText(record.parentId)}, which is not in this archive.</li>`
+      );
+    }
+    for (const reply of replies) {
+      threadLinks.push(
+        `    <li>Reply: <a href="${escapeAttribute(`../${slugs.get(reply.tweetId)}`)}">${escapeText(summarize(reply.text))}</a></li>`
+      );
+    }
+    return [
+      head(`${summarize(record.text, 60)} \xB7 ${title}`, record.permalink, 1),
+      '<p class="meta"><a href="../index.html">Back to the archive</a></p>',
+      "<article>",
+      `  <p class="meta">${escapeText(record.handle ? `@${record.handle}` : "unknown author")}${when ? ` \xB7 <time datetime="${escapeAttribute(when.toISOString())}">${escapeText(when.toISOString())}</time>` : ""}</p>`,
+      `  <p lang="${escapeAttribute(record.language ?? "und")}" dir="auto">${escapeText(record.text)}</p>`,
+      media,
+      record.permalink ? `  <p class="meta">Original: <a href="${escapeAttribute(record.permalink)}" rel="canonical">${escapeText(record.permalink)}</a></p>` : '  <p class="meta">No original address was recorded for this post.</p>',
+      "</article>",
+      threadLinks.length > 0 ? `<nav class="thread"><p>Thread</p><ul>
+${threadLinks.join("\n")}
+</ul></nav>` : "",
+      "</main></body></html>"
+    ].filter(Boolean).join("\n");
+  }
+  function mediaBlock(media, mediaPaths) {
+    const local = mediaPaths.get(media);
+    if (local) {
+      const src = escapeAttribute(`../${local}`);
+      const alt = escapeAttribute(media.altText ?? "");
+      return media.kind === "video" ? `  <figure><video controls preload="none" src="${src}"></video></figure>` : `  <figure><img src="${src}" alt="${alt}" loading="lazy"></figure>`;
+    }
+    const address = media.url || media.sourceUrl || "";
+    const reason = media.captureError ?? (media.captureStatus === "remote-reference" ? "The bytes were not captured, so only the address was kept." : "No bytes and no address were kept for this item.");
+    return [
+      '  <figure><div class="missing">',
+      `    <p>${escapeText(media.kind)} not stored. ${escapeText(reason)}</p>`,
+      address ? `    <p class="meta">${escapeText(address)}</p>` : "",
+      "  </div></figure>"
+    ].filter(Boolean).join("\n");
+  }
+  function rssFeed(records, slugs, title, description, generatedAt, feedLink) {
+    const base = feedLink ?? "";
+    const items = records.map((record) => {
+      const when = authoredAt(record);
+      const link = record.permalink ?? `${base}${slugs.get(record.tweetId)}`;
+      return [
+        "    <item>",
+        `      <title>${escapeXml2(summarize(record.text, 80))}</title>`,
+        link ? `      <link>${escapeXml2(link)}</link>` : "",
+        `      <guid isPermaLink="false">${escapeXml2(record.tweetId)}</guid>`,
+        when ? `      <pubDate>${escapeXml2(toRfc822(when))}</pubDate>` : "",
+        record.handle ? `      <dc:creator>${escapeXml2(`@${record.handle}`)}</dc:creator>` : "",
+        `      <description>${escapeXml2(record.text)}</description>`,
+        "    </item>"
+      ].filter(Boolean).join("\n");
+    }).join("\n");
+    return [
+      '<?xml version="1.0" encoding="UTF-8"?>',
+      '<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/">',
+      "  <channel>",
+      `    <title>${escapeXml2(title)}</title>`,
+      `    <link>${escapeXml2(base || "https://x.com/")}</link>`,
+      `    <description>${escapeXml2(description)}</description>`,
+      `    <lastBuildDate>${escapeXml2(toRfc822(generatedAt))}</lastBuildDate>`,
+      "    <generator>Aviary</generator>",
+      items,
+      "  </channel>",
+      "</rss>",
+      ""
+    ].filter((line) => line !== "").join("\n");
+  }
+  var DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  var MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  function toRfc822(date) {
+    const pad = (value) => String(value).padStart(2, "0");
+    return `${DAYS[date.getUTCDay()]}, ${pad(date.getUTCDate())} ${MONTHS[date.getUTCMonth()]} ${date.getUTCFullYear()} ${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}:${pad(date.getUTCSeconds())} +0000`;
+  }
+  function authoredAt(record) {
+    const raw = record.createdAt ?? null;
+    if (!raw) return null;
+    const parsed = new Date(raw);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+  function summarize(text, limit = 100) {
+    const flat = text.replace(/\s+/g, " ").trim();
+    if (flat.length === 0) return "(no text)";
+    return flat.length <= limit ? flat : `${flat.slice(0, limit - 1)}\u2026`;
+  }
+  function escapeText(value) {
+    return String(value).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+  }
+  function escapeAttribute(value) {
+    return escapeText(value).replaceAll('"', "&quot;");
+  }
+  function escapeXml2(value) {
+    return escapeText(value).replaceAll('"', "&quot;").replaceAll("'", "&apos;");
+  }
+
   // src/features/export/export-feature.ts
   var checkpointStore;
   var queryRegistry;
@@ -22648,6 +22881,7 @@ a { color: var(--accent); }
   async function buildExportZip(records, formats, folder, options = {}) {
     const entries = [];
     const safeFolder = sanitizeFolder(folder);
+    const generatedAt = /* @__PURE__ */ new Date();
     const prepared = prepareExportPackage(reconstructExportOrder(records));
     const audience = normalizeAudienceSelection(options.audience ?? DEFAULT_EXPORT_AUDIENCE);
     const shareRecords = filterShareRecords(prepared.records, audience);
@@ -22688,8 +22922,24 @@ a { color: var(--accent); }
       byteLength: viewer.byteLength,
       sha256: sha256Hex(viewer)
     });
+    for (const entry of buildStaticArchive(prepared.records, { audience, generatedAt })) {
+      const filename = packagePath(safeFolder, entry.filename);
+      entries.push({ filename, data: entry.data });
+      packageFiles.push({
+        path: filename,
+        kind: "artifact",
+        contentType: entry.filename.endsWith(".xml") ? "application/rss+xml" : "text/html",
+        byteLength: entry.data.byteLength,
+        sha256: sha256Hex(entry.data)
+      });
+    }
     const manifestPath = packagePath(safeFolder, "manifest.json");
-    const manifest = buildExportPackageManifest(prepared.records, packageFiles, safeFolder);
+    const manifest = buildExportPackageManifest(
+      prepared.records,
+      packageFiles,
+      safeFolder,
+      generatedAt.toISOString()
+    );
     entries.push({
       filename: manifestPath,
       data: new TextEncoder().encode(JSON.stringify(manifest, null, 2))
@@ -22859,7 +23109,7 @@ a { color: var(--accent); }
   }
 
   // src/features/export/external-targets.ts
-  var ENCODER2 = new TextEncoder();
+  var ENCODER3 = new TextEncoder();
   function renderForExternalTarget(target, records, options = {}) {
     const selected = filterShareRecords(records, normalizeAudienceSelection(options.audience));
     switch (target) {
@@ -22930,7 +23180,7 @@ ${record.text}${mediaList}`;
     return {
       filename: "aviary-obsidian.md",
       contentType: "text/markdown",
-      data: ENCODER2.encode(document2)
+      data: ENCODER3.encode(document2)
     };
   }
   function tagToken(value) {
@@ -22966,7 +23216,7 @@ ${record.text}${mediaList}`;
     return {
       filename: "aviary-notion.md",
       contentType: "text/markdown",
-      data: ENCODER2.encode(`${lines.join("\n")}
+      data: ENCODER3.encode(`${lines.join("\n")}
 `)
     };
   }
@@ -22979,7 +23229,7 @@ ${record.text}${mediaList}`;
     return {
       filename: "aviary-records.json",
       contentType: "application/json",
-      data: ENCODER2.encode(json)
+      data: ENCODER3.encode(json)
     };
   }
   function markdownUrl(value) {
@@ -23787,7 +24037,7 @@ ${record.text}${mediaList}`;
   function renewRuleLine(source, now4 = Date.now()) {
     return source.replace(
       /(for\s+\d+\s*[hd]\s+from\s+)(\S+)(\s*:)/i,
-      (_match, head, _instant, tail) => `${head}${new Date(now4).toISOString()}${tail}`
+      (_match, head2, _instant, tail) => `${head2}${new Date(now4).toISOString()}${tail}`
     );
   }
   function splitOnConnective(body) {
@@ -26562,7 +26812,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
 `;
 
   // src/features/export/warc.ts
-  var ENCODER3 = new TextEncoder();
+  var ENCODER4 = new TextEncoder();
   var WARC_VERSION = "WARC/1.1";
   function buildWarcArchive(records, options = {}) {
     return buildIndexedWarcArchive(records, options).artifact;
@@ -26612,7 +26862,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       const recordedAt = validDate(record.capturedAt) ?? generatedAt;
       const timestamp = toWarcDate(recordedAt);
       const summaryUrl = syntheticRecordUrl(record, recordIndex);
-      const summaryBytes = ENCODER3.encode(JSON.stringify(serializeExportRecord(record), null, 2));
+      const summaryBytes = ENCODER4.encode(JSON.stringify(serializeExportRecord(record), null, 2));
       const summaryDigest = digestValue(summaryBytes);
       append({
         url: summaryUrl,
@@ -26624,7 +26874,7 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
       });
       const pageUrl = syntheticPageUrl(record, recordIndex);
       const pageTitle = record.handle ? `@${record.handle} captured post` : `Captured post ${recordIndex + 1}`;
-      const pageBytes = ENCODER3.encode(renderReplayPage(record, pageTitle));
+      const pageBytes = ENCODER4.encode(renderReplayPage(record, pageTitle));
       const pageDigest = digestValue(pageBytes);
       append({
         url: pageUrl,
@@ -26780,9 +27030,9 @@ article[data-testid="tweet"]:focus-within .av-hide-button,
   }
   function renderReplayPage(record, title) {
     const original = normalizeHttpUrl(record.permalink);
-    const authoredAt = validDate(record.createdAt) ?? validDate(record.capturedAt);
+    const authoredAt2 = validDate(record.createdAt) ?? validDate(record.capturedAt);
     const capturedAt = validDate(record.capturedAt);
-    const authoredIso = authoredAt?.toISOString() ?? "unknown";
+    const authoredIso = authoredAt2?.toISOString() ?? "unknown";
     const capturedIso = capturedAt?.toISOString() ?? "unknown";
     const media = mediaOf2(record).map((entry) => {
       const source = normalizeHttpUrl(entry.sourceUrl || entry.url);
@@ -26831,7 +27081,7 @@ a{display:inline-block;margin-top:18px;color:#7dd3fc;text-underline-offset:3px}
       "",
       ""
     ];
-    const headerBytes = ENCODER3.encode(headers.join("\r\n"));
+    const headerBytes = ENCODER4.encode(headers.join("\r\n"));
     return concatenate([headerBytes, payload], headerBytes.length + payload.length);
   }
   function validHttpStatus(value) {
@@ -26844,7 +27094,7 @@ a{display:inline-block;margin-top:18px;color:#7dd3fc;text-underline-offset:3px}
   function formatRecord(input) {
     const recordType = input.recordType ?? "resource";
     const recordedAt = toWarcDate(validDate(input.recordedAt) ?? /* @__PURE__ */ new Date());
-    const bodyBytes = typeof input.body === "string" ? ENCODER3.encode(input.body) : input.body;
+    const bodyBytes = typeof input.body === "string" ? ENCODER4.encode(input.body) : input.body;
     const url = sanitizeHeaderValue(input.url ?? "");
     const mime = sanitizeHeaderValue(input.mime) || "application/octet-stream";
     const blockDigest = digestValue(bodyBytes);
@@ -26870,10 +27120,10 @@ a{display:inline-block;margin-top:18px;color:#7dd3fc;text-underline-offset:3px}
       `Content-Type: ${mime}`,
       `Content-Length: ${bodyBytes.length}`
     ];
-    const headerBytes = ENCODER3.encode(`${headerLines.join("\r\n")}\r
+    const headerBytes = ENCODER4.encode(`${headerLines.join("\r\n")}\r
 \r
 `);
-    const trailer = ENCODER3.encode("\r\n\r\n");
+    const trailer = ENCODER4.encode("\r\n\r\n");
     return concatenate([headerBytes, bodyBytes, trailer], headerBytes.length + bodyBytes.length + trailer.length);
   }
   function sanitizeHeaderName(value) {
@@ -26881,7 +27131,7 @@ a{display:inline-block;margin-top:18px;color:#7dd3fc;text-underline-offset:3px}
     return clean || "X-Aviary-Header";
   }
   function deterministicRecordId(parts) {
-    const hex = sha256Hex(ENCODER3.encode([
+    const hex = sha256Hex(ENCODER4.encode([
       parts.recordType,
       parts.recordedAt,
       parts.url,
@@ -26940,7 +27190,7 @@ ${entry.ts}`;
   }
 
   // src/features/export/wacz.ts
-  var ENCODER4 = new TextEncoder();
+  var ENCODER5 = new TextEncoder();
   var WACZ_VERSION = "1.1.1";
   var WARC_PATH = "archive/aviary.warc";
   var INDEX_PATH = "indexes/index.cdxj";
@@ -26964,8 +27214,8 @@ ${entry.ts}`;
       filename: "aviary.warc",
       audience: { includeProtected: true, includeUnknown: true }
     });
-    const indexBytes = ENCODER4.encode(renderCdxj(warc.index, "aviary.warc"));
-    const pagesBytes = ENCODER4.encode(renderPages(warc.pages));
+    const indexBytes = ENCODER5.encode(renderCdxj(warc.index, "aviary.warc"));
+    const pagesBytes = ENCODER5.encode(renderPages(warc.pages));
     const resourceEntries = [
       { filename: WARC_PATH, data: warc.artifact.data, date: generatedAt },
       { filename: INDEX_PATH, data: indexBytes, date: generatedAt },
@@ -26990,7 +27240,7 @@ ${entry.ts}`;
         bytes: entry.data.length
       }))
     };
-    const datapackageBytes = ENCODER4.encode(`${JSON.stringify(datapackage, null, 2)}
+    const datapackageBytes = ENCODER5.encode(`${JSON.stringify(datapackage, null, 2)}
 `);
     return {
       generatedAt,
@@ -27000,7 +27250,7 @@ ${entry.ts}`;
     };
   }
   function finishWaczArchive(prepared, signedData) {
-    const digestBytes = ENCODER4.encode(`${JSON.stringify({
+    const digestBytes = ENCODER5.encode(`${JSON.stringify({
       path: "datapackage.json",
       hash: prepared.datapackageHash,
       ...signedData ? { signedData } : {}
@@ -27021,7 +27271,7 @@ ${entry.ts}`;
     const selectedRecords = filterShareRecords(records, normalizeAudienceSelection(options.audience));
     let contentBytes = 12e3;
     for (const record of selectedRecords) {
-      contentBytes += ENCODER4.encode(JSON.stringify(serializeExportRecord(record))).length + 1500;
+      contentBytes += ENCODER5.encode(JSON.stringify(serializeExportRecord(record))).length + 1500;
       for (const media of Array.isArray(record.media) ? record.media : []) {
         const retainedBytes = media.bytes instanceof Uint8Array ? media.bytes.length : Number.isFinite(media.byteLength) && (media.byteLength ?? 0) > 0 ? Math.trunc(media.byteLength) : 0;
         contentBytes += retainedBytes > 0 ? retainedBytes + 900 : 700;
@@ -27093,8 +27343,8 @@ ${entry.ts}`;
     return date.toISOString().replace(/[-:T]/g, "").slice(0, 14);
   }
   function compareUtf8(left, right) {
-    const leftBytes = ENCODER4.encode(left);
-    const rightBytes = ENCODER4.encode(right);
+    const leftBytes = ENCODER5.encode(left);
+    const rightBytes = ENCODER5.encode(right);
     const length = Math.min(leftBytes.length, rightBytes.length);
     for (let index = 0; index < length; index += 1) {
       const difference = leftBytes[index] - rightBytes[index];
@@ -27286,7 +27536,7 @@ ${entry.ts}`;
   // src/features/export/wacz-signing.ts
   var WACZ_SIGNING_KEY = "aviary.waczSigning.v1";
   var WACZ_SIGNING_ALGORITHM = "ECDSA-P384-SHA256";
-  var ENCODER5 = new TextEncoder();
+  var ENCODER6 = new TextEncoder();
   var KEY_FORMAT = "aviary-wacz-keypair-1";
   var ECDSA_KEY_PARAMS = { name: "ECDSA", namedCurve: "P-384" };
   var ECDSA_SIGN_PARAMS = { name: "ECDSA", hash: "SHA-256" };
@@ -27329,7 +27579,7 @@ ${entry.ts}`;
         ["sign"]
       );
       const signature = new Uint8Array(
-        await globalThis.crypto.subtle.sign(ECDSA_SIGN_PARAMS, privateKey, ENCODER5.encode(hash))
+        await globalThis.crypto.subtle.sign(ECDSA_SIGN_PARAMS, privateKey, ENCODER6.encode(hash))
       );
       return {
         format: "aviary-local-wacz-proof-v1",
@@ -27345,7 +27595,7 @@ ${entry.ts}`;
     }
     async exportKeypair() {
       const identity = await this.#getOrCreate();
-      const data = ENCODER5.encode(`${JSON.stringify({
+      const data = ENCODER6.encode(`${JSON.stringify({
         format: KEY_FORMAT,
         algorithm: identity.algorithm,
         createdAt: identity.createdAt,
@@ -27425,7 +27675,7 @@ ${entry.ts}`;
       globalThis.crypto.subtle.importKey("spki", publicBytes, ECDSA_KEY_PARAMS, false, ["verify"]),
       globalThis.crypto.subtle.importKey("pkcs8", privateBytes, ECDSA_KEY_PARAMS, false, ["sign"])
     ]);
-    const probe = ENCODER5.encode("aviary-wacz-keypair-check");
+    const probe = ENCODER6.encode("aviary-wacz-keypair-check");
     const signature = await globalThis.crypto.subtle.sign(ECDSA_SIGN_PARAMS, privateKey, probe);
     if (!await globalThis.crypto.subtle.verify(ECDSA_SIGN_PARAMS, publicKey, signature, probe)) {
       throw new TypeError("Signing identity keys do not form a pair");
@@ -28958,8 +29208,8 @@ a.av-link-clean {
       }
       if (parentId) record.parentId = parentId;
       if (authorId) record.authorId = authorId;
-      const authoredAt = new Date(createdAt);
-      if (!Number.isNaN(authoredAt.getTime())) record.createdAt = authoredAt.toISOString();
+      const authoredAt2 = new Date(createdAt);
+      if (!Number.isNaN(authoredAt2.getTime())) record.createdAt = authoredAt2.toISOString();
       const participants = mentionParticipants(tweet);
       if (participants.length > 0) record.participants = participants;
       out.push(record);
@@ -29725,8 +29975,8 @@ a.av-link-clean {
   var TEXT_DECODER3 = new TextDecoder();
   var UNSUPPORTED_FIELDS = ["sensitivity", "sourceExtension", "socialEdges", "privacy.warnings"];
   function classifyScrollmarkSource(bytes) {
-    const head = TEXT_DECODER3.decode(bytes.slice(0, 16));
-    if (head.startsWith(SQLITE_MAGIC)) {
+    const head2 = TEXT_DECODER3.decode(bytes.slice(0, 16));
+    if (head2.startsWith(SQLITE_MAGIC)) {
       return {
         kind: null,
         reason: "This is Scrollmark's SQLite companion database, not its portable bundle. Export a bundle and choose that file."
@@ -36032,8 +36282,8 @@ ${COLOR_CSS}`;
     }
   };
   async function readScrollmarkBundle(ctx, file) {
-    const head = new Uint8Array(await file.slice(0, 4096).arrayBuffer());
-    const classified = classifyScrollmarkSource(head);
+    const head2 = new Uint8Array(await file.slice(0, 4096).arrayBuffer());
+    const classified = classifyScrollmarkSource(head2);
     if (classified.kind === "canonical-zip") {
       const bytes = new Uint8Array(await file.arrayBuffer());
       const preview = await previewScrollmarkBundle(bytes);

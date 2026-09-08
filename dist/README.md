@@ -152,7 +152,9 @@ The full reference lives in [docs/FEATURES.md](docs/FEATURES.md). The short vers
 - **Reading position.** One saved position per feed surface, a "New since you last looked"
   separator, and no unread badge anywhere.
 - **Export.** JSON, CSV, HTML, Markdown and XLSX bundled into a ZIP with per-file checksums, plus a
-  local viewer with virtualized scrolling and reconstructed thread reading. Audience state and post
+  local viewer with virtualized scrolling and reconstructed thread reading. The same package holds
+  a static site: an index, a page per post, thread links, and an RSS 2.0 feed, all of it opening
+  from the folder with the network off. Audience state and post
   language are kept on every record; HTML, replay, and viewer text uses per-post bidi isolation.
   Protected and unknown posts stay out of share-oriented output until enabled, including when a
   share builder is called directly.

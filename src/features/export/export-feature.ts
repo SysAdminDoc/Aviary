@@ -19,6 +19,7 @@ import { formatExport } from "./formatters.ts";
 import { discoverQueryIds, type QueryRegistry } from "./query-discovery.ts";
 import { reconstructExportOrder, reconstructThreads } from "./thread-reconstruction.ts";
 import { buildExportViewer } from "./viewer.ts";
+import { buildStaticArchive } from "./static-archive.ts";
 import { buildZip, type ZipFileEntry } from "./zip-store.ts";
 import type { ExportFormat, ExportRecord } from "./types.ts";
 import {
@@ -327,6 +328,9 @@ export async function buildExportZip(
 ): Promise<Uint8Array> {
   const entries: ZipFileEntry[] = [];
   const safeFolder = sanitizeFolder(folder);
+  // One time for the whole package. The manifest and the static site declaring different moments
+  // for the same export is the kind of small disagreement that makes an archive hard to trust.
+  const generatedAt = new Date();
   const prepared = prepareExportPackage(reconstructExportOrder(records));
   const audience = normalizeAudienceSelection(options.audience ?? DEFAULT_EXPORT_AUDIENCE);
   const shareRecords = filterShareRecords(prepared.records, audience);
@@ -371,8 +375,28 @@ export async function buildExportZip(
     sha256: sha256Hex(viewer)
   });
 
+  // The static site sits beside the viewer and shares the same `media/` folder, so the package
+  // carries one set of bytes and two ways to read them: the viewer for searching a library, plain
+  // pages and a feed for keeping it.
+  for (const entry of buildStaticArchive(prepared.records, { audience, generatedAt })) {
+    const filename = packagePath(safeFolder, entry.filename);
+    entries.push({ filename, data: entry.data });
+    packageFiles.push({
+      path: filename,
+      kind: "artifact",
+      contentType: entry.filename.endsWith(".xml") ? "application/rss+xml" : "text/html",
+      byteLength: entry.data.byteLength,
+      sha256: sha256Hex(entry.data)
+    });
+  }
+
   const manifestPath = packagePath(safeFolder, "manifest.json");
-  const manifest = buildExportPackageManifest(prepared.records, packageFiles, safeFolder);
+  const manifest = buildExportPackageManifest(
+    prepared.records,
+    packageFiles,
+    safeFolder,
+    generatedAt.toISOString()
+  );
   entries.push({
     filename: manifestPath,
     data: new TextEncoder().encode(JSON.stringify(manifest, null, 2))
