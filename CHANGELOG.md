@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.49.2 (2026-09-08)
+
 ### Fixed
 - **The saved pages are out of the project's history, not just its working tree.** Deleting a file
   does not remove it from a repository: every commit made before the deletion still carried the
