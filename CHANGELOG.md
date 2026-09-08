@@ -5,6 +5,11 @@
 ## 1.48.1 (2026-09-08)
 
 ### Fixed
+- **The userscript's auto-update channel works, and the install guide says so.** Both advertised
+  raw URLs answered 404 while the repository was private, so a manager polled forever and reported
+  no update. The repository went public on 2026-09-06 and both serve again, with `@updateURL`
+  returning the current metablock. `docs/INSTALL.md` had gone on describing the dead channel, and it
+  carried a stale script size with it.
 - **A press beside the Hide button no longer opens the post.** X makes the whole row a click
   target, so a press that missed the Hide control by a few pixels opened the tweet instead, which
   is the one outcome someone reaching for Hide never wants. The corner the control sits in is inert

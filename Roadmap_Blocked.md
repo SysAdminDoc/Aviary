@@ -260,9 +260,10 @@ item. See ROADMAP.md F139.
 
 The Firefox manifest ships `browser_specific_settings.gecko.id` as the placeholder
 `aviary@example.local`, which AMO will not accept, and neither manifest carries an `update_url`.
-The userscript's `@updateURL` now resolves to the declared repository (fixed 2026-08-14), but that
-repository is private, so the raw URL answers 404 and no installed copy can ever see an update.
-`docs/INSTALL.md` states this plainly rather than implying a working channel.
+The userscript's `@updateURL` resolves to the declared repository (fixed 2026-08-14) and has
+answered 200 since the repository went public on 2026-09-06, so the userscript half of the update
+story is live and `docs/INSTALL.md` describes it that way (F183, closed 2026-09-08). What is left
+here is the extension half and the listing decision.
 
 Blocked on an operator decision, not on engineering: whether Aviary is published (AMO / Chrome Web
 Store / Greasy Fork) or stays a private personal build. That single answer determines the real
@@ -280,9 +281,9 @@ manifest `name` at 50 characters and Edge at 45 (Chrome does not enforce one), a
 an explicit `data-collection-permissions` declaration, verify both against MDN before writing the
 listing, since the developer report they come from corrected itself once. Chrome additionally offers
 to skip review for updates that only change *safe static* `declarativeNetRequest` rules, which is an
-argument for expressing ad suppression as static rules where it can be. Separately, ROADMAP.md F152
-must land first: the repository was renamed and the update URLs still name the old path, so
-publishing before that fix ships a dead update channel. `awesome-scripts/awesome-userscripts` is
+argument for expressing ad suppression as static rules where it can be. The rename that F152 covered is settled: the update URLs
+name the current repository path and both were confirmed serving 200 on 2026-09-08.
+`awesome-scripts/awesome-userscripts` is
 active and lists no enhancer of this class, so a listing there is available the moment this is
 decided.
 
@@ -359,19 +360,6 @@ Re-entry condition: for each language, a capture of X in that UI language contai
 post, or X's own published localization strings. Add the label, add a fixture to the ad corpus, and
 extend `LABELLED_LANGUAGES` in the same commit, the test that pairs the two lists will fail if a
 language is claimed as covered without a label to back it.
-
-## F183, Stop advertising an update channel that answers 404
-
-The bandwidth half shipped 2026-08-18: the build now emits `dist/aviary.meta.js` and `@updateURL`
-points at it, so a poll transfers under a kilobyte instead of the whole script (F197). What remains
-is that both raw URLs answer 404 because the repository is private, and neither remaining option is
-an engineering call. Omitting the update URLs entirely asserts that Aviary has no update channel;
-having preflight verify reachability puts a network request inside a gate that is otherwise fully
-offline, and would fail every local run until the repository is readable.
-
-Re-entry condition: F125's distribution decision. If Aviary is published, the URLs start resolving
-and nothing needs doing. If it stays private, decide whether the metablock should omit them and say
-so in `docs/INSTALL.md`, which already states the 404 plainly.
 
 ## F184, Remove real-user captures from the fixture set and its history
 
