@@ -2,7 +2,7 @@
 
 Version: `1.49.2`
 
-Date: 2026-09-07
+Date: 2026-09-08
 
 Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tasks that require a fresh authenticated X capture, distribution identity, or another external environment.
 
