@@ -375,6 +375,15 @@ Re-entry condition: the rewrite itself, on a quiet tree, with the backup bundle 
 `_claude-backups/Aviary-prepublic-2026-09-06/` verified first. It no longer has to wait for a
 replacement capture, because no selector is proved against those files.
 
+The same rewrite has a second target, found 2026-09-08. `dist/aviary-source-v<version>.zip` is
+tracked, and until v1.48.1 it was packed by a file walk that never consulted `.gitignore`, so every
+one of those blobs carries that release's `CLAUDE.md`. The build excludes ignored paths now and
+preflight reads the shipped archive back, so nothing new is being added, and no GitHub release ever
+attached a source archive, only the userscript and the extension packages. What is public is the
+notes inside the zips already in history. They hold no credentials, checked by pattern on
+2026-09-08, so this raises no incident on its own. It is one more path for whoever runs the rewrite
+to include, not a second rewrite.
+
 ## F201, Re-verify batch media download against X's Photos/Videos split
 
 X split the profile Media tab into Photos and Videos and dropped the 3-column grid around
