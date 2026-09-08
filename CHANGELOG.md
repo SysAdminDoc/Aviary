@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## 1.49.1 (2026-09-08)
+
+### Fixed
+- **"Open posts from the reply icon only" now tells you it is working.** An absorbed press and a
+  build that never loaded look exactly the same from the outside: nothing happens either way. The
+  first press the guard absorbs on a page now raises a toast saying the row is off and the reply
+  icon opens the post, once per page load and never again after that. The reply control also
+  carries the same wording as a hover title, so a sighted reader gets what a screen reader was
+  already being told.
+
 ## 1.49.0 (2026-09-08)
 
 ### Added

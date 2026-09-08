@@ -165,6 +165,8 @@ post instead of X's inline composer, which is where a reply gets written anyway.
   not told "Reply" by something that opens a post. Turning the setting off restores X's own label.
 - Text selection is untouched: only `click` and `auxclick` are absorbed, never the press or release
   that starts a drag.
+- The first press absorbed on a page raises a toast saying so, once. Without it a working guard and
+  a build that never loaded are indistinguishable, since both do nothing when you click a row.
 
 ## Hidden Posts
 

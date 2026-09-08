@@ -1,4 +1,4 @@
-# Install Aviary 1.49.0
+# Install Aviary 1.49.1
 
 Aviary ships as a readable userscript and as Manifest V3 extensions. Both builds run on X pages;
 the extensions also provide a dedicated options page for optional browser permissions.
@@ -174,7 +174,7 @@ nvm install 24.18.1
 nvm use 24.18.1
 npm ci --ignore-scripts
 npm run build
-sha256sum dist/aviary-source-v1.49.0.zip
+sha256sum dist/aviary-source-v1.49.1.zip
 ```
 
 The source archive is a sorted, STORE-only ZIP with a fixed timestamp. It contains the checkout

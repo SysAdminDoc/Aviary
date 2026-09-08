@@ -242,6 +242,41 @@ test("controls and links inside the post keep working", async () => {
   assert.equal(after.swallowed, before.swallowed, "nothing here was absorbed");
 });
 
+/**
+ * An absorbed press and a build that never loaded look identical: nothing happens either way. The
+ * toast is what tells those apart, so it fires once on the first absorbed press and then stays out
+ * of the way.
+ */
+test("the first absorbed press says so, once", async () => {
+  await boot(true);
+  const toastText = () =>
+    page.evaluate(() => {
+      const host = document.getElementById("av-feature-toast");
+      const node = host?.shadowRoot?.querySelector(".av-ftoast-text");
+      return node ? node.textContent : null;
+    });
+
+  // Earlier tests in this file leave the toast host behind, so clear it rather than assume a
+  // clean page. Asserting null against a host from three tests ago would prove nothing.
+  await page.evaluate(() => document.getElementById("av-feature-toast")?.remove());
+  assert.equal(await toastText(), null, "nothing is said before a press is absorbed");
+
+  await clickCenter('#post [data-testid="tweetText"]');
+  assert.match(
+    await toastText(),
+    /reply icon opens the post/i,
+    "the first absorbed press explains itself"
+  );
+
+  // A second press must not queue another one. The question it answers is asked once.
+  await page.evaluate(() => {
+    const host = document.getElementById("av-feature-toast");
+    host.shadowRoot.querySelector(".av-ftoast-text").textContent = "cleared";
+  });
+  await clickCenter(".filler");
+  assert.equal(await toastText(), "cleared", "the second absorbed press stays quiet");
+});
+
 test("the reply control says what it now does, and says what it did again afterwards", async () => {
   await boot(true);
   assert.equal(

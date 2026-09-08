@@ -1,5 +1,6 @@
 import type { FeatureContext, FeatureModule } from "../registry.ts";
 import { ft } from "../core/feature-i18n.ts";
+import { removeFeatureToast, showFeatureToast } from "../core/feature-toast.ts";
 
 const ARTICLE_SELECTOR = 'article[data-testid="tweet"]';
 const REPLY_SELECTOR = '[data-testid="reply"]';
@@ -24,6 +25,8 @@ let guardListener: ((event: Event) => void) | undefined;
 let guardCtx: FeatureContext | undefined;
 let swallowed = 0;
 let opened = 0;
+/** One toast per page load, reset on teardown so a re-enable says it again. */
+let announced = false;
 
 /**
  * Takes the click target off the post and puts it on the reply icon.
@@ -64,6 +67,10 @@ export const postOpenGuardFeature: FeatureModule = {
   destroy(ctx) {
     removeGuard();
     restoreReplyControls();
+    // The toast outlives its own feature otherwise: turning the guard off would leave a card on
+    // screen saying row presses are off, which is exactly what stopped being true.
+    removeFeatureToast();
+    announced = false;
     ctx.diagnostics.info("Post open guard destroyed");
   },
 
@@ -115,6 +122,7 @@ function installGuard(ctx: FeatureContext): void {
     }
 
     swallowed += 1;
+    announceOnce(guardCtx);
     event.preventDefault();
     event.stopImmediatePropagation();
     event.stopPropagation();
@@ -133,6 +141,21 @@ function removeGuard(): void {
   }
   guardListener = undefined;
   guardCtx = undefined;
+}
+
+/**
+ * Says, once, that the press was absorbed on purpose.
+ *
+ * Without this the feature is indistinguishable from a broken one: an absorbed press and a build
+ * that never loaded both look like nothing happening. Once per page is the whole budget. Saying it
+ * on every press would be its own annoyance, and the question it answers only gets asked once.
+ */
+function announceOnce(ctx: FeatureContext): void {
+  if (announced) {
+    return;
+  }
+  announced = true;
+  showFeatureToast(ft(ctx, "Row presses are off. The reply icon opens the post."), { ctx });
 }
 
 /**
@@ -226,6 +249,8 @@ function relabelReplyControls(root: ParentNode | Element, ctx: FeatureContext): 
       reply.setAttribute(LABEL_ATTR, reply.getAttribute("aria-label") ?? "");
     }
     reply.setAttribute("aria-label", label);
+    // The same wording on hover, so a sighted reader gets what a screen reader is told.
+    reply.title = label;
   }
 }
 
@@ -238,6 +263,7 @@ function restoreReplyControls(): void {
       reply.setAttribute("aria-label", original);
     }
     reply.removeAttribute(LABEL_ATTR);
+    reply.removeAttribute("title");
   }
 }
 
