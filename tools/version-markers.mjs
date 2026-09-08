@@ -28,7 +28,15 @@ export const VERSION_MARKERS = [
   { file: "docs/PRIVACY.md", label: "release marker", pattern: /release (\d+\.\d+\.\d+)/g },
   { file: "design-qa.md", label: "summary line", pattern: /^Aviary (\d+\.\d+\.\d+):/gm, optional: true },
   { file: "RESEARCH.md", label: "summary line", pattern: /^Aviary v(\d+\.\d+\.\d+) is/gm, optional: true },
-  { file: "CLAUDE.md", label: "current version", pattern: /\*\*Current version:\*\* (\d+\.\d+\.\d+)/g, optional: true }
+  { file: "CLAUDE.md", label: "current version", pattern: /\*\*Current version:\*\* (\d+\.\d+\.\d+)/g, optional: true },
+  // This one is a test rather than a document, and it is here for the same reason as the rest: it
+  // pins the live tree to a literal version, so a bump that skips it fails the suite instead of the
+  // declaration. The 1.48.1 bump found it that way.
+  {
+    file: "tests/local-release.test.mjs",
+    label: "aligned-version assertion",
+    pattern: /assertAlignedVersions\(process\.cwd\(\), "(\d+\.\d+\.\d+)"\)/g
+  }
 ];
 
 /**

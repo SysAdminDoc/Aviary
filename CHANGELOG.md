@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+## 1.48.1 (2026-09-08)
+
+### Fixed
+- **A press beside the Hide button no longer opens the post.** X makes the whole row a click
+  target, so a press that missed the Hide control by a few pixels opened the tweet instead, which
+  is the one outcome someone reaching for Hide never wants. The corner the control sits in is inert
+  now: presses landing on the filler around the button, on the gap between it and the More menu, or
+  out in the corner beside them are absorbed and nothing happens. Both controls still work, the
+  timestamp and author links still work, and the rest of the post still opens, including its text
+  where a long first line runs under that corner. The zone is measured from the button and the More
+  menu at press time, so it follows X's layout, the font size and the reading direction rather than
+  claiming a fixed slice of the row.
+- **Media in replies and quoted posts keeps the size X gave it.** The themed media rule filled the
+  column and dropped X's own cap for every photo, video and GIF on the page, not only the post
+  being read. Under a conversation that turned each reply's media into a full-width banner, and a
+  handful of replies was enough to push the thread off the screen. Replies and quoted posts are
+  excluded from that rule now, and from the stacked and grid media layouts, so X's own sizing is
+  never overridden and there is nothing to restore.
+
 ## 1.48.0 (2026-09-07)
 
 ### Fixed

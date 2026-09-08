@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Aviary for X
 // @namespace    https://github.com/SysAdminDoc
-// @version      1.48.0
+// @version      1.48.1
 // @description  Local-first X/Twitter enhancer with reversible controls and privacy-first defaults.
 // @author       SysAdminDoc
 // @homepage     https://github.com/SysAdminDoc/Aviary
@@ -1038,6 +1038,7 @@ var Aviary = (() => {
   var CONVERSATION_LINE_MAX_WIDTH = 3;
   var CONVERSATION_LINE_MIN_HEIGHT = 12;
   var CONVERSATION_LINE_CENTER_TOLERANCE = 4;
+  var MEDIA_EXCLUSIONS = ':not([role="link"] *):not([data-av-conversation-role="reply"] *)';
   var themeFeature = {
     id: "appearance.theme",
     title: "Theme foundation",
@@ -1423,11 +1424,22 @@ html[data-av-width="wide"][data-av-surface="conversation"]
   width: 100%;
 }
 
+/* Media fills the column on the post being read, and only there.
+   Dropping X's own cap is right for the post in front of the reader
+   and wrong for media that belongs to someone else's post: under a conversation it turned every
+   reply's photo, video and GIF into a full-width banner, and a handful of replies was enough to
+   push the thread off the screen. A quoted post is the same case one level in. Both are excluded
+   here rather than reset by a later rule, so X's own sizing is never overridden to begin with. */
+html[data-av-theme] [data-testid="tweetPhoto"]${MEDIA_EXCLUSIONS},
+html[data-av-theme] [data-testid="videoPlayer"]${MEDIA_EXCLUSIONS},
+html[data-av-theme] [data-testid="videoComponent"]${MEDIA_EXCLUSIONS} {
+  inline-size: 100% !important;
+  max-inline-size: none !important;
+}
+
 html[data-av-theme] [data-testid="tweetPhoto"],
 html[data-av-theme] [data-testid="videoPlayer"],
 html[data-av-theme] [data-testid="videoComponent"] {
-  inline-size: 100% !important;
-  max-inline-size: none !important;
   border-radius: 10px;
 }
 
@@ -3766,7 +3778,7 @@ ${body}
   }
 
   // src/platform/build-version.ts
-  var AVIARY_VERSION = false ? "dev" : "1.48.0";
+  var AVIARY_VERSION = false ? "dev" : "1.48.1";
 
   // src/platform/diagnostics.ts
   var UNKNOWN_DIAGNOSTIC_MESSAGE_ID = "diagnostic.unknown";
@@ -8347,7 +8359,7 @@ ${body}
   ];
 
   // src/ui/control-center.ts
-  var AVIARY_VERSION2 = false ? "dev" : "1.48.0";
+  var AVIARY_VERSION2 = false ? "dev" : "1.48.1";
   var SECTION_GROUP_BREAKS = {
     presets: [
       { before: "Quiet Reader", title: "Preset packs" },
@@ -26470,10 +26482,19 @@ html[data-av-motion="reduce"] article[data-testid="tweet"][${MARKER3}="1"] {
   var KEY_ATTR = "data-av-post-key";
   var STATE_ATTR = "data-av-hide-state";
   var TOAST_TIMEOUT_MS = 8e3;
+  var DEAD_ZONE_PAD_PX = 14;
+  var DEAD_ZONE_MAX_HEIGHT_PX = 64;
+  var DEAD_ZONE_MAX_WIDTH_RATIO = 0.5;
+  var DEAD_ZONE_EVENTS = ["mousedown", "mouseup", "click", "auxclick"];
+  var INTERACTIVE_SELECTOR = 'a, button, input, textarea, select, video, audio, summary, label, [role="button"], [role="link"], [role="menuitem"], [role="checkbox"], [role="switch"], [role="tab"], [contenteditable="true"]';
+  var CONTENT_SELECTOR = '[data-testid="tweetText"], [data-testid="tweetPhoto"], [data-testid="card.wrapper"], [data-testid="User-Name"], img, svg';
   var store2;
   var lastAppliedVersion = -1;
   var toastTimer;
   var reflowHandle;
+  var deadZoneListener;
+  var deadZoneCtx;
+  var deadZoneBlocks = 0;
   var hiddenPostsFeature = {
     id: "filtering.hiddenPosts",
     title: "Hide posts",
@@ -26491,6 +26512,7 @@ html[data-av-motion="reduce"] article[data-testid="tweet"][${MARKER3}="1"] {
         ensureStyle4();
       }
       applyRootClass(ctx);
+      installDeadZone(ctx);
       scan2(document, ctx);
       ctx.diagnostics.info("Hidden posts initialized", { hidden: store2.size() });
     },
@@ -26520,6 +26542,7 @@ html[data-av-motion="reduce"] article[data-testid="tweet"][${MARKER3}="1"] {
     },
     destroy(ctx) {
       clearDecorations3();
+      removeDeadZone();
       store2 = void 0;
       lastAppliedVersion = -1;
       ctx.diagnostics.info("Hidden posts destroyed");
@@ -26750,6 +26773,97 @@ html[data-av-motion="reduce"] article[data-testid="tweet"][${MARKER3}="1"] {
       return;
     }
     article.prepend(button3);
+  }
+  function installDeadZone(ctx) {
+    deadZoneCtx = ctx;
+    if (deadZoneListener || typeof window === "undefined") {
+      return;
+    }
+    deadZoneListener = (event) => {
+      if (!deadZoneCtx || !inDeadZone(event, deadZoneCtx)) {
+        return;
+      }
+      if (event.type === "click" || event.type === "auxclick") {
+        deadZoneBlocks += 1;
+      }
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      event.stopPropagation();
+    };
+    for (const type of DEAD_ZONE_EVENTS) {
+      window.addEventListener(type, deadZoneListener, true);
+    }
+  }
+  function removeDeadZone() {
+    if (!deadZoneListener || typeof window === "undefined") {
+      return;
+    }
+    for (const type of DEAD_ZONE_EVENTS) {
+      window.removeEventListener(type, deadZoneListener, true);
+    }
+    deadZoneListener = void 0;
+    deadZoneCtx = void 0;
+  }
+  function inDeadZone(event, ctx) {
+    if (!ctx.settings.hidden.enabled || !ctx.settings.hidden.buttons || !surfaceMatches2(ctx)) {
+      return false;
+    }
+    if (!(event instanceof MouseEvent)) {
+      return false;
+    }
+    if (event.type === "click" && event.detail === 0) {
+      return false;
+    }
+    const target = event.target;
+    if (!(target instanceof Element)) {
+      return false;
+    }
+    const own = target.closest(ARTICLE_SELECTOR3);
+    const cell = target.closest(CELL_SELECTOR2);
+    const article = own ?? cell?.querySelector(ARTICLE_SELECTOR3) ?? null;
+    if (!article) {
+      return false;
+    }
+    if (hitsControl(target, own ?? cell) || target.closest(CONTENT_SELECTOR)) {
+      return false;
+    }
+    const zone = deadZoneRect(article);
+    if (!zone) {
+      return false;
+    }
+    return event.clientX >= zone.left && event.clientX <= zone.right && event.clientY >= zone.top && event.clientY <= zone.bottom;
+  }
+  function hitsControl(target, boundary) {
+    let node = target;
+    while (node && node !== boundary) {
+      if (node.matches(INTERACTIVE_SELECTOR)) {
+        return true;
+      }
+      node = node.parentElement;
+    }
+    return false;
+  }
+  function deadZoneRect(article) {
+    const button3 = article.querySelector(`[${BUTTON_ATTR2}]`);
+    if (!button3) {
+      return null;
+    }
+    const articleRect = article.getBoundingClientRect();
+    const controls = [button3, article.querySelector('[data-testid="caret"]')].filter((node) => node !== null).map((node) => node.getBoundingClientRect()).filter((rect) => rect.width > 0 && rect.height > 0);
+    if (controls.length === 0 || articleRect.width === 0) {
+      return null;
+    }
+    const left = Math.min(...controls.map((rect) => rect.left));
+    const right = Math.max(...controls.map((rect) => rect.right));
+    const bottom = Math.max(...controls.map((rect) => rect.bottom));
+    const towardEnd = articleRect.right - right <= left - articleRect.left;
+    const maxWidth = articleRect.width * DEAD_ZONE_MAX_WIDTH_RATIO;
+    return {
+      left: towardEnd ? Math.max(left - DEAD_ZONE_PAD_PX, articleRect.right - maxWidth) : articleRect.left,
+      right: towardEnd ? articleRect.right : Math.min(right + DEAD_ZONE_PAD_PX, articleRect.left + maxWidth),
+      top: articleRect.top,
+      bottom: Math.min(bottom + DEAD_ZONE_PAD_PX, articleRect.top + DEAD_ZONE_MAX_HEIGHT_PX)
+    };
   }
   async function hidePost(article, key, button3, ctx) {
     if (!store2) {
@@ -41435,22 +41549,23 @@ html.av-mobile [data-testid="primaryColumn"] {
     style.textContent = PRESENTATION_CSS;
     (document.head ?? document.documentElement).append(style);
   }
+  var NOT_BORROWED = ':not([role="link"] *):not([data-av-conversation-role="reply"] *)';
   var PRESENTATION_CSS = `
-html.av-media-layout-stacked article[data-testid="tweet"] [data-testid="tweetPhoto"] {
+html.av-media-layout-stacked article[data-testid="tweet"] [data-testid="tweetPhoto"]${NOT_BORROWED} {
   display: block !important;
   width: 100% !important;
   max-width: 100% !important;
   margin: 8px 0 !important;
 }
 
-html.av-media-layout-stacked article[data-testid="tweet"] [data-testid="tweetPhoto"] img {
+html.av-media-layout-stacked article[data-testid="tweet"] [data-testid="tweetPhoto"]${NOT_BORROWED} img {
   width: 100% !important;
   height: auto !important;
   object-fit: contain !important;
   border-radius: 12px;
 }
 
-html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
+html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"]${NOT_BORROWED} {
   display: grid !important;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)) !important;
   gap: 6px !important;

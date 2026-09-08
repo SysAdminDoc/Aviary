@@ -18,10 +18,58 @@ const KEY_ATTR = "data-av-post-key";
 const STATE_ATTR = "data-av-hide-state";
 const TOAST_TIMEOUT_MS = 8000;
 
+/**
+ * Slack around the Hide control that belongs to the control rather than to the post.
+ *
+ * X makes the whole row a click target, so a press that lands a few pixels off the Hide button
+ * opens the tweet instead -- the one outcome someone reaching for Hide never wants. The pad,
+ * the clamps and the events swallowed inside the zone are all here together because they only
+ * make sense read as one rule.
+ */
+const DEAD_ZONE_PAD_PX = 14;
+/** The zone can never grow past the post header, whatever the button ends up measuring. */
+const DEAD_ZONE_MAX_HEIGHT_PX = 64;
+/** Nor past the corner it guards: the rest of the row keeps opening the tweet. */
+const DEAD_ZONE_MAX_WIDTH_RATIO = 0.5;
+const DEAD_ZONE_EVENTS = ["mousedown", "mouseup", "click", "auxclick"] as const;
+/**
+ * Anything that is its own control keeps its click: the Hide button, X's More menu, the author
+ * and timestamp links, embedded media. Only the inert filler between them is swallowed.
+ */
+const INTERACTIVE_SELECTOR =
+  'a, button, input, textarea, select, video, audio, summary, label, [role="button"], ' +
+  '[role="link"], [role="menuitem"], [role="checkbox"], [role="switch"], [role="tab"], ' +
+  '[contenteditable="true"]';
+/**
+ * The post's own content keeps its click even where it reaches under the zone.
+ *
+ * A long first line runs to the same edge the controls sit against, and opening the tweet by
+ * clicking its text is the deliberate gesture the zone exists to protect, not the accident.
+ */
+const CONTENT_SELECTOR =
+  '[data-testid="tweetText"], [data-testid="tweetPhoto"], [data-testid="card.wrapper"], ' +
+  '[data-testid="User-Name"], img, svg';
+
 let store: HiddenPostStore | undefined;
 let lastAppliedVersion = -1;
 let toastTimer: ReturnType<typeof setTimeout> | undefined;
 let reflowHandle: number | undefined;
+let deadZoneListener: ((event: Event) => void) | undefined;
+/**
+ * The context the dead zone reads, refreshed on every boot.
+ *
+ * The listener is installed once and outlives any single `init`, so closing over the context it
+ * was created with would leave it judging live presses against a profile that had been replaced.
+ */
+let deadZoneCtx: FeatureContext | undefined;
+let deadZoneBlocks = 0;
+
+interface DeadZone {
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+}
 
 type NativePopover = HTMLElement & {
   showPopover?: () => void;
@@ -46,6 +94,7 @@ export const hiddenPostsFeature: FeatureModule = {
       ensureStyle();
     }
     applyRootClass(ctx);
+    installDeadZone(ctx);
     scan(document, ctx);
     ctx.diagnostics.info("Hidden posts initialized", { hidden: store.size() });
   },
@@ -83,6 +132,7 @@ export const hiddenPostsFeature: FeatureModule = {
 
   destroy(ctx) {
     clearDecorations();
+    removeDeadZone();
     store = undefined;
     lastAppliedVersion = -1;
     ctx.diagnostics.info("Hidden posts destroyed");
@@ -383,6 +433,150 @@ function ensureButton(article: Element, key: string, ctx: FeatureContext): void 
   }
 
   article.prepend(button);
+}
+
+/**
+ * Swallows presses that land beside the Hide control instead of on it.
+ *
+ * The listener sits on `window` in the capture phase, which is upstream of every handler X
+ * installs on the row, and it is installed once for the life of the feature: the decision is
+ * made per event, from live settings, so a toggled setting takes effect without rebinding.
+ */
+function installDeadZone(ctx: FeatureContext): void {
+  deadZoneCtx = ctx;
+  if (deadZoneListener || typeof window === "undefined") {
+    return;
+  }
+  deadZoneListener = (event: Event) => {
+    if (!deadZoneCtx || !inDeadZone(event, deadZoneCtx)) {
+      return;
+    }
+    if (event.type === "click" || event.type === "auxclick") {
+      deadZoneBlocks += 1;
+    }
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    event.stopPropagation();
+  };
+  for (const type of DEAD_ZONE_EVENTS) {
+    window.addEventListener(type, deadZoneListener, true);
+  }
+}
+
+function removeDeadZone(): void {
+  if (!deadZoneListener || typeof window === "undefined") {
+    return;
+  }
+  for (const type of DEAD_ZONE_EVENTS) {
+    window.removeEventListener(type, deadZoneListener, true);
+  }
+  deadZoneListener = undefined;
+  deadZoneCtx = undefined;
+}
+
+/** Presses Aviary has absorbed beside the Hide button, for diagnostics and tests. */
+export function hideDeadZoneBlocks(): number {
+  return deadZoneBlocks;
+}
+
+function inDeadZone(event: Event, ctx: FeatureContext): boolean {
+  if (!ctx.settings.hidden.enabled || !ctx.settings.hidden.buttons || !surfaceMatches(ctx)) {
+    return false;
+  }
+  if (!(event instanceof MouseEvent)) {
+    return false;
+  }
+  // `detail` is 0 for a click synthesized from the keyboard, whose coordinates are 0,0 and
+  // therefore meaningless here. Keyboard activation is never a misclick, so leave it alone.
+  if (event.type === "click" && event.detail === 0) {
+    return false;
+  }
+  const target = event.target;
+  if (!(target instanceof Element)) {
+    return false;
+  }
+  // X sometimes lays a filler element over the row that is outside the article; the owning cell
+  // still leads back to the post it belongs to.
+  const own = target.closest(ARTICLE_SELECTOR);
+  const cell = target.closest(CELL_SELECTOR);
+  const article = own ?? cell?.querySelector(ARTICLE_SELECTOR) ?? null;
+  if (!article) {
+    return false;
+  }
+  if (hitsControl(target, own ?? cell) || target.closest(CONTENT_SELECTOR)) {
+    return false;
+  }
+  const zone = deadZoneRect(article);
+  if (!zone) {
+    return false;
+  }
+  return (
+    event.clientX >= zone.left &&
+    event.clientX <= zone.right &&
+    event.clientY >= zone.top &&
+    event.clientY <= zone.bottom
+  );
+}
+
+/**
+ * Walks from the pressed node up to the post, not to the document.
+ *
+ * `closest` would have been shorter and wrong: X wraps rows and quoted posts in `role="link"`
+ * containers, so an unbounded walk reports a control for every press inside a post and the zone
+ * would never fire once. The post itself is the boundary because its own navigation is the
+ * behaviour being suppressed.
+ */
+function hitsControl(target: Element, boundary: Element | null): boolean {
+  let node: Element | null = target;
+  while (node && node !== boundary) {
+    if (node.matches(INTERACTIVE_SELECTOR)) {
+      return true;
+    }
+    node = node.parentElement;
+  }
+  return false;
+}
+
+/**
+ * The corner the Hide control occupies, padded.
+ *
+ * Anchored to the button and the More menu rather than to a fixed slice of the article, because
+ * the header height and the control's inline position both move with X's layout, the font size
+ * and the reading direction. Absent a button there is nothing to miss, so there is no zone.
+ */
+function deadZoneRect(article: Element): DeadZone | null {
+  const button = article.querySelector(`[${BUTTON_ATTR}]`);
+  if (!button) {
+    return null;
+  }
+  const articleRect = article.getBoundingClientRect();
+  const controls = [button, article.querySelector('[data-testid="caret"]')]
+    .filter((node): node is Element => node !== null)
+    .map((node) => node.getBoundingClientRect())
+    .filter((rect) => rect.width > 0 && rect.height > 0);
+  if (controls.length === 0 || articleRect.width === 0) {
+    return null;
+  }
+
+  const left = Math.min(...controls.map((rect) => rect.left));
+  const right = Math.max(...controls.map((rect) => rect.right));
+  const bottom = Math.max(...controls.map((rect) => rect.bottom));
+
+  // Reach out to whichever edge of the post the controls already sit against, so the gap between
+  // the last control and the corner is covered too. That edge is the inline end in either
+  // direction, which is why it is measured rather than assumed to be the right.
+  const towardEnd = articleRect.right - right <= left - articleRect.left;
+  const maxWidth = articleRect.width * DEAD_ZONE_MAX_WIDTH_RATIO;
+  return {
+    left: towardEnd
+      ? Math.max(left - DEAD_ZONE_PAD_PX, articleRect.right - maxWidth)
+      : articleRect.left,
+    right: towardEnd
+      ? articleRect.right
+      : Math.min(right + DEAD_ZONE_PAD_PX, articleRect.left + maxWidth),
+    top: articleRect.top,
+    bottom: Math.min(bottom + DEAD_ZONE_PAD_PX, articleRect.top + DEAD_ZONE_MAX_HEIGHT_PX)
+  };
 }
 
 async function hidePost(

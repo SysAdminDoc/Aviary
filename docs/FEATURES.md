@@ -150,6 +150,12 @@ Every post carries a **Hide** control next to its More menu. Clicking it records
 
 - Posts are keyed by status id. Posts without a `/status/` link (promoted units, some cards) fall back to a handle + text signature so the same unit stays hidden after a refresh.
 - Hiding collapses the owning `[data-testid="cellInnerDiv"]` row, not just the article, because X positions timeline rows absolutely inside a measured container. A single coalesced `resize` event lets the virtualizer close the gap without moving scroll position.
+- The corner the control sits in is inert. X makes the whole row a click target, so a press a few
+  pixels off the Hide button used to open the tweet. Presses on the filler around the button, in
+  the gap before the More menu, or out in the corner beside them are absorbed instead. The zone is
+  measured from the button and the More menu at press time, so it follows X's layout and the
+  reading direction; every real control inside it, and the post's own text and media, keep their
+  clicks.
 - A toast with **Undo** appears after each hide; the Control Center also offers "Undo last hide", per-post Restore for the eight most recent, and "Clear hidden posts".
 - Storage key: `aviary.hiddenPosts.v1`. The oldest entries are dropped once the store passes "Maximum remembered posts" (default 5000, range 100-50000).
 - The Control Center "Hidden posts" section controls the master switch, the per-post button, per-route activation, and the cap. Turning the master switch off reveals everything again without forgetting anything.
@@ -267,6 +273,11 @@ original media URLs.
 The Media section also exposes:
 
 - **Media layout**, Default, Stacked (full-width images, one per row), or Strict grid (`auto-fit` columns).
+
+Reshaping applies to the post being read. Media inside a quoted post, and inside a reply under a
+conversation, keeps whatever size X gave it: those belong to a post the reader is not on, and
+stretching them to the full column buried the thread under banners. The same exclusion covers the
+themed full-width media rule, which used to drop X's own cap everywhere on the page.
 
 ## Export core
 

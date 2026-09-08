@@ -11,6 +11,14 @@ const CONVERSATION_LINE_MAX_WIDTH = 3;
 const CONVERSATION_LINE_MIN_HEIGHT = 12;
 /** How far the connector's centre may sit from the avatar's centre and still be the same gutter. */
 const CONVERSATION_LINE_CENTER_TOLERANCE = 4;
+/**
+ * Media that belongs to a post the reader is not on: a quoted post, or a reply in a conversation.
+ *
+ * Written once because the full-width rule and anything else that reshapes media has to agree on
+ * what it may reshape. The reply half reads the marker `syncConversationStructure` stamps, so it
+ * costs no extra DOM work.
+ */
+const MEDIA_EXCLUSIONS = ':not([role="link"] *):not([data-av-conversation-role="reply"] *)';
 
 export const themeFeature: FeatureModule = {
   id: "appearance.theme",
@@ -466,11 +474,22 @@ html[data-av-width="wide"][data-av-surface="conversation"]
   width: 100%;
 }
 
+/* Media fills the column on the post being read, and only there.
+   Dropping X's own cap is right for the post in front of the reader
+   and wrong for media that belongs to someone else's post: under a conversation it turned every
+   reply's photo, video and GIF into a full-width banner, and a handful of replies was enough to
+   push the thread off the screen. A quoted post is the same case one level in. Both are excluded
+   here rather than reset by a later rule, so X's own sizing is never overridden to begin with. */
+html[data-av-theme] [data-testid="tweetPhoto"]${MEDIA_EXCLUSIONS},
+html[data-av-theme] [data-testid="videoPlayer"]${MEDIA_EXCLUSIONS},
+html[data-av-theme] [data-testid="videoComponent"]${MEDIA_EXCLUSIONS} {
+  inline-size: 100% !important;
+  max-inline-size: none !important;
+}
+
 html[data-av-theme] [data-testid="tweetPhoto"],
 html[data-av-theme] [data-testid="videoPlayer"],
 html[data-av-theme] [data-testid="videoComponent"] {
-  inline-size: 100% !important;
-  max-inline-size: none !important;
   border-radius: 10px;
 }
 

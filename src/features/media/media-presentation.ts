@@ -72,22 +72,30 @@ function ensurePresentationStyle(): void {
 }
 
 // `av-media-layout-default` deliberately has no rules: the default is X's own layout, untouched.
+//
+// Both layouts below reshape the media of the post being read. They exclude a quoted post, and a
+// reply under a conversation, because that media belongs to a post the reader is not on: stretched
+// to the full column it buried the thread under banners. The exclusions are written as `:not()`
+// rather than as a second rule that puts the values back, so X's own layout is never overridden in
+// the first place and there is nothing to restore it to.
+const NOT_BORROWED = ':not([role="link"] *):not([data-av-conversation-role="reply"] *)';
+
 const PRESENTATION_CSS = `
-html.av-media-layout-stacked article[data-testid="tweet"] [data-testid="tweetPhoto"] {
+html.av-media-layout-stacked article[data-testid="tweet"] [data-testid="tweetPhoto"]${NOT_BORROWED} {
   display: block !important;
   width: 100% !important;
   max-width: 100% !important;
   margin: 8px 0 !important;
 }
 
-html.av-media-layout-stacked article[data-testid="tweet"] [data-testid="tweetPhoto"] img {
+html.av-media-layout-stacked article[data-testid="tweet"] [data-testid="tweetPhoto"]${NOT_BORROWED} img {
   width: 100% !important;
   height: auto !important;
   object-fit: contain !important;
   border-radius: 12px;
 }
 
-html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"] {
+html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"]${NOT_BORROWED} {
   display: grid !important;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)) !important;
   gap: 6px !important;

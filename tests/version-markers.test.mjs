@@ -26,6 +26,8 @@ async function buildTree(version, overrides = {}) {
     "RESEARCH.md": `Aviary v${version} is a local-first X enhancement.\n`,
     "CLAUDE.md": `**Current version:** ${version}\n`,
     "package-lock.json": JSON.stringify({ version, packages: { "": { version } } }, null, 2),
+    "tests/local-release.test.mjs": `assertAlignedVersions(process.cwd(), "${version}")
+`,
     ...overrides
   };
   for (const [relative, contents] of Object.entries(files)) {
