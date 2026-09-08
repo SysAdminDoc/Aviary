@@ -361,29 +361,6 @@ post, or X's own published localization strings. Add the label, add a fixture to
 extend `LABELLED_LANGUAGES` in the same commit, the test that pairs the two lists will fail if a
 language is claimed as covered without a label to back it.
 
-## F184, Remove real-user captures from the fixture set and its history
-
-The working-tree half is done. F306 replaced the saved captures with `_decoded/dom-schema.json` and
-a generator, and the MHTML, decoded HTML and extracted stylesheets were deleted on 2026-09-07. No
-test reads a saved page any more, and `tests/fixtures.test.mjs` fails if one comes back.
-
-What remains is history. The captures of a named account's post, handle and body text are still in
-every commit before that deletion, so removing them means a `git-filter-repo` rewrite and a force
-push over branch protection on the only copy of the project's history.
-
-Re-entry condition: the rewrite itself, on a quiet tree, with the backup bundle under
-`_claude-backups/Aviary-prepublic-2026-09-06/` verified first. It no longer has to wait for a
-replacement capture, because no selector is proved against those files.
-
-The same rewrite has a second target, found 2026-09-08. `dist/aviary-source-v<version>.zip` is
-tracked, and until v1.48.1 it was packed by a file walk that never consulted `.gitignore`, so every
-one of those blobs carries that release's `CLAUDE.md`. The build excludes ignored paths now and
-preflight reads the shipped archive back, so nothing new is being added, and no GitHub release ever
-attached a source archive, only the userscript and the extension packages. What is public is the
-notes inside the zips already in history. They hold no credentials, checked by pattern on
-2026-09-08, so this raises no incident on its own. It is one more path for whoever runs the rewrite
-to include, not a second rewrite.
-
 ## F201, Re-verify batch media download against X's Photos/Videos split
 
 X split the profile Media tab into Photos and Videos and dropped the 3-column grid around

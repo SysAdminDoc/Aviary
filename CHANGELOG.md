@@ -3,6 +3,13 @@
 ## Unreleased
 
 ### Fixed
+- **The saved pages are out of the project's history, not just its working tree.** Deleting a file
+  does not remove it from a repository: every commit made before the deletion still carried the
+  saved X pages, the handle and post body inside them, and the working notes that older source
+  archives had packed by accident. All of it is gone now. The rewrite kept the commit graph exactly
+  as it was, all 443 commits and all 39 tags, and the tree at the tip is byte for byte the same one
+  that was there before, so every release still points at the code it shipped. Anyone with an older
+  clone should re-clone rather than pull.
 - **A real person's handle, post text and post URL are out of the tracked tree.** The saved pages
   that carried them were deleted in v1.48.1, but the research tables in this file still named the
   account, quoted the post and linked straight to it, and a test title used the handle as sample
