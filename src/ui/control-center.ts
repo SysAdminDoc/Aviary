@@ -51,6 +51,7 @@ import type { DiagnosticEvent } from "../platform/diagnostics.ts";
 import type { PerformanceMetricsSnapshot } from "../platform/performance-diagnostics.ts";
 import type { StorageStatus } from "../platform/storage.ts";
 import type { DurableStorageBreakdown } from "../platform/durable-storage.ts";
+import type { MediaBatchPreview } from "../features/media/batch-downloader.ts";
 import type { LegacyAdoptionResult, ProfileStatus } from "../platform/profile.ts";
 import type { LibraryBackupPreview, LibraryBackupRestoreResult } from "../features/core/library-backup.ts";
 import type { IntegrationUsageStatus } from "../features/integrations/usage.ts";
@@ -276,7 +277,16 @@ export interface ControlCenterOptions {
   offlineSearch?: (query: string) => OfflineQueryHit[];
   offlineSemanticSearch?: (query: string) => Promise<OfflineQueryHit[]>;
   getCapturedMediaCount?: (query: string, filterKind?: "all" | "photo" | "video" | "thumbnail" | "audio" | "subtitle") => number;
-  runCapturedMediaBatch?: (query: string, filterKind?: "all" | "photo" | "video" | "thumbnail" | "audio" | "subtitle") => Promise<{
+  previewCapturedMediaBatch?: (
+    query: string,
+    filterKind?: "all" | "photo" | "video" | "thumbnail" | "audio" | "subtitle"
+  ) => MediaBatchPreview;
+  runCapturedMediaBatch?: (
+    query: string,
+    filterKind?: "all" | "photo" | "video" | "thumbnail" | "audio" | "subtitle",
+    /** When present, only these preview ids are queued. */
+    selectedIds?: readonly string[]
+  ) => Promise<{
     total: number;
     downloaded: number;
     started: number;

@@ -201,14 +201,153 @@ export function countCapturedMedia(
   preferOriginalImages: boolean,
   filterKind: NonNullable<BatchOptions["filterKind"]> = "all"
 ): number {
-  return capturedMediaTasks(records, preferOriginalImages, filterKind).length;
+  return capturedMediaTasks(records, preferOriginalImages, filterKind, null).length;
+}
+
+/** One row of the review list a person sees before any of this reaches the durable queue. */
+export interface MediaBatchPreviewItem {
+  /** Stable across a re-preview of the same library, so a selection survives a filter change. */
+  id: string;
+  kind: ExportMedia["kind"];
+  handle: string | null;
+  tweetId: string | null;
+  /** The name this item would be saved as, already made unique within the batch. */
+  filename: string;
+  qualityLabel: string;
+  width: number | null;
+  height: number | null;
+  /** False when nothing downloadable could be resolved; `reason` says what. */
+  available: boolean;
+  reason?: string;
+}
+
+export interface MediaBatchPreview {
+  items: MediaBatchPreviewItem[];
+  /** Items that cannot be downloaded, kept out of the count but shown with their reason. */
+  unavailable: MediaBatchPreviewItem[];
+  /** Kinds present in this result, so the filter offers only what is actually there. */
+  kinds: Array<ExportMedia["kind"]>;
+  /** True when the library holds more than one batch can take. */
+  overLimit: boolean;
+  limit: number;
+}
+
+/**
+ * What a batch would do, worked out from stored records alone.
+ *
+ * The action used to queue the whole local result set the moment it was clicked, which on a
+ * library of any size is a decision nobody got to make. Nothing here touches the network, the
+ * queue, or the history: it reads what is already stored and reports it, and the caller decides
+ * what, if anything, to run.
+ */
+export function previewCapturedMediaBatch(
+  ctx: FeatureContext,
+  records: readonly ExportRecord[],
+  options: Pick<BatchOptions, "filterKind"> = {}
+): MediaBatchPreview {
+  const kinds = new Set<ExportMedia["kind"]>();
+  for (const record of records) {
+    for (const media of record.media) kinds.add(media.kind);
+  }
+
+  const available: MediaBatchPreviewItem[] = [];
+  const unavailable: MediaBatchPreviewItem[] = [];
+  const usedFilenames = new Map<string, number>();
+  const seen = new Set<string>();
+  const filterKind = options.filterKind ?? "all";
+
+  for (const record of records) {
+    record.media.forEach((media, index) => {
+      if (filterKind !== "all" && media.kind !== filterKind) return;
+      const target = resolveCapturedTarget(media, ctx.settings.media.preferOriginalImages);
+      const attributed = media.attribution;
+      const handle = attributed?.handle ?? record.handle;
+      const text = attributed?.scope === "quote" ? record.quote?.text ?? record.text : record.text;
+      const id = `${record.tweetId ?? "unknown"}:${index}:${media.kind}`;
+
+      if (!target) {
+        unavailable.push({
+          id,
+          kind: media.kind,
+          handle,
+          tweetId: record.tweetId,
+          filename: "",
+          qualityLabel: "",
+          width: media.width ?? null,
+          height: media.height ?? null,
+          available: false,
+          reason: unavailableReason(media)
+        });
+        return;
+      }
+
+      // The same identity twice is one file, and the batch already collapses it. Saying so here
+      // stops the count promising more files than the run will produce.
+      const key = `${media.kind}:${target.mediaId ?? target.url}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+
+      const base = renderFilename(ctx.settings.media.filenameTemplate, {
+        handle,
+        tweetId: record.tweetId,
+        index,
+        total: record.media.length,
+        date: new Date(),
+        ext: target.ext,
+        text,
+        mediaId: target.mediaId
+      });
+      available.push({
+        id,
+        kind: media.kind,
+        handle,
+        tweetId: record.tweetId,
+        filename: uniqueFilename(base, usedFilenames),
+        qualityLabel: target.quality.label,
+        width: target.quality.width,
+        height: target.quality.height,
+        available: true
+      });
+    });
+  }
+
+  return {
+    items: available,
+    unavailable,
+    kinds: [...kinds].sort(),
+    overLimit: available.length > MEDIA_BATCH_LIMIT,
+    limit: MEDIA_BATCH_LIMIT
+  };
+}
+
+/**
+ * Two captures of different posts can render the same name. The queue would then write one file
+ * over the other, and the count would have promised two.
+ */
+function uniqueFilename(base: string, used: Map<string, number>): string {
+  const seen = used.get(base) ?? 0;
+  used.set(base, seen + 1);
+  if (seen === 0) return base;
+  const dot = base.lastIndexOf(".");
+  return dot > 0 ? `${base.slice(0, dot)}-${seen + 1}${base.slice(dot)}` : `${base}-${seen + 1}`;
+}
+
+function unavailableReason(media: ExportMedia): string {
+  const url = (media.url || media.sourceUrl || "").trim();
+  if (!url) return "No stored address for this item.";
+  if (/^blob:/i.test(url)) return "The player handle is only valid in the tab that made it.";
+  if (/\.(?:m3u8|mpd|m4s)(?:[?#]|$)/i.test(url)) return "A streaming manifest, not a file.";
+  return "Nothing downloadable was stored for this item.";
 }
 
 /** Downloads only media URLs already present in local capture records. */
 export async function runCapturedMediaBatch(
   ctx: FeatureContext,
   records: readonly ExportRecord[],
-  options: Pick<BatchOptions, "maxItems" | "filterKind"> = {}
+  options: Pick<BatchOptions, "maxItems" | "filterKind"> & {
+    /** When present, only these preview ids are queued. Everything else is left alone. */
+    selectedIds?: readonly string[];
+  } = {}
 ): Promise<BatchResult> {
   const queue = getMediaQueue();
   const history = getMediaHistory();
@@ -219,7 +358,8 @@ export async function runCapturedMediaBatch(
   const tasks = capturedMediaTasks(
     records,
     ctx.settings.media.preferOriginalImages,
-    options.filterKind ?? "all"
+    options.filterKind ?? "all",
+    options.selectedIds ? new Set(options.selectedIds) : null
   );
   const max = Math.max(1, Math.min(MEDIA_BATCH_LIMIT, options.maxItems ?? MEDIA_BATCH_LIMIT));
   if (tasks.length > MEDIA_BATCH_LIMIT && (options.maxItems === undefined || options.maxItems > MEDIA_BATCH_LIMIT)) {
@@ -937,13 +1077,18 @@ function finishBatch(control: ActiveBatch): void {
 function capturedMediaTasks(
   records: readonly ExportRecord[],
   preferOriginalImages: boolean,
-  filterKind: NonNullable<BatchOptions["filterKind"]>
+  filterKind: NonNullable<BatchOptions["filterKind"]>,
+  selectedIds: ReadonlySet<string> | null
 ): MediaBatchTask[] {
   const tasks: MediaBatchTask[] = [];
   const seen = new Set<string>();
   for (const record of records) {
     record.media.forEach((media, index) => {
       if (filterKind !== "all" && media.kind !== filterKind) return;
+      // The same id the preview showed. Nothing the person did not tick reaches the queue.
+      if (selectedIds && !selectedIds.has(`${record.tweetId ?? "unknown"}:${index}:${media.kind}`)) {
+        return;
+      }
       const target = resolveCapturedTarget(media, preferOriginalImages);
       if (!target) return;
       const key = `${media.kind}:${target.mediaId ?? target.url}`;

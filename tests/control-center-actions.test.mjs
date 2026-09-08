@@ -424,6 +424,7 @@ test("Library downloads use the visible query and keep it when the page is revis
     document.body.replaceChildren();
     const settings = AviaryActions.cloneSettings(AviaryActions.DEFAULT_SETTINGS);
     const calls = [];
+    const previews = [];
     const panel = AviaryActions.mountControlCenter({
       settings,
       diagnostics: () => [],
@@ -431,8 +432,23 @@ test("Library downloads use the visible query and keep it when the page is revis
       onError: () => {},
       offlineSearch: () => [],
       getCapturedMediaCount: (query) => query.includes("alice") ? 12 : 40,
-      runCapturedMediaBatch: async (query) => {
-        calls.push(query);
+      previewCapturedMediaBatch: (query) => {
+        previews.push(query);
+        return {
+          items: [
+            { id: "1:0:photo", kind: "photo", handle: "alice", tweetId: "1", filename: "alice-1.jpg", qualityLabel: "original", width: 1200, height: 800, available: true },
+            { id: "2:0:video", kind: "video", handle: "alice", tweetId: "2", filename: "alice-2.mp4", qualityLabel: "best-direct", width: 1280, height: 720, available: true }
+          ],
+          unavailable: [
+            { id: "3:0:video", kind: "video", handle: "alice", tweetId: "3", filename: "", qualityLabel: "", width: null, height: null, available: false, reason: "A streaming manifest, not a file." }
+          ],
+          kinds: ["photo", "video"],
+          overLimit: false,
+          limit: 500
+        };
+      },
+      runCapturedMediaBatch: async (query, kind, selectedIds) => {
+        calls.push({ query, selectedIds: [...(selectedIds ?? [])] });
         return {
           total: 12,
           downloaded: 8,
@@ -456,7 +472,23 @@ test("Library downloads use the visible query and keep it when the page is revis
     const row = input.closest(".av-row");
     const count = row.querySelector(".av-library-media-count").textContent;
     const button = row.querySelector(".av-library-media-download");
+    // The action opens a review now rather than queueing the whole result set. Nothing may reach
+    // the batch until someone confirms, so the run is asserted through that step.
     button.click();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const review = shadow.querySelector(".av-media-review");
+    const queuedBeforeConfirm = calls.length;
+    const listed = review.querySelectorAll(".av-media-review-list .av-media-review-item").length;
+    const skipped = [...review.querySelectorAll(".av-media-review-skipped .av-media-review-item")]
+      .map((item) => item.textContent);
+
+    // Untick one, so the confirm has to carry a selection rather than everything.
+    const boxes = [...review.querySelectorAll('.av-media-review-list input[type="checkbox"]')];
+    boxes[1].checked = false;
+    boxes[1].dispatchEvent(new Event("change", { bubbles: true }));
+    const summary = review.querySelector(".av-media-review-summary").textContent;
+
+    review.querySelector(".av-media-review-confirm").click();
     await new Promise((resolve) => setTimeout(resolve, 10));
     const status = shadow.querySelector(".av-status").textContent;
     shadow.querySelector('[data-av-section="appearance"]').click();
@@ -465,11 +497,48 @@ test("Library downloads use the visible query and keep it when the page is revis
       candidate.placeholder.startsWith("Search local library")
     );
     const restored = input.value;
+    // Cancel writes nothing: open the review again and dismiss it. The button is re-queried
+    // because the status update after a run re-renders the section.
+    shadow.querySelector(".av-library-media-download").click();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    shadow.querySelector(".av-media-review-cancel").click();
+    const queuedAfterCancel = calls.length;
+    const reviewHiddenAfterCancel = shadow.querySelector(".av-media-review").hidden;
+
     panel.destroy();
-    return { calls, count, status, restored };
+    return {
+      calls,
+      previews,
+      count,
+      status,
+      restored,
+      queuedBeforeConfirm,
+      queuedAfterCancel,
+      reviewHiddenAfterCancel,
+      summary,
+      listed,
+      skipped
+    };
   });
 
-  assert.deepEqual(result.calls, ["account:alice has:media"]);
+  assert.equal(result.queuedBeforeConfirm, 0, "opening the review must not queue anything");
+  assert.equal(result.listed, 2, "every downloadable item is listed for review");
+  assert.deepEqual(
+    result.skipped,
+    ["video · A streaming manifest, not a file."],
+    "an item that cannot be downloaded is shown with the reason, not silently dropped"
+  );
+  assert.match(result.summary, /1 of 2 files selected/, "the count follows the selection");
+  assert.match(result.summary, /1 cannot be downloaded/);
+
+  assert.deepEqual(
+    result.calls,
+    [{ query: "account:alice has:media", selectedIds: ["1:0:photo"] }],
+    "only the ticked item may reach the queue, under the visible query"
+  );
+  assert.deepEqual(result.previews, ["account:alice has:media", "account:alice has:media"]);
+  assert.equal(result.queuedAfterCancel, 1, "Cancel must not queue anything");
+  assert.equal(result.reviewHiddenAfterCancel, true, "and must close the review");
   assert.equal(result.count, "12 media");
   assert.match(result.status, /8 saved \/ 1 running \/ 1 opened \/ 2 dup \/ 0 failed/);
   assert.equal(result.restored, "account:alice has:media");

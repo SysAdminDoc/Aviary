@@ -202,6 +202,12 @@
   export from a redacted backup.
 
 ### Added
+- **A review step before a media batch.** The Library's Download media action opened the queue on
+  the whole local result set the moment it was clicked. It now opens a list built from stored
+  records alone: select all or pick items, filter by media kind, see the name each file would be
+  saved as with collisions already resolved, and read why an item cannot be downloaded instead of
+  having it silently dropped. Only what is ticked reaches the durable queue, Cancel writes nothing,
+  and the whole step originates no request.
 - **Older X archives import.** X's export changed by accretion, not by version, so Aviary now
   recognises three layouts: the current `tweets.js` set, the roughly-2020 `tweet.js` set, and the
   pre-2018 Grailbird layout with one `data/js/tweets/YYYY_MM.js` per month. The import report names

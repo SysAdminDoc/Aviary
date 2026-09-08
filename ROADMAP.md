@@ -30,22 +30,6 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
   Complexity: M
   Depends: F288. F320 supplies bounded source staging.
 
-- [ ] F294, P3: Add a reviewable selection step before large media batches
-  Why: commercial tools and downloader communities repeatedly request bulk saving, but Aviary's captured-result action queues the whole local result set. A preview prevents accidental large jobs without adding a crawler or ZIP requirement.
-  Evidence: `src/features/media/batch-downloader.ts`, `src/ui/control-center/sections/data.ts`; https://github.com/afkarxyz/Twitter-X-Media-Batch-Downloader; https://greasyfork.org/fil/scripts/529453-twitter-x-media-downloader/feedback
-  Touches: local library result model, batch preview UI, queue checkpoint, media filters and tests
-  Acceptance: the action opens a compact local-only list with select-all, per-item selection, media-kind and quality filters, collision-safe filenames, estimated file count, and unavailable-item reasons; only selected items enter the durable queue; Cancel writes nothing; the batch downloads individual files, never a required ZIP, and makes no new X timeline or GraphQL request.
-  Complexity: M
-  Depends: F277 and F284.
-
-## Research-Driven Additions (2026-09-04)
-
-### P1, Next
-
-### P2, Later
-
-### P3, Under Consideration
-
 - [ ] F315, P3: Emit an ActivityStreams 2.0 outbox alongside the local export
   Why: there is no converged cross-platform social-archive format to adopt, and the standards work has moved to IETF working groups that have shipped nothing usable. AS2 is the one widely parseable social-post schema with existing tooling, it is what Mastodon's own account export emits, and mapping to it costs one layer over records Aviary already holds.
   Evidence: https://docs.joinmastodon.org/user/moving/ (account archive is Activity Streams 2.0 JSON; note that Mastodon imports only the social graph, never posts, so this is an interop output rather than a migration path), https://dtinit.org/blog/2026/08/18/ietf-work-data-portability (PDPArchive is a mail, calendar, and contacts format still in a working group); `src/features/export/formatters.ts`, `src/features/export/types.ts`

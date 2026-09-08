@@ -3,10 +3,10 @@
   "product": "Aviary",
   "target": "userscript",
   "version": "1.47.2",
-  "sourceFingerprint": "sha256:c59f3476d7f66efc14306c2e98aa787cfca43ede5d12d9f70467716a8b95a716",
+  "sourceFingerprint": "sha256:75bfe9fd81bc7377e71ee5e72bb16756709adf224eaa22e9c19f0a3ce0d83c04",
   "artifacts": {
     "README.md": "sha256:8dfc145747661fc2a4922738e4dd7d1a3b342b1ecc27b2034e2a74fb7a574108",
     "aviary.meta.js": "sha256:04ff0cd53e77f20b427f0c667556e77a42929c521302873a6aeae3c50741114d",
-    "aviary.user.js": "sha256:9563fdfa35126b92e4db35acd50ca93e7202967b6a1602cec2eab4bb9384c271"
+    "aviary.user.js": "sha256:9ec8ec470b7ef7cce649d77dd27d8d84e9a0b543295c376695694447c7bec56a"
   }
 }

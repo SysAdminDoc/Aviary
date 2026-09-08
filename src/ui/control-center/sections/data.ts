@@ -688,12 +688,35 @@ export function buildLibraryRows(ctx: PanelContext): HTMLElement[] {
         ctx.t("Download media")
       ) as HTMLButtonElement;
       download.type = "button";
-      download.addEventListener("click", () => {
-        download.disabled = true;
+
+      /**
+       * The review step.
+       *
+       * This action used to queue the whole local result set the moment it was clicked, which on a
+       * library of any size is a decision nobody got to make. It now opens a list built from
+       * stored records alone -- no request, no queue write -- and only what is ticked when the
+       * person confirms reaches the durable queue. Cancel writes nothing at all.
+       */
+      const review = ctx.el("div", "av-media-review");
+      review.hidden = true;
+      const selection = new Set<string>();
+      let filterKind: "all" | "photo" | "video" | "thumbnail" | "audio" | "subtitle" = "all";
+
+      const closeReview = (): void => {
+        review.hidden = true;
+        review.replaceChildren();
+        selection.clear();
+        download.disabled = false;
+      };
+
+      const runSelection = (): void => {
+        const chosen = [...selection];
         const query = ctx.state.libraryQuery.trim();
-        ctx.setStatus(query ? "Downloading media from matching captures..." : "Downloading all captured media...");
+        review.hidden = true;
+        review.replaceChildren();
+        ctx.setStatusCopy("Downloading {count} selected files.", { count: chosen.length });
         void ctx.options
-          .runCapturedMediaBatch!(query)
+          .runCapturedMediaBatch!(query, filterKind, chosen)
           .then((result) => {
             updateMediaCount();
             ctx.setStatus(
@@ -707,10 +730,142 @@ export function buildLibraryRows(ctx: PanelContext): HTMLElement[] {
             ctx.setStatus("Captured media download failed.");
           })
           .finally(() => {
+            selection.clear();
             download.disabled = false;
           });
+      };
+
+      const openReview = (): void => {
+        const preview = ctx.options.previewCapturedMediaBatch?.(ctx.state.libraryQuery.trim(), filterKind);
+        review.replaceChildren();
+        if (!preview) return;
+
+        selection.clear();
+        for (const item of preview.items) selection.add(item.id);
+
+        const summary = ctx.el("p", "av-row-description av-media-review-summary");
+        const confirm = ctx.el(
+          "button",
+          "av-button av-button-primary av-media-review-confirm",
+          ctx.t("Download selected")
+        ) as HTMLButtonElement;
+        confirm.type = "button";
+
+        const refreshSummary = (): void => {
+          summary.textContent = ctx.formatCopy(
+            ctx.t("{selected} of {total} files selected. {unavailable} cannot be downloaded."),
+            {
+              selected: selection.size,
+              total: preview.items.length,
+              unavailable: preview.unavailable.length
+            }
+          );
+          confirm.disabled = selection.size === 0;
+        };
+
+        const kindSelect = document.createElement("select");
+        kindSelect.className = "av-select av-media-review-kind";
+        kindSelect.setAttribute("aria-label", ctx.t("Media kind"));
+        const kindChoices: Array<[string, string]> = [
+          ["all", ctx.t("Every kind")],
+          ...preview.kinds.map((kind): [string, string] => [kind, kind])
+        ];
+        for (const [value, label] of kindChoices) {
+          const option = document.createElement("option");
+          option.value = value;
+          option.textContent = label;
+          if (value === filterKind) option.selected = true;
+          kindSelect.append(option);
+        }
+        kindSelect.addEventListener("change", () => {
+          filterKind = kindSelect.value as typeof filterKind;
+          openReview();
+        });
+
+        const selectAll = document.createElement("input");
+        selectAll.type = "checkbox";
+        selectAll.checked = true;
+        selectAll.className = "av-media-review-all";
+        const selectAllLabel = ctx.el("label", "av-chip av-media-review-all-label");
+        selectAllLabel.append(selectAll, ctx.el("span", "", ctx.t("Select all")));
+
+        const list = ctx.el("ul", "av-media-review-list");
+        const boxes: HTMLInputElement[] = [];
+        for (const item of preview.items) {
+          const row = ctx.el("li", "av-media-review-item");
+          const box = document.createElement("input");
+          box.type = "checkbox";
+          box.checked = true;
+          box.value = item.id;
+          box.setAttribute("aria-label", item.filename);
+          box.addEventListener("change", () => {
+            if (box.checked) selection.add(item.id);
+            else selection.delete(item.id);
+            selectAll.checked = selection.size === preview.items.length;
+            refreshSummary();
+          });
+          boxes.push(box);
+          const label = ctx.el("label", "av-media-review-label");
+          const size = item.width && item.height ? ` · ${item.width}x${item.height}` : "";
+          label.append(box, ctx.el("span", "", `${item.filename} · ${item.kind} · ${item.qualityLabel}${size}`));
+          row.append(label);
+          list.append(row);
+        }
+
+        selectAll.addEventListener("change", () => {
+          selection.clear();
+          for (const box of boxes) {
+            box.checked = selectAll.checked;
+            if (selectAll.checked) selection.add(box.value);
+          }
+          refreshSummary();
+        });
+
+        const skipped = ctx.el("ul", "av-media-review-skipped");
+        for (const item of preview.unavailable) {
+          skipped.append(
+            ctx.el("li", "av-media-review-item", `${item.kind} · ${item.reason ?? ctx.t("Not available.")}`)
+          );
+        }
+
+        const cancel = ctx.el(
+          "button",
+          "av-button av-button-secondary av-media-review-cancel",
+          ctx.t("Cancel")
+        ) as HTMLButtonElement;
+        cancel.type = "button";
+        cancel.addEventListener("click", closeReview);
+        confirm.addEventListener("click", runSelection);
+
+        const actions = ctx.el("div", "av-inline-controls");
+        actions.append(confirm, cancel);
+
+        if (preview.overLimit) {
+          review.append(
+            ctx.el(
+              "p",
+              "av-row-description",
+              ctx.formatCopy(ctx.t("This search holds more than {limit} downloadable files. Narrow it first."), {
+                limit: preview.limit
+              })
+            )
+          );
+        }
+        review.append(kindSelect, selectAllLabel, summary, list);
+        if (preview.unavailable.length > 0) review.append(skipped);
+        review.append(actions);
+        refreshSummary();
+        review.hidden = false;
+        confirm.focus();
+      };
+
+      download.addEventListener("click", () => {
+        download.disabled = true;
+        filterKind = "all";
+        openReview();
       });
       libraryTools.append(download, mediaCount);
+      rows.push(review);
     }
 
     const renderUnified = async (): Promise<void> => {

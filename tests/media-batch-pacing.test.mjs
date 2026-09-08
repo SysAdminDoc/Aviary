@@ -43,7 +43,7 @@ before(async () => {
   await writeFile(
     entry,
     [
-      `export { resumePendingMediaJobs, runMediaBatch, runCapturedMediaBatch } from ${JSON.stringify(abs("src/features/media/batch-downloader.ts"))};`,
+      `export { resumePendingMediaJobs, runMediaBatch, runCapturedMediaBatch, previewCapturedMediaBatch, countCapturedMedia } from ${JSON.stringify(abs("src/features/media/batch-downloader.ts"))};`,
       `export { mediaButtonsFeature, getMediaQueue, ingestMediaMetadata } from ${JSON.stringify(abs("src/features/media/media-buttons.ts"))};`,
       `export { sharedDownloadWatcher } from ${JSON.stringify(abs("src/features/media/download-watch.ts"))};`,
       `export { DownloadPermissionError, createDownloader } from ${JSON.stringify(abs("src/features/media/downloader.ts"))};`,
@@ -823,4 +823,168 @@ test("resuming a retained browser transfer does not create a duplicate download"
   assert.equal(observed.downloads, 0, "an in-progress retained id was downloaded again");
   assert.equal(observed.before.status, "running");
   assert.equal(observed.after.status, "completed");
+});
+
+test("the preview describes the batch without touching the network or the queue", async () => {
+  // The action used to queue the whole local result set the moment it was clicked. The preview is
+  // what makes that a decision, so it has to be readable, complete, and free of side effects.
+  const result = await page.evaluate(async () => {
+    const requests = [];
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async (url) => {
+      requests.push(String(url));
+      throw new Error("the preview must not reach the network");
+    };
+
+    const ctx = {
+      settings: {
+        media: {
+          preferOriginalImages: true,
+          filenameTemplate: "{handle}-{tweetId}-{index}.{ext}",
+          sidecarFormat: "off"
+        },
+        integrations: {},
+        jobs: { concurrentDownloads: 2 }
+      },
+      diagnostics: { info() {}, warn() {}, error() {} }
+    };
+
+    const records = [
+      {
+        tweetId: "1",
+        handle: "fixture_alpha",
+        text: "one",
+        permalink: "https://x.com/fixture_alpha/status/1",
+        media: [
+          { kind: "photo", url: "https://pbs.twimg.com/media/AAA?format=jpg&name=orig" },
+          // A blob handle is only valid in the tab that made it, so it is unavailable with a reason.
+          { kind: "video", url: "blob:https://x.com/9a1f" }
+        ]
+      },
+      {
+        tweetId: "2",
+        handle: "fixture_alpha",
+        text: "two",
+        permalink: "https://x.com/fixture_alpha/status/2",
+        media: [
+          { kind: "photo", url: "https://pbs.twimg.com/media/BBB?format=jpg&name=orig" },
+          // A streaming manifest is not a file.
+          { kind: "video", url: "https://video.twimg.com/amplify_video/2/pl/playlist.m3u8", type: "application/x-mpegURL" }
+        ]
+      }
+    ];
+
+    try {
+      const preview = AviaryBatch.previewCapturedMediaBatch(ctx, records);
+      const filtered = AviaryBatch.previewCapturedMediaBatch(ctx, records, { filterKind: "photo" });
+      return {
+        requests,
+        items: preview.items.map((item) => ({
+          id: item.id,
+          kind: item.kind,
+          filename: item.filename,
+          quality: item.qualityLabel
+        })),
+        unavailable: preview.unavailable.map((item) => ({ kind: item.kind, reason: item.reason })),
+        kinds: preview.kinds,
+        filteredKinds: [...new Set(filtered.items.map((item) => item.kind))],
+        filteredCount: filtered.items.length,
+        // The count the summary shows has to be the number of files the run produces.
+        counted: AviaryBatch.countCapturedMedia(records, true, "all")
+      };
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  assert.deepEqual(result.requests, [], "the preview must originate no request at all");
+  assert.equal(result.items.length, 2, "both downloadable photos are listed");
+  assert.equal(result.items.length, result.counted, "the listed count is the count the run will make");
+  assert.deepEqual(
+    result.items.map((item) => item.id),
+    ["1:0:photo", "2:0:photo"],
+    "each row carries the id the run selects on"
+  );
+  assert.deepEqual(
+    result.unavailable,
+    [
+      { kind: "video", reason: "The player handle is only valid in the tab that made it." },
+      { kind: "video", reason: "A streaming manifest, not a file." }
+    ],
+    "an item that cannot be downloaded is named with its reason rather than dropped"
+  );
+  assert.deepEqual(result.kinds, ["photo", "video"], "the filter offers only the kinds present");
+  assert.deepEqual(result.filteredKinds, ["photo"]);
+  assert.equal(result.filteredCount, 2);
+  for (const item of result.items) {
+    assert.match(item.filename, /^fixture_alpha-\d-\d+\.jpg$/, `unexpected filename ${item.filename}`);
+  }
+});
+
+test("two captures that render the same name do not become one file", async () => {
+  // The queue writes by filename. Two rows promising the same name is one file on disk and a count
+  // that over-promised, so the preview makes the second name unique.
+  const filenames = await page.evaluate(() => {
+    const ctx = {
+      settings: {
+        media: {
+          preferOriginalImages: true,
+          // Deliberately collision-prone: no id in the name at all.
+          filenameTemplate: "{handle}.{ext}",
+          sidecarFormat: "off"
+        },
+        integrations: {},
+        jobs: { concurrentDownloads: 2 }
+      },
+      diagnostics: { info() {}, warn() {}, error() {} }
+    };
+    const records = [1, 2, 3].map((id) => ({
+      tweetId: String(id),
+      handle: "fixture_alpha",
+      text: "post",
+      permalink: `https://x.com/fixture_alpha/status/${id}`,
+      media: [{ kind: "photo", url: `https://pbs.twimg.com/media/ID${id}?format=jpg&name=orig` }]
+    }));
+    return AviaryBatch.previewCapturedMediaBatch(ctx, records).items.map((item) => item.filename);
+  });
+
+  assert.equal(new Set(filenames).size, filenames.length, `names collided: ${filenames.join(", ")}`);
+  assert.deepEqual(filenames, ["fixture_alpha.jpg", "fixture_alpha-2.jpg", "fixture_alpha-3.jpg"]);
+});
+
+test("only the selected ids reach the queue", async () => {
+  const outcome = await page.evaluate(async () => {
+    const ctx = {
+      settings: {
+        media: {
+          preferOriginalImages: true,
+          filenameTemplate: "{handle}-{tweetId}.{ext}",
+          sidecarFormat: "off"
+        },
+        integrations: {},
+        jobs: { concurrentDownloads: 1 }
+      },
+      diagnostics: { info() {}, warn() {}, error() {} },
+      limiter: { async waitForToken() {} },
+      auditLog: { async record() {} }
+    };
+    const records = [1, 2, 3].map((id) => ({
+      tweetId: String(id),
+      handle: "fixture_alpha",
+      text: "post",
+      permalink: `https://x.com/fixture_alpha/status/${id}`,
+      media: [{ kind: "photo", url: `https://pbs.twimg.com/media/ID${id}?format=jpg&name=orig` }]
+    }));
+
+    const selected = await AviaryBatch.runCapturedMediaBatch(ctx, records, {
+      selectedIds: ["1:0:photo", "3:0:photo"]
+    });
+    const everything = await AviaryBatch.runCapturedMediaBatch(ctx, records, {});
+    return { selected: selected.total, everything: everything.total };
+  });
+
+  // The run sizes itself to the selection, not to the library. The contrast is the point: without
+  // a selection the same records produce three, so two is a decision rather than a coincidence.
+  assert.equal(outcome.selected, 2, "an item nobody ticked must not be queued");
+  assert.equal(outcome.everything, 3, "control: with no selection the whole result set still runs");
 });

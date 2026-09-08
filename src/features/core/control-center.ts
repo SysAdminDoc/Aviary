@@ -94,6 +94,7 @@ import {
   resumeMediaBatch,
   resumePendingMediaJobs,
   retryFailedMediaJobs,
+  previewCapturedMediaBatch,
   runCapturedMediaBatch,
   runMediaBatch
 } from "../media/batch-downloader.ts";
@@ -758,9 +759,16 @@ export const controlCenterFeature: FeatureModule = {
           filterKind
         );
       },
-      async runCapturedMediaBatch(query, filterKind = "all") {
+      previewCapturedMediaBatch(query, filterKind = "all") {
+        // Reads stored records and nothing else: no request, no queue write, no history write.
+        return previewCapturedMediaBatch(ctx, matchingCapturedRecords(query), { filterKind });
+      },
+      async runCapturedMediaBatch(query, filterKind = "all", selectedIds) {
         const records = matchingCapturedRecords(query);
-        const result = await runCapturedMediaBatch(ctx, records, { filterKind });
+        const result = await runCapturedMediaBatch(ctx, records, {
+          filterKind,
+          ...(selectedIds ? { selectedIds } : {})
+        });
         void ctx.auditLog.record("media.batch", {
           batch: true,
           source: "captured-library",
