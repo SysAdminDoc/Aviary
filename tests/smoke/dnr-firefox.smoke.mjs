@@ -456,7 +456,13 @@ export class WebDriverClient {
                 sslProxy: `127.0.0.1:${proxyPort}`
               },
               "moz:firefoxOptions": {
-                args: ["-headless", ...(options.profileDir ? ["-profile", options.profileDir] : [])],
+                args: [
+                  "-headless",
+                  // Without this Firefox hands the command line to an already-running instance and
+                  // geckodriver waits for a Marionette port that instance never opens.
+                  "-no-remote",
+                  ...(options.profileDir ? ["-profile", options.profileDir] : [])
+                ],
                 prefs: firefoxPreferences()
               }
             }
@@ -465,7 +471,9 @@ export class WebDriverClient {
       }, 60_000);
     } catch (error) {
       await stopProcess(process);
-      throw error;
+      throw new Error(`geckodriver could not start a Firefox session: ${error.message}\n${output}`, {
+        cause: error
+      });
     }
     const client = new WebDriverClient(baseUrl, process, session.sessionId, session.capabilities);
     await client.request("POST", "/timeouts", {

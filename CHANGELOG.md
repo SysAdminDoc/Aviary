@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### Fixed
+- **The packaged Firefox proof runs again.** The lane that installs the built add-on in a real
+  Firefox and checks that its blocking rules actually stop traffic had been stalling with no output
+  at all, so the Firefox half of the release matrix went unverified. geckodriver was handing its
+  command line to whatever Firefox the machine already had open instead of the fresh profile it had
+  just made, and then waiting forever on a browser that was never listening. It launches with
+  `-no-remote` now, and when a session still fails to start the error carries geckodriver's own log
+  rather than a bare timeout.
+
 ## 1.49.1 (2026-09-08)
 
 ### Fixed

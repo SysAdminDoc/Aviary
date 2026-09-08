@@ -413,6 +413,8 @@ test("smoke spec scaffold ships with explicit setup instructions", async () => {
   }
   assert.match(dnrChromium, /tab-scoped/);
   assert.match(dnrFirefox, /CONNECT x\.com:443/);
+  assert.match(dnrFirefox, /"-no-remote"/);
+  assert.match(dnrFirefox, /geckodriver could not start a Firefox session/);
   const incognito = await readFile(
     path.join(root, "tests/smoke/incognito-chromium.smoke.mjs"),
     "utf8"
