@@ -5,6 +5,13 @@
 ## 1.48.1 (2026-09-08)
 
 ### Fixed
+- **The published source archive no longer carries private working notes.** `dist/aviary-source-v*.zip`
+  was assembled by a file walk that skipped a fixed list of directories and never consulted
+  `.gitignore`, so `CLAUDE.md` and a generated `tools/i18n-manifest.json` travelled inside a release
+  asset. The build asks git which paths it ignores and leaves them out, keeping a declared list of
+  private paths as the floor for a checkout with no git. Preflight reads the archive that would ship
+  and fails naming any ignored path it finds, so the next way this breaks is caught at the gate
+  rather than at a release.
 - **The userscript's auto-update channel works, and the install guide says so.** Both advertised
   raw URLs answered 404 while the repository was private, so a manager polled forever and reported
   no update. The repository went public on 2026-09-06 and both serve again, with `@updateURL`

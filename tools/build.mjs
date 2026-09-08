@@ -4,6 +4,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import esbuild from "esbuild";
 
 import { artifactDigests, sourceFingerprint } from "./build-fingerprint.mjs";
+import { ignoredPaths, isPrivateSourcePath } from "./source-archive.mjs";
 import { repositoryUrl, userscriptUrls } from "./userscript-meta.mjs";
 
 const CRC32_TABLE = (() => {
@@ -337,10 +338,23 @@ await writeFile(
 
 // Keep a small, deterministic source artifact beside the installable packages. It contains the
 // checkout inputs needed to reproduce the build, never generated dist/ output or dependencies.
-const sourceEntries = [];
+const sourceCandidates = [];
 for await (const filePath of walkSource(root)) {
-  const filename = path.relative(root, filePath).replace(/\\/g, "/");
-  sourceEntries.push({ filename, data: new Uint8Array(await readFile(filePath)) });
+  sourceCandidates.push(path.relative(root, filePath).replace(/\\/g, "/"));
+}
+
+// The archive is published, so anything git ignores stays out of it: private working notes and
+// generated files are not checkout inputs. Git is asked because it owns that answer; where git
+// cannot be reached, the declared private paths are still refused rather than shipped.
+const ignoredSource = ignoredPaths(root, sourceCandidates);
+const excludedSource = new Set(
+  ignoredSource.checked ? ignoredSource.ignored : sourceCandidates.filter(isPrivateSourcePath)
+);
+
+const sourceEntries = [];
+for (const filename of sourceCandidates) {
+  if (excludedSource.has(filename)) continue;
+  sourceEntries.push({ filename, data: new Uint8Array(await readFile(path.join(root, filename))) });
 }
 sourceEntries.sort((left, right) => left.filename.localeCompare(right.filename));
 await writeFile(path.join(dist, `aviary-source-v${pkg.version}.zip`), buildStoreZip(sourceEntries));

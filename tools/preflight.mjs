@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { captureAgeReport, readCaptureManifest } from "./capture-manifest.mjs";
 import { browserFloorFailures, readBrowserFloors } from "./browser-floors.mjs";
 import { fileDigest, sourceFingerprint } from "./build-fingerprint.mjs";
+import { ignoredPaths, zipEntryNames } from "./source-archive.mjs";
 import { sourceExportReferences } from "./source-exports.mjs";
 import { versionMarkerFailures } from "./version-markers.mjs";
 import { repositoryUrl, userscriptUrls } from "./userscript-meta.mjs";
@@ -114,6 +115,7 @@ await checkDependencyPolicy();
 await checkReleaseMetadata();
 failures.push(...(await versionMarkerFailures(root, pkg.version)));
 await checkDeliverySize();
+await checkSourceArchiveContents();
 await checkArtifactManifests();
 
 if (failures.length > 0) {
@@ -768,6 +770,40 @@ async function checkDeliverySize() {
   }
   if (sizes.length > 0) {
     console.log(`Delivery size: ${sizes.join(" · ")}`);
+  }
+}
+
+/**
+ * The published source archive is read back, not trusted to the rule that wrote it.
+ *
+ * v1.48.1 shipped `CLAUDE.md` and `tools/i18n-manifest.json` inside it, because the build's file
+ * walk skipped a fixed list of directories and never consulted `.gitignore`. The build filters on
+ * git's answer now, so this gate exists to catch the next way that goes wrong: a stale archive, an
+ * edit to the walk, or a newly ignored file nobody thought about. Reading the bytes that would be
+ * published is the only check that can see all three.
+ */
+async function checkSourceArchiveContents() {
+  const relative = `dist/aviary-source-v${pkg.version}.zip`;
+  let names;
+  try {
+    names = zipEntryNames(new Uint8Array(await readFile(path.join(root, relative))));
+  } catch (error) {
+    failures.push(`${relative}: its entries cannot be read (${error.message})`);
+    return;
+  }
+
+  const { checked, ignored } = ignoredPaths(root, names);
+  if (!checked) {
+    warnings.push(
+      `${relative}: git could not report which paths it ignores, so the archive contents were not checked`
+    );
+    return;
+  }
+  for (const name of ignored) {
+    failures.push(
+      `${relative} ships ${name}, which git ignores. The archive is published, so it carries ` +
+        "checkout inputs only. Exclude it in the source walk in tools/build.mjs."
+    );
   }
 }
 
