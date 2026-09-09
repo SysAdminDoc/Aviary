@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Aviary for X
 // @namespace    https://github.com/SysAdminDoc
-// @version      1.49.3
+// @version      1.49.4
 // @description  Local-first X/Twitter enhancer with reversible controls and privacy-first defaults.
 // @author       SysAdminDoc
 // @homepage     https://github.com/SysAdminDoc/Aviary
@@ -3810,7 +3810,7 @@ ${body}
   }
 
   // src/platform/build-version.ts
-  var AVIARY_VERSION = false ? "dev" : "1.49.3";
+  var AVIARY_VERSION = false ? "dev" : "1.49.4";
 
   // src/platform/diagnostics.ts
   var UNKNOWN_DIAGNOSTIC_MESSAGE_ID = "diagnostic.unknown";
@@ -8400,7 +8400,7 @@ ${body}
   ];
 
   // src/ui/control-center.ts
-  var AVIARY_VERSION2 = false ? "dev" : "1.49.3";
+  var AVIARY_VERSION2 = false ? "dev" : "1.49.4";
   var SECTION_GROUP_BREAKS = {
     presets: [
       { before: "Quiet Reader", title: "Preset packs" },
@@ -34643,6 +34643,17 @@ ${COLOR_CSS}`;
       remove(key, fence) {
         return base.remove(scoped(key), fence);
       },
+      async measureCollections() {
+        const measured = await base.measureCollections?.();
+        if (!measured) return null;
+        const collections = measured.collections.filter((entry) => entry.key.startsWith(`${prefix}.`)).map((entry) => ({ ...entry, key: `aviary.${entry.key.slice(prefix.length + 1)}` }));
+        return {
+          collections,
+          totalBytes: collections.reduce((total, entry) => total + entry.bytes, 0),
+          // Browser usage includes origin overhead and remains separate from the profile total.
+          usageDetails: measured.usageDetails
+        };
+      },
       getStatus() {
         return base.getStatus?.() ?? {
           backend: "legacy",
@@ -35534,11 +35545,12 @@ ${COLOR_CSS}`;
         await underTheHoodStore.load();
       }
       const refreshLibraryStorage = () => {
-        void ctx.storage.measureCollections?.().then((measured) => {
-          libraryStorage = measured;
+        void Promise.resolve(ctx.storage.measureCollections?.()).then((measured) => {
+          libraryStorage = measured ?? null;
           controlCenter?.refresh?.();
         }).catch(() => {
           libraryStorage = null;
+          controlCenter?.refresh?.();
         });
       };
       refreshLibraryStorage();

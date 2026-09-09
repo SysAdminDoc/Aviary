@@ -3,7 +3,7 @@
   "name": "__MSG_extensionName__",
   "description": "__MSG_extensionDescription__",
   "default_locale": "en",
-  "version": "1.49.3",
+  "version": "1.49.4",
   "incognito": "not_allowed",
   "icons": {
     "16": "icons/icon-16.png",

@@ -206,14 +206,14 @@ export const controlCenterFeature: FeatureModule = {
       await underTheHoodStore.load();
     }
     const refreshLibraryStorage = (): void => {
-      void ctx.storage
-        .measureCollections?.()
+      void Promise.resolve(ctx.storage.measureCollections?.())
         .then((measured) => {
-          libraryStorage = measured;
+          libraryStorage = measured ?? null;
           controlCenter?.refresh?.();
         })
         .catch(() => {
           libraryStorage = null;
+          controlCenter?.refresh?.();
         });
     };
     refreshLibraryStorage();

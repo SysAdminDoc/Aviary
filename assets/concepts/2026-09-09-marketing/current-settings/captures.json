@@ -1,0 +1,112 @@
+{
+  "version": "1.49.4",
+  "capturedAt": "2026-09-09T21:07:13.759Z",
+  "method": "Installed Chromium MV3 package in an owned headless profile; synthetic X fixture; unchanged UI screenshots without normalized text or timestamps.",
+  "records": [
+    {
+      "file": "presets.png",
+      "section": "presets",
+      "width": 1440,
+      "height": 900,
+      "sha256": "498d708c9d72b8f9f91cb23c101c2dc728636af7015482c11d55f23d21c89179"
+    },
+    {
+      "file": "appearance.png",
+      "section": "appearance",
+      "width": 1440,
+      "height": 900,
+      "sha256": "1f97dad5892b8314b65fada6e5f2b0e6dcb4cae7176d5166e8bb74147e1e45a1"
+    },
+    {
+      "file": "layout.png",
+      "section": "layout",
+      "width": 1440,
+      "height": 900,
+      "sha256": "ebd35ea14dffd76f62fda89d8f716cf1990b7a9f3e0db0e30518cfe311f2f2c7"
+    },
+    {
+      "file": "filtering.png",
+      "section": "filtering",
+      "width": 1440,
+      "height": 900,
+      "sha256": "c32a63b04d98ad29d4f9e7504439399699be4d46e7064ffd8fcf76b16ce95834"
+    },
+    {
+      "file": "catchup.png",
+      "section": "catchup",
+      "width": 1440,
+      "height": 900,
+      "sha256": "c978497f903b6e2b81f81958ddd760bffa4e87c995a88ab185d6ae4c20d9144e"
+    },
+    {
+      "file": "hidden.png",
+      "section": "hidden",
+      "width": 1440,
+      "height": 900,
+      "sha256": "b5cd16ec86a39e3ed29c22c451191f5c9fdae1afe9e12f55eb39cee2f15aad8a"
+    },
+    {
+      "file": "performance.png",
+      "section": "performance",
+      "width": 1440,
+      "height": 900,
+      "sha256": "09e24f1f0f35dbca535179d5f58dde4a90656928c5c5b745a90657e844514948"
+    },
+    {
+      "file": "media.png",
+      "section": "media",
+      "width": 1440,
+      "height": 900,
+      "sha256": "6cb36360919953a4b0e02109902def0ab7bdf45b02595cc937231ac596c79bdd"
+    },
+    {
+      "file": "export.png",
+      "section": "export",
+      "width": 1440,
+      "height": 900,
+      "sha256": "e5728becc10e274830d760da5d0cdc059a26f7e912776a05d1ecc556303cb44a"
+    },
+    {
+      "file": "library.png",
+      "section": "library",
+      "width": 1440,
+      "height": 900,
+      "sha256": "bd1d235b7e5683a98d677f0fd2e700ae11b21501ad5119c0a0906fc2afdd8602"
+    },
+    {
+      "file": "snapshots.png",
+      "section": "snapshots",
+      "width": 1440,
+      "height": 900,
+      "sha256": "b46b621435d198858e5438834b064e8b0b2f05c045e8b4db201dca6fa3fd9634"
+    },
+    {
+      "file": "integrations.png",
+      "section": "integrations",
+      "width": 1440,
+      "height": 900,
+      "sha256": "6f0ae9da921b302735a9b22b6d8b8fa0919d64551ec9d72fffbb39f122ce6ffa"
+    },
+    {
+      "file": "backup.png",
+      "section": "backup",
+      "width": 1440,
+      "height": 900,
+      "sha256": "65225d401ba2a28ac3cc69a73d561fb5c3e99d45b05b6662ac330db42689ce0e"
+    },
+    {
+      "file": "trust.png",
+      "section": "trust",
+      "width": 1440,
+      "height": 900,
+      "sha256": "4fa60211fabef856f43e3ddef9d32715f1084d1935861f4a0fb2199a02116adf"
+    },
+    {
+      "file": "options.png",
+      "section": "options",
+      "width": 1440,
+      "height": 900,
+      "sha256": "d5eddbc2cab29b6c5bcbbbf0c647de168af8a91b1e6b2db7607bb8f4cf435a7a"
+    }
+  ]
+}

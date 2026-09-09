@@ -1,18 +1,24 @@
 # Aviary Privacy Manifest
 
-Updated: 2026-09-05 · release 1.49.3
+Updated: 2026-09-09 · release 1.49.4
 
 ## Defaults and network boundaries
 
 Aviary is local-first. The default build sends no telemetry, loads no remote code, exports no
 cookies or authentication headers, and makes no provider request. Default-on ad protection answers
-X's exact `/i/api/1.1/promoted_content/log.json` event locally in the userscript and blocks it with
+X's exact `/i/api/1.1/promoted_content/log.json` event locally when the userscript manager exposes
+the page world, and blocks it with
 a host-scoped session request rule for the enabled X tab in the extension before a network connection; it does
 not block HomeTimeline, media, login, or unrelated analytics traffic. Native sponsored records are
 delivered inside the same first-party timeline response as ordinary posts, so Aviary suppresses
 their rendering but cannot truthfully claim those bytes were absent. Optional page-world capture
 only observes bounded first-party GraphQL responses across X's `fetch` and `XMLHttpRequest`
 transports after you enable the relevant capture setting.
+
+Violentmonkey's content mode doesn't expose that page-world observer. Structural ad removal still
+runs, but promoted logging refusal, broader analytics refusal and direct video-variant discovery
+are unavailable in that mode. The extension uses its declared MAIN-world script instead. Trust
+reports the manager limitation; it must not be read as a claim that those requests were blocked.
 
 Passive capture does not start a timeline, profile, search, or GraphQL request. It watches a request
 X already made, keeps bounded response metadata, and never reads request cookies or authorization
@@ -78,6 +84,10 @@ run the content scripts or write Aviary records. A userscript has no standard pr
 signal; its private-mode persistence follows the manager and is reported as unknown.
 
 ## Data stored locally
+
+Library storage measurements count only collections in the active profile. Browser-reported
+origin usage is shown separately and can include other profiles and database overhead. Measurement
+doesn't transmit records or change them. An unavailable measurement is reported, not shown as zero.
 
 The logical keys below are stored in the active profile unless noted. The extension owns one IndexedDB database,
 `aviary.durable.v1`, in its background origin. Content scripts and options use a typed extension
@@ -195,11 +205,13 @@ action only opens the viewer; you decide which archive to load there.
 
 ## Clearing and uninstalling
 
-Use the Control Center clear actions listed above before sharing or retiring a profile. Removing an
-extension or userscript does not reliably erase browser storage, IndexedDB, downloaded files, or
-userscript-manager values; use the browser's extension/site-data controls and the manager's own
-storage controls for a complete wipe. Revoking optional `downloads` and media-host permissions is
-available from the extension's dedicated options page.
+Export a full library backup before removing the extension if you want to keep its records.
+Ordinary extension removal deletes its extension-owned storage and IndexedDB library. It doesn't
+delete files you downloaded. Userscript retention follows the manager, so use its storage controls
+to remove saved values. An interrupted migration from an older install may leave legacy X-origin
+data; review that separately without clearing unrelated X data. The Control Center clear actions
+remain available while installed. Optional `downloads` and media-host permissions can be revoked
+from the extension's dedicated Options page.
 
 Every feature is reversible: disabling it removes the DOM nodes, styles, observers, timers, and
 listeners it created. Aviary never auto-likes, auto-follows, posts, deletes, or syncs account data.

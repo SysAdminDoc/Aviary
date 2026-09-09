@@ -802,6 +802,10 @@ async function checkSourceArchiveContents() {
 
   // The declared floor is checked first, and without git, so the paths that are never source stay
   // refused even where the ignore rules cannot be read at all.
+  for (const size of [...extensionIconSizes, 512]) {
+    const icon = `src/extension/icons/icon-${size}.png`;
+    if (!names.includes(icon)) failures.push(`${relative} is missing the build input ${icon}`);
+  }
   for (const name of names.filter(isExcludedSourcePath)) {
     failures.push(
       `${relative} ships ${name}, which is never a checkout input. The archive is published; ` +

@@ -15,7 +15,7 @@ map, [FAQ.md](FAQ.md) for the selector-regression workflow and export tips.
 - MV3 promoted-logger rule: `src/extension/ad-rule.ts` (tab-scoped session rules synchronized to the
   resolved `privacy.blockAds` setting; the background prunes closed tabs and retires the old global
   dynamic rule; Firefox uses an event-page background plus an empty static compatibility set)
-- MV3 page-world entry: `src/entrypoints/extension-page.ts` (declared `"world": "MAIN"`; the userscript reaches the same place through `unsafeWindow`)
+- MV3 page-world entry: `src/entrypoints/extension-page.ts` (declared `"world": "MAIN"`; the userscript depends on its manager exposing the page through `unsafeWindow`)
 - Page bridge and agent: `src/platform/page-bridge.ts`, `src/page/page-agent.ts`
 - Document-start ad protection: `src/features/privacy/ad-protection.ts` plus the page-agent's exact
   promoted-content logger guard
@@ -90,17 +90,22 @@ API keys or raw prompts. Local-only mode and disabled integrations make zero pro
 
 Aviary can also refuse X's general analytics beacons, the tracking pings sent as you scroll,
 click and pause. That broader privacy control is off by default. Ad protection is separate: the
-  userscript answers only X's exact promoted-content logger locally at document start, while the
+  userscript answers only X's exact promoted-content logger locally at document start when the
+  manager exposes the page world, while the
   extension blocks the same URL before a connection through one host-scoped session rule for each
   enabled X tab. Timeline, media, login, and unrelated analytics traffic stay untouched. Turning
   off **Block ads** removes that tab's rule immediately; another tab's setting is unchanged. Closing
   or leaving X removes the rule, and a worker startup prunes any rule whose tab no longer exists.
 
+Violentmonkey's content mode cannot install the page-world observer. Its structural ad removal and
+local controls work, but promoted logging refusal, analytics refusal and direct video-variant
+discovery are unavailable. See [INSTALL.md](INSTALL.md) before choosing the userscript route.
+
 ## Desktop ad protection
 
 - Starts at document start in both the userscript and MV3 builds and is enabled by default.
 - Prevents the separable `/i/api/1.1/promoted_content/log.json` event from reaching the network
-  through page `fetch`, XHR, or `sendBeacon`.
+  through page `fetch`, XHR, or `sendBeacon` in the extension and page-world-capable userscript managers.
 - Removes native `Ad` units, paid partnerships, promoted trends, Grok/Premium house promos, and
   visible video-ad containers, then collapses the owning timeline cell so no reserved gap remains.
 - Re-runs after client-side navigation and delayed timeline insertion, and reverses cleanly when
@@ -370,7 +375,7 @@ The audit log lives entirely in local storage. It never leaves the browser unles
 
 The Control Center "Library" section exposes:
 
-- **Library storage**, the measured size of each stored collection and their total. This is Aviary's
+- **Library storage**, the measured size of each stored collection in the active profile and their total. This is Aviary's
   own measurement, taken by weighing every stored value; it is not the browser's usage figure, which
   counts index overhead and every other store on the origin and which the Storage Standard describes
   as approximate. Where the browser publishes a per-type split it is shown beside the measurement,

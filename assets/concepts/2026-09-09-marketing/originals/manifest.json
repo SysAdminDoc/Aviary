@@ -1,0 +1,3881 @@
+{
+  "project": "SysAdminDoc/Aviary",
+  "nodeId": "R_kgDOSop1gg",
+  "originalCommit": "586baf06b4d28abfd8b0c5dd5ffd20329b9a6859",
+  "archive": {
+    "name": "source-586baf0.zip",
+    "bytes": 113912607,
+    "sha256": "de9e40c3e5a5012811745e2de7589cfa6fbaccbb1a2345fbdc1970e87072f2ac",
+    "parts": [
+      {
+        "file": "source-586baf0.zip.001.part",
+        "bytes": 33554432,
+        "sha256": "1b7f20b20b1f8efb8120b6420d258b59a957a5f8be9c94e78ddfe4234473fa87"
+      },
+      {
+        "file": "source-586baf0.zip.002.part",
+        "bytes": 33554432,
+        "sha256": "6808b4347f9e3245b4f6111190da85072d9ac9b4254be8ad63bf071aeee9f2f1"
+      },
+      {
+        "file": "source-586baf0.zip.003.part",
+        "bytes": 33554432,
+        "sha256": "e22aff1fc2075bbd3303891079808f3dc7f1994f50d42876325557192e3ab65b"
+      },
+      {
+        "file": "source-586baf0.zip.004.part",
+        "bytes": 13249311,
+        "sha256": "8c8cb4043d4a9cee3f95e17d400fecc559e3812594941292cc0e00612ac15c07"
+      }
+    ]
+  },
+  "originalFiles": [
+    {
+      "path": ".editorconfig",
+      "oid": "1014ba78880c899e842b397cb89a878be4671f7d",
+      "size": 188
+    },
+    {
+      "path": ".gitattributes",
+      "oid": "9b5b99ec3b06476a954dc035fa278b5f62f9b635",
+      "size": 789
+    },
+    {
+      "path": ".github/ISSUE_TEMPLATE/bug_report.yml",
+      "oid": "8616962f813f2e211e63baf8e527c6e74f6c880e",
+      "size": 2881
+    },
+    {
+      "path": ".github/ISSUE_TEMPLATE/feature_request.yml",
+      "oid": "710e5c3637375975042e369ba97007f272876903",
+      "size": 1322
+    },
+    {
+      "path": ".github/pull_request_template.md",
+      "oid": "f29ed285e7091c91cc46b321578b484c70b56c28",
+      "size": 1197
+    },
+    {
+      "path": ".gitignore",
+      "oid": "c232bf1e3a54a456cb07fb66f439c8e644c06b31",
+      "size": 1567
+    },
+    {
+      "path": ".node-version",
+      "oid": "8dfc5cb1af4fe407284fe35ad911a6679add3a49",
+      "size": 8
+    },
+    {
+      "path": "CHANGELOG.md",
+      "oid": "4b8cae4609365f652c0d12ec38a439d49a8c0bd4",
+      "size": 316467
+    },
+    {
+      "path": "LICENSE",
+      "oid": "657fe0a1e0ba5cf66989a901bc3caa2718c6730a",
+      "size": 1076
+    },
+    {
+      "path": "LOGO_PROMPTS.md",
+      "oid": "a7cf36f9dcf5043817319630e1bf862252cca191",
+      "size": 9539
+    },
+    {
+      "path": "README.md",
+      "oid": "ac6dc5dccab6b9dbb1bab566db591a2da99058e6",
+      "size": 23225
+    },
+    {
+      "path": "RESEARCH.md",
+      "oid": "a98db24451aff17c531db496eedfd08b2bb2187f",
+      "size": 27723
+    },
+    {
+      "path": "ROADMAP.md",
+      "oid": "c363786e4d12a0a6ebf63227eef574a7d7864c81",
+      "size": 474
+    },
+    {
+      "path": "Roadmap_Blocked.md",
+      "oid": "0032172653e4e1e313289a8a4c49e4eed837f517",
+      "size": 26800
+    },
+    {
+      "path": "_decoded/dom-schema.json",
+      "oid": "5061068f52fbf0491ace61e2f8aca57b08797147",
+      "size": 14047
+    },
+    {
+      "path": "design-qa.md",
+      "oid": "16515bb63085d0f429c434ef23f019d727ec2654",
+      "size": 5340
+    },
+    {
+      "path": "dist/README.md",
+      "oid": "ac6dc5dccab6b9dbb1bab566db591a2da99058e6",
+      "size": 23225
+    },
+    {
+      "path": "dist/aviary-source-v1.49.3.zip",
+      "oid": "4c26ff12b8a4b7f5eb9685b37dea71a738f679b4",
+      "size": 6156439
+    },
+    {
+      "path": "dist/aviary.meta.js",
+      "oid": "ebe0c240967e0a7fac3d587e494b61906248ec32",
+      "size": 924
+    },
+    {
+      "path": "dist/aviary.user.js",
+      "oid": "4209025e79398a7040e9bd4cc326f91544e090aa",
+      "size": 2706249
+    },
+    {
+      "path": "dist/build-info.json",
+      "oid": "d4bb63954b544037511d4f01e818343692469464",
+      "size": 495
+    },
+    {
+      "path": "docs/FAQ.md",
+      "oid": "05f33a6a19e7469b13021ebb333f5f8bace3b37f",
+      "size": 30436
+    },
+    {
+      "path": "docs/FEATURES.md",
+      "oid": "c4b457131dca9081d7d9c587f69609462d6ce8c9",
+      "size": 42133
+    },
+    {
+      "path": "docs/INSTALL.md",
+      "oid": "915e071dad2adf527254c7e2a63ac73c5a4e94e7",
+      "size": 13821
+    },
+    {
+      "path": "docs/PRIVACY.md",
+      "oid": "159b72158b092544554b3d847b4776ef4491ffe5",
+      "size": 20057
+    },
+    {
+      "path": "docs/audit/2026-08-13/clutter-review/01-home-baseline.png",
+      "oid": "c250a15f828f2a75b7d5289374e3028efa1c8a43",
+      "size": 96284
+    },
+    {
+      "path": "docs/audit/2026-08-13/clutter-review/02-home-scrolled.png",
+      "oid": "421f7e6543c9b140bab64eb3ca7c5f08238f3748",
+      "size": 119364
+    },
+    {
+      "path": "docs/audit/2026-08-13/live-noir/01-before.png",
+      "oid": "6c0d62ef1cd8d297c8cb81663c23ffd66e9bc777",
+      "size": 118749
+    },
+    {
+      "path": "docs/audit/2026-08-13/live-noir/02-noir-focused.png",
+      "oid": "266d9e28fb11c40b011e70e36418d7fe8e1c79d7",
+      "size": 83635
+    },
+    {
+      "path": "docs/audit/2026-08-13/live-noir/03-noir-focused-balanced.png",
+      "oid": "c42899daa7e257c604a1ebb8f37097ae7b3706c2",
+      "size": 89871
+    },
+    {
+      "path": "docs/audit/2026-08-13/live-noir/04-noir-focused-compact-rail.png",
+      "oid": "c8200325efca3ca49167c310278d684384132403",
+      "size": 68886
+    },
+    {
+      "path": "docs/audit/2026-08-13/live-noir/05-noir-focused-live.png",
+      "oid": "93b269da006268b3a43e89aec795d8b331317763",
+      "size": 75612
+    },
+    {
+      "path": "docs/audit/2026-08-13/live-noir/06-noir-focused-scrolled.png",
+      "oid": "2d132f7ed9dbb257e40dbd686f6b7ac9661ff0ff",
+      "size": 62879
+    },
+    {
+      "path": "docs/audit/2026-08-13/live-noir/07-noir-focused-final.png",
+      "oid": "be9d9a2bcc1fb7f1590dbc768d2c4f58465af853",
+      "size": 68989
+    },
+    {
+      "path": "docs/audit/2026-08-13/live-noir/08-noir-focused-live-final.png",
+      "oid": "a490060db7981154ddcc90c703555641864cac4e",
+      "size": 51915
+    },
+    {
+      "path": "docs/audit/2026-08-13/noir-home-1440x900.png",
+      "oid": "c8ec0676d111ec9267f10336b27df8bda26e1b3a",
+      "size": 310018
+    },
+    {
+      "path": "docs/audit/2026-08-13/noir-home-1920x1080.png",
+      "oid": "92c1cdeb6e3b009c6ed1d6629c5cba0990b848cd",
+      "size": 409706
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-after-wide/control-center-appearance-1920x1080.png",
+      "oid": "b3a15b4bb8ddfe8109fdb38761ce010743dc1d11",
+      "size": 137586
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-after-wide/control-center-backup-1920x1080.png",
+      "oid": "b6f127e1f0cf2821a5ab3b756fcea6d1f8bd3b15",
+      "size": 169814
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-after-wide/control-center-export-1920x1080.png",
+      "oid": "2d385198af5f70ac81f3ebf8912b132f15945e9c",
+      "size": 145323
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-after-wide/control-center-filtering-1920x1080.png",
+      "oid": "91863265ac2bf6f8d2436659cbf5f5611c6ca2bf",
+      "size": 118608
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-after-wide/control-center-hidden-1920x1080.png",
+      "oid": "2ae255483ca0e1f1a110cff5c8b710231ccea656",
+      "size": 127602
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-after-wide/control-center-integrations-1920x1080.png",
+      "oid": "27e8197cd3e19b6a33125301deff781088eb5868",
+      "size": 143969
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-after-wide/control-center-layout-1920x1080.png",
+      "oid": "f6fa85f13f5ea0972bf01406a04878bd399d3540",
+      "size": 142169
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-after-wide/control-center-library-1920x1080.png",
+      "oid": "ac807893bfe304c8318bc56b2d0181bcf8f8017f",
+      "size": 148716
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-after-wide/control-center-media-1920x1080.png",
+      "oid": "589239427c85e1a3dec59c0fafc2c5bbd0f8c7d1",
+      "size": 139009
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-after-wide/control-center-performance-1920x1080.png",
+      "oid": "e3c1bb61d209dc05d25559cecc7ce82b01453383",
+      "size": 107226
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-after-wide/control-center-presets-1920x1080.png",
+      "oid": "de490905f1ee231abbafdf8e7b29fa7715f20489",
+      "size": 165241
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-after-wide/control-center-snapshots-1920x1080.png",
+      "oid": "c0bd0619c2a4bab1e160de87738f69187b4e74d5",
+      "size": 161356
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-after-wide/control-center-trust-1920x1080.png",
+      "oid": "72c73afe74def0323c98c6820bbabad6ef3e8e6b",
+      "size": 141826
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-after-wide/extension-options-1920x1080.png",
+      "oid": "0cb3224c8b179797e3e0bc5bce9b08d49d0fa695",
+      "size": 144984
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-after/control-center-appearance-1440x900.png",
+      "oid": "7594b3215c86c7f7d1b159f657537603045a8541",
+      "size": 121866
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-after/control-center-backup-1440x900.png",
+      "oid": "064d92a0111084f477187a924e0991072da766f3",
+      "size": 153852
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-after/control-center-export-1440x900.png",
+      "oid": "b178f3a73f779e4be28be67988d2b6c42e7d2e07",
+      "size": 129939
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-after/control-center-filtering-1440x900.png",
+      "oid": "bb5adb24543fd7468310ec9d21ce11cb87c2a988",
+      "size": 103290
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-after/control-center-hidden-1440x900.png",
+      "oid": "cc880d12972b239d6ed5de2cb75d9294d2b1e49f",
+      "size": 112353
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-after/control-center-integrations-1440x900.png",
+      "oid": "bda0bb1fd5845cd63c20fafa1809f8a0f4ff481b",
+      "size": 128418
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-after/control-center-layout-1440x900.png",
+      "oid": "0a4a1cdc4b3a82b1ef56fb98e954629e3f0a7951",
+      "size": 127022
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-after/control-center-library-1440x900.png",
+      "oid": "4d1684ee7bc987b01e6fe1199d15cb240cedd860",
+      "size": 133026
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-after/control-center-media-1440x900.png",
+      "oid": "b0151cc9bc45de18a7410038928fbeac20eb3b7e",
+      "size": 123936
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-after/control-center-performance-1440x900.png",
+      "oid": "a4a43cdf9d11db33de5f5784cfa282a8cd6a9e0b",
+      "size": 92610
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-after/control-center-presets-1440x900.png",
+      "oid": "ff1d0184af6dda6ee42aef79dd9ca7a942b53ed9",
+      "size": 149408
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-after/control-center-snapshots-1440x900.png",
+      "oid": "dfbb88f2f7fa23107d3e827074592a53a04a0d73",
+      "size": 145440
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-after/control-center-trust-1440x900.png",
+      "oid": "73cfd7c82601761fdf9ecb6de723227b215871f4",
+      "size": 126852
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-after/extension-options-1440x900.png",
+      "oid": "ab66499d38f1fd76af1277a673902b83c461c320",
+      "size": 108070
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-before/control-center-appearance-1440x900.png",
+      "oid": "d4cf0f46890c46dc852eed0b5407c5e00d1f4814",
+      "size": 114748
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-before/control-center-backup-1440x900.png",
+      "oid": "1a4f1ae9122d5e3b92ce10e27317988bb0870c47",
+      "size": 136002
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-before/control-center-export-1440x900.png",
+      "oid": "f69729e51ce29f67f2b4e4a682243fddac972bac",
+      "size": 114379
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-before/control-center-filtering-1440x900.png",
+      "oid": "0a2d7e577f5df1c596b2507f013e8892465a20e2",
+      "size": 85774
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-before/control-center-hidden-1440x900.png",
+      "oid": "2c6ea6daa6a34cc61e10e6d74b8dc3463d87bf80",
+      "size": 103290
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-before/control-center-integrations-1440x900.png",
+      "oid": "cf4274066bfb62fb6f66d79494bc674a93c72b6f",
+      "size": 98756
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-before/control-center-layout-1440x900.png",
+      "oid": "15fbd31d335e06cfce1497f7e02b80cd78660cb5",
+      "size": 108078
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-before/control-center-library-1440x900.png",
+      "oid": "698961a91c23650f318f80ad73dd942f45bc9718",
+      "size": 118515
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-before/control-center-media-1440x900.png",
+      "oid": "508f302d4fbfa115dd6145220cd40e5287224732",
+      "size": 116700
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-before/control-center-performance-1440x900.png",
+      "oid": "cb8a2514829a34b16c28348096db79001cdf24ba",
+      "size": 88198
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-before/control-center-presets-1440x900.png",
+      "oid": "36e84ce6ec500bc9b75f1b901395fde40e09f039",
+      "size": 135678
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-before/control-center-snapshots-1440x900.png",
+      "oid": "cce88c94b778702e859ecbcb107558a8de55e951",
+      "size": 137333
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-before/control-center-trust-1440x900.png",
+      "oid": "614dd99ff0a8877aac10209c0983f09a7991dbd1",
+      "size": 142426
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-before/extension-options-1440x900.png",
+      "oid": "6aad64af7a31a1f2cb7bcb2773d65804866f9807",
+      "size": 43466
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-parity/control-center-appearance-overlay.png",
+      "oid": "e5ba258e1a4135f3ae2773f4bad7f0061f954475",
+      "size": 791182
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-parity/control-center-backup-overlay.png",
+      "oid": "d44c6d4eb97110dd74fd055083a050e56ed23613",
+      "size": 900336
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-parity/control-center-export-overlay.png",
+      "oid": "942bd7694c9a0835b5a760cf082c96a9c3c05785",
+      "size": 846221
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-parity/control-center-filtering-overlay.png",
+      "oid": "38988eadf0e523af056e57dde7153797a980e487",
+      "size": 809417
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-parity/control-center-hidden-overlay.png",
+      "oid": "67a18bd04b9fc37dc7d863ad5687a604a6425ceb",
+      "size": 799022
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-parity/control-center-integrations-overlay.png",
+      "oid": "0146f95a993963d4a310af4e043aea69565603e7",
+      "size": 837610
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-parity/control-center-layout-overlay.png",
+      "oid": "4a9e7701c51d2f50a4394fce6185efd2291f4dee",
+      "size": 805643
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-parity/control-center-library-overlay.png",
+      "oid": "e93864338aa9b1c012402ddd65fc21c2c102aea0",
+      "size": 836720
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-parity/control-center-media-overlay.png",
+      "oid": "2e257d2b1a3693e36586d6ce5b1a11d65fe656a1",
+      "size": 785131
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-parity/control-center-performance-overlay.png",
+      "oid": "2db7ce5b03f5e05e569dc04a8635b7e29f176e56",
+      "size": 774706
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-parity/control-center-presets-overlay.png",
+      "oid": "377e87d3ee007ef8a210c21c1cf74a6967cfe927",
+      "size": 827906
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-parity/control-center-snapshots-overlay.png",
+      "oid": "16178720807be90965551f35149398eba6b6ce57",
+      "size": 910548
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-parity/control-center-trust-overlay.png",
+      "oid": "78cab65253347d00fa7303e9493a01e264e0a957",
+      "size": 823883
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-parity/extension-options-overlay.png",
+      "oid": "9313cda06c58f1a8994aaa4423910bb19d7f3692",
+      "size": 782270
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-v1.19-1440/control-center-appearance-1440x900.png",
+      "oid": "201cbd67df5d0632e5a0ddaebf0494ed8b1556c2",
+      "size": 128766
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-v1.19-1440/control-center-backup-1440x900.png",
+      "oid": "b7c49b3c5982f404e2c0741350b4075307cd4f8f",
+      "size": 153836
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-v1.19-1440/control-center-export-1440x900.png",
+      "oid": "6c2562a4fdef969db7200db06fbaa9f2b81c5cf3",
+      "size": 129935
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-v1.19-1440/control-center-filtering-1440x900.png",
+      "oid": "4f5b4ee5560976f729177af72bebb513f2f666b7",
+      "size": 103295
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-v1.19-1440/control-center-hidden-1440x900.png",
+      "oid": "92a83075f1353fa802d513bedecbb54346a031ac",
+      "size": 112367
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-v1.19-1440/control-center-integrations-1440x900.png",
+      "oid": "b7542db166ba99b1b491351beed7a5a81ddeae51",
+      "size": 128393
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-v1.19-1440/control-center-layout-1440x900.png",
+      "oid": "2ee868bc866bdd8a5824fd278ec75aafa8d460fe",
+      "size": 127001
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-v1.19-1440/control-center-library-1440x900.png",
+      "oid": "36d49d6486e4ab573563e804bbc0581e9d4a3dae",
+      "size": 133037
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-v1.19-1440/control-center-media-1440x900.png",
+      "oid": "e6fdd68cb9b2bf066f67bf6b7037ebfcefb074f6",
+      "size": 123913
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-v1.19-1440/control-center-performance-1440x900.png",
+      "oid": "74d072b65705c3c5f6e677145da3ab5e1ed88d15",
+      "size": 92613
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-v1.19-1440/control-center-presets-1440x900.png",
+      "oid": "3a0711a7ba22fdde1731ad0e61ecfeb62235985b",
+      "size": 149384
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-v1.19-1440/control-center-snapshots-1440x900.png",
+      "oid": "aa3378c8b64293d9f8e1857a5532dbff6f2b8503",
+      "size": 145446
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-v1.19-1440/control-center-trust-1440x900.png",
+      "oid": "e1bc7af6f5d5df8b7143713664cbcfa738ae7450",
+      "size": 126847
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-v1.19-1440/extension-options-1440x900.png",
+      "oid": "cfc13ba70697cc4af4753c3e53428ba7e9cb12c8",
+      "size": 108047
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-v1.19-1920/control-center-appearance-1920x1080.png",
+      "oid": "35c9e150ac4a522501aed38b3f3f009a91744df3",
+      "size": 143885
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-v1.19-1920/control-center-backup-1920x1080.png",
+      "oid": "8c8c05e1be768a3df06915f38adcc79f94b3767c",
+      "size": 169825
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-v1.19-1920/control-center-export-1920x1080.png",
+      "oid": "7f00d1321917e394376614df9fb06f2ef5551974",
+      "size": 145333
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-v1.19-1920/control-center-filtering-1920x1080.png",
+      "oid": "b45891ec3f38530f06897d97129395a585e50871",
+      "size": 118624
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-v1.19-1920/control-center-hidden-1920x1080.png",
+      "oid": "232ac2b175fd6fce2f7747f35524dd90d284b03a",
+      "size": 127593
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-v1.19-1920/control-center-integrations-1920x1080.png",
+      "oid": "c487f678cd4b0cdbed385ae86385dad6e127b010",
+      "size": 143978
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-v1.19-1920/control-center-layout-1920x1080.png",
+      "oid": "dd64a27061577845101d7e82fd7ef7d9006074c7",
+      "size": 142163
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-v1.19-1920/control-center-library-1920x1080.png",
+      "oid": "6830aa959720ea5cffa9b3ecb2e2dbf1a85ca100",
+      "size": 148737
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-v1.19-1920/control-center-media-1920x1080.png",
+      "oid": "4a6619da51e38bf7f4ddee6e3f1e5a8293f8ba61",
+      "size": 139018
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-v1.19-1920/control-center-performance-1920x1080.png",
+      "oid": "279ec4b39ce1592d8caa39f00e9ba28937324d5a",
+      "size": 107236
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-v1.19-1920/control-center-presets-1920x1080.png",
+      "oid": "51652aa523d43a49724ac2404a92a0d3435b2aed",
+      "size": 165252
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-v1.19-1920/control-center-snapshots-1920x1080.png",
+      "oid": "c90aabfaa8ffd79c2e836eb51842e5cf849a1a88",
+      "size": 161366
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-v1.19-1920/control-center-trust-1920x1080.png",
+      "oid": "72f9947d9b06bca365c4601a9ba130a6b7338987",
+      "size": 141837
+    },
+    {
+      "path": "docs/audit/2026-08-13/settings-v1.19-1920/extension-options-1920x1080.png",
+      "oid": "8b1c955670ea82908d6992153e34713227c0354c",
+      "size": 144964
+    },
+    {
+      "path": "docs/audit/2026-08-13/theme-matrix/dim-1440x900.png",
+      "oid": "ba3b93e5e30d3dad122c7ff4cad67acd4591156f",
+      "size": 28754
+    },
+    {
+      "path": "docs/audit/2026-08-13/theme-matrix/dim-1920x1080.png",
+      "oid": "c92c0777e8dd6ada3a0bdce319be852485cce139",
+      "size": 31689
+    },
+    {
+      "path": "docs/audit/2026-08-13/theme-matrix/graphite-1440x900.png",
+      "oid": "9787ed8a53d8090591aef9b99dc9cbef4a278d9f",
+      "size": 28645
+    },
+    {
+      "path": "docs/audit/2026-08-13/theme-matrix/graphite-1920x1080.png",
+      "oid": "602638cc35181523b17aad424a12f7116f8c9a90",
+      "size": 31650
+    },
+    {
+      "path": "docs/audit/2026-08-13/theme-matrix/lightsOut-1440x900.png",
+      "oid": "6dbd3f5693f422260dfc9701e63edb3758bbb766",
+      "size": 28529
+    },
+    {
+      "path": "docs/audit/2026-08-13/theme-matrix/lightsOut-1920x1080.png",
+      "oid": "a694e13d4f6a46e815b63e865d1eea1363953474",
+      "size": 31517
+    },
+    {
+      "path": "docs/audit/2026-08-13/theme-matrix/midnight-1440x900.png",
+      "oid": "82e3eb2c457fbb74eef439732f38609be2f1cd34",
+      "size": 28996
+    },
+    {
+      "path": "docs/audit/2026-08-13/theme-matrix/midnight-1920x1080.png",
+      "oid": "5358547b8c9472ee722022e2582cce91e98629b9",
+      "size": 31986
+    },
+    {
+      "path": "docs/audit/2026-08-13/theme-matrix/noir-1440x900.png",
+      "oid": "6c68ce1d306af74e24775d7b5ee2ffae2cc38133",
+      "size": 157679
+    },
+    {
+      "path": "docs/audit/2026-08-13/theme-matrix/noir-1920x1080.png",
+      "oid": "c2664bdd97d0f328fa08dfefc1956dbef2c356e4",
+      "size": 164085
+    },
+    {
+      "path": "docs/audit/2026-08-13/theme-matrix/plum-1440x900.png",
+      "oid": "6bf2f11ee5c83851c5ee23fc812db00665e8c54d",
+      "size": 28734
+    },
+    {
+      "path": "docs/audit/2026-08-13/theme-matrix/plum-1920x1080.png",
+      "oid": "ae5a6cdcbf60d213629444495d36ef3f8d70baa8",
+      "size": 31700
+    },
+    {
+      "path": "docs/audit/2026-08-14/live-x-noir-inspection/01-home-noir.png",
+      "oid": "55d577c6807f786a03dee7b4946db9cc53c6cc29",
+      "size": 73445
+    },
+    {
+      "path": "docs/audit/2026-08-14/live-x-noir-inspection/02-live-appearance-panel.png",
+      "oid": "8b0c475b0bb372955fcc95db25799cc7fd009775",
+      "size": 85089
+    },
+    {
+      "path": "docs/audit/2026-08-16/media-download-action-mobile.png",
+      "oid": "b2790a111d6c02aeebcc08d58b13c0a562314d9a",
+      "size": 59034
+    },
+    {
+      "path": "docs/audit/2026-08-16/media-download-action.png",
+      "oid": "5d3ad238651cb46e9d775dd3c5798e74335fed1c",
+      "size": 107635
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-baseline/control-center-appearance-1440x900.png",
+      "oid": "ccfcb9e1ea0b6da5d228d9837bae86b08364e2b7",
+      "size": 151411
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-baseline/control-center-appearance-light-1440x900.png",
+      "oid": "ae37ec63c97b22b23c982d7c6d71e2bd6ff5d798",
+      "size": 160290
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-baseline/control-center-backup-1440x900.png",
+      "oid": "f2acc40bfe0e076a6cd0769b2f42f8b9cc90f313",
+      "size": 168050
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-baseline/control-center-backup-light-1440x900.png",
+      "oid": "81d2447d0c33d0114350b97f8b94e4a9a61565fe",
+      "size": 177020
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-baseline/control-center-catchup-1440x900.png",
+      "oid": "5cfb669f9ee2b6b3eb5b1431377facfd83a6025c",
+      "size": 97447
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-baseline/control-center-catchup-light-1440x900.png",
+      "oid": "3e4058c3a4758e4717fb1a58ca196d657c3c7ec3",
+      "size": 105384
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-baseline/control-center-export-1440x900.png",
+      "oid": "033a60c59cda2679c7479e0c0bba77ef85cd00ce",
+      "size": 141700
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-baseline/control-center-export-light-1440x900.png",
+      "oid": "14388928286184afdf882dde7770a58cd09f971a",
+      "size": 150248
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-baseline/control-center-filtering-1440x900.png",
+      "oid": "05b22e66922e76338546c96a91b8dd78cef6fc60",
+      "size": 141843
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-baseline/control-center-filtering-light-1440x900.png",
+      "oid": "73282de2e82a61a6d9f5c0abc6df80998c63bc8d",
+      "size": 150465
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-baseline/control-center-hidden-1440x900.png",
+      "oid": "823e0febefd21a810ce0fc2925602aadc8550ab4",
+      "size": 121405
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-baseline/control-center-hidden-light-1440x900.png",
+      "oid": "caa0591ae2877338ca30b32561fcfbdb7f272b33",
+      "size": 130414
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-baseline/control-center-integrations-1440x900.png",
+      "oid": "8ce99eddf8884655191e767c7fc7839cf2f16e40",
+      "size": 138963
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-baseline/control-center-integrations-light-1440x900.png",
+      "oid": "d795c3d198861b69237a5036423a317690bb4140",
+      "size": 147745
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-baseline/control-center-layout-1440x900.png",
+      "oid": "1cf508526fcd552650509b6e2f4d892e6f824a06",
+      "size": 159995
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-baseline/control-center-layout-light-1440x900.png",
+      "oid": "18f3e836d6a23b3e9634667109992aa95eddb2f2",
+      "size": 168827
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-baseline/control-center-library-1440x900.png",
+      "oid": "170f3657daa9efee65815278f64fd61eea52c6de",
+      "size": 157568
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-baseline/control-center-library-light-1440x900.png",
+      "oid": "234ebd49fe2750a266b570498b3852b4e83c3170",
+      "size": 166431
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-baseline/control-center-media-1440x900.png",
+      "oid": "3ff4ac3134e8bca7bbac9941ad7538aab5e9e83d",
+      "size": 143558
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-baseline/control-center-media-light-1440x900.png",
+      "oid": "8413d86ec0ed4012445f51482eccea819f35846d",
+      "size": 152039
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-baseline/control-center-performance-1440x900.png",
+      "oid": "fb4dd694e28d377858e1a22a8076ba0acdf95be6",
+      "size": 117726
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-baseline/control-center-performance-light-1440x900.png",
+      "oid": "311a5a6b4654099306569852d8979d9c94a4d1ea",
+      "size": 126000
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-baseline/control-center-presets-1440x900.png",
+      "oid": "be697cd117ee72c8c581f7f784cec6c6f7d09975",
+      "size": 169037
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-baseline/control-center-presets-light-1440x900.png",
+      "oid": "5aec6b5de245a2dcafdc6cd2dee68d1b7f9c20be",
+      "size": 177989
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-baseline/control-center-snapshots-1440x900.png",
+      "oid": "fecbf76ba869be7f298b32741fb5b8ad5ff0812f",
+      "size": 165049
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-baseline/control-center-snapshots-light-1440x900.png",
+      "oid": "7230bceb3fc5c807939d151b6478e315f0592470",
+      "size": 174063
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-baseline/control-center-trust-1440x900.png",
+      "oid": "a1b604c9371089225f044d004942c9ff52ee2161",
+      "size": 156525
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-baseline/control-center-trust-light-1440x900.png",
+      "oid": "3570980705f47b888a55478f42ab301755bf1d80",
+      "size": 165150
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-baseline/extension-options-1440x900.png",
+      "oid": "c516a2c254212d4549cd11164743911aa300e1e8",
+      "size": 51984
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-baseline/extension-options-light-1440x900.png",
+      "oid": "c516a2c254212d4549cd11164743911aa300e1e8",
+      "size": 51984
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-baseline/media-download-desktop.png",
+      "oid": "2c7c718623a7d076e21aa1100532d4d5335a7d14",
+      "size": 106962
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-baseline/media-download-mobile.png",
+      "oid": "f74d285d1b4b9cc80fa415d21977b362a66e7a53",
+      "size": 54527
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-baseline/x-home-comfortable-dark-1920x1080.png",
+      "oid": "8ae1749e184c3f7c36bd2594d5b60895bb184611",
+      "size": 520936
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-baseline/x-home-wide-dark-1440x900.png",
+      "oid": "b9f76ad62392b0e62b32cdd2107af62256e19906",
+      "size": 652581
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-baseline/x-status-wide-dark-1440x900.png",
+      "oid": "da168e616f7a132d8227606707757a753abb5213",
+      "size": 565302
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-baseline/x-status-wide-dark-1920x1080.png",
+      "oid": "d9614195561dd5453dcd323aab44f304101670d7",
+      "size": 580282
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-final/control-center-appearance-1440x900.png",
+      "oid": "9914f7abe8d318ea683d6b3c062139bc5e0658e5",
+      "size": 166039
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-final/control-center-appearance-light-1440x900.png",
+      "oid": "32a9afb346ea28f179fd57f42dde2799d20c1925",
+      "size": 172990
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-final/control-center-backup-1440x900.png",
+      "oid": "775a250a30d76d2bad0da5241226f17e6b6d8be8",
+      "size": 183347
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-final/control-center-backup-light-1440x900.png",
+      "oid": "be08dabf1246d72f389dc2228dab9a09eaca9df9",
+      "size": 190393
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-final/control-center-catchup-1440x900.png",
+      "oid": "9d327cbeff6bb21995ef83e166e23bbd53249fe2",
+      "size": 98686
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-final/control-center-catchup-light-1440x900.png",
+      "oid": "c4fd31dc414327f4d795d879b205384737c011a2",
+      "size": 105657
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-final/control-center-export-1440x900.png",
+      "oid": "a5b2dbe87c9256c016606763e86d5f76f543ed4c",
+      "size": 158518
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-final/control-center-export-light-1440x900.png",
+      "oid": "5a52c736120cf876fe9e441d80578bf1464d0bac",
+      "size": 165015
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-final/control-center-filtering-1440x900.png",
+      "oid": "e59fdc02f394ab958b0014e82962d7779654c5ee",
+      "size": 149767
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-final/control-center-filtering-light-1440x900.png",
+      "oid": "98c9c6dcdd64e9ffa2e45347dad593107f7b306a",
+      "size": 156332
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-final/control-center-hidden-1440x900.png",
+      "oid": "30fd32e3911ba2b37734c820d544bff0009c7bd8",
+      "size": 123671
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-final/control-center-hidden-light-1440x900.png",
+      "oid": "1650248a98540b206a0b010f386d14ccac980624",
+      "size": 130782
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-final/control-center-integrations-1440x900.png",
+      "oid": "7cc7645cca20d6adf3bdc875f445c82c0f490fea",
+      "size": 147201
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-final/control-center-integrations-light-1440x900.png",
+      "oid": "c0f75f18553f9f79ad45ab9c82b8c869979e4655",
+      "size": 154372
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-final/control-center-layout-1440x900.png",
+      "oid": "220066bb9f0429615e23cf0517b8ae4ff708a2a1",
+      "size": 184656
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-final/control-center-layout-light-1440x900.png",
+      "oid": "f87f6b9ec53aebae77e4ab1ec602bee83fbec218",
+      "size": 191869
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-final/control-center-library-1440x900.png",
+      "oid": "45a4dc09b70c60465b7416561764ee444cdb450d",
+      "size": 175266
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-final/control-center-library-light-1440x900.png",
+      "oid": "6bb51d4115e516b00d747a14ae32b32633dd7c16",
+      "size": 181844
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-final/control-center-media-1440x900.png",
+      "oid": "1bd2194edb74e0e38a385a89f4ed0176e4927dee",
+      "size": 161276
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-final/control-center-media-light-1440x900.png",
+      "oid": "2043fd8b739dd524490ccf9818edfaeb8b150808",
+      "size": 168153
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-final/control-center-performance-1440x900.png",
+      "oid": "6a2ccd716ec8d660405e62b5ebdd4cfae4b3818f",
+      "size": 122281
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-final/control-center-performance-light-1440x900.png",
+      "oid": "9be9e78dfda0d8a14089012815b677ba31542ab4",
+      "size": 128454
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-final/control-center-presets-1440x900.png",
+      "oid": "1abd62dcd327d121541cd3d1b00426a8dc80d286",
+      "size": 178007
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-final/control-center-presets-light-1440x900.png",
+      "oid": "fee447bd145e44fde3bfbfa81c7e4d92f1a89b38",
+      "size": 184425
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-final/control-center-snapshots-1440x900.png",
+      "oid": "66c75446eac243c742f4d2b26696cb329cd04a66",
+      "size": 180687
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-final/control-center-snapshots-light-1440x900.png",
+      "oid": "f8cdcbe8c94214241cb6c7ee04d7db3306dd946e",
+      "size": 186379
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-final/control-center-trust-1440x900.png",
+      "oid": "f4d5be3496f0454ef8c48e8dbff9f24f8ab3f08b",
+      "size": 169456
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-final/control-center-trust-light-1440x900.png",
+      "oid": "346729a5c3a20be3b0222b70b48027733e5d6871",
+      "size": 175996
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-final/extension-options-1440x900.png",
+      "oid": "a7f233117de3b9836b80d73ecfc3639e03ae27f8",
+      "size": 60312
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-final/extension-options-light-1440x900.png",
+      "oid": "920b07b1eb9ff520b02abd500ae2bfa29947d130",
+      "size": 60840
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-final/media-download-desktop.png",
+      "oid": "5346adf88400146da1c1b64ffbfee4e3a9a59c97",
+      "size": 107020
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-final/media-download-mobile.png",
+      "oid": "6e4ee57f3938906fcfdbfb8e12c2b97748f2bc79",
+      "size": 55234
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-final/x-home-wide-dark-1440x900.png",
+      "oid": "e06263c5d212043f53d0c43e0a1cb1e7419bf587",
+      "size": 642128
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-final/x-home-wide-dark-1920x1080.png",
+      "oid": "de5f05a349608ea86530a922210a3f555f1e68e1",
+      "size": 802020
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-final/x-status-wide-dark-1440x900.png",
+      "oid": "a416994172f407ebfd1828abc7e20b7cc815d694",
+      "size": 571329
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-final/x-status-wide-dark-1920x1080.png",
+      "oid": "efda4c6b8d2b72e652773c7230f68cb6d6a79648",
+      "size": 712296
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-pass1/control-center-appearance-1440x900.png",
+      "oid": "ac3fef674d2e46a4db63fff9fe86215ad8afb74c",
+      "size": 166622
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-pass1/control-center-appearance-light-1440x900.png",
+      "oid": "e853eed3c65390936efc39336c004efffb8eb85f",
+      "size": 173479
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-pass1/control-center-backup-1440x900.png",
+      "oid": "7e509f6e231dc9b031bc0609ece14472b6d86a51",
+      "size": 183650
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-pass1/control-center-backup-light-1440x900.png",
+      "oid": "e1e221cf9039d6660364501a0c0c05325286a01b",
+      "size": 190629
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-pass1/control-center-catchup-1440x900.png",
+      "oid": "8cbe13589ef942dc9eb12e391334587459f48c20",
+      "size": 98995
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-pass1/control-center-catchup-light-1440x900.png",
+      "oid": "e72edf27b6597ca485303604411a92b16a83c901",
+      "size": 105925
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-pass1/control-center-export-1440x900.png",
+      "oid": "8c3e662b8d656873cad44eb8e1b38327414a13f1",
+      "size": 158858
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-pass1/control-center-export-light-1440x900.png",
+      "oid": "db25fa9755608844c2c60777ce034579401a928b",
+      "size": 165280
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-pass1/control-center-filtering-1440x900.png",
+      "oid": "598eb5db049e71495314abdac834c42a2098d660",
+      "size": 150061
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-pass1/control-center-filtering-light-1440x900.png",
+      "oid": "b83ad5619862d0d8e218b650b6977f4611eae651",
+      "size": 156544
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-pass1/control-center-hidden-1440x900.png",
+      "oid": "7c495b2c435983b51ae0fa0f95625cdb722bd0d6",
+      "size": 123979
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-pass1/control-center-hidden-light-1440x900.png",
+      "oid": "a268b04d54092b9dfb0afae9bfd8d0293f02fec4",
+      "size": 131035
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-pass1/control-center-integrations-1440x900.png",
+      "oid": "41d2308c9c27b67b87b3c40238179b5f963ef177",
+      "size": 147501
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-pass1/control-center-integrations-light-1440x900.png",
+      "oid": "a505b432446fe90c4ce50bc98b57ba40dbbe0a3b",
+      "size": 154611
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-pass1/control-center-layout-1440x900.png",
+      "oid": "218da455f7f849b0e6d09bb08b35764a3deb7ebc",
+      "size": 184967
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-pass1/control-center-layout-light-1440x900.png",
+      "oid": "0068c56ea4b4472afcce648464c175ee51ce9e64",
+      "size": 192120
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-pass1/control-center-library-1440x900.png",
+      "oid": "4966aa20d87d0aa8b4458c78d0fe014912f2ff39",
+      "size": 175558
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-pass1/control-center-library-light-1440x900.png",
+      "oid": "f22cc8c9edd0fe56fb9db336d9bf0aed4eac317a",
+      "size": 182115
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-pass1/control-center-media-1440x900.png",
+      "oid": "28e15f7b08b9223610b79f346b0a1d09b9664341",
+      "size": 161582
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-pass1/control-center-media-light-1440x900.png",
+      "oid": "5a4cbb84ad1990c892c282e13e570c46f0f09a84",
+      "size": 168399
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-pass1/control-center-performance-1440x900.png",
+      "oid": "9f2143addf77dbf3426e12efd204fd7a06b2834a",
+      "size": 122577
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-pass1/control-center-performance-light-1440x900.png",
+      "oid": "12273b9e6fc05fbac938db5f4be2243a4221fc34",
+      "size": 128703
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-pass1/control-center-presets-1440x900.png",
+      "oid": "240eb24f23a5d5f5fa20a871a358f27c9d9fb41f",
+      "size": 178296
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-pass1/control-center-presets-light-1440x900.png",
+      "oid": "274123d44e3d4bb410914e3d911f0e7cf8340024",
+      "size": 184680
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-pass1/control-center-snapshots-1440x900.png",
+      "oid": "0f2dfff0452d29fd6fb815aade067cbf92822526",
+      "size": 181015
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-pass1/control-center-snapshots-light-1440x900.png",
+      "oid": "e02701e6ad585a215a87e8e544b672914e3efe48",
+      "size": 186615
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-pass1/control-center-trust-1440x900.png",
+      "oid": "23cc2ac784c96f38b39694d0232c0e8b4a06ede3",
+      "size": 169767
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-pass1/control-center-trust-light-1440x900.png",
+      "oid": "cc1b146977a519957ae751191451cfc350fd308a",
+      "size": 176239
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-pass1/extension-options-1440x900.png",
+      "oid": "619265ea996161ffbc5bc80b4f728660bc4103cd",
+      "size": 60319
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-pass1/extension-options-light-1440x900.png",
+      "oid": "dc20087a8d70f81a55414da3411107494ae7a628",
+      "size": 60841
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-pass2/media-download-desktop.png",
+      "oid": "5346adf88400146da1c1b64ffbfee4e3a9a59c97",
+      "size": 107020
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-pass2/media-download-mobile.png",
+      "oid": "00bedbf76f75579428f5520409e6c891f5a5427c",
+      "size": 54121
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-pass2/x-home-wide-dark-1440x900.png",
+      "oid": "e06263c5d212043f53d0c43e0a1cb1e7419bf587",
+      "size": 642128
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-pass2/x-home-wide-dark-1920x1080.png",
+      "oid": "903f35bc4cc71bf7cc09b0cefc5446a5322b71f2",
+      "size": 668339
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-pass2/x-status-wide-dark-1440x900.png",
+      "oid": "197bfe732daa0c318083b2a79455f21a12a433ea",
+      "size": 571617
+    },
+    {
+      "path": "docs/audit/2026-08-22-premium-pass2/x-status-wide-dark-1920x1080.png",
+      "oid": "47d39fdea088a11a659cfda1256f0ba184a514cf",
+      "size": 596683
+    },
+    {
+      "path": "docs/mockups/2026-08-13/control-center-appearance.png",
+      "oid": "36ef6017d37ef72aa377a5f21af052b5c197a347",
+      "size": 972148
+    },
+    {
+      "path": "docs/mockups/2026-08-13/control-center-backup.png",
+      "oid": "1b95132b23e455b268115d530158b59825c14398",
+      "size": 1051817
+    },
+    {
+      "path": "docs/mockups/2026-08-13/control-center-export.png",
+      "oid": "0178c507782fd7025250d6b4c2a7ab8c6c5ef0ca",
+      "size": 1009827
+    },
+    {
+      "path": "docs/mockups/2026-08-13/control-center-filtering.png",
+      "oid": "69000b9659dd47fe532366a75ed2a4a4ea11aee0",
+      "size": 1019835
+    },
+    {
+      "path": "docs/mockups/2026-08-13/control-center-hidden.png",
+      "oid": "3efb9920a545c94ce530e24b3c312c423689555f",
+      "size": 989255
+    },
+    {
+      "path": "docs/mockups/2026-08-13/control-center-integrations.png",
+      "oid": "a9f8c040f72049d0289d6653acc269f73712c729",
+      "size": 1052466
+    },
+    {
+      "path": "docs/mockups/2026-08-13/control-center-layout.png",
+      "oid": "b48f41c782fa2bf75998acd0e8a878e427f0f84a",
+      "size": 963520
+    },
+    {
+      "path": "docs/mockups/2026-08-13/control-center-library.png",
+      "oid": "886dda6d623f95c2cabd52099292bb5a36c980c7",
+      "size": 989963
+    },
+    {
+      "path": "docs/mockups/2026-08-13/control-center-media.png",
+      "oid": "9080eb435103a3acacba6cd71e0c8229946efa4f",
+      "size": 953860
+    },
+    {
+      "path": "docs/mockups/2026-08-13/control-center-performance.png",
+      "oid": "677d0a46268a83fac659fcb8cdc22b56c2c5a1a6",
+      "size": 949331
+    },
+    {
+      "path": "docs/mockups/2026-08-13/control-center-presets.png",
+      "oid": "a03426b21e26db4bf62a4d248df79d07ef7d0744",
+      "size": 1017073
+    },
+    {
+      "path": "docs/mockups/2026-08-13/control-center-snapshots.png",
+      "oid": "8e6f41d3b4979eea3062cf7fa9bc76b79f81b255",
+      "size": 1045205
+    },
+    {
+      "path": "docs/mockups/2026-08-13/control-center-trust.png",
+      "oid": "295124fdeb6027fb61a4a7f15a91fef26a166be5",
+      "size": 1028087
+    },
+    {
+      "path": "docs/mockups/2026-08-13/extension-options.png",
+      "oid": "5660acb9848a0d56d8b080a2f8cf6cb347c62df0",
+      "size": 974050
+    },
+    {
+      "path": "docs/mockups/2026-08-14/aviary-x-interface-reimagined.png",
+      "oid": "1b494abaa7fe69f64a6b637a54a8ea0660e1c4ac",
+      "size": 1553598
+    },
+    {
+      "path": "docs/mockups/2026-08-20-x-theme/direction-a-editorial-wide.png",
+      "oid": "6079d26fce0ad6c6fa766e43bfbae887b66bc71f",
+      "size": 1447970
+    },
+    {
+      "path": "docs/mockups/2026-08-20-x-theme/direction-b-quiet-stream.png",
+      "oid": "a8c6a8ffc9487179928d8f95df393b0c98f63a51",
+      "size": 1426393
+    },
+    {
+      "path": "docs/mockups/2026-08-20-x-theme/direction-c-conversation-studio.png",
+      "oid": "28caed331e06c7b29b06bd8542767e8118b199d3",
+      "size": 1568562
+    },
+    {
+      "path": "docs/mockups/2026-08-20-x-theme/implementation-home-1440.png",
+      "oid": "defaef07e2fafb18751f9a5fbae19a7419f38988",
+      "size": 652455
+    },
+    {
+      "path": "docs/mockups/2026-08-20-x-theme/implementation-home-1920.png",
+      "oid": "d59be25af34913605cf56ab497f2489369e82db2",
+      "size": 667024
+    },
+    {
+      "path": "docs/mockups/2026-08-20-x-theme/implementation-status-1440.png",
+      "oid": "0a66edb5a467103b455fac0bc2573a882ef154c8",
+      "size": 565157
+    },
+    {
+      "path": "docs/mockups/2026-08-20-x-theme/implementation-status-1920.png",
+      "oid": "529591cb639651f84216e37bdb84b519ac6ccc73",
+      "size": 580178
+    },
+    {
+      "path": "docs/mockups/2026-08-20-x-theme/quiet-stream-comparison.png",
+      "oid": "183061ac6c518cd83a687b638170e4ab6c431f87",
+      "size": 1917859
+    },
+    {
+      "path": "docs/mockups/2026-08-20-x-theme/source-home-1440.png",
+      "oid": "6c68ce1d306af74e24775d7b5ee2ffae2cc38133",
+      "size": 157679
+    },
+    {
+      "path": "docs/mockups/2026-08-20-x-theme/source-home-1920.png",
+      "oid": "c2664bdd97d0f328fa08dfefc1956dbef2c356e4",
+      "size": 164085
+    },
+    {
+      "path": "docs/mockups/2026-08-20-x-theme/source-status-1440.png",
+      "oid": "4b50e5ffca64c5467c859f3d8a11d79363423e04",
+      "size": 180316
+    },
+    {
+      "path": "docs/mockups/2026-08-20-x-theme/source-status-1920.png",
+      "oid": "ff646e8f24f1d2890063080340500ecf0adc4927",
+      "size": 198922
+    },
+    {
+      "path": "docs/mockups/2026-08-20/control-center-appearance-implemented.png",
+      "oid": "fb7231363a897e4f44ddaf4f49a8c23fc58a8d49",
+      "size": 148145
+    },
+    {
+      "path": "docs/mockups/2026-08-20/control-center-appearance.png",
+      "oid": "ee1595f98ec5268677dbab15b4648012b2d3bd72",
+      "size": 1120846
+    },
+    {
+      "path": "docs/mockups/2026-08-20/control-center-backup.png",
+      "oid": "84a67f6ec12cc82349399d97b2b366581288a0ee",
+      "size": 1170758
+    },
+    {
+      "path": "docs/mockups/2026-08-20/control-center-export.png",
+      "oid": "1721fa63820a4252aa123808f6c9825626c3e099",
+      "size": 1133417
+    },
+    {
+      "path": "docs/mockups/2026-08-20/control-center-filtering.png",
+      "oid": "e3a724f0cfa86769359b743aebdac04f1e3c637d",
+      "size": 1150135
+    },
+    {
+      "path": "docs/mockups/2026-08-20/control-center-hidden.png",
+      "oid": "72ffdf467b2b34b9a63cb9d99b407d31059a6317",
+      "size": 1181326
+    },
+    {
+      "path": "docs/mockups/2026-08-20/control-center-integrations.png",
+      "oid": "d12d31806e8c76773d9908c1caa4da4ab9604233",
+      "size": 1121136
+    },
+    {
+      "path": "docs/mockups/2026-08-20/control-center-layout.png",
+      "oid": "c0ad635af17467579847b698baeb724cb35b8948",
+      "size": 1044415
+    },
+    {
+      "path": "docs/mockups/2026-08-20/control-center-library.png",
+      "oid": "bd9df98c41edd36f2dcc1f2bd6a4188874c84b78",
+      "size": 1000074
+    },
+    {
+      "path": "docs/mockups/2026-08-20/control-center-media-implemented.png",
+      "oid": "e37ff91292ff88c976a136f33acec3b1606972b2",
+      "size": 151262
+    },
+    {
+      "path": "docs/mockups/2026-08-20/control-center-media.png",
+      "oid": "7dceaeb6c34f6545417f5fd3c57659402364a308",
+      "size": 1142413
+    },
+    {
+      "path": "docs/mockups/2026-08-20/control-center-performance.png",
+      "oid": "3953ca8b111c764e7d21d9bec15083f944d9d82a",
+      "size": 1161433
+    },
+    {
+      "path": "docs/mockups/2026-08-20/control-center-presets.png",
+      "oid": "5aa705103fce04e02e8a95d8fa9d174ee369d4e1",
+      "size": 1215552
+    },
+    {
+      "path": "docs/mockups/2026-08-20/control-center-snapshots.png",
+      "oid": "9d1d189be8976782248b0ee2c2d00d75febd4298",
+      "size": 1097267
+    },
+    {
+      "path": "docs/mockups/2026-08-20/control-center-trust.png",
+      "oid": "fc05bf374a8dc987a21e547003f8a845de705a13",
+      "size": 1165870
+    },
+    {
+      "path": "docs/mockups/2026-08-20/extension-options-implemented.png",
+      "oid": "c3462c7ff9ffc915e3ac42cde68773ab95b1757a",
+      "size": 51703
+    },
+    {
+      "path": "docs/mockups/2026-08-20/extension-options.png",
+      "oid": "57f63552cc9944678bf1ff8021bf63a7b4e43eaf",
+      "size": 906070
+    },
+    {
+      "path": "docs/mockups/2026-08-21/control-center-library-captured-media.png",
+      "oid": "07b62124b57c24d71249ea080c76a2c0f7d119da",
+      "size": 1263058
+    },
+    {
+      "path": "docs/mockups/2026-08-22/control-center-media.png",
+      "oid": "e1ea546678ae846f2b1ce767a6763deb765ba587",
+      "size": 1177537
+    },
+    {
+      "path": "docs/mockups/2026-08-22/extension-permissions.png",
+      "oid": "3f670d3d2ef05a66c6444c1b81c7493d5ac8094b",
+      "size": 1132011
+    },
+    {
+      "path": "docs/mockups/2026-08-22/x-conversation-wide.png",
+      "oid": "959b5c840ac7a95f7c8dc99a2717fa24afb287b8",
+      "size": 1537700
+    },
+    {
+      "path": "docs/mockups/2026-08-22/x-home-wide.png",
+      "oid": "349ccf8a56079fded334e51d9b122216130ce232",
+      "size": 1657462
+    },
+    {
+      "path": "docs/mockups/2026-08-22/x-media-mobile.png",
+      "oid": "277996dfe49aab9240f09d792a76f6d4cc09a8a3",
+      "size": 817051
+    },
+    {
+      "path": "docs/mockups/archive-pre-2026-08-13/control-center-advanced.png",
+      "oid": "f694396288a1565c0cea028365066dfec72dbe81",
+      "size": 1399351
+    },
+    {
+      "path": "docs/mockups/archive-pre-2026-08-13/control-center-data.png",
+      "oid": "4a738ebb2620110b76f1df635a44ad65b03c547a",
+      "size": 1558979
+    },
+    {
+      "path": "docs/mockups/archive-pre-2026-08-13/control-center-presets-implemented.png",
+      "oid": "ff1d0184af6dda6ee42aef79dd9ca7a942b53ed9",
+      "size": 149408
+    },
+    {
+      "path": "docs/mockups/archive-pre-2026-08-13/control-center-presets.png",
+      "oid": "1f49a898ff55017cc19997707031f4e98a261ad1",
+      "size": 1407784
+    },
+    {
+      "path": "docs/mockups/archive-pre-2026-08-13/control-center-reading.png",
+      "oid": "07df726414d529bd086b52b988ef2c8b9d89c05f",
+      "size": 1567158
+    },
+    {
+      "path": "eslint.config.mjs",
+      "oid": "6761c85ee23a1210d1f4066ec70760cadd6e2a31",
+      "size": 4573
+    },
+    {
+      "path": "package-lock.json",
+      "oid": "9899b75d4609f5653fcd55c2e61df41e04393157",
+      "size": 73703
+    },
+    {
+      "path": "package.json",
+      "oid": "e99f63f596aab11f0b6f61446693970661b8fd22",
+      "size": 2358
+    },
+    {
+      "path": "src/entrypoints/extension-background.ts",
+      "oid": "334637586ac5eeeb0d4a51f69b47a78022763392",
+      "size": 40598
+    },
+    {
+      "path": "src/entrypoints/extension-content.ts",
+      "oid": "ae6158d1b249e6cd89a984c0a72210f67e10ccd4",
+      "size": 72
+    },
+    {
+      "path": "src/entrypoints/extension-options.ts",
+      "oid": "137006746b29b4f526c89db778164afedce233f7",
+      "size": 11405
+    },
+    {
+      "path": "src/entrypoints/extension-page.ts",
+      "oid": "3577d8d302adb41f48ecd2db6856d83f599acfd4",
+      "size": 411
+    },
+    {
+      "path": "src/entrypoints/extension-panel.ts",
+      "oid": "30ad6b400c19dc9312a3912353067edfffe1251e",
+      "size": 406
+    },
+    {
+      "path": "src/entrypoints/userscript.ts",
+      "oid": "6048bace1d598a8e252d8512f828ea9e1033b17b",
+      "size": 73
+    },
+    {
+      "path": "src/entrypoints/wacz-worker.ts",
+      "oid": "ce6c22ee586e88a14049c1fabc6c6e2774c06e60",
+      "size": 2725
+    },
+    {
+      "path": "src/extension/ad-rule.ts",
+      "oid": "0b8904d81164c15b0d624b5b91bedf4a663acdba",
+      "size": 9019
+    },
+    {
+      "path": "src/extension/background-diagnostics.ts",
+      "oid": "0f32506b386d54b14d1ec03e19b0de5c53b680fd",
+      "size": 3830
+    },
+    {
+      "path": "src/extension/browser-floors.ts",
+      "oid": "d8c7b285d2e7e541a514a857fa5748edd6aefbd8",
+      "size": 2952
+    },
+    {
+      "path": "src/extension/control-center-launcher.ts",
+      "oid": "da0af0774af1b734a2236d90ccec489a2da0c199",
+      "size": 6382
+    },
+    {
+      "path": "src/extension/dnr-empty-rules.json",
+      "oid": "fe51488c7066f6687ef680d6bfaa4f7768ef205c",
+      "size": 3
+    },
+    {
+      "path": "src/extension/download-state.ts",
+      "oid": "3c8c8c3cc8f2f78d3b8db9a0859e387ecb3275d4",
+      "size": 7176
+    },
+    {
+      "path": "src/extension/durable-storage-api.ts",
+      "oid": "848b60d999415ef1b87dea840623303fab35817c",
+      "size": 25937
+    },
+    {
+      "path": "src/extension/icons/icon-128.png",
+      "oid": "527b01747523657df0a20debd992e8b944ac06cd",
+      "size": 18522
+    },
+    {
+      "path": "src/extension/icons/icon-16.png",
+      "oid": "f4c13944af86154b065ccfd88ada4527426a8cdb",
+      "size": 855
+    },
+    {
+      "path": "src/extension/icons/icon-32.png",
+      "oid": "103da61e15dec211f2f1825f2def670c3bf21e72",
+      "size": 2179
+    },
+    {
+      "path": "src/extension/icons/icon-48.png",
+      "oid": "6b6022bff599b0e1df9be2e8d32514823ffd2b8b",
+      "size": 4001
+    },
+    {
+      "path": "src/extension/icons/icon-512.png",
+      "oid": "e2aefcc83e44f17a689659f41de082dc0efce573",
+      "size": 209555
+    },
+    {
+      "path": "src/extension/lazy-stubs.ts",
+      "oid": "84979e7c0e6a7a577640d9a9c4c4b043bc66215a",
+      "size": 437
+    },
+    {
+      "path": "src/extension/manifest.chrome.json",
+      "oid": "e00d1ef80a6138f725cd037549ea7c1f60a2a645",
+      "size": 1845
+    },
+    {
+      "path": "src/extension/manifest.firefox.json",
+      "oid": "491eb3dedc9b06c615c0bd00d3f5fae5d378f552",
+      "size": 2133
+    },
+    {
+      "path": "src/extension/media-context-menu.ts",
+      "oid": "717169db996cba707cb3ebcd8831a8ab675f0f8e",
+      "size": 2779
+    },
+    {
+      "path": "src/extension/native-i18n.ts",
+      "oid": "c0665c74aa0a04673c9c777103e90ede0cb270a9",
+      "size": 456
+    },
+    {
+      "path": "src/extension/options.css",
+      "oid": "d3a30a565938a400fb1284e2ac2e29d269aed12b",
+      "size": 10351
+    },
+    {
+      "path": "src/extension/options.html",
+      "oid": "c0640b18267a6f300faab05c08d1c3c0943a4b65",
+      "size": 7518
+    },
+    {
+      "path": "src/extension/storage-fence.ts",
+      "oid": "a8186dbacc43eb10e0c3e11d4505f1bd97f50f1c",
+      "size": 8611
+    },
+    {
+      "path": "src/features/ai/command-menu.ts",
+      "oid": "79967b5548f2046025e832f5b32f323d216402be",
+      "size": 22567
+    },
+    {
+      "path": "src/features/appearance/absolute-time.ts",
+      "oid": "4d10e01135712498ceef2082f2c5cec1825bfaef",
+      "size": 2862
+    },
+    {
+      "path": "src/features/appearance/custom-css.ts",
+      "oid": "3167c4c2227e621b1463baf3db7e36565641a29f",
+      "size": 14018
+    },
+    {
+      "path": "src/features/appearance/favicon.ts",
+      "oid": "8a6d6c1ed621f65676c632c8b55a66b990b5f158",
+      "size": 3272
+    },
+    {
+      "path": "src/features/appearance/theme.ts",
+      "oid": "4a7d840e0b1c9fde70307e99de4c1f5b8bff08af",
+      "size": 40305
+    },
+    {
+      "path": "src/features/appearance/title-badge.ts",
+      "oid": "268cf0ea604c9af1df1456f19fb59d0b4d4586b3",
+      "size": 2369
+    },
+    {
+      "path": "src/features/composer/composer-snippets.ts",
+      "oid": "ba58444f50724c569a521b5b23b17333c2752fd9",
+      "size": 13320
+    },
+    {
+      "path": "src/features/core/ad-observations.ts",
+      "oid": "e1246419a31d441b1b634b3564361c9f2070c8fd",
+      "size": 6939
+    },
+    {
+      "path": "src/features/core/audit-log.ts",
+      "oid": "f72d6f1c8a4f7e19193ed5c2ec2ceecb3bd25e46",
+      "size": 5524
+    },
+    {
+      "path": "src/features/core/control-center.ts",
+      "oid": "b6612956fe02b41c5a6c3cccb4605f1753d0f899",
+      "size": 72340
+    },
+    {
+      "path": "src/features/core/feature-bisect.ts",
+      "oid": "94ed7035622110e057ac6f415e860578fae10e44",
+      "size": 10551
+    },
+    {
+      "path": "src/features/core/feature-i18n.ts",
+      "oid": "9d89f149f4bd4caff18526da7f90f7798850c09f",
+      "size": 906
+    },
+    {
+      "path": "src/features/core/feature-toast.ts",
+      "oid": "b7ffd2ae3e100c84ff33852f3e445987ab058aeb",
+      "size": 5948
+    },
+    {
+      "path": "src/features/core/first-run.ts",
+      "oid": "524065fb612dbae04aff9b62452375ecdf54e5a0",
+      "size": 5703
+    },
+    {
+      "path": "src/features/core/i18n-feature.ts",
+      "oid": "51480e614d5345f8f98b8da565560c8fe20dffa6",
+      "size": 2076
+    },
+    {
+      "path": "src/features/core/integration-errors.ts",
+      "oid": "ffe2b41788193ba3615f1601f5ce204ac19c87dd",
+      "size": 1733
+    },
+    {
+      "path": "src/features/core/library-backup.ts",
+      "oid": "377560fb24ee2ab5997c4481e5c7e586144b6158",
+      "size": 42659
+    },
+    {
+      "path": "src/features/core/mobile-touch.ts",
+      "oid": "769373794b4e130eb1118d69f7f1caed223e0a26",
+      "size": 2473
+    },
+    {
+      "path": "src/features/core/optional-features.ts",
+      "oid": "066e1c6ea4cec89e057a4083e15bd7115bb3d81b",
+      "size": 1282
+    },
+    {
+      "path": "src/features/core/presets.ts",
+      "oid": "da421049dbc39526860292496202f7a26b07a7a5",
+      "size": 6960
+    },
+    {
+      "path": "src/features/core/selector-health.ts",
+      "oid": "da6aa9660a2cbaffb56c93871aa4e66ad36cce54",
+      "size": 11179
+    },
+    {
+      "path": "src/features/core/settings-migration.ts",
+      "oid": "19a08ca40b03b9998bf0596a60cc90c36de6f15a",
+      "size": 5375
+    },
+    {
+      "path": "src/features/export/activitystreams.ts",
+      "oid": "da180fad9038f78a45f8a0c1dea2a9e8b0d833d3",
+      "size": 9023
+    },
+    {
+      "path": "src/features/export/assets.ts",
+      "oid": "806f10624f5791864e2d474ff35b51b939ce62ae",
+      "size": 17770
+    },
+    {
+      "path": "src/features/export/audience.ts",
+      "oid": "49da833a625fb0571d3bc3a04edf66a95b77df70",
+      "size": 2272
+    },
+    {
+      "path": "src/features/export/collector.ts",
+      "oid": "399639e80150d8327e68232298163ef08e1df393",
+      "size": 8719
+    },
+    {
+      "path": "src/features/export/export-feature.ts",
+      "oid": "661bc6425e8611f6461ccf37f1068299b12d6c4c",
+      "size": 24211
+    },
+    {
+      "path": "src/features/export/external-targets.ts",
+      "oid": "8d85e823a3aa61f25cc1b8644e283e19c5720dec",
+      "size": 7396
+    },
+    {
+      "path": "src/features/export/formatters.ts",
+      "oid": "55580eddeebae4035f6871ab9f10140ff4d66539",
+      "size": 8632
+    },
+    {
+      "path": "src/features/export/jobs.ts",
+      "oid": "f054ea8329ff5e43d9b797dbdbb9c2997eccd18f",
+      "size": 20983
+    },
+    {
+      "path": "src/features/export/language.ts",
+      "oid": "ec998fbc27942884b2d26970b46a62519e46ac15",
+      "size": 902
+    },
+    {
+      "path": "src/features/export/network-capture.ts",
+      "oid": "cf121ab909ba39a9579ac61cd40a313e5e2ef283",
+      "size": 9867
+    },
+    {
+      "path": "src/features/export/query-discovery.ts",
+      "oid": "60d06f41bbf51edf500a4339b86a454ab0c14fe6",
+      "size": 2232
+    },
+    {
+      "path": "src/features/export/static-archive.ts",
+      "oid": "8849726cf0ab89382b61dc88f9c95435a53e9b51",
+      "size": 18257
+    },
+    {
+      "path": "src/features/export/text-safety.ts",
+      "oid": "74720589bb926da1346ad4e1e0827258470b517f",
+      "size": 5626
+    },
+    {
+      "path": "src/features/export/thread-capture.ts",
+      "oid": "60db5e08b13b57ca2f1ea1e54d2a5e7c6cc7291d",
+      "size": 7526
+    },
+    {
+      "path": "src/features/export/thread-reconstruction.ts",
+      "oid": "b346796583caa206008f6ee1eb5ed02959302661",
+      "size": 14621
+    },
+    {
+      "path": "src/features/export/types.ts",
+      "oid": "cb96eec082797130510a221818d48e9992c2fdeb",
+      "size": 6694
+    },
+    {
+      "path": "src/features/export/viewer.ts",
+      "oid": "ef37982c1246764875ef8bbf80bab1a807e1b7c5",
+      "size": 25397
+    },
+    {
+      "path": "src/features/export/wacz-signing.ts",
+      "oid": "f9b7132f1fa5683cedccef14e6dc2f1df8ac1142",
+      "size": 8349
+    },
+    {
+      "path": "src/features/export/wacz-worker-client.ts",
+      "oid": "541d1c84dfa3a48e3ee59c0fea66abf825c223a8",
+      "size": 8290
+    },
+    {
+      "path": "src/features/export/wacz.ts",
+      "oid": "628a72a0fcc0b6909dc0d26cf8922ee72bc3eb8c",
+      "size": 8321
+    },
+    {
+      "path": "src/features/export/warc.ts",
+      "oid": "a9b59fa97812bf65cadd8c8cd734179df83b3d50",
+      "size": 17429
+    },
+    {
+      "path": "src/features/export/xlsx.ts",
+      "oid": "f79b510bb6f3b2c21b1ec8714d43e258f78139df",
+      "size": 4688
+    },
+    {
+      "path": "src/features/export/zip-reader.ts",
+      "oid": "1e17a49a464aa266f4c34f452dfca6f0844c1b4b",
+      "size": 14764
+    },
+    {
+      "path": "src/features/export/zip-store.ts",
+      "oid": "87c2b199ec47cd219a130358054bbf23eb34ac58",
+      "size": 8809
+    },
+    {
+      "path": "src/features/filtering/catch-up-ui.ts",
+      "oid": "690a2b7756ed713dc2fd2c769188157904df0ade",
+      "size": 22729
+    },
+    {
+      "path": "src/features/filtering/catch-up.ts",
+      "oid": "7c0206c6d18eeaa0dfb4f2b2c8a9bf8a121e894d",
+      "size": 12975
+    },
+    {
+      "path": "src/features/filtering/filter-engine.ts",
+      "oid": "86257515ed6256686f22a72e16bc7c0f0609732a",
+      "size": 20455
+    },
+    {
+      "path": "src/features/filtering/hidden-posts-feature.ts",
+      "oid": "a517b089d9775c1e081a1d208420faaa2b3b8780",
+      "size": 28402
+    },
+    {
+      "path": "src/features/filtering/hidden-posts.ts",
+      "oid": "378c9ecbe0c82f904452197fdc94f70c2ef0fe8e",
+      "size": 12872
+    },
+    {
+      "path": "src/features/filtering/predicates.ts",
+      "oid": "c9fdc39ac05df862acfa04c1433948879351cd0a",
+      "size": 19016
+    },
+    {
+      "path": "src/features/filtering/reading-marker-feature.ts",
+      "oid": "9632cca07fd5fa112e2c936fd8136e94415c681b",
+      "size": 11047
+    },
+    {
+      "path": "src/features/filtering/regex-budget.ts",
+      "oid": "be1375d940316b6e6978f95fd52fc89be0c4c8dd",
+      "size": 17174
+    },
+    {
+      "path": "src/features/filtering/rule-import.ts",
+      "oid": "c9243761a22cd5e2f9107ff8b056d2fab68736cc",
+      "size": 1353
+    },
+    {
+      "path": "src/features/filtering/rules.ts",
+      "oid": "6a66bfe3120667294aab6d105f0846efde65522b",
+      "size": 19800
+    },
+    {
+      "path": "src/features/filtering/seen-posts-feature.ts",
+      "oid": "c40f7301a1959efa096dee84b19ae26476233f7c",
+      "size": 16473
+    },
+    {
+      "path": "src/features/filtering/seen-posts.ts",
+      "oid": "025201a66b19919564304a814a1ebb90cded6fca",
+      "size": 12733
+    },
+    {
+      "path": "src/features/integrations/ai-provider.ts",
+      "oid": "d9673b95136780ae2f0dce4c3c30f92634b795fd",
+      "size": 7257
+    },
+    {
+      "path": "src/features/integrations/aria2.ts",
+      "oid": "13c826a1d4e13af74d454519709602713b1baf98",
+      "size": 12696
+    },
+    {
+      "path": "src/features/integrations/crosspost.ts",
+      "oid": "9ac8523f6868917003e13f18f1515ac07fdd4541",
+      "size": 16281
+    },
+    {
+      "path": "src/features/integrations/network-policy.ts",
+      "oid": "9de5dd1f2a39172fd985fe3baa9ad6275aabc7f7",
+      "size": 5103
+    },
+    {
+      "path": "src/features/integrations/semantic-search.ts",
+      "oid": "8544324334f080a6abfa36d7240d15c70bb55128",
+      "size": 10052
+    },
+    {
+      "path": "src/features/integrations/usage.ts",
+      "oid": "f22eb86b8913d0f532b957a21818ef0c4dc41af2",
+      "size": 16020
+    },
+    {
+      "path": "src/features/layout/declutter.ts",
+      "oid": "7628c08373534251e2212a848c63b152c78b7965",
+      "size": 11414
+    },
+    {
+      "path": "src/features/layout/focus-mode.ts",
+      "oid": "fb31dc9195dc0c3a44a8cbb30b32cd08248869c4",
+      "size": 6635
+    },
+    {
+      "path": "src/features/layout/force-following.ts",
+      "oid": "4257e60f12459bd34c098ce93b0b52d8a5499673",
+      "size": 6692
+    },
+    {
+      "path": "src/features/layout/post-open-guard.ts",
+      "oid": "d8e907ee824a37475e79b5a907e22bdc8708d386",
+      "size": 10032
+    },
+    {
+      "path": "src/features/layout/thread-recommendations.ts",
+      "oid": "412b8b990f3ef3e4ce29fcea1ff37e2d1ee0bc7e",
+      "size": 3401
+    },
+    {
+      "path": "src/features/layout/timeline-pagination.ts",
+      "oid": "684e1424400a03ab2f8f92a2942d6aabc04e7d99",
+      "size": 6597
+    },
+    {
+      "path": "src/features/library/archive-import-jobs.ts",
+      "oid": "f42fe4c57df89f0c439ae06e0b64490869771349",
+      "size": 22125
+    },
+    {
+      "path": "src/features/library/archive-import.ts",
+      "oid": "05c5128ece3f063f8a3fa77dd3d42c59e14f6652",
+      "size": 25053
+    },
+    {
+      "path": "src/features/library/archive-library.ts",
+      "oid": "241e6a58027cef1df9559a2370083ed445cf1b22",
+      "size": 11980
+    },
+    {
+      "path": "src/features/library/archive-repair.ts",
+      "oid": "403f815bb4bf0127ef903a4f006c4e711c34d95c",
+      "size": 8996
+    },
+    {
+      "path": "src/features/library/archive-types.ts",
+      "oid": "fc4342ee287d5561db28da30aec1a4efa13efbf9",
+      "size": 2237
+    },
+    {
+      "path": "src/features/library/bookmark-capture.ts",
+      "oid": "c78c0cceffc950805d51b55398e3e68be1ad124d",
+      "size": 5734
+    },
+    {
+      "path": "src/features/library/bookmarks-feature.ts",
+      "oid": "f999edda5ca29ae943bbe0d1901afb8392bf02dc",
+      "size": 8914
+    },
+    {
+      "path": "src/features/library/bookmarks.ts",
+      "oid": "f0b77cc7863d7f2f5d4c219779bb1daa67890900",
+      "size": 18187
+    },
+    {
+      "path": "src/features/library/clean-share-links.ts",
+      "oid": "fc9bfc4208439bc78e14e67e0b27c784120281dd",
+      "size": 4316
+    },
+    {
+      "path": "src/features/library/cleanup-preview.ts",
+      "oid": "fcb8a88bcff7e94ccbf13a0b13db369f02f82bcb",
+      "size": 6136
+    },
+    {
+      "path": "src/features/library/cleanup-queue.ts",
+      "oid": "c9f519998cff442a8a2780d2cd3dccfc3162808f",
+      "size": 9387
+    },
+    {
+      "path": "src/features/library/copy-post-link.ts",
+      "oid": "c67b5d530760f9206407703df7959262d3912a26",
+      "size": 8195
+    },
+    {
+      "path": "src/features/library/link-unshorten.ts",
+      "oid": "85c2b550668fc0fa8dcd493ddd33cd12e694dc9f",
+      "size": 6805
+    },
+    {
+      "path": "src/features/library/local-search.ts",
+      "oid": "d0d0838eeecc9c37eb54fc47295b9a7485db2248",
+      "size": 1454
+    },
+    {
+      "path": "src/features/library/query-model.ts",
+      "oid": "ede2d7fc010c478d787c40e3027d63845aac5050",
+      "size": 27052
+    },
+    {
+      "path": "src/features/library/reports.ts",
+      "oid": "ea9a9efe0b40814fe7ce0d03d373c6b9996f7fca",
+      "size": 4013
+    },
+    {
+      "path": "src/features/library/scrollmark-import.ts",
+      "oid": "20528f305740bd51992941b1e1574859827b5a58",
+      "size": 19463
+    },
+    {
+      "path": "src/features/library/snapshots-feature.ts",
+      "oid": "05b09bfdd96d75ea1c1afc3c0b0af0d27624968b",
+      "size": 1896
+    },
+    {
+      "path": "src/features/library/snapshots.ts",
+      "oid": "a7f65805a5e02f96c563a9159558f2716c16860b",
+      "size": 10876
+    },
+    {
+      "path": "src/features/library/under-the-hood.ts",
+      "oid": "5afd64ed642c838c6602d368029ed410d39f5e1d",
+      "size": 21697
+    },
+    {
+      "path": "src/features/library/user-notes.ts",
+      "oid": "dbe01e5c4da979d257492259d37c97944182349c",
+      "size": 9884
+    },
+    {
+      "path": "src/features/media/batch-downloader.ts",
+      "oid": "9e0ce37f7a0fe0907308f1c983de3fb5eaa354bb",
+      "size": 46800
+    },
+    {
+      "path": "src/features/media/download-watch.ts",
+      "oid": "b3c7611ed353b9d8fba71d59b4e0448b7c565cce",
+      "size": 5620
+    },
+    {
+      "path": "src/features/media/downloader.ts",
+      "oid": "c721dbad1ab6494f8bdaa0d22490cb664b588644",
+      "size": 25151
+    },
+    {
+      "path": "src/features/media/extract.ts",
+      "oid": "d6f1a42082bdad8ff555a55cc7b799d3416e6734",
+      "size": 12390
+    },
+    {
+      "path": "src/features/media/history.ts",
+      "oid": "fad57bedcb21b8de90552cc278ae36b15559ea56",
+      "size": 28720
+    },
+    {
+      "path": "src/features/media/inline-original-images.ts",
+      "oid": "68d4fab05aa15bc31b903cd2d576658c0f219773",
+      "size": 4950
+    },
+    {
+      "path": "src/features/media/last-download.ts",
+      "oid": "d228897e998f02a0b585d30e84ad49238982c00d",
+      "size": 1856
+    },
+    {
+      "path": "src/features/media/media-buttons.ts",
+      "oid": "0fd30aaaa4277df4330ef2e9ca24d17dcf5f6ad0",
+      "size": 71782
+    },
+    {
+      "path": "src/features/media/media-metadata.ts",
+      "oid": "205ba8f3e6075d8d6e18457aa4c8d2aaf642581e",
+      "size": 17265
+    },
+    {
+      "path": "src/features/media/media-presentation.ts",
+      "oid": "79e89a6972c14e87e291e809e466ba8ed5166f07",
+      "size": 4103
+    },
+    {
+      "path": "src/features/media/queue.ts",
+      "oid": "0dc284a73a3e01a0046eab2e9cf65e6e60a0d9c9",
+      "size": 19743
+    },
+    {
+      "path": "src/features/media/sidecar.ts",
+      "oid": "678048991d80bdcfa5cfacd74b98b32a845f1d95",
+      "size": 6596
+    },
+    {
+      "path": "src/features/media/template.ts",
+      "oid": "bcd19f0e22ff10b051160063d2c7205c5a57118f",
+      "size": 1845
+    },
+    {
+      "path": "src/features/media/urls.ts",
+      "oid": "28d2f061e87d673d62fc7e7b43cfcb60342e6642",
+      "size": 2347
+    },
+    {
+      "path": "src/features/media/video-extract.ts",
+      "oid": "dc0ea3484f12e555859493cdf7dc4d04aba44af4",
+      "size": 15550
+    },
+    {
+      "path": "src/features/media/yt-dlp-helper.ts",
+      "oid": "5cc8894ac7086faa798e6f599c2d8122900f0648",
+      "size": 9003
+    },
+    {
+      "path": "src/features/performance/pause-offscreen-video.ts",
+      "oid": "9978d59cb68e52da0d8f57ea1c6db34874e39314",
+      "size": 7083
+    },
+    {
+      "path": "src/features/performance/video-playback.ts",
+      "oid": "6bbc6fe84a636961b54b82fce192b6daaec80538",
+      "size": 3880
+    },
+    {
+      "path": "src/features/privacy/ad-protection.ts",
+      "oid": "6287b38656bbaf016659495b9b0ab230df13d011",
+      "size": 10642
+    },
+    {
+      "path": "src/features/privacy/page-hooks.ts",
+      "oid": "7d8bf5780bc45fcf2f22c93e55e53d01e06b83d3",
+      "size": 5381
+    },
+    {
+      "path": "src/features/registry.ts",
+      "oid": "571d1181860107931a6368c234dddeef949a3651",
+      "size": 14184
+    },
+    {
+      "path": "src/main.ts",
+      "oid": "3e49d3354675a05a660ea4361737c738f3884fb3",
+      "size": 29555
+    },
+    {
+      "path": "src/page/page-agent.ts",
+      "oid": "447809e0163fddbd845d5c0949804daeca75cf4b",
+      "size": 34795
+    },
+    {
+      "path": "src/platform/boot-notice.ts",
+      "oid": "94e07e8cc72d77451bd263cd8739f4381f97d334",
+      "size": 3161
+    },
+    {
+      "path": "src/platform/build-version.ts",
+      "oid": "457f42d13a6c15b4360be9327dc32d6e31a288ef",
+      "size": 238
+    },
+    {
+      "path": "src/platform/diagnostics-store.ts",
+      "oid": "fe54ba0cd716d68fd40237da7ab7fd1e5554b5cc",
+      "size": 6612
+    },
+    {
+      "path": "src/platform/diagnostics.ts",
+      "oid": "b6326bbd2b90efb56c22217eec3413a1b95eb3d7",
+      "size": 3827
+    },
+    {
+      "path": "src/platform/durable-storage.ts",
+      "oid": "a29d4a29ee570cd79f4aa1d75ed4e4124a4c5c27",
+      "size": 51848
+    },
+    {
+      "path": "src/platform/i18n-catalog.ts",
+      "oid": "8e0a65d38f2cb26e64897ade0e146bf0e3e33c42",
+      "size": 672869
+    },
+    {
+      "path": "src/platform/i18n-runtime.ts",
+      "oid": "abcd082ebe65de4fccfd4c63d5df86cc8b97c734",
+      "size": 1561
+    },
+    {
+      "path": "src/platform/i18n.ts",
+      "oid": "139db65d8b2d33bf3af2dbe95366c368c67a48f7",
+      "size": 2534
+    },
+    {
+      "path": "src/platform/network.ts",
+      "oid": "f68488d0da6951301052d996867ee9be4031dd5b",
+      "size": 1677
+    },
+    {
+      "path": "src/platform/observer.ts",
+      "oid": "3a1b9c5e5e10a4d0a59d69ba8135ef449ccd8b64",
+      "size": 2168
+    },
+    {
+      "path": "src/platform/page-bridge.ts",
+      "oid": "5a121478e4f363d2073a4d54e3e70c5239644fee",
+      "size": 17670
+    },
+    {
+      "path": "src/platform/performance-diagnostics.ts",
+      "oid": "eafc1181cd00bb1b3d18b3258e83d450040236af",
+      "size": 8735
+    },
+    {
+      "path": "src/platform/profile.ts",
+      "oid": "bda344f5d234ae9357e4d16bef4a01a86ba6e5b3",
+      "size": 24666
+    },
+    {
+      "path": "src/platform/rate-limit.ts",
+      "oid": "9c06fbfde8e0a7c9249025c84da4925727a6f58f",
+      "size": 1985
+    },
+    {
+      "path": "src/platform/route.ts",
+      "oid": "e62e712d70f95431980bf931ca0a0453164f09d9",
+      "size": 4222
+    },
+    {
+      "path": "src/platform/selectors.ts",
+      "oid": "736a11f36e6f936a42134410236aad8819af5a39",
+      "size": 15381
+    },
+    {
+      "path": "src/platform/settings.ts",
+      "oid": "75b7a172e9b763151f4f8f8fed8e348b9f9664f8",
+      "size": 59925
+    },
+    {
+      "path": "src/platform/storage-fence.ts",
+      "oid": "1fc0a06db05ca9b974caa65eed7f77b19b79ed59",
+      "size": 9005
+    },
+    {
+      "path": "src/platform/storage-lock-register.ts",
+      "oid": "24af2fd39b50612f8922cf95fade33c1051ef396",
+      "size": 7424
+    },
+    {
+      "path": "src/platform/storage-lock.ts",
+      "oid": "0d21bd34429499769104cfb79b36f0a900e065af",
+      "size": 21143
+    },
+    {
+      "path": "src/platform/storage-value-hash.ts",
+      "oid": "270da5c7c805e295c89ac773cfeb9c1d61d3fade",
+      "size": 3030
+    },
+    {
+      "path": "src/platform/storage.ts",
+      "oid": "7acd693be470581cddabfcd38d66f608052ca6ff",
+      "size": 20438
+    },
+    {
+      "path": "src/platform/trusted-types.ts",
+      "oid": "1f71ad3897fd7d5d23b77f151be24261f7330de9",
+      "size": 690
+    },
+    {
+      "path": "src/types/globals.d.ts",
+      "oid": "7581e14e7e8b2a4817773eb1f2495e18149c333c",
+      "size": 5740
+    },
+    {
+      "path": "src/ui/control-center.ts",
+      "oid": "e1da7ac068a2d2744d364d4d7dcf4292705c862e",
+      "size": 136056
+    },
+    {
+      "path": "src/ui/control-center/constants.ts",
+      "oid": "54ab0124a28c092bf7854e8ffa525d402fc5a566",
+      "size": 1302
+    },
+    {
+      "path": "src/ui/control-center/panel-context.ts",
+      "oid": "5d894ab79c7afd4010b2e4cdf071c911ddaef62b",
+      "size": 4916
+    },
+    {
+      "path": "src/ui/control-center/section-manifest.ts",
+      "oid": "d322ac056843676219ddaff96c609e3d8a87d0b5",
+      "size": 2978
+    },
+    {
+      "path": "src/ui/control-center/sections/advanced.ts",
+      "oid": "81a1a26981160f8bbb84cf4f0c258b3a1c891dcb",
+      "size": 52730
+    },
+    {
+      "path": "src/ui/control-center/sections/data.ts",
+      "oid": "e343ed4f5067a5cbe35c53a1c5742fa39d255672",
+      "size": 89136
+    },
+    {
+      "path": "src/ui/control-center/sections/presets.ts",
+      "oid": "571ef43e53e7d245af645d0a3781ed6203b041d8",
+      "size": 3054
+    },
+    {
+      "path": "src/ui/control-center/sections/reading.ts",
+      "oid": "0a963b297701533a8b44d036839837f7ff0fd2f5",
+      "size": 41897
+    },
+    {
+      "path": "tests/a11y-axe.test.mjs",
+      "oid": "595328db04d9574eb6753f2a7f2c00cf1ac63ea8",
+      "size": 12611
+    },
+    {
+      "path": "tests/a11y-behaviour.test.mjs",
+      "oid": "add05c3abbb6daf2dc32a74e39a9d7cc696384fd",
+      "size": 28660
+    },
+    {
+      "path": "tests/absolute-time.test.mjs",
+      "oid": "17a35d8d1df1c5001e3f56d645a528abca856ca8",
+      "size": 4204
+    },
+    {
+      "path": "tests/activitystreams-outbox.test.mjs",
+      "oid": "43931aec57cbc18f662d37df152f92378614f48e",
+      "size": 17861
+    },
+    {
+      "path": "tests/ad-label-language.test.mjs",
+      "oid": "8edf8a2b200dc4f2a8704cc35f0d80da44a269c0",
+      "size": 3618
+    },
+    {
+      "path": "tests/ad-observations.test.mjs",
+      "oid": "6ca18f50191b450b75f66c3a19fd55053d92979a",
+      "size": 2946
+    },
+    {
+      "path": "tests/ad-protection.test.mjs",
+      "oid": "89224280be0909d919ab7dc1fc30ecf77308afb1",
+      "size": 12014
+    },
+    {
+      "path": "tests/ad-rule-sync.test.mjs",
+      "oid": "89a727d8c1897be448b3e4e960f2e6db79d12a49",
+      "size": 12319
+    },
+    {
+      "path": "tests/appearance-width-font.test.mjs",
+      "oid": "617754c4c5f5e0fc81d02fd2fa190dec90c648a5",
+      "size": 9988
+    },
+    {
+      "path": "tests/archive-deflate.test.mjs",
+      "oid": "d503d4f74151fc38a08393b3c5f814787be43ccb",
+      "size": 31150
+    },
+    {
+      "path": "tests/archive-staging.test.mjs",
+      "oid": "1a44bef662b7daca845e329c17984b01a6f26bf9",
+      "size": 5375
+    },
+    {
+      "path": "tests/archive-vintages.test.mjs",
+      "oid": "5e08c1bba0eb2138bb09dd6ed11da0f91301d758",
+      "size": 13755
+    },
+    {
+      "path": "tests/audit-2026-08-07.test.mjs",
+      "oid": "b17d547c75e35926003c25fd3be54ca6bc606fa0",
+      "size": 17316
+    },
+    {
+      "path": "tests/audit-a11y.test.mjs",
+      "oid": "5d64fa065bab4c00a18e2406b94821981bdd4178",
+      "size": 5779
+    },
+    {
+      "path": "tests/audit-correctness.test.mjs",
+      "oid": "c5b2440a8ba0b2b78f5a9b6097bb01bd3b2bcfba",
+      "size": 4118
+    },
+    {
+      "path": "tests/audit-ui.test.mjs",
+      "oid": "617fbbfad7e3db189ca96dcbde124a5988fea26b",
+      "size": 5587
+    },
+    {
+      "path": "tests/audit-ux.test.mjs",
+      "oid": "6cf2c70616c5c2745647bf00aec8dbb47da0db09",
+      "size": 3435
+    },
+    {
+      "path": "tests/background-diagnostics.test.mjs",
+      "oid": "8838d2079eb61fb72d952a7faf68211e02a63326",
+      "size": 2655
+    },
+    {
+      "path": "tests/bookmark-capture.test.mjs",
+      "oid": "35d1b32b3eff194566a76b2b671c0c23afd06d60",
+      "size": 6411
+    },
+    {
+      "path": "tests/bookmarks-product.test.mjs",
+      "oid": "3fbe645eb43466abd923c4c17dc830beeb3c8faf",
+      "size": 11738
+    },
+    {
+      "path": "tests/boot-notice.test.mjs",
+      "oid": "9b7fe0c017846f549411e1cfc6205ab4ac355711",
+      "size": 8527
+    },
+    {
+      "path": "tests/boot-registration.test.mjs",
+      "oid": "e0e9c2ce8aeb9afd1d9b29d0a1f920675fd578bd",
+      "size": 13487
+    },
+    {
+      "path": "tests/browser-floors.test.mjs",
+      "oid": "e9c30e43c1652a4576c154223e27a8a07a7f567d",
+      "size": 6564
+    },
+    {
+      "path": "tests/catch-up-capture.test.mjs",
+      "oid": "6455d69559136d22bd40aa29a4ae9c6b8de4f0f3",
+      "size": 4618
+    },
+    {
+      "path": "tests/catch-up-ui.test.mjs",
+      "oid": "7b9864641a8bb16a28a70cc44b62a761a78bd43e",
+      "size": 12325
+    },
+    {
+      "path": "tests/catch-up.test.mjs",
+      "oid": "c87d9da1585d00b0f52184afeb1683187534a3a0",
+      "size": 5088
+    },
+    {
+      "path": "tests/cleanup-queue.test.mjs",
+      "oid": "99c356a6bf4b5c790bfa0fdc9c86ff87da64bc56",
+      "size": 7257
+    },
+    {
+      "path": "tests/control-center-actions.test.mjs",
+      "oid": "030ee88b75449dd8800d0cbbd9a1dc89ed7bc089",
+      "size": 34419
+    },
+    {
+      "path": "tests/control-center-modal.test.mjs",
+      "oid": "b8f4eb2a78f9e418a3f647308f9defedf6c84069",
+      "size": 15240
+    },
+    {
+      "path": "tests/control-center-render.test.mjs",
+      "oid": "5b338884c5697008092861060019538b2117a990",
+      "size": 27608
+    },
+    {
+      "path": "tests/control-center-secondary-i18n.test.mjs",
+      "oid": "551b727bc9df75511f01e5571d3b00b45fdb8d69",
+      "size": 13774
+    },
+    {
+      "path": "tests/conversation-theme.test.mjs",
+      "oid": "277a7510465f2ea233a0568edd4d69bdaa27a76b",
+      "size": 7308
+    },
+    {
+      "path": "tests/copy-post-link.test.mjs",
+      "oid": "9922ddc1fb0b9714ba0490287cbba4a9d30f46d1",
+      "size": 12714
+    },
+    {
+      "path": "tests/cross-tab-stores.test.mjs",
+      "oid": "e98850d1a90a6a4c8bddbbb76cf2fc3ceb4b301c",
+      "size": 47696
+    },
+    {
+      "path": "tests/crosspost-threads.test.mjs",
+      "oid": "78b138304d5c039e5fb2aabd79d1e734c9c39783",
+      "size": 7157
+    },
+    {
+      "path": "tests/custom-css.test.mjs",
+      "oid": "19e949fb9453532260446b8b86ad82386258a97e",
+      "size": 14217
+    },
+    {
+      "path": "tests/declutter-current-x.test.mjs",
+      "oid": "88c5599b4c7643370b8b872f631cbb0695148927",
+      "size": 7632
+    },
+    {
+      "path": "tests/diagnostics-persistence.test.mjs",
+      "oid": "8efff2aa11377984c6551c3cabcf9504561781db",
+      "size": 7254
+    },
+    {
+      "path": "tests/dnr-ad-protection.test.mjs",
+      "oid": "66c3b1017cd914f7a975cc3799569161a66d2fe8",
+      "size": 11442
+    },
+    {
+      "path": "tests/docs-consistency.test.mjs",
+      "oid": "b0e6951038fbb18e82ac9c41fc15e6fbcafaadec",
+      "size": 9884
+    },
+    {
+      "path": "tests/download-terminal-state.test.mjs",
+      "oid": "e66154ab1a5f1b3398a1331196d985c6cfda6f57",
+      "size": 23542
+    },
+    {
+      "path": "tests/durable-storage.test.mjs",
+      "oid": "0fb705c335a1700ec92ef0d8005af582efa9bbc5",
+      "size": 39318
+    },
+    {
+      "path": "tests/export-audience.test.mjs",
+      "oid": "67f77228bff8acd2e2bc8dbfce9aec6199a74a52",
+      "size": 7310
+    },
+    {
+      "path": "tests/export-capture-session.test.mjs",
+      "oid": "c8ac056904a66ce0d9b16836bed775f3fc7d71ad",
+      "size": 9862
+    },
+    {
+      "path": "tests/export-language.test.mjs",
+      "oid": "2c758b83a5353aaa344c998d517be3845683c221",
+      "size": 4741
+    },
+    {
+      "path": "tests/export-lifecycle.test.mjs",
+      "oid": "9c259f584da95897890b3e80924ad86c87bd7459",
+      "size": 5610
+    },
+    {
+      "path": "tests/export-truthfulness.test.mjs",
+      "oid": "f372c09c428b96e81946f3c1f146ad9bd092f451",
+      "size": 8019
+    },
+    {
+      "path": "tests/export-viewer.test.mjs",
+      "oid": "b42b37a834b06e43e9a3fa634a9d835333ab3adf",
+      "size": 7672
+    },
+    {
+      "path": "tests/export.test.mjs",
+      "oid": "abe1eee88793dbb301b43cad5d92a25122e2db92",
+      "size": 20535
+    },
+    {
+      "path": "tests/extension-background-api.test.mjs",
+      "oid": "687560163d55114006b3dd72780a5eb4a1236cf8",
+      "size": 15409
+    },
+    {
+      "path": "tests/extension-durable-storage.test.mjs",
+      "oid": "6def5d7c4dc2f9dc36eb48e119774b3102e5a1d3",
+      "size": 14652
+    },
+    {
+      "path": "tests/extension-i18n.test.mjs",
+      "oid": "1c74e4e6a3718dc7628453c3813e7d56cf674fa0",
+      "size": 1806
+    },
+    {
+      "path": "tests/extension-options-page.test.mjs",
+      "oid": "0af47f436935ce00d1fc331cf5f1bbf080d5dcb9",
+      "size": 17279
+    },
+    {
+      "path": "tests/favicon.test.mjs",
+      "oid": "4ea7d3e9e4f540334a2439fa75cfbafbc55af7e1",
+      "size": 5380
+    },
+    {
+      "path": "tests/feature-bisect.test.mjs",
+      "oid": "40d413c62c8119506841c842b7bc71bc00d26cc8",
+      "size": 20010
+    },
+    {
+      "path": "tests/feature-feedback.test.mjs",
+      "oid": "7ecd44b2e765d6a6f1beb3b16f8cadfee240e199",
+      "size": 12817
+    },
+    {
+      "path": "tests/feature-lifecycle.test.mjs",
+      "oid": "076ebf205ce4b97ec64e99f238e49100f994b6d6",
+      "size": 34967
+    },
+    {
+      "path": "tests/filter-cell-collapse.test.mjs",
+      "oid": "ca073597fb0a1f7e09d82178f70d7e89e92b4292",
+      "size": 5511
+    },
+    {
+      "path": "tests/filter-engine-work.test.mjs",
+      "oid": "d9ecd3b662ff162f813c8aa7ec16d9fcd49989e1",
+      "size": 15192
+    },
+    {
+      "path": "tests/filter-engine.test.mjs",
+      "oid": "303306c21d28b24050df95f48a08815274821c33",
+      "size": 5938
+    },
+    {
+      "path": "tests/filter-post-shape.test.mjs",
+      "oid": "f9a2f28bde76900fc79513baf968f66bd60df816",
+      "size": 23270
+    },
+    {
+      "path": "tests/filter-reason.test.mjs",
+      "oid": "c424d45193cd7ed34e048062c0fa9ff4b40bd132",
+      "size": 18764
+    },
+    {
+      "path": "tests/filter-rule-lifetime.test.mjs",
+      "oid": "ad6c4702cba59dd0f371992809440428c3113707",
+      "size": 13163
+    },
+    {
+      "path": "tests/filter-rules-fixture.test.mjs",
+      "oid": "7a20168ff1a55db5cdf494b99438b0afcbc3d92c",
+      "size": 4712
+    },
+    {
+      "path": "tests/filter-rules.test.mjs",
+      "oid": "f391f876387499e448d133979ec621c5375c7200",
+      "size": 11195
+    },
+    {
+      "path": "tests/filter-structural-css.test.mjs",
+      "oid": "478933b6f3364b2df657f4dc50744c4c1d8bc76d",
+      "size": 15436
+    },
+    {
+      "path": "tests/firefox-smoke-teardown.test.mjs",
+      "oid": "88f6da1b1295af8351d2b3a29ec4ee47fe6a8480",
+      "size": 1760
+    },
+    {
+      "path": "tests/first-run.test.mjs",
+      "oid": "66a1d7f588ed6bdb48fd8a94dd9c40c556b0b491",
+      "size": 4633
+    },
+    {
+      "path": "tests/fixtures.test.mjs",
+      "oid": "c06350746c5e66db292a78a6d11b4f7398a55e73",
+      "size": 29237
+    },
+    {
+      "path": "tests/fixtures/ad-corpus/house-promos.html",
+      "oid": "f7844cbcdf42436e2488026fe2cb28d999389374",
+      "size": 600
+    },
+    {
+      "path": "tests/fixtures/ad-corpus/native-ad.html",
+      "oid": "b01dab961d523127235b77cbe240e1a637ca609a",
+      "size": 663
+    },
+    {
+      "path": "tests/fixtures/ad-corpus/paid-partnership.html",
+      "oid": "25735dbc6bd59a6ce96d0c797a36fe356da0da35",
+      "size": 511
+    },
+    {
+      "path": "tests/fixtures/ad-corpus/promoted-trend.html",
+      "oid": "e00f92a9f13243933663573fed7ec3174fc2c71c",
+      "size": 436
+    },
+    {
+      "path": "tests/fixtures/ad-corpus/video-preroll.html",
+      "oid": "dd31d2658491be395a073e07157354b7b8c9dd5f",
+      "size": 415
+    },
+    {
+      "path": "tests/fixtures/quiet-stream-landscape.png",
+      "oid": "809284c3d8aee7e16f60a884e22eea61b1ecf733",
+      "size": 2482935
+    },
+    {
+      "path": "tests/focus-mode.test.mjs",
+      "oid": "2977f6a7d74d0854627f1869bf8ebcc92a1c4f12",
+      "size": 6320
+    },
+    {
+      "path": "tests/force-following.test.mjs",
+      "oid": "e21d2861168a2d031d386ab2afb200f9be70cc7d",
+      "size": 14009
+    },
+    {
+      "path": "tests/forced-colors.test.mjs",
+      "oid": "4d52bdb6dd6bf30b9a203c0cd0863cd786b76523",
+      "size": 20661
+    },
+    {
+      "path": "tests/grok-declutter.test.mjs",
+      "oid": "eeb183238b26e72d13be101966344361b5f89906",
+      "size": 10429
+    },
+    {
+      "path": "tests/helpers/background-harness.mjs",
+      "oid": "07a73bea53d9a3596566c9f8112cf93c6384dbd2",
+      "size": 3374
+    },
+    {
+      "path": "tests/helpers/i18n-manifest.mjs",
+      "oid": "227b2a9175305b7abc5dca35b03e6447fc68e535",
+      "size": 974
+    },
+    {
+      "path": "tests/helpers/large-library-corpus.mjs",
+      "oid": "acb9eb01b33988ee884b0817f00750df3d3e776e",
+      "size": 4415
+    },
+    {
+      "path": "tests/helpers/network-policy.mjs",
+      "oid": "04ddb29f5e30bd9d99724f9df01effd9ab64d4bd",
+      "size": 1350
+    },
+    {
+      "path": "tests/helpers/safety-fuzz.mjs",
+      "oid": "e863d173f8654de326ccac13f14e150923764478",
+      "size": 7479
+    },
+    {
+      "path": "tests/helpers/source-import.mjs",
+      "oid": "f613e47c35eed2489ffc8208be083bdb40a8b072",
+      "size": 991
+    },
+    {
+      "path": "tests/helpers/synthetic-capture.mjs",
+      "oid": "2655b73a62159c5da1399a5787a74119ae8cd9fd",
+      "size": 2470
+    },
+    {
+      "path": "tests/hidden-posts-reconcile.test.mjs",
+      "oid": "63d7f6ce6d9e20ec1cc3e0a8efb1a5700031af80",
+      "size": 7849
+    },
+    {
+      "path": "tests/hide-button-dead-zone.test.mjs",
+      "oid": "3abbc352b0092c1aa7e9f268e48eced3c4c99d81",
+      "size": 11962
+    },
+    {
+      "path": "tests/i18n.test.mjs",
+      "oid": "eb5e5bb171faf05343c3bd5c899bd73599cf60e0",
+      "size": 16154
+    },
+    {
+      "path": "tests/injected-ui-contract.test.mjs",
+      "oid": "6a0fc96157d6ccf93fbe28bdc19bf38b989dba82",
+      "size": 36095
+    },
+    {
+      "path": "tests/inline-original-images.test.mjs",
+      "oid": "dfb6f3128eae43a3596ce96f2e1bb944e058efec",
+      "size": 10267
+    },
+    {
+      "path": "tests/integration-usage.test.mjs",
+      "oid": "7eb808dde6cef83a8c087dd8e9308993db0d25f6",
+      "size": 12247
+    },
+    {
+      "path": "tests/large-library-matrix.test.mjs",
+      "oid": "98305d6d123300913ecb8305ab8d1a4671f3d953",
+      "size": 9398
+    },
+    {
+      "path": "tests/library-backup-envelope.test.mjs",
+      "oid": "d0a51860ea1d6fccfbda750f7e5b7ee176c47243",
+      "size": 1197
+    },
+    {
+      "path": "tests/library-backup-ui.test.mjs",
+      "oid": "e89ef6957d359818560d381b543e6696a5875a50",
+      "size": 5819
+    },
+    {
+      "path": "tests/library-backup.test.mjs",
+      "oid": "06f93f3f19bba54b47d783bd173f99fa59959d88",
+      "size": 30049
+    },
+    {
+      "path": "tests/library-storage.test.mjs",
+      "oid": "b5d45bf1e5d1858c97e2eedf4ef549ff059ffac6",
+      "size": 19995
+    },
+    {
+      "path": "tests/local-release.test.mjs",
+      "oid": "9ed6bb79fe502d1be6f3fe72f2073c9777151add",
+      "size": 4357
+    },
+    {
+      "path": "tests/media-attribution.test.mjs",
+      "oid": "ac2f90ef134c11e86a940e43234747b6e3cb0403",
+      "size": 13306
+    },
+    {
+      "path": "tests/media-batch-pacing.test.mjs",
+      "oid": "a223e609b6786fedae3caba51bc52744c9bbdd41",
+      "size": 37159
+    },
+    {
+      "path": "tests/media-button-layout.test.mjs",
+      "oid": "420bc11d8a125ce3922ffb48557fa6c2f4b6aa8e",
+      "size": 7931
+    },
+    {
+      "path": "tests/media-button-presence.test.mjs",
+      "oid": "5f509fa09d5d37897b3166a94114e6ae88e8b3dd",
+      "size": 19331
+    },
+    {
+      "path": "tests/media-context-menu.test.mjs",
+      "oid": "8ef9057030a5f934bd0d6d69827f7a6614342cdf",
+      "size": 2143
+    },
+    {
+      "path": "tests/media-fingerprint-deadline.test.mjs",
+      "oid": "fd935906129d56275d1106a3af2b2f3b8b23ae87",
+      "size": 7133
+    },
+    {
+      "path": "tests/media-metadata.test.mjs",
+      "oid": "0f1ddcc05684b8c9a183fc5a5cef47843fb0000c",
+      "size": 45261
+    },
+    {
+      "path": "tests/media-quality-evidence.test.mjs",
+      "oid": "a014edffb02c31ad29472c62c27d85a74a50e34d",
+      "size": 13152
+    },
+    {
+      "path": "tests/media-scope.test.mjs",
+      "oid": "e7c56de1099b30d39aa5bf4d4fbd32653e8a6bc4",
+      "size": 1828
+    },
+    {
+      "path": "tests/media-video-targets.test.mjs",
+      "oid": "217974496340a20198b965d82bb843454654ec8f",
+      "size": 9623
+    },
+    {
+      "path": "tests/media.test.mjs",
+      "oid": "0521920a64a0129ebcf792c57b317d13b3f3de66",
+      "size": 28561
+    },
+    {
+      "path": "tests/native-typecheck.test.mjs",
+      "oid": "5b6f0041216cb22eb7abab39c92d6125d7498a63",
+      "size": 2343
+    },
+    {
+      "path": "tests/network-shield-gating.test.mjs",
+      "oid": "810a88bb461cdab3400eb3b7a68c646967c9a8b2",
+      "size": 9959
+    },
+    {
+      "path": "tests/network-shield.test.mjs",
+      "oid": "495fdc11821f0588ff26511b86a9e519b3d35ab4",
+      "size": 1989
+    },
+    {
+      "path": "tests/observer-batching.test.mjs",
+      "oid": "74066002a7e7d1cefecc1b96814894b0830d19c1",
+      "size": 5930
+    },
+    {
+      "path": "tests/page-agent-squatter.test.mjs",
+      "oid": "b637431d9dfb708d93d67caf991ae021cf174a32",
+      "size": 16590
+    },
+    {
+      "path": "tests/page-agent.test.mjs",
+      "oid": "0a71bfcf508c376cb052271f247ab11d8c36b501",
+      "size": 29286
+    },
+    {
+      "path": "tests/page-bridge-channel.test.mjs",
+      "oid": "ef6b3bc0fdc5be7bba7e3fb1ba6467b67a1fc391",
+      "size": 6221
+    },
+    {
+      "path": "tests/page-css-gating.test.mjs",
+      "oid": "23e19c387015d581cd2ab23b292520a454be0971",
+      "size": 3471
+    },
+    {
+      "path": "tests/panel-appearance-contract.test.mjs",
+      "oid": "65cd834f34c67b81b9334a8173a508ce6da69b96",
+      "size": 33703
+    },
+    {
+      "path": "tests/performance-diagnostics.test.mjs",
+      "oid": "eebd5c0b06d29c349ed2cc2387ae77e4a0ea2105",
+      "size": 6186
+    },
+    {
+      "path": "tests/performance.test.mjs",
+      "oid": "181ef0ca11963cd5600e93ff5eaa8d896821917d",
+      "size": 9296
+    },
+    {
+      "path": "tests/post-open-guard.test.mjs",
+      "oid": "bde139369508d015dc616cb78a366a3d8d79a944",
+      "size": 13872
+    },
+    {
+      "path": "tests/premium-theme.test.mjs",
+      "oid": "9a96a091b64a8fac95ea8789667860e5b68de2eb",
+      "size": 10967
+    },
+    {
+      "path": "tests/profile.test.mjs",
+      "oid": "83057d666ddd145bd2e7a8465e8d3a5284bc58c5",
+      "size": 10633
+    },
+    {
+      "path": "tests/query-model.test.mjs",
+      "oid": "0f128a53be83d205b405f81fdeff053f97bb43df",
+      "size": 9779
+    },
+    {
+      "path": "tests/reading-marker-ui.test.mjs",
+      "oid": "2aadb76ae6993b52c7caabc963f5b72c238512c1",
+      "size": 5281
+    },
+    {
+      "path": "tests/reading-markers.test.mjs",
+      "oid": "fb0a15a808b03d550da15a57fe2ee6d67e789e9d",
+      "size": 3238
+    },
+    {
+      "path": "tests/readme-claims.test.mjs",
+      "oid": "50ead9b09f8dc544336cec93f5747b5d7f8405cb",
+      "size": 3999
+    },
+    {
+      "path": "tests/regex-budget.test.mjs",
+      "oid": "cae05ed0622dc38a86e0ab4ea16c951447425d57",
+      "size": 18571
+    },
+    {
+      "path": "tests/registry-serialization.test.mjs",
+      "oid": "cdb17d5bcc7e7ce52cd6f5393d67143a4e3390a4",
+      "size": 4121
+    },
+    {
+      "path": "tests/release-matrix.test.mjs",
+      "oid": "47946fdb96db7c2fc16b9019582495dcc73b4688",
+      "size": 9764
+    },
+    {
+      "path": "tests/reply-media-size.test.mjs",
+      "oid": "f5533378b4acc714fc7786583e75d1dbfa67c6c3",
+      "size": 9835
+    },
+    {
+      "path": "tests/report-download.test.mjs",
+      "oid": "f93e361743a1eba0e03d601d1dcbcd473f954e6a",
+      "size": 11307
+    },
+    {
+      "path": "tests/route-navigation-api.test.mjs",
+      "oid": "80852852f7321d89cde0c958f5008508f14eb70d",
+      "size": 4954
+    },
+    {
+      "path": "tests/rtl-control-center.test.mjs",
+      "oid": "f3e76df94b4545e19b1b130cd88c2c0ab4140eb7",
+      "size": 8940
+    },
+    {
+      "path": "tests/runtime-hardening.test.mjs",
+      "oid": "39f76981b54d7b73eb4bafe40acc352f645cd0b4",
+      "size": 9206
+    },
+    {
+      "path": "tests/runtime-reconciliation.test.mjs",
+      "oid": "b047cc792c735876f3fa658d0ab4bc8984bbe694",
+      "size": 13834
+    },
+    {
+      "path": "tests/schema-settings.test.mjs",
+      "oid": "2ce1082017f84d5c6d6148d5121de2cad2754fb7",
+      "size": 4691
+    },
+    {
+      "path": "tests/scrollmark-import.test.mjs",
+      "oid": "eba987f0b5dea8a335f4ac766b58f31bfff0279a",
+      "size": 18114
+    },
+    {
+      "path": "tests/search-and-export-data.test.mjs",
+      "oid": "aa0fb7b7ecea05ca011e566ff788b248cec5d3a5",
+      "size": 10547
+    },
+    {
+      "path": "tests/seen-posts-dimming.test.mjs",
+      "oid": "22ad4b382c62be244d8b973cac1885ac20fe18e7",
+      "size": 22766
+    },
+    {
+      "path": "tests/seen-posts.test.mjs",
+      "oid": "217cfaf47c861bb0f9266f8de801ca0938bdda7b",
+      "size": 4945
+    },
+    {
+      "path": "tests/selector-health-dashboard.test.mjs",
+      "oid": "da36aec77677c6fd32c688a8a6a5c84075248d83",
+      "size": 20777
+    },
+    {
+      "path": "tests/settings-choke-point.test.mjs",
+      "oid": "e9bbb196121b699c82e5a9d78a0f49d33bf41ef8",
+      "size": 8982
+    },
+    {
+      "path": "tests/settings-claims.test.mjs",
+      "oid": "f5bc4cc9625c185e1ac4bbe566f2d8460bf41a61",
+      "size": 3307
+    },
+    {
+      "path": "tests/settings-draft-state.test.mjs",
+      "oid": "b5d7db0950b39fa47b486b8dce8558e315365036",
+      "size": 25709
+    },
+    {
+      "path": "tests/settings-schema-version.test.mjs",
+      "oid": "0041396e250a39b3da9f626ad1fe144b15cc88f8",
+      "size": 8685
+    },
+    {
+      "path": "tests/smoke-readme.test.mjs",
+      "oid": "4ac678fc8a470a882b5332e14c5bfc385dc5dfeb",
+      "size": 1412
+    },
+    {
+      "path": "tests/smoke/aviary.smoke.mjs",
+      "oid": "05bd6e2189f82767322a3888b993c683f7a691b7",
+      "size": 31322
+    },
+    {
+      "path": "tests/smoke/current-x-home.html",
+      "oid": "a36b3b2c0a9a86f9cf0de09ce0374b17ed5df914",
+      "size": 8655
+    },
+    {
+      "path": "tests/smoke/current-x-status.html",
+      "oid": "e0ed9792419a6e953b998cb8bc2c9da05cdf959c",
+      "size": 8520
+    },
+    {
+      "path": "tests/smoke/dnr-chromium.smoke.mjs",
+      "oid": "bd01301daf81c69de55f2939bb5aded0946d6099",
+      "size": 18131
+    },
+    {
+      "path": "tests/smoke/dnr-firefox.smoke.mjs",
+      "oid": "6c7f4917f3c84516d8824c99f793426d647dd885",
+      "size": 27353
+    },
+    {
+      "path": "tests/smoke/extension-lifecycle.smoke.mjs",
+      "oid": "d98e190d963d9e57ca97cb81c870ebadc6ab0712",
+      "size": 16874
+    },
+    {
+      "path": "tests/smoke/externally-gated.smoke.mjs",
+      "oid": "b6918ffe6b198a6cf4a5c779f7a9a40aa169f2de",
+      "size": 37442
+    },
+    {
+      "path": "tests/smoke/incognito-chromium.smoke.mjs",
+      "oid": "9d8a84ac7229d4275349c2374959e9dc53fc5d7d",
+      "size": 5151
+    },
+    {
+      "path": "tests/smoke/userscript-manager-lifecycle.smoke.mjs",
+      "oid": "8150d0fca077df652d35f4ae4284dfad5fd9654c",
+      "size": 49143
+    },
+    {
+      "path": "tests/source-archive.test.mjs",
+      "oid": "da320a3038a96480e53863b0b3addb6aba98205b",
+      "size": 7541
+    },
+    {
+      "path": "tests/source-contracts.test.mjs",
+      "oid": "1262fb444663832a4e784177aa651bd183cdadd6",
+      "size": 43958
+    },
+    {
+      "path": "tests/static-archive.test.mjs",
+      "oid": "aca642161588893e05dbce705a03c87c30cbdb82",
+      "size": 23839
+    },
+    {
+      "path": "tests/storage-authority-browser.test.mjs",
+      "oid": "d7c9a179dff3626cb764076d6414777b8998d42e",
+      "size": 31586
+    },
+    {
+      "path": "tests/storage-fencing.test.mjs",
+      "oid": "95c6e754fbf3f1a86d49cd182757d97db7ab80b7",
+      "size": 10434
+    },
+    {
+      "path": "tests/storage-lock-register.test.mjs",
+      "oid": "1c00aeeebd8b027515e4fa109cfa38fe8d060d9b",
+      "size": 7226
+    },
+    {
+      "path": "tests/theme-matrix.test.mjs",
+      "oid": "d875f127efb9f6d1448c0c8e36bec4e9d255af95",
+      "size": 15322
+    },
+    {
+      "path": "tests/thread-capture.test.mjs",
+      "oid": "88e3dc199962de0d6c7452035297c730f938f4db",
+      "size": 1723
+    },
+    {
+      "path": "tests/thread-recommendations.test.mjs",
+      "oid": "7d3ffbab88d063e9485006ef42a62c5ab5aea592",
+      "size": 6658
+    },
+    {
+      "path": "tests/thread-reconstruction.test.mjs",
+      "oid": "402e317f5de33b6ff0149d85c71ddd25e0830793",
+      "size": 3516
+    },
+    {
+      "path": "tests/timeline-pagination.test.mjs",
+      "oid": "0cc233c1f02ae755cb57e0bbcc0ec90adee606a4",
+      "size": 11672
+    },
+    {
+      "path": "tests/title-badge-counts.test.mjs",
+      "oid": "590e3dec6125eda260aeaf4857d30183f47a6055",
+      "size": 6685
+    },
+    {
+      "path": "tests/trusted-types.test.mjs",
+      "oid": "b6bf6deca90bf794a451f648be2302f200343050",
+      "size": 1915
+    },
+    {
+      "path": "tests/under-the-hood-ui.test.mjs",
+      "oid": "c0fe7e85b46ff6968a78486098e1490d6f0438ee",
+      "size": 6376
+    },
+    {
+      "path": "tests/under-the-hood.test.mjs",
+      "oid": "180fbca461294712216624646f76a978ae49bb50",
+      "size": 6195
+    },
+    {
+      "path": "tests/user-colors.test.mjs",
+      "oid": "1aa6d7b29c3423506a88728b7073c5196569e15b",
+      "size": 5529
+    },
+    {
+      "path": "tests/userscript-metadata.test.mjs",
+      "oid": "d11406837a69fa2d7084572d482bccf2947d757f",
+      "size": 2814
+    },
+    {
+      "path": "tests/v0.11.0.test.mjs",
+      "oid": "b289e1ab7d1c5e31d5f15d782fae23a63b6de1a3",
+      "size": 9713
+    },
+    {
+      "path": "tests/v0.8.0.test.mjs",
+      "oid": "31d52820e4d3dae04261f76bd363d26c5f4132b5",
+      "size": 5636
+    },
+    {
+      "path": "tests/v1.0.0.test.mjs",
+      "oid": "6dbcf40f2ee4a60e6ab380d1d5fc054d81ebeb11",
+      "size": 4398
+    },
+    {
+      "path": "tests/v1.1.0.test.mjs",
+      "oid": "3ed9bb988ad9bd135aa7b731d38edad3ed17beb0",
+      "size": 16384
+    },
+    {
+      "path": "tests/v1.2.0.test.mjs",
+      "oid": "4542a3ed0bc0084fdf990f9ed8b6cf9ebf1e3242",
+      "size": 4016
+    },
+    {
+      "path": "tests/v1.3.0.test.mjs",
+      "oid": "71360e05813a8472b4b7126236e8e48ca8636f63",
+      "size": 11303
+    },
+    {
+      "path": "tests/v1.4.0.test.mjs",
+      "oid": "70cbe81ef20352f2ebd611583ebf134a6259f062",
+      "size": 20362
+    },
+    {
+      "path": "tests/v1.6.0.test.mjs",
+      "oid": "0dfe92e7f8b174fecad313eb33a02f9b933ab1ae",
+      "size": 8811
+    },
+    {
+      "path": "tests/v1.8.0.test.mjs",
+      "oid": "b62c90c91f03f272db8fc21e8a6e63b16796dc09",
+      "size": 28307
+    },
+    {
+      "path": "tests/vanilla-by-default.test.mjs",
+      "oid": "01006409d4da9aca9010506947ac45ccd9c465d8",
+      "size": 7444
+    },
+    {
+      "path": "tests/version-markers.test.mjs",
+      "oid": "3160bc3ade328b007d93b9b4cc684edebf440fc7",
+      "size": 8018
+    },
+    {
+      "path": "tests/video-and-presentation.test.mjs",
+      "oid": "2dcc0a926439255dcc0d501ee35b54a9ffb279a3",
+      "size": 7659
+    },
+    {
+      "path": "tests/video-playback.test.mjs",
+      "oid": "ac1b17fd3d7fd67b616043e447079290a867f3c7",
+      "size": 4946
+    },
+    {
+      "path": "tests/viewer-i18n.test.mjs",
+      "oid": "38dd231d9590e3f6600c5eccd5783bb89e3099a0",
+      "size": 7624
+    },
+    {
+      "path": "tests/visual/baselines/injected/injected-first-run-dark-1440x900.png",
+      "oid": "275b77a1a06caa91b4674bc3825f6ed76be9db87",
+      "size": 12630
+    },
+    {
+      "path": "tests/visual/baselines/injected/injected-first-run-light-1440x900.png",
+      "oid": "30a3f6daccb7180f3bc93f31ee3fbba25f82d816",
+      "size": 12667
+    },
+    {
+      "path": "tests/visual/baselines/injected/injected-launcher-dark-1440x900.png",
+      "oid": "f5edc96cd143d9f51594f6b0b493905fadd20d96",
+      "size": 2302
+    },
+    {
+      "path": "tests/visual/baselines/injected/injected-launcher-light-1440x900.png",
+      "oid": "98239654ca79e07a68fccf341db51b3812570868",
+      "size": 2184
+    },
+    {
+      "path": "tests/visual/baselines/injected/injected-post-controls-dark-1440x900.png",
+      "oid": "a3df77e08cbb80334b95eff8e37f12e59d552c6d",
+      "size": 16092
+    },
+    {
+      "path": "tests/visual/baselines/injected/injected-post-controls-light-1440x900.png",
+      "oid": "8092f41e96fe0cba074a2f379ead0219e2edd033",
+      "size": 17101
+    },
+    {
+      "path": "tests/visual/baselines/settings/control-center-appearance-dark-1440x900.png",
+      "oid": "55a4ffa7f3e5987e12e9310a196235daeefd19a3",
+      "size": 165044
+    },
+    {
+      "path": "tests/visual/baselines/settings/control-center-appearance-dark-1920x1080.png",
+      "oid": "863e649615243a6888274f50f393dd3a9a54a5af",
+      "size": 180010
+    },
+    {
+      "path": "tests/visual/baselines/settings/control-center-appearance-light-1440x900.png",
+      "oid": "fce6d9e03223751897e3866f0ed9f45eb89bad57",
+      "size": 171936
+    },
+    {
+      "path": "tests/visual/baselines/settings/control-center-appearance-light-1920x1080.png",
+      "oid": "418a0f7193bd450845e2301231a7e4dd5f7d11d8",
+      "size": 193159
+    },
+    {
+      "path": "tests/visual/baselines/settings/control-center-backup-dark-1440x900.png",
+      "oid": "8fabb3fea8e03d50512ea3812a300cdb79c7af5c",
+      "size": 200238
+    },
+    {
+      "path": "tests/visual/baselines/settings/control-center-backup-dark-1920x1080.png",
+      "oid": "eb5882baf6d8529974dff14964943b05b7943a98",
+      "size": 216008
+    },
+    {
+      "path": "tests/visual/baselines/settings/control-center-backup-light-1440x900.png",
+      "oid": "9d817688cdc6b9cf2fa61a395ef0b84ceed965ce",
+      "size": 207570
+    },
+    {
+      "path": "tests/visual/baselines/settings/control-center-backup-light-1920x1080.png",
+      "oid": "d29b0202dda05a8b94a42ae5a576dbf3c4f53064",
+      "size": 229042
+    },
+    {
+      "path": "tests/visual/baselines/settings/control-center-catchup-dark-1440x900.png",
+      "oid": "be01060e224ab43568a1a4a3975182b8a89d9877",
+      "size": 98763
+    },
+    {
+      "path": "tests/visual/baselines/settings/control-center-catchup-dark-1920x1080.png",
+      "oid": "caf7827b4d65fb05ce0247ce3d112f612a302978",
+      "size": 112680
+    },
+    {
+      "path": "tests/visual/baselines/settings/control-center-catchup-light-1440x900.png",
+      "oid": "0a849264558e6b88a79b2ddcfc9d69d3ed3c621a",
+      "size": 105716
+    },
+    {
+      "path": "tests/visual/baselines/settings/control-center-catchup-light-1920x1080.png",
+      "oid": "a4c5ebc3305b41eedaa1b21ef88009eb2d74eb5a",
+      "size": 125487
+    },
+    {
+      "path": "tests/visual/baselines/settings/control-center-export-dark-1440x900.png",
+      "oid": "7062961541f343f9240bab85dc5819eb1c44bb94",
+      "size": 172207
+    },
+    {
+      "path": "tests/visual/baselines/settings/control-center-export-dark-1920x1080.png",
+      "oid": "76edd9df28c236ce6dee134d4d8e2c4e7f03ebbf",
+      "size": 187125
+    },
+    {
+      "path": "tests/visual/baselines/settings/control-center-export-light-1440x900.png",
+      "oid": "06c8a5d7a8a1f1e67d0588a43f549e881ad0dce5",
+      "size": 178526
+    },
+    {
+      "path": "tests/visual/baselines/settings/control-center-export-light-1920x1080.png",
+      "oid": "1667e5a2169496e38b68ba8ae5c6ae9a975898c4",
+      "size": 199930
+    },
+    {
+      "path": "tests/visual/baselines/settings/control-center-export-preservation-dark-1440x900.png",
+      "oid": "149db04d31aa1b60348d9998355679836e36d22e",
+      "size": 199327
+    },
+    {
+      "path": "tests/visual/baselines/settings/control-center-filtering-dark-1440x900.png",
+      "oid": "c4f5ff04b87bbbd20c6d0a71273359db9e158057",
+      "size": 149850
+    },
+    {
+      "path": "tests/visual/baselines/settings/control-center-filtering-dark-1920x1080.png",
+      "oid": "3a900f05a47c2d1d2b614f69ee32e822b5c9530c",
+      "size": 163730
+    },
+    {
+      "path": "tests/visual/baselines/settings/control-center-filtering-light-1440x900.png",
+      "oid": "99bc5f6b069f3831487aec90ead894bbcb5f9d0c",
+      "size": 156384
+    },
+    {
+      "path": "tests/visual/baselines/settings/control-center-filtering-light-1920x1080.png",
+      "oid": "3f867f96a3d6f97a56145ce75904151d4b297cbc",
+      "size": 176937
+    },
+    {
+      "path": "tests/visual/baselines/settings/control-center-hidden-dark-1440x900.png",
+      "oid": "df154feacd9205cb7ddfe9cd0c43227a7602cd0a",
+      "size": 123756
+    },
+    {
+      "path": "tests/visual/baselines/settings/control-center-hidden-dark-1920x1080.png",
+      "oid": "707a11a8d009bf7f11768cc71c15c73de9f62177",
+      "size": 137942
+    },
+    {
+      "path": "tests/visual/baselines/settings/control-center-hidden-light-1440x900.png",
+      "oid": "30e1b75b4e18943c4a4adc7957b8c6c1bf34931d",
+      "size": 130836
+    },
+    {
+      "path": "tests/visual/baselines/settings/control-center-hidden-light-1920x1080.png",
+      "oid": "148540df572ca585dbbfada887aeb570bf0aeb16",
+      "size": 150359
+    },
+    {
+      "path": "tests/visual/baselines/settings/control-center-integrations-dark-1440x900.png",
+      "oid": "063b2fb55b764184f68b651c23ac9edcd7a28f81",
+      "size": 151529
+    },
+    {
+      "path": "tests/visual/baselines/settings/control-center-integrations-dark-1920x1080.png",
+      "oid": "77b0f637efdccd881bb38c33c2ba63e65ce1aff1",
+      "size": 166016
+    },
+    {
+      "path": "tests/visual/baselines/settings/control-center-integrations-light-1440x900.png",
+      "oid": "122d932a4d38f169d5fe6d67c3a03fff09893603",
+      "size": 158628
+    },
+    {
+      "path": "tests/visual/baselines/settings/control-center-integrations-light-1920x1080.png",
+      "oid": "9971e22dc35dd28e171c7bfe03dc1da9fc4fc537",
+      "size": 179287
+    },
+    {
+      "path": "tests/visual/baselines/settings/control-center-layout-dark-1440x900.png",
+      "oid": "dda7f5bbf92f98fc197056627be5daef7b9e8e21",
+      "size": 185314
+    },
+    {
+      "path": "tests/visual/baselines/settings/control-center-layout-dark-1920x1080.png",
+      "oid": "043bcb39be26e931b33ba8f939dad873a605b9f8",
+      "size": 199675
+    },
+    {
+      "path": "tests/visual/baselines/settings/control-center-layout-light-1440x900.png",
+      "oid": "2ab9b7863e87d03f07460bdb69b45b92648cac15",
+      "size": 192131
+    },
+    {
+      "path": "tests/visual/baselines/settings/control-center-layout-light-1920x1080.png",
+      "oid": "e7c05b8b227ccb19948df11ee3d1683b1776dea8",
+      "size": 213099
+    },
+    {
+      "path": "tests/visual/baselines/settings/control-center-library-dark-1440x900.png",
+      "oid": "2c1e7cef974b31832bdf3728b506c57edc6805dd",
+      "size": 172170
+    },
+    {
+      "path": "tests/visual/baselines/settings/control-center-library-dark-1920x1080.png",
+      "oid": "4b298ffb9f18f5cc68ddad2b5ce14486f7e9c591",
+      "size": 187265
+    },
+    {
+      "path": "tests/visual/baselines/settings/control-center-library-light-1440x900.png",
+      "oid": "f9acab1f2e9b84efc537523be69a98d5b1d18b72",
+      "size": 179021
+    },
+    {
+      "path": "tests/visual/baselines/settings/control-center-library-light-1920x1080.png",
+      "oid": "3ef7e6f5dc093b79ffa8bea5386ffc0fcb4c89d7",
+      "size": 199123
+    },
+    {
+      "path": "tests/visual/baselines/settings/control-center-media-dark-1440x900.png",
+      "oid": "d1074df5e45d050866168e9af3e498cd212a6f48",
+      "size": 161355
+    },
+    {
+      "path": "tests/visual/baselines/settings/control-center-media-dark-1920x1080.png",
+      "oid": "c30574be50b8df7142c9075e3d00d9ab40fcc10b",
+      "size": 175321
+    },
+    {
+      "path": "tests/visual/baselines/settings/control-center-media-light-1440x900.png",
+      "oid": "517c2cb53f996338a3655ef8f19607c76d7be3ee",
+      "size": 168257
+    },
+    {
+      "path": "tests/visual/baselines/settings/control-center-media-light-1920x1080.png",
+      "oid": "4bb9061aebd2e3e532a373ea6ca61838abb69e15",
+      "size": 188440
+    },
+    {
+      "path": "tests/visual/baselines/settings/control-center-performance-dark-1440x900.png",
+      "oid": "f0b067322a078958fd23c67c5af35cee0890a9bf",
+      "size": 122357
+    },
+    {
+      "path": "tests/visual/baselines/settings/control-center-performance-dark-1920x1080.png",
+      "oid": "f1008b47b45f77eda57b6888950190fd18fa94ff",
+      "size": 136558
+    },
+    {
+      "path": "tests/visual/baselines/settings/control-center-performance-light-1440x900.png",
+      "oid": "86823ee8f0b77ed42867e8a0cb90f35463aed5ba",
+      "size": 128501
+    },
+    {
+      "path": "tests/visual/baselines/settings/control-center-performance-light-1920x1080.png",
+      "oid": "1232ddfa6a61823b820435f084940a4928488121",
+      "size": 150075
+    },
+    {
+      "path": "tests/visual/baselines/settings/control-center-presets-dark-1440x900.png",
+      "oid": "e466199299d1c5efc9435fa9e8b6f7820d21d09d",
+      "size": 181829
+    },
+    {
+      "path": "tests/visual/baselines/settings/control-center-presets-dark-1920x1080.png",
+      "oid": "fb88b36fdfacd784bd9cc6126243e7fa61563214",
+      "size": 196419
+    },
+    {
+      "path": "tests/visual/baselines/settings/control-center-presets-light-1440x900.png",
+      "oid": "0dce5dd5e2b4daf896062ced618cc0d40fb7b2a5",
+      "size": 188129
+    },
+    {
+      "path": "tests/visual/baselines/settings/control-center-presets-light-1920x1080.png",
+      "oid": "72dfed49348aaac7fe37d638dade44523e10e1dd",
+      "size": 208892
+    },
+    {
+      "path": "tests/visual/baselines/settings/control-center-snapshots-dark-1440x900.png",
+      "oid": "af42ce0c447dd0a6306bda86de95e4ddfa9480a6",
+      "size": 180781
+    },
+    {
+      "path": "tests/visual/baselines/settings/control-center-snapshots-dark-1920x1080.png",
+      "oid": "c1ec72a1f4b960bb276bf34e9e5ee5dea9ab6eaf",
+      "size": 195037
+    },
+    {
+      "path": "tests/visual/baselines/settings/control-center-snapshots-light-1440x900.png",
+      "oid": "16b95c566d7915bb1a8e651eb42b31806954287d",
+      "size": 186425
+    },
+    {
+      "path": "tests/visual/baselines/settings/control-center-snapshots-light-1920x1080.png",
+      "oid": "9249570051fdedf1ca3d777d0fc2bed46d6a0a22",
+      "size": 207117
+    },
+    {
+      "path": "tests/visual/baselines/settings/control-center-state-error-dark-1440x900.png",
+      "oid": "112908583306598a5212fe51feb36bc1ad59da1f",
+      "size": 161910
+    },
+    {
+      "path": "tests/visual/baselines/settings/control-center-state-keyboard-focus-dark-1440x900.png",
+      "oid": "4a1f3af0384035da8afbc90c2e53a17615f7891d",
+      "size": 130480
+    },
+    {
+      "path": "tests/visual/baselines/settings/control-center-state-reduced-motion-dark-1440x900.png",
+      "oid": "f89a65a421edc308e51ea6d83e2f7a6e9a5f366d",
+      "size": 130156
+    },
+    {
+      "path": "tests/visual/baselines/settings/control-center-state-saved-dark-1440x900.png",
+      "oid": "53702fb393f884d0e7ff2886f59f81a6eda34fb0",
+      "size": 161446
+    },
+    {
+      "path": "tests/visual/baselines/settings/control-center-trust-dark-1440x900.png",
+      "oid": "09dc25811db8278e925a2eb221ce2266b266af33",
+      "size": 169536
+    },
+    {
+      "path": "tests/visual/baselines/settings/control-center-trust-dark-1920x1080.png",
+      "oid": "21809acacbe1135fa46558b53cec504ac1cf10fe",
+      "size": 183613
+    },
+    {
+      "path": "tests/visual/baselines/settings/control-center-trust-light-1440x900.png",
+      "oid": "cbaab2854b1e0e3703489458f1a5615f36bae723",
+      "size": 176045
+    },
+    {
+      "path": "tests/visual/baselines/settings/control-center-trust-light-1920x1080.png",
+      "oid": "488dbe8e1a234af00a7d9e6a90d5b509f083296e",
+      "size": 196283
+    },
+    {
+      "path": "tests/visual/baselines/settings/extension-options-disabled-dark-1440x900.png",
+      "oid": "88a6543c7cbecef21361fddd8c63879d52290c4f",
+      "size": 65522
+    },
+    {
+      "path": "tests/visual/baselines/settings/extension-options-disabled-dark-1920x1080.png",
+      "oid": "2da3276c612be3641e536f8b0d5683a58ae2ecd8",
+      "size": 69591
+    },
+    {
+      "path": "tests/visual/baselines/settings/extension-options-disabled-light-1440x900.png",
+      "oid": "bd188591e57b149bb9aa931402c7e42289658f04",
+      "size": 66000
+    },
+    {
+      "path": "tests/visual/baselines/settings/extension-options-disabled-light-1920x1080.png",
+      "oid": "ef8ac6fd14656da67f4f5a56edee189ef5004975",
+      "size": 70045
+    },
+    {
+      "path": "tests/visual/injected-visual-regression.test.mjs",
+      "oid": "d48b2944e8c32d89ab0242964ece50c3caa027e0",
+      "size": 5327
+    },
+    {
+      "path": "tests/visual/reflow-visual-regression.test.mjs",
+      "oid": "f5a54b9a7c117af6ea876702bde567897f5b4448",
+      "size": 6851
+    },
+    {
+      "path": "tests/visual/settings-visual-regression.test.mjs",
+      "oid": "1ad9004b925e35901d1b8b51007251c81639e287",
+      "size": 5386
+    },
+    {
+      "path": "tests/wacz-signing.test.mjs",
+      "oid": "6111fee7689e2e53b8d1e534378b562e710c5c4c",
+      "size": 8164
+    },
+    {
+      "path": "tests/wacz-worker.test.mjs",
+      "oid": "d6ebe4523c7cf9f48c620965bd5318e9913e1a50",
+      "size": 3661
+    },
+    {
+      "path": "tests/wacz.test.mjs",
+      "oid": "a4cb74efa28d2ce6d89673343fee684f5b4de3bd",
+      "size": 10338
+    },
+    {
+      "path": "tests/yt-dlp-helper.test.mjs",
+      "oid": "2da66a228f16aa0b73ef401de7431eb7f43ce7ee",
+      "size": 6030
+    },
+    {
+      "path": "tools/browser-floors.mjs",
+      "oid": "ae2d231e2a731c0dfdd888db81852188b0cfb113",
+      "size": 1920
+    },
+    {
+      "path": "tools/build-fingerprint.mjs",
+      "oid": "e010b6293df9bc69bd2979604683a15dc286baea",
+      "size": 1964
+    },
+    {
+      "path": "tools/build.mjs",
+      "oid": "d290474295a6f61361dd3cefc56121ed6bf15c43",
+      "size": 19182
+    },
+    {
+      "path": "tools/capture-decode.mjs",
+      "oid": "d9c3c41fd3740031f12de7d133255bcfa8ba2993",
+      "size": 7279
+    },
+    {
+      "path": "tools/capture-manifest.mjs",
+      "oid": "abde609b83696721e579d6e7a8cf8e55bc8ac69d",
+      "size": 5539
+    },
+    {
+      "path": "tools/capture-media-action.mjs",
+      "oid": "b5211b3e9b507b51f9e1937c21dc2d63af48a85c",
+      "size": 5833
+    },
+    {
+      "path": "tools/capture-settings.mjs",
+      "oid": "6b61fcc28252c10c7c126a7ae4173aa840cb04da",
+      "size": 1947
+    },
+    {
+      "path": "tools/capture-theme.mjs",
+      "oid": "382ff73d891f64a2140bc99010dedc66c0b7907f",
+      "size": 7299
+    },
+    {
+      "path": "tools/docs-facts.mjs",
+      "oid": "e28084d2420f16bd4fc394a9c1c23131f840f4c5",
+      "size": 7619
+    },
+    {
+      "path": "tools/fixture-generator.mjs",
+      "oid": "e14f877f734cad1b881bcfb336fd447614508ea1",
+      "size": 21947
+    },
+    {
+      "path": "tools/i18n-extract.mjs",
+      "oid": "b92f2d2be14f970d7affe2c1a20ab4ad47dca659",
+      "size": 30506
+    },
+    {
+      "path": "tools/i18n-native-additions.json",
+      "oid": "468f3d148fe928c099bfe599e603f02c78e8c3e4",
+      "size": 32248
+    },
+    {
+      "path": "tools/i18n-sync.mjs",
+      "oid": "68bbdaddd350090e007a440642200c7043ce0eab",
+      "size": 7632
+    },
+    {
+      "path": "tools/preflight.mjs",
+      "oid": "d11efc8bf88c4dd4020b46097d4087c6497b938b",
+      "size": 40006
+    },
+    {
+      "path": "tools/release-crx.mjs",
+      "oid": "2a5493603641a891e357c39984e84cefaa43d875",
+      "size": 8069
+    },
+    {
+      "path": "tools/release-gate.mjs",
+      "oid": "3ea945fbcdad222647027244ef4a0bef9ee7185a",
+      "size": 2582
+    },
+    {
+      "path": "tools/release-ledger.mjs",
+      "oid": "c785dd305aec602fe0100a2487086df0b0004993",
+      "size": 3859
+    },
+    {
+      "path": "tools/release-local.mjs",
+      "oid": "441b97db124d922063942a3ed112fed1ac8eacab",
+      "size": 20067
+    },
+    {
+      "path": "tools/settings-reference.mjs",
+      "oid": "7259ef1f35e23c790718bd84f1dca96cf082660f",
+      "size": 9555
+    },
+    {
+      "path": "tools/settings-visual-harness.mjs",
+      "oid": "924dd23ff571ea3e71fe4192292bb9661fbf8b2e",
+      "size": 25831
+    },
+    {
+      "path": "tools/source-archive.mjs",
+      "oid": "22ccaece41de3a97a67c28e0f8f79413a585b372",
+      "size": 4510
+    },
+    {
+      "path": "tools/source-exports.mjs",
+      "oid": "67fbff2337ff8fa57566d874e6ee81383fc54148",
+      "size": 11945
+    },
+    {
+      "path": "tools/update-settings-visuals.mjs",
+      "oid": "3891e5fcadde94f09259c989f674c7b26796a357",
+      "size": 1432
+    },
+    {
+      "path": "tools/userscript-meta.mjs",
+      "oid": "19c984bb9467d48df47cfedb649fc86487f62637",
+      "size": 1484
+    },
+    {
+      "path": "tools/verify-fast.mjs",
+      "oid": "64440fd6afd6e4b2f81d4aba5f041375a797966b",
+      "size": 1075
+    },
+    {
+      "path": "tools/version-markers.mjs",
+      "oid": "72d14c10baaa8f33e754d4c09b684f023098402c",
+      "size": 5074
+    },
+    {
+      "path": "tools/yt-dlp-helper.mjs",
+      "oid": "a2c3a35572c17d6c62ed175ff6a89b76c275f852",
+      "size": 8072
+    },
+    {
+      "path": "tsconfig.json",
+      "oid": "5db0547533df6689d0c5deb658b247f316b73a6a",
+      "size": 506
+    }
+  ],
+  "imageCount": 352,
+  "everyOriginalBlobVerified": true
+}

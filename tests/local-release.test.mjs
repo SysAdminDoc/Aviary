@@ -102,5 +102,5 @@ test("historical release state can resume only after the verified artifact set e
 });
 
 test("release planning rejects drifted version markers", async () => {
-  await assert.doesNotReject(() => assertAlignedVersions(process.cwd(), "1.49.3"));
+  await assert.doesNotReject(() => assertAlignedVersions(process.cwd(), "1.49.4"));
 });

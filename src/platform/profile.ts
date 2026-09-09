@@ -525,6 +525,19 @@ export function createProfileStorageGateway(base: StorageGateway, profileId: str
     remove(key: string, fence?: StorageLockFence): Promise<void> {
       return base.remove(scoped(key), fence);
     },
+    async measureCollections() {
+      const measured = await base.measureCollections?.();
+      if (!measured) return null;
+      const collections = measured.collections
+        .filter((entry) => entry.key.startsWith(`${prefix}.`))
+        .map((entry) => ({ ...entry, key: `aviary.${entry.key.slice(prefix.length + 1)}` }));
+      return {
+        collections,
+        totalBytes: collections.reduce((total, entry) => total + entry.bytes, 0),
+        // Browser usage includes origin overhead and remains separate from the profile total.
+        usageDetails: measured.usageDetails
+      };
+    },
     getStatus(): ReturnType<NonNullable<StorageGateway["getStatus"]>> {
       return base.getStatus?.() ?? {
         backend: "legacy",

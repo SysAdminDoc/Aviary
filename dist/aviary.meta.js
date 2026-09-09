@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Aviary for X
 // @namespace    https://github.com/SysAdminDoc
-// @version      1.49.3
+// @version      1.49.4
 // @description  Local-first X/Twitter enhancer with reversible controls and privacy-first defaults.
 // @author       SysAdminDoc
 // @homepage     https://github.com/SysAdminDoc/Aviary

@@ -5,6 +5,7 @@ import esbuild from "esbuild";
 
 import { artifactDigests, sourceFingerprint } from "./build-fingerprint.mjs";
 import { ignoredPaths, isExcludedSourcePath } from "./source-archive.mjs";
+import { releaseReadme } from "./release-readme.mjs";
 import { repositoryUrl, userscriptUrls } from "./userscript-meta.mjs";
 
 const CRC32_TABLE = (() => {
@@ -302,7 +303,8 @@ for (const target of ["extension-chrome", "extension-firefox"]) {
   await writeFile(path.join(targetDir, "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
 }
 
-await copyFile(path.join(root, "README.md"), path.join(dist, "README.md"));
+await writeFile(path.join(dist, "README.md"),
+  releaseReadme(await readFile(path.join(root, "README.md"), "utf8"), repositoryUrl(pkg)));
 
 const builtSourceFingerprint = await sourceFingerprint(root);
 for (const target of ["extension-chrome", "extension-firefox"]) {
@@ -390,10 +392,15 @@ async function* walkSource(directory) {
   for (const entry of entries) {
     if ([".git", "node_modules", "dist", ".tmp", ".cache", "mockups"].includes(entry.name)) continue;
     const next = path.join(directory, entry.name);
+    const relative = path.relative(root, next).replace(/\\/g, "/");
+    if (isExcludedSourcePath(relative)) continue;
     if (entry.isDirectory()) {
       yield* walkSource(next);
     } else if ((await stat(next)).isFile()) {
-      if ([".png", ".jpg", ".jpeg", ".webp", ".gif"].includes(path.extname(entry.name).toLowerCase())) {
+      // Runtime images are build inputs. Review captures are not, but the old blanket image
+      // exclusion also removed the icons that copyFile requires when building a downloaded ZIP.
+      if (!relative.startsWith("src/") &&
+          [".png", ".jpg", ".jpeg", ".webp", ".gif"].includes(path.extname(entry.name).toLowerCase())) {
         continue;
       }
       yield next;

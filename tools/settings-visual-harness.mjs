@@ -199,6 +199,15 @@ export async function selectSettingsSection(page, section) {
     }
     button.click();
   }, section);
+  if (section === "library") {
+    // This used to stay on Measuring forever in an installed extension because the profile
+    // gateway dropped measureCollections. Screenshots must wait for a real terminal answer.
+    await page.waitForFunction(() => {
+      const row = document.querySelector("#av-control-center")?.shadowRoot
+        ?.querySelector('[data-av-label="Library storage"]');
+      return Boolean(row && !row.textContent.includes("Measuring"));
+    }, null, { timeout: 15_000 });
+  }
   await settleVisuals(page);
 }
 

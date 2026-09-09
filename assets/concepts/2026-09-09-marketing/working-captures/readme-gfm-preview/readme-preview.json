@@ -1,0 +1,37 @@
+{
+  "images": [
+    {
+      "src": "http://127.0.0.1:50608/src/extension/icons/icon-128.png",
+      "ok": true
+    },
+    {
+      "src": "https://camo.githubusercontent.com/8d77926860ba4f9bc49371423e4521deefb29346790b23a533389246ac1806a4/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f76657273696f6e2d312e34392e342d326638316637",
+      "ok": true
+    },
+    {
+      "src": "https://camo.githubusercontent.com/fcc14f525b15b21cb526d6775b9db3c48b85104da1f4d854958c30e383539a31/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f6c6963656e73652d4d49542d336662393530",
+      "ok": true
+    },
+    {
+      "src": "https://camo.githubusercontent.com/34714a76a83681b171367b39557bc5ede2d81ecd8224a4e3e0b529ff1d673676/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f706c6174666f726d2d4368726f6d6525323025374325323046697265666f78253230253743253230757365727363726970742d386235636636",
+      "ok": true
+    },
+    {
+      "src": "https://camo.githubusercontent.com/1af57c9d91696a8a8e8ab507888b33dc191908bca70168cebe27895edc2771a6/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f72756e74696d65253230646570656e64656e636965732d302d306561356539",
+      "ok": true
+    },
+    {
+      "src": "http://127.0.0.1:50608/docs/marketing/presets.png",
+      "ok": true
+    },
+    {
+      "src": "http://127.0.0.1:50608/docs/marketing/appearance.png",
+      "ok": true
+    },
+    {
+      "src": "http://127.0.0.1:50608/docs/marketing/export.png",
+      "ok": true
+    }
+  ],
+  "htmlBytes": 12815
+}

@@ -1,9 +1,14 @@
-# Install Aviary 1.49.3
+# Install Aviary 1.49.4
 
 Aviary ships as a readable userscript and as Manifest V3 extensions. Both builds run on X pages;
 the extensions also provide a dedicated options page for optional browser permissions.
 
-## Userscript (recommended for quick setup)
+Start with the [v1.49.4 release downloads](https://github.com/SysAdminDoc/Aviary/releases/tag/v1.49.4).
+You don't need Node or a source checkout to load the ZIP packages. The Chromium extension is the
+most complete path; Firefox requires temporary loading, and userscript managers have the limits
+below. Aviary isn't listed in a browser extension store.
+
+## Userscript
 
 1. Install [Tampermonkey](https://www.tampermonkey.net/), [Violentmonkey](https://violentmonkey.github.io/), or another compatible manager.
 
@@ -17,7 +22,8 @@ the extensions also provide a dedicated options page for optional browser permis
    claiming otherwise: Trust reports "This userscript manager does not give Aviary access to the
    page itself." The extension build is unaffected, because it declares a `"world": "MAIN"` content
    script instead.
-2. Open `dist/aviary.user.js` from this repository, or the raw file from a release, in the manager.
+2. Open the [raw userscript](https://raw.githubusercontent.com/SysAdminDoc/Aviary/main/dist/aviary.user.js)
+   in the manager. Its repository path is `dist/aviary.user.js`.
 3. Review and confirm the install prompt.
 
 The userscript declares only the grants it uses:
@@ -65,17 +71,17 @@ state and reports a refusal or failure instead of claiming the file was saved.
 
 ## Chrome, Edge, or Brave (developer load)
 
-1. Run `npm run verify:release` (or `npm run verify:fast` while developing). **This step is required on a fresh clone**: neither
-   `dist/extension-chrome/` nor the ZIP is carried in git. The document-start `content.js` is about
-   0.60 MB per target; the Control Center and archive code lives in a separate panel chunk fetched
-   only after its launcher is clicked. Build them, or take them from a release.
-   The panel shares the document-start privacy and storage state, so late-loaded integrations use
-   the same Local-only setting and cross-tab write coordination.
+1. Download [the Chromium ZIP](https://github.com/SysAdminDoc/Aviary/releases/download/v1.49.4/extension-chrome-v1.49.4.zip)
+   and extract it into a folder you'll keep. Source checkout users can instead run
+   `npm ci --ignore-scripts`, then `npm run verify:release` to create `dist/extension-chrome/`.
 2. Open `chrome://extensions/` (or the equivalent extensions page), enable **Developer mode**, and
-   choose **Load unpacked** with `dist/extension-chrome/`. A ZIP is a release artifact; Chromium
-   developer loading uses the unpacked directory.
+   choose **Load unpacked**. Select the extracted folder containing `manifest.json`, or the built
+   `dist/extension-chrome/` directory. Don't select the ZIP itself.
 3. Pin Aviary if you want the extension entry point visible. The Control Center launcher itself
    appears on matching X pages.
+
+The optional CRX3 release asset is self-signed for a stable extension identity. It isn't browser-store
+approval and does not bypass Chrome or Edge installation policy. Use the ZIP for developer loading.
 
 What the extension asks for, read from the manifests themselves:
 
@@ -174,29 +180,31 @@ nvm install 24.18.1
 nvm use 24.18.1
 npm ci --ignore-scripts
 npm run build
-sha256sum dist/aviary-source-v1.49.3.zip
+sha256sum dist/aviary-source-v1.49.4.zip
 ```
 
 The source archive is a sorted, STORE-only ZIP with a fixed timestamp. It contains the checkout
-inputs needed to reproduce the build and leaves out `dist/`, dependencies, temporary directories,
-and image captures. The extension's first chunk contains the page-safe protection and media path;
+inputs needed to reproduce the build, including the runtime icons. It leaves out `dist/`,
+dependencies, temporary directories, review images and the historical concept archive. Use a full
+Git checkout for repository tests and screenshot baselines. The extension's first chunk contains the page-safe protection and media path;
 the exact X-matched panel chunk is web-accessible only where the manifest declares it.
 
 ## Firefox (temporary load)
 
-Build the extension, then:
+Download and extract [the Firefox ZIP](https://github.com/SysAdminDoc/Aviary/releases/download/v1.49.4/extension-firefox-v1.49.4.zip), then:
 
-1. Run `npm run verify:release` (or `npm run verify:fast` while developing) first, `dist/extension-firefox/` is not carried in
-   git either.
+1. Keep the extracted directory. If building from source, use `npm ci --ignore-scripts` and
+   `npm run verify:release` first; `dist/extension-firefox/` isn't carried in Git.
 2. Open `about:debugging#/runtime/this-firefox`.
 3. Select **Load Temporary Add-on…**.
-4. Choose `dist/extension-firefox/manifest.json`.
+4. Choose the extracted `manifest.json`, or `dist/extension-firefox/manifest.json` for a source build.
 5. Refresh an `x.com` page.
 
 The Firefox build has the same base, optional, and options-page permission flow as the Chromium
 build. Its background runs as a Firefox MV3 event page and keeps an empty enabled ruleset as a
 compatibility anchor for the older Firefox dynamic-rule restart path covered by the extension tests.
-Temporary add-ons disappear when Firefox restarts.
+Temporary add-ons disappear when Firefox restarts. The package is unsigned and the manifest still
+contains a placeholder add-on id. It isn't a permanent AMO installation.
 
 ## Updating
 
@@ -208,8 +216,10 @@ Temporary add-ons disappear when Firefox restarts.
   2026-09-06, so both raw URLs resolve and a manager's scheduled poll sees new releases on its own.
   Reopening the newer `dist/aviary.user.js` still upgrades in place if you would rather not wait
   for the poll.
-- Extension: run `npm run verify:release`, then use the extension manager's reload button or reload the
-  temporary add-on. Refresh open X tabs after updating the content script.
+- Extension: back up the library, close X tabs, then extract the new matching ZIP into the same
+  extension folder and use the extension manager's reload button. Source users can rebuild with
+  `npm run verify:release`. Reload the temporary add-on in Firefox. Refresh X after updating.
+  Don't remove and reinstall the extension just to update it; ordinary removal deletes its storage.
 
 The version is visible in the userscript metadata, extension manifests, build artifacts, and the
 Control Center status/about surface.
@@ -222,11 +232,12 @@ moves preferences (with credentials redacted); it is not a full backup of the lo
 Settings are stored under the local `aviary.settings.v1` key; library collections use separate
 versioned local stores.
 
-Then remove the extension from the browser or delete the userscript from its manager. Browser
-extension storage, IndexedDB, downloaded files, and manager values may survive removal, so use the
-browser's extension/site-data controls and the userscript manager's storage controls if you need a
-complete wipe. Revoke the optional download and media-host permissions from the extension options
-page before removal when you want the grants gone immediately.
+Export a **full library backup** before removal if you want to keep your records. Ordinary extension
+removal deletes its own storage and IndexedDB library. Downloaded files remain on disk. Userscript
+values follow the manager's retention rules; use its storage controls when you want them removed.
+An older install may also have X-origin migration data left after an interrupted upgrade. Check that
+separately without clearing unrelated X data. You can revoke optional download and media-host
+permissions from the extension's Options page while it is still installed.
 
 For the complete local data map and the opt-in network boundaries, see
 [PRIVACY.md](PRIVACY.md). For behavior, export formats, integrations, and troubleshooting, see

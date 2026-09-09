@@ -1,366 +1,143 @@
-# Aviary
+<img src="https://github.com/SysAdminDoc/Aviary/raw/main/src/extension/icons/icon-128.png" alt="Aviary bird icon" width="72" height="72">
 
-![Version](https://img.shields.io/badge/version-1.49.3-2f81f7)
-![License](https://img.shields.io/badge/license-MIT-3fb950)
-![Platform](https://img.shields.io/badge/platform-userscript%20%7C%20Chrome%20%7C%20Firefox-8b5cf6)
-![Runtime dependencies](https://img.shields.io/badge/runtime%20dependencies-0-0ea5e9)
+# Aviary v1.49.4
 
-![Aviary Noir theme on X](docs/audit/2026-08-22-premium-final/x-home-wide-dark-1440x900.png)
+![Version](https://img.shields.io/badge/version-1.49.4-2f81f7) [![License](https://img.shields.io/badge/license-MIT-3fb950)](https://github.com/SysAdminDoc/Aviary/blob/main/LICENSE) ![Platform](https://img.shields.io/badge/platform-Chrome%20%7C%20Firefox%20%7C%20userscript-8b5cf6) ![Runtime dependencies](https://img.shields.io/badge/runtime%20dependencies-0-0ea5e9)
 
-Aviary is a local-first enhancer for X. It saves photos and video in one click, takes the ads out of
-the timeline, and keeps everything else behind a Control Center you open from X's own sidebar. One
-TypeScript source builds two artifacts: a readable userscript, and a Manifest V3 extension for
-Chrome and Firefox.
+**A quieter X. A local copy of what matters.**
 
-Nothing it does needs a server. There's no account, no telemetry, no remote code, and no build step
-that reaches the network at runtime. Your posts, notes, bookmarks and download history stay in your
-browser profile, and the optional integrations that can reach the internet are all off until you
-turn one on and enter your own credentials.
+Aviary adds media downloads and ad removal to X, with a Control Center for everything else.
+Choose a reading preset, filter your feed or keep a searchable library of posts in your browser.
+It doesn't need a separate Aviary account. Optional integrations stay off until you enable them.
+
+[Download v1.49.4](https://github.com/SysAdminDoc/Aviary/releases/tag/v1.49.4) · [Installation guide](https://github.com/SysAdminDoc/Aviary/blob/main/docs/INSTALL.md) · [Feature reference](https://github.com/SysAdminDoc/Aviary/blob/main/docs/FEATURES.md) · [Privacy](https://github.com/SysAdminDoc/Aviary/blob/main/docs/PRIVACY.md)
+
+![Aviary's installed extension showing six reading and archiving presets](https://github.com/SysAdminDoc/Aviary/raw/main/docs/marketing/presets.png)
+
+*Captured from the built v1.49.4 extension in an isolated browser. X pages and posts in these
+screenshots are synthetic test content, not a signed-in account or evidence of current live-X compatibility.*
+
+## Install
+
+No build tools are needed for these downloads. Aviary isn't listed in a browser extension store.
+Use the Chromium extension for the most complete installation path.
+
+| Your browser | Download | Installation |
+| --- | --- | --- |
+| Chrome, Edge or Brave | [Chromium ZIP](https://github.com/SysAdminDoc/Aviary/releases/download/v1.49.4/extension-chrome-v1.49.4.zip) | Extract it to a folder you'll keep. Open your browser's extensions page, enable **Developer mode**, then choose **Load unpacked** and select the folder containing `manifest.json`. |
+| Firefox | [Firefox ZIP](https://github.com/SysAdminDoc/Aviary/releases/download/v1.49.4/extension-firefox-v1.49.4.zip) | Extract it. Open `about:debugging#/runtime/this-firefox`, choose **Load Temporary Add-on**, then select `manifest.json`. This unsigned add-on disappears when Firefox restarts. |
+| A userscript manager | [Install userscript](https://raw.githubusercontent.com/SysAdminDoc/Aviary/main/dist/aviary.user.js) | Open the link in Tampermonkey or Violentmonkey and review the manager's install prompt. Read the limitation below before choosing this route. |
+
+The Firefox manifest still has a **placeholder add-on id**. It isn't an AMO-signed permanent
+installation. The secondary Chromium CRX3 is self-signed, not store approval; use the ZIP above
+for developer loading. Neither path removes your browser's developer or signing restrictions.
+
+**Userscript limitation:** Violentmonkey's content mode cannot install Aviary's page-world observer.
+Structural ad removal and local controls still work, but promoted logging refusal, broader analytics
+refusal and direct video-variant discovery are unavailable there. Trust reports the limitation.
+See the [manager and permission details](https://github.com/SysAdminDoc/Aviary/blob/main/docs/INSTALL.md).
+
+After installation, refresh X and click the Aviary launcher in its left navigation. In the extension's
+**Options** page, **Grant download access** enables browser-managed saves. Media buttons can open
+a file instead of saving it when that optional permission is absent.
+
+## Start with two useful defaults
+
+Ad removal and media buttons are on. Themes, layout cleanup, filters, offscreen video pausing and
+broader analytics refusal start off, so a fresh install doesn't repaint your feed.
+
+- **Save media from a post.** Download photos, or the best direct video URL Aviary has observed.
+  Media history helps prevent duplicate downloads. Adaptive video can use an optional local
+  yt-dlp helper; it isn't required for direct MP4 downloads.
+- Aviary removes recognized ad containers and closes their gaps. The extension also blocks X's
+  separate promoted-content logging endpoint. It does **not** remove sponsored bytes from a
+  timeline response that also contains ordinary posts.
+
+Choose **Quiet Reader** to reduce distractions or **Media Archivist** for media-focused settings.
+Every preset shows the changes it will apply.
+
+## Make X easier to read
+
+![The current Appearance controls, with theme and layout changes off by default](https://github.com/SysAdminDoc/Aviary/raw/main/docs/marketing/appearance.png)
+
+**Appearance** offers Noir and other themes. Keep X's own styling, use a denser timeline or hide
+engagement counts. **Filtering** adds keyword and media rules with hide or dim actions. Saved
+hidden posts can be restored, including from the Undo action after hiding one.
+
+Control Center settings stay in a draft until you choose **Save**. **Revert** restores the saved
+values. The detailed [feature reference](https://github.com/SysAdminDoc/Aviary/blob/main/docs/FEATURES.md) explains the individual controls.
+
+## Keep a copy you can use later
+
+![The installed extension's Export controls for local formats and capture settings](https://github.com/SysAdminDoc/Aviary/raw/main/docs/marketing/export.png)
+
+Save local bookmarks with notes and tags, then search them alongside captured posts. Export the
+records you've collected as JSON, CSV, Markdown, HTML or XLSX. The ZIP includes an offline viewer.
+WARC and WACZ are available for preservation workflows.
+
+The Library storage view measures the active profile's collections. It reports unavailable
+measurements explicitly instead of implying an empty library.
+
+Capture is bounded by what the page has rendered or already received. Aviary doesn't fetch a
+complete account history or invent missing replies. Official X archive imports are a separate
+local workflow. The [feature reference](https://github.com/SysAdminDoc/Aviary/blob/main/docs/FEATURES.md) covers formats, limits and recovery.
+
+## Know what stays local
+
+The default build sends no telemetry and loads no remote code. Text search, bookmarks and library
+backups don't require a provider account. Media downloads contact the selected media URL.
+Optional integrations can send data to an endpoint you configure; they are off by default.
+
+The **Local AI command menu is off by default**. On its own it builds a prompt locally. A separately
+configured provider runner can send it after disclosure. Semantic search also uses an optional
+provider; ordinary text search does not. [Read the complete network and storage map](https://github.com/SysAdminDoc/Aviary/blob/main/docs/PRIVACY.md).
+
+**Back up before removing the extension.** Export a full library backup, not just settings.
+Ordinary extension removal deletes its own stored library. Downloaded files remain on disk;
+userscript-manager retention follows the manager. Aviary doesn't encrypt browser storage.
+
+## Compatibility and help
+
+The extension targets Chromium 102+ and Firefox 140+. Use a maintained browser release.
+X changes frequently. The current DOM reference was captured on May 19, 2026; its existing
+freshness waiver expires September 30, 2026. Isolated fixture tests aren't a fresh authenticated-X check.
+
+If controls disappear after an X change, open **Trust → Selector health** and copy the redacted
+diagnostics. Include your browser, install method and Aviary version in a
+[bug report](https://github.com/SysAdminDoc/Aviary/issues/new?template=bug_report.yml).
+Don't attach your credentials, account archive or private posts.
+
+[Troubleshooting and settings reference](https://github.com/SysAdminDoc/Aviary/blob/main/docs/FAQ.md) · [Update and uninstall](https://github.com/SysAdminDoc/Aviary/blob/main/docs/INSTALL.md)
+
+## Build from source
+
+Use the Node version in `.node-version`, then run:
+
+```sh
+npm ci --ignore-scripts
+npm run verify:fast
+```
+
+This builds `dist/aviary.user.js`, reloadable Chrome and Firefox directories, and the ZIP packages.
+Before releasing, run `npm run verify:release` for the serial visual and browser smoke lanes too.
+The compact `aviary-source-v1.49.4.zip` includes code and runtime icons for a clean build;
+use the full Git checkout for screenshot baselines and repository-level verification.
+[Build and release details](https://github.com/SysAdminDoc/Aviary/blob/main/docs/INSTALL.md#reproduce-the-source-archive-on-linux-arm64).
 
 <!-- docs-facts:start -->
 
 <!-- Generated by tools/docs-facts.mjs from the manifests and the panel's own metadata.
      Edit those, then run `npm run docs:facts`. -->
 
-Aviary 1.49.3 registers 31 feature modules, draws 14 Control Center destinations, and watches 21 selector surfaces on X.
+Aviary 1.49.4 registers 31 feature modules, draws 14 Control Center destinations, and watches 21 selector surfaces on X.
 
 <!-- docs-facts:end -->
 
-## Install
-
-Aviary isn't in any extension store. You load it yourself, which is the trade for a build you can
-read end to end. Full steps for all three paths, plus how to uninstall, are in
-[docs/INSTALL.md](docs/INSTALL.md).
-
-- **Userscript.** Point Tampermonkey or Violentmonkey at
-  [`dist/aviary.user.js`](dist/aviary.user.js). Your manager polls the same URL for updates.
-- **Chrome or Edge.** Run `npm run build`, then load `dist/extension-chrome/` unpacked from
-  `chrome://extensions` with developer mode on.
-- **Firefox.** Build, then load `dist/extension-firefox/manifest.json` as a temporary add-on from
-  `about:debugging`.
-
-Both extension packages ship browser-native copy for all nine Aviary locales, including the
-manifest, toolbar title, media context menu, and Options page direction.
-
-The build also writes `dist/extension-chrome-v<version>.zip` and its Firefox twin. They're packaged
-for upload, but nothing has been submitted anywhere. The Firefox manifest still carries a
-placeholder add-on id, so an AMO submission would need a real one first.
-
-The extension keeps the document-start bundle small. Protection, media controls, selector health,
-and the launcher arrive with the page; the Control Center, archive tools, viewer, and translation
-catalog load from an exact X-only panel chunk after you click the launcher. A failed panel load leaves
-the launcher in a named Retry state. The userscript remains a readable single file with the full
-feature set inline. Panel actions keep the live storage and privacy state from the document-start
-bundle, so a late-loaded integration follows the same Local-only choice and cross-tab write rules.
-If selector health detects a missing required surface, the launcher opens Trust with the affected
-feature and the warning clears as soon as the surface or feature returns to a healthy state.
-
-## What a fresh install actually does
-
-Two things are on out of the box, and everything else waits for you.
-
-**Ads come out.** At document start, in both builds, Aviary stops X's separable
-`promoted_content/log.json` event from reaching the network, removes native Ad units and promoted
-trends and house promos, then collapses the timeline row so you don't get a dead gap where the ad
-was. It leaves HomeTimeline alone, because X delivers sponsored records inside the same first-party
-response as ordinary posts, and those bytes can't be separated. Only the rendering can.
-In the extension, the network guard is a session rule tied to the X tab that resolved the setting,
-so opposing profile choices in two tabs stay independent. Leaving X, closing a tab, or restarting
-the browser leaves no stale rule behind. The userscript keeps the same protection document-local.
-
-**Media saves are ready.** Every post with media grows one Download action that takes the photos,
-video, GIF, audio track and caption file belonging to that post. Quoted media and link-card previews
-keep their own separate Save control, filed under the account that actually published them, because
-they belong to somebody else. History is stored as hashed media identities rather than source URLs,
-so it catches alternate X image sizes and exact byte matches without keeping a list of what you
-looked at. Batch downloads re-check queued video targets after pacing, so a higher-quality URL
-observed before handoff is the one persisted and requested. If a tab or service worker restarts,
-Resume checks the browser's retained transfer before retrying, so an active or completed file is
-not duplicated. Quality fallbacks keep a bounded terminal receipt under the original post id, so a
-fast fallback cannot be mistaken for a failed primary and downloaded again.
-Completed history also records a privacy-safe quality receipt: original, fallback, best direct, or
-unknown, with any known dimensions, bitrate, and MIME. It never stores the source URL. A transient
-failure retries the original image before moving down the quality ladder, while cancellation stops
-without starting another candidate.
-
-Progressive MP4 stays the default because it needs no setup. When an observed X adaptive manifest
-could be better, the post action also offers **Send to yt-dlp** and **Copy yt-dlp command**. The
-optional local helper runs with `npm run yt-dlp:helper` after you set `AVIARY_YTDLP_TOKEN`; enable
-the matching loopback endpoint and secret in **Control Center -> Integrations**. Aviary sends only
-the observed manifest URL, a filename, and the fixed best-video-plus-audio policy. It never sends
-your X URL, cookies, or bearer token to the helper.
-
-That's the whole default surface. Themes, layout cleanup, filters, offscreen video pausing and the
-broader analytics refusal all start off. Outside the download controls, the only thing Aviary adds
-to the page is its launcher in X's left navigation.
-
-This is measured rather than asserted. `tests/vanilla-by-default.test.mjs` mounts the real theme
-code against a captured organic timeline with default settings and requires every non-ad computed
-style to come back byte-identical. Ad fixtures separately prove the structural removal.
-
-## The Control Center
-
-![Aviary Control Center appearance page](docs/audit/2026-08-22-premium-final/control-center-appearance-1440x900.png)
-
-Fourteen destinations share one desktop layout with a fixed rail, grouped navigation and explicit
-dependencies between controls. Changes sit in a page draft until you hit Save, so a half-configured
-page never reaches the timeline. Revert puts the saved values back, and navigating away while a
-draft is open is guarded. It's verified at 1440x900 with a 1920x1080 wide check.
-
-Trust watches the surfaces each route needs. If X renames a post action bar or another required
-anchor, the launcher shows a small warning, opens the affected list, and lets you copy a report with
-only the build, route surface, missing anchors and owning feature ids. The warning clears as soon as
-the surface returns.
-
-Trust also keeps a bounded, local **Mutation performance** view. It names the features taking time
-in full and incremental apply passes, shows the slowest recorded run, and correlates Long Animation
-Frames where the browser supports them. The ring stores no selectors, routes, post text, handles, or
-DOM values, and **Reset performance metrics** clears it immediately.
-
-Reading also has an independent **Hide For You tab** control. On Home it selects Following and
-collapses only the first tab by position, leaving other route tablists alone. Turning it off restores
-the original tab immediately.
-
-Changed your mind about all of it? **Trust → Reset everything to plain X** returns preferences to
-the ad-free baseline. Saved posts, notes, bookmarks and download history are kept.
-
-## Noir
-
-![Aviary Noir conversation view](docs/audit/2026-08-22-premium-final/x-status-wide-dark-1440x900.png)
-
-**Appearance → Theme → Noir** repaints the full X shell: a near-black blue base, a continuous flat
-timeline, a quieter navigation rail, restrained cyan highlights. It anchors on semantic roles and
-stable test ids instead of X's generated class names, and it avoids page-wide blur on an infinite
-timeline.
-
-Width has two desktop tiers. Comfortable keeps X's discovery rail beside a 1000px reading column.
-Wide drops the rail and fills every pixel next to navigation, while text stays capped at a readable
-measure. All six authored dark palettes repaint correctly even when X itself is set to a light host
-theme, and choosing **Off (X's own theme)** removes every paint hook Aviary added.
-
-## Everything else
-
-The full reference lives in [docs/FEATURES.md](docs/FEATURES.md). The short version:
-
-- **Filtering.** Keyword and regex rules, media-type filters, a handle whitelist, per-route
-  activation, expiry windows, and portable plain-text rule sets you can preview before applying.
-- **Hidden posts.** A Hide control on every post that collapses the row for good, with undo.
-- **Post opening you control.** X makes the whole row a link, so a press on the text or beside a
-  control opens something you did not choose. Turn on "Open posts from the reply icon only" and the
-  row goes inert: the reply icon opens the post, and links, buttons, media and quoted posts carry on
-  as they were.
-- **Catch-up.** A bounded local digest of posts Aviary already rendered, by hour window. It never
-  marks anything read and never asks X for a timeline it wasn't given. Optional seen-post dimming
-  records a post only after a visible one-second dwell, so virtualized rows and background-tab time
-  do not count.
-- **Reading position.** One saved position per feed surface, a "New since you last looked"
-  separator, and no unread badge anywhere.
-- **Export.** JSON, CSV, HTML, Markdown and XLSX bundled into a ZIP with per-file checksums, plus a
-  local viewer with virtualized scrolling and reconstructed thread reading. The same package holds
-  a static site: an index, a page per post, thread links, and an RSS 2.0 feed, all of it opening
-  from the folder with the network off, plus an Activity Streams 2.0 outbox for tooling that
-  already reads AS2. Audience state and post
-  language are kept on every record; HTML, replay, and viewer text uses per-post bidi isolation.
-  Protected and unknown posts stay out of share-oriented output until enabled, including when a
-  share builder is called directly.
-- **Preservation.** WARC record streams and validator-clean WACZ 1.1.1 packages that open directly in
-  [replayweb.page](https://replayweb.page/). CDXJ entries carry exact WARC offsets and HTTP statuses,
-  while authored and captured times stay distinct. An optional anonymous ECDSA signature is available.
-- **Library.** Local bookmarks with tags and folders, per-handle account notes, t.co unshortening
-  with no network call, snapshots, and X archive import staged in resumable chunks. One search ranks
-  across all of it, including word-aware matching for Thai, Lao, Khmer, and Myanmar when the browser
-  provides it. The section reports what the library actually occupies, measured per collection, and
-  offers a soft cap that warns before a capture crosses it. Nothing is ever deleted to stay under a
-  number: removal is chosen item by item in the cleanup preview, which names the heaviest records
-  and what removing them frees.
-- **Backups.** One versioned envelope covering every profile, not just the one you have open.
-  Credentials are excluded unless you explicitly ask for them, and schema 1 and 2 files remain
-  readable under their historical checksum rules.
-- **Profile adoption.** Pre-profile stores move only when you choose the active profile. An
-  install-wide lock and durable receipt make an interrupted move safe to retry, while a concurrent
-  destination change leaves both values available for review.
-- **Integrations.** Aria2 handoff, Bluesky and Mastodon crossposting, semantic search. Every one is
-  off by default and makes zero requests until you enable it and supply your own credentials.
-- **Local AI command menu (off by default).** Enable it in Integrations and each post's action row
-  gains an AI button offering Translate, Summarize, Explain or Fact-check. On its own it only builds
-  a prompt and copies it to your clipboard, with no network call and no API key. Each command also
-  carries an accessible hint without adding a hover tooltip. Configuring the separate provider
-  runner is what lets the same menu POST a prompt, and only after an explicit per-request disclosure.
-
-## Privacy
-
-Aviary reads the page you're already looking at. It never reads or exports cookies or auth headers,
-sends no telemetry, and loads no remote code. Credentials for the optional integrations stay local,
-and a settings export replaces them with a placeholder.
-
-In the extension build, durable settings and library records live in one IndexedDB database owned by
-the background worker. Content scripts and the options page reach it through a typed message API, so
-scripts running on the X page can't inspect it. The userscript never opens an X-origin database at
-all. Writes from two open X tabs merge at the storage transaction, so a later save does not erase a
-non-conflicting change or bring back something the other tab cleared. Extension manifests disable
-incognito use, so private windows receive no Aviary script or storage writes. Private-mode behavior
-for userscripts depends on the manager; browsers expose no standard signal for Aviary to enforce it.
-Cross-origin lock polling reads one background-owned roster key per lock, never unrelated settings
-or library values.
-
-Provider calls, when you've enabled one, show you the destination, the fields, an estimated size, a
-retention notice and your remaining budget before any work begins. Per-request and daily byte limits
-stop a call before it leaves the browser.
-
-Passive capture only observes bounded responses that X already requested. It does not start an
-authenticated timeline or profile discovery request and it never copies X cookies or authorization
-headers. X can still make its own requests when you use X controls, so this is a boundary on Aviary's
-actions, not a promise of account safety or legal compliance.
-
-Support diagnostics are copied only when you ask. The report keeps stable event ids, severity,
-timestamps, operation codes, and detail-key names, while leaving out URLs, filenames, provider
-text, exception strings, and credentials.
-
-One thing Aviary deliberately does not offer is local encryption. Its data sits in the same browser
-profile as X's own session cookie, auth token and cached media, none of which Aviary can encrypt and
-all of which matter more than its copy. Use full-disk encryption instead, which covers the lot.
-
-Aviary also leaves sensitive media alone. It can't reliably tell those posts from any other post, so
-X's own filter is left to do that job.
-
-The full local data map is in [docs/PRIVACY.md](docs/PRIVACY.md).
-
-## When something breaks
-
-X changes its markup often, and the symptom is usually "something on Home looks wrong" rather than
-which of thirty-odd features caused it. **Trust → Find the feature breaking this page** answers that
-by binary search. It turns everything off, brings features back in halves, asks after each round
-whether the page is still wrong, and names the culprit in about five rounds.
-
-Turning a feature off runs its own `destroy`, the same teardown a full unload performs. Nothing is
-written to settings, so reloading restores everything no matter how you stop, including closing the
-tab mid-round. If the first round leaves the page still broken with everything off, the search says
-so instead of blaming whichever feature the halving happened to land on.
-
-## Build from source
-
-```powershell
-npm ci --ignore-scripts
-npm run verify:fast       # local feedback
-npm run verify:release    # publication gate
-npm run release:local -- --plan
-npm run release:local -- --publish
-```
-
-`verify:fast` runs the TypeScript check, pinned ESLint, full test suite, esbuild bundle, and
-preflight. `verify:release` adds the reviewed settings and injected visual suites, six-lane reflow
-coverage at 320, 768, 1280, and 1920 CSS pixels with 200 and 400 percent zoom, plus every packaged
-browser smoke lane. The release gate removes `dist/` when any step fails, so an incomplete build
-cannot be loaded or published. Each extension directory carries a source fingerprint and per-file
-digests; visual captures and smoke tests refuse a same-version bundle that does not match them.
-
-`release:local -- --plan` prints the release ledger, including versions that have a package commit
-but no tag or GitHub release. `release:local -- --publish` is the one publishing command. It only
-runs from a clean checkout, writes its resumable state under the local application-data folder,
-and checks every remote asset against the published SHA-256 manifest. The ZIP remains the primary
-self-hosted extension install; the signed CRX3 is a secondary asset for tooling that accepts it.
-Use `--historical <version>` to rebuild an older version in a temporary worktree before publishing.
-
-The preflight gate is where the project's rules are actually enforced: manifest version has
-to match `package.json`, `host_permissions` can't be `<all_urls>`, no bundle may contain `eval` or
-`new Function`, devDependencies must be exact-pinned, and `innerHTML` is banned outside the
-TrustedTypes helper.
-
-Aviary has zero runtime dependencies, so nothing it ships needs an install script to build or run.
-`--ignore-scripts` closes the install-hook attack class here at no cost, and the full suite passes
-on a clean install without them. That's not blanket protection and pretending otherwise would be the
-kind of claim this project fails its own build over. Several 2026 compromises put the payload in the
-module body, where no install flag reaches. What covers those is having no runtime dependencies and
-installing from a committed lockfile.
-
-Node 22.23.2 or newer is required. The `engines` range names supported lines explicitly rather than
-using an open `>=`, which would admit Node 25.x after its end of life.
-
-Development tests import the TypeScript sources directly through Node's native type stripping.
-Typechecking uses stable TypeScript 7, while ESLint keeps the published TypeScript 6 API alias for
-its parser. The release build still bundles the userscript and extension artifacts.
-
-The repository pins Node 24.18.1 in `.node-version`. On Linux ARM64, select that runtime before
-installing and building so the result stays inside the package engine range:
-
-```sh
-nvm install 24.18.1
-nvm use 24.18.1
-npm ci --ignore-scripts
-npm run build
-sha256sum dist/aviary-source-v1.49.3.zip
-```
-
-`npm run build` writes the deterministic `dist/aviary-source-v<version>.zip` reviewer archive with
-fixed timestamps and sorted entries. It excludes generated output, dependencies, and image captures.
-
-```powershell
-npm run smoke   # packaged extensions plus pinned Tampermonkey and Violentmonkey manager lanes
-npm run test:matrix  # route/locale matrix plus the 50,000-record release fault matrix
-```
-
-Smoke needs a Chromium runner and a normal Firefox install. Every lane uses a throwaway profile,
-every provider call goes to a local stub, and each run cleans up after itself. The userscript lanes
-download pinned, hash-checked manager packages, install the built script through each manager's
-editor, and exercise two synthetic X origins with real GM storage. They also verify value-change
-callbacks, lock contention, interrupted restore recovery, stale fences, and persistence after a
-browser or manager restart. A missing manager package, browser, editor, or lifecycle control fails
-explicitly, so the suite cannot silently fall back to a simulated store.
-
-## Selector observations
-
-`_decoded/dom-schema.json` is the ground truth for X's DOM in this repository. It records, per
-surface, the test ids, roles, aria attributes, nesting depths, repetition counts and column geometry
-Aviary depends on, along with the date an operator observed them. `tools/fixture-generator.mjs`
-turns that into deterministic synthetic Home and conversation documents, and every selector test
-runs against those. Rename a test id in the schema and the surface that owns it reports missing.
-
-The schema is what ages, not the generated markup. Regenerating fixtures proves nothing about how
-current they are, so preflight warns and then fails on `derivedFrom.capturedOn` passing the ceiling
-the schema declares.
-
-Refreshing needs a signed-in operator saving the page as MHTML. Nothing in this repository logs in
-or fetches anything. `npm run capture:decode` scrubs `ct0`, Bearer and `auth_token` shaped values in
-both cookie and JSON form, refuses to write a file that still trips its own leak guard, and writes
-outside the repository. Read the decoded page, record what changed in the schema, delete the page.
-No saved capture is committed: a real account's handle, display name and post bodies have no place
-in a public repository.
-
 ## Roadmap
 
-Open work is tracked in [ROADMAP.md](ROADMAP.md), and what each release actually changed is in
-[CHANGELOG.md](CHANGELOG.md). This section doesn't restate either one, because a hand-maintained
-summary of the newest batch is exactly what went three releases stale before. Work that's waiting on
-a fresh capture or an operator decision sits in [Roadmap_Blocked.md](Roadmap_Blocked.md).
+[CHANGELOG.md](https://github.com/SysAdminDoc/Aviary/blob/main/CHANGELOG.md) records shipped changes. [ROADMAP.md](https://github.com/SysAdminDoc/Aviary/blob/main/ROADMAP.md) tracks active work;
+[Roadmap_Blocked.md](https://github.com/SysAdminDoc/Aviary/blob/main/Roadmap_Blocked.md) records work waiting on live captures or distribution access.
 
-## Documentation
-
-| File | What's in it |
-| --- | --- |
-| [docs/INSTALL.md](docs/INSTALL.md) | Setup for all three paths, and uninstall |
-| [docs/FEATURES.md](docs/FEATURES.md) | Every Control Center section in detail, and the source map |
-| [docs/PRIVACY.md](docs/PRIVACY.md) | Local data map and optional permission notes |
-| [docs/FAQ.md](docs/FAQ.md) | Selector-regression workflow, hotkey policy, export tips |
-| [ROADMAP.md](ROADMAP.md) | Actionable open work |
-| [Roadmap_Blocked.md](Roadmap_Blocked.md) | Work waiting on a capture or an operator decision |
-| [CHANGELOG.md](CHANGELOG.md) | What each release changed |
-
-## Contributing
-
-Issues and pull requests are welcome. A few things will save you a round trip:
-
-- `npm run verify` has to pass. It's the same gate CI would run if this repository had CI.
-- No `innerHTML`, no `insertAdjacentHTML`, no keyboard shortcuts, no `backdrop-filter`. Both
-  `tools/preflight.mjs` and `tests/source-contracts.test.mjs` fail the build on those.
-- Every feature has to fully reverse itself in `destroy`. That's what makes the bisect search and
-  the reset action trustworthy.
-- A new selector needs a capture that proves it.
-- Version strings live in `package.json`, both extension manifests, the README badge, `ROADMAP.md`
-  and `CHANGELOG.md`. They move together.
-
-## License
-
-MIT. See [LICENSE](LICENSE).
-
-Aviary is not affiliated with, endorsed by, or connected to X Corp. "X" and "Twitter" are
-trademarks of their respective owners.
+The [brand and screenshot archive](https://github.com/SysAdminDoc/Aviary/blob/main/assets/concepts/2026-09-09-marketing/README.md) preserves the
+earlier materials and records this refresh's selections. Aviary is an independent MIT-licensed
+project, not affiliated with X Corp.

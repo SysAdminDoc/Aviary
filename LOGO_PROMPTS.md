@@ -1,63 +1,65 @@
-# Logo Prompt Pack
+# Aviary brand assets and optional briefs
 
-Project: Aviary
+The shipped identity is the cyan and violet bird with a negative-space A. Keep it. The five PNG
+sizes in `src/extension/icons/` are the production assets, not missing artwork. The September 9
+marketing pass retained this mark after review rather than replacing it with a generic browser symbol.
 
-Description: Aviary is a local-first X/Twitter enhancer planned as a readable userscript first and a Manifest V3 extension second. Aviary is a local-first X enhancer shipped as a readable userscript and a Manifest V3 extension for Chrome and Firefox.
+The [concept archive](assets/concepts/2026-09-09-marketing/README.md) preserves the previous prompt
+pack and original images. [social-preview.html](docs/marketing/social-preview.html) is the editable
+typographic layout for the current promotional card. It uses the original icon without redrawing it.
 
-Review decision: Refreshing generated repo-root logo prompt file. No obvious logo/icon assets were found in the reviewed project tree.
+These briefs are optional future explorations. They don't authorize replacing the shipped identity.
+Use `src/extension/icons/icon-512.png` as the reference every time. Compare a candidate at 16, 32,
+48 and 128 pixels on light and dark surfaces before selecting it. If it's less recognizable, keep
+the current file. Don't use X's logo, a borrowed mascot, fabricated UI or browser-store approval marks.
 
-Design direction: Premium browser extension branding using browser frame corners, tabs, content filters, cursor paths, and compact toolbar glyphs. Palette guidance: dark graphite, clean white, browser blue, and one vivid accent. Keep the mark high-contrast on both light and dark surfaces, built from clean SVG-friendly shapes with confident negative space.
-
-Trademark guardrail: Do not use protected logos, mascots, proprietary UI marks, or exact brand-color lockups from Twitter. Use abstract cues for the workflow instead.
-
-Use any one of the prompts below as a copy-ready image-generation request. Each prompt is written for a true transparent PNG, not a fake checkerboard or flattened background.
-
-## Minimal Icon
-
-```text
-Project: Aviary. Description: Aviary is a local-first X/Twitter enhancer planned as a readable userscript first and a Manifest V3 extension second. Aviary is a local-first X enhancer shipped as a readable userscript and a Manifest V3 extension for Chrome and Firefox.
-Create a premium minimal software icon for Aviary. Use browser frame corners, tabs, content filters, cursor paths, and compact toolbar glyphs as the visual language, reduced to a flat, memorable glyph that remains recognizable at 16px through 128px. Use crisp vector-like geometry, balanced negative space, high contrast, and the palette direction dark graphite, clean white, browser blue, and one vivid accent. Do not use protected logos, mascots, proprietary UI marks, or exact brand-color lockups from Twitter. Use abstract cues for the workflow instead. No text, letters, numbers, UI screenshots, product mockups, or app-window frames.
-Background/output requirements: The final image must be a true transparent PNG in RGBA format with a real alpha channel. Everything outside the main icon/logo must be fully transparent, alpha = 0. Do not render a checkerboard pattern. Do not render a white, gray, black, colored, or textured background. Do not simulate transparency. Only the main icon/logo should contain visible pixels. If the generated image includes a checkerboard or any visible background, remove it with image processing and export a corrected transparent PNG artifact. Final output: 512x512 PNG, RGBA, true transparent background, alpha channel enabled, no checkerboard, no solid background, no watermark.
-```
-
-## App Icon
+## Minimal mark
 
 ```text
-Project: Aviary. Description: Aviary is a local-first X/Twitter enhancer planned as a readable userscript first and a Manifest V3 extension second. Aviary is a local-first X enhancer shipped as a readable userscript and a Manifest V3 extension for Chrome and Firefox.
-Create a premium app icon mark for Aviary. The icon should feel like polished commercial software: dimensional but restrained, legible at launcher size, with a strong central silhouette based on browser frame corners, tabs, content filters, cursor paths, and compact toolbar glyphs. Use dark graphite, clean white, browser blue, and one vivid accent; avoid muddy gradients, clip-art effects, mascot art, and decorative clutter. Do not bake in a full-canvas square, circle, pill, oval, or platform mask; the transparent PNG should contain only the logo mark. Do not use protected logos, mascots, proprietary UI marks, or exact brand-color lockups from Twitter. Use abstract cues for the workflow instead. No text.
-Background/output requirements: The final image must be a true transparent PNG in RGBA format with a real alpha channel. Everything outside the main icon/logo must be fully transparent, alpha = 0. Do not render a checkerboard pattern. Do not render a white, gray, black, colored, or textured background. Do not simulate transparency. Only the main icon/logo should contain visible pixels. If the generated image includes a checkerboard or any visible background, remove it with image processing and export a corrected transparent PNG artifact. Final output: 512x512 PNG, RGBA, true transparent background, alpha channel enabled, no checkerboard, no solid background, no watermark.
+Refine the supplied Aviary bird icon for small toolbar use without changing its silhouette,
+negative-space A, direction or cyan-to-violet identity. Remove only detail that hurts recognition
+at 16 pixels. Keep balanced optical weight and precise edges. No extra symbols or letters.
+Return a 1024px RGBA PNG with alpha exactly zero outside the mark. No painted background,
+checkerboard, shadow halo or watermark. Also show a clearly labeled small-size review sheet.
 ```
 
-## Wordmark
+## App tile
 
 ```text
-Project: Aviary. Description: Aviary is a local-first X/Twitter enhancer planned as a readable userscript first and a Manifest V3 extension second. Aviary is a local-first X enhancer shipped as a readable userscript and a Manifest V3 extension for Chrome and Firefox.
-Create a premium transparent wordmark for the exact text "Aviary". Use custom typography that feels precise, modern, and product-grade, with one small integrated symbol inspired by browser frame corners, tabs, content filters, cursor paths, and compact toolbar glyphs. Keep letters readable at README-header size and app-about-screen size. Use dark graphite, clean white, browser blue, and one vivid accent. Do not use protected logos, mascots, proprietary UI marks, or exact brand-color lockups from Twitter. Use abstract cues for the workflow instead. Text is allowed only for this wordmark prompt.
-Background/output requirements: The final image must be a true transparent PNG in RGBA format with a real alpha channel. Everything outside the main icon/logo must be fully transparent, alpha = 0. Do not render a checkerboard pattern. Do not render a white, gray, black, colored, or textured background. Do not simulate transparency. Only the main icon/logo should contain visible pixels. If the generated image includes a checkerboard or any visible background, remove it with image processing and export a corrected transparent PNG artifact. Final output: 512x512 PNG, RGBA, true transparent background, alpha channel enabled, no checkerboard, no solid background, no watermark.
+Create a square app-tile presentation of the supplied Aviary bird icon. Preserve the original
+mark, with generous breathing room on a near-black blue tile and controlled corner rounding.
+Use one intentional cyan-to-violet treatment. No glass ornament, inflated bevel, metallic effects
+or glow cloud. It must remain identifiable beside other browser extensions at 32 pixels.
+Return a 1024px RGBA PNG. Pixels outside the rounded tile must have alpha zero; the tile itself
+is intentionally opaque. No checkerboard or simulated transparency.
 ```
 
-## Emblem
+## Wordmark lockup
 
 ```text
-Project: Aviary. Description: Aviary is a local-first X/Twitter enhancer planned as a readable userscript first and a Manifest V3 extension second. Aviary is a local-first X enhancer shipped as a readable userscript and a Manifest V3 extension for Chrome and Firefox.
-Create a premium emblem logo for Aviary suitable for README headers, splash screens, and installer/about dialogs. Build a compact badge-like composition from browser frame corners, tabs, content filters, cursor paths, and compact toolbar glyphs, but do not use a filled background plate, shield cliche, full-canvas container, pill, oval, or seal. The silhouette should be distinctive, balanced, and credible for professional software. Use dark graphite, clean white, browser blue, and one vivid accent. Do not use protected logos, mascots, proprietary UI marks, or exact brand-color lockups from Twitter. Use abstract cues for the workflow instead. No text.
-Background/output requirements: The final image must be a true transparent PNG in RGBA format with a real alpha channel. Everything outside the main icon/logo must be fully transparent, alpha = 0. Do not render a checkerboard pattern. Do not render a white, gray, black, colored, or textured background. Do not simulate transparency. Only the main icon/logo should contain visible pixels. If the generated image includes a checkerboard or any visible background, remove it with image processing and export a corrected transparent PNG artifact. Final output: 512x512 PNG, RGBA, true transparent background, alpha channel enabled, no checkerboard, no solid background, no watermark.
+Pair the supplied Aviary bird with the exact word Aviary in a restrained, confident sans-serif
+wordmark. Preserve the bird without redrawing it. Match optical height, spacing and weight so
+the symbol and name read as one identity. No slogan in the logo. Deliver light and dark versions
+as separate RGBA PNG files with alpha zero outside the artwork. No backplate, texture or watermark.
 ```
 
-## Abstract Mark
+## Compact emblem
 
 ```text
-Project: Aviary. Description: Aviary is a local-first X/Twitter enhancer planned as a readable userscript first and a Manifest V3 extension second. Aviary is a local-first X enhancer shipped as a readable userscript and a Manifest V3 extension for Chrome and Firefox.
-Create an abstract premium software logo mark for Aviary. Express the product purpose through symbolic geometry rather than literal screenshots: browser frame corners, tabs, content filters, cursor paths, and compact toolbar glyphs. The result should look like a modern SaaS/app icon system asset, with strong negative space, clean edges, and a silhouette that survives monochrome conversion. Use dark graphite, clean white, browser blue, and one vivid accent. Do not use protected logos, mascots, proprietary UI marks, or exact brand-color lockups from Twitter. Use abstract cues for the workflow instead. No text.
-Background/output requirements: The final image must be a true transparent PNG in RGBA format with a real alpha channel. Everything outside the main icon/logo must be fully transparent, alpha = 0. Do not render a checkerboard pattern. Do not render a white, gray, black, colored, or textured background. Do not simulate transparency. Only the main icon/logo should contain visible pixels. If the generated image includes a checkerboard or any visible background, remove it with image processing and export a corrected transparent PNG artifact. Final output: 512x512 PNG, RGBA, true transparent background, alpha channel enabled, no checkerboard, no solid background, no watermark.
+Explore a compact Aviary profile emblem using only the supplied bird icon and a quiet container.
+The bird stays unchanged and dominates the composition. Avoid shields, padlocks, ribbons and
+other security claims. Preserve the negative-space A at small sizes. Deliver a 1024px RGBA PNG;
+alpha must be zero outside the intentional emblem shape. No checkerboard or decorative background.
 ```
 
-## Verification
+## Promotional composition
 
-After generation, verify the PNG is real RGBA with alpha transparency:
-
-```bash
-magick identify -format '%[channels]' icon.png
+```text
+Create a 1200 by 630 promotional card for Aviary using the supplied icon as an unchanged asset.
+Use the headline "A quieter X. Keep what matters." and the supporting line "Media downloads
+and a local library, right in your browser." Set a clear typographic hierarchy on near-black
+blue, with muted text and one cyan accent. Include github.com/SysAdminDoc/Aviary. Do not invent
+product screenshots, user counts, ratings, privacy certifications or store badges. Keep ample
+space around the mark and make the headline readable at thumbnail size. This card is an opaque
+marketing image, not a transparent logo export.
 ```
-
-Valid results include `rgba`, `srgba`, or `graya`. A flat `rgb` result means transparency was lost and the image must be regenerated or post-processed.

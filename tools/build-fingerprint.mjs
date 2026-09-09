@@ -8,6 +8,7 @@ const SOURCE_FILES = [
   "package-lock.json",
   "tools/build.mjs",
   "tools/build-fingerprint.mjs",
+  "tools/release-readme.mjs",
   "tools/userscript-meta.mjs"
 ];
 

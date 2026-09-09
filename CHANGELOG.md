@@ -2,6 +2,30 @@
 
 ## Unreleased
 
+## 1.49.4 (2026-09-09)
+
+### Changed
+
+- Start from a release download without setting up a development environment. The README now
+  explains the Chrome, Firefox and userscript choices before the detailed feature reference.
+- Current extension captures replace the older README pictures. The bird icon is unchanged;
+  original artwork, previous screenshots and the full pre-refresh source are preserved in the
+  dated concept archive with hashes.
+- Installation and privacy notes now agree about extension removal. Export a library backup
+  first. Removing the extension deletes its own storage, not files already downloaded to disk.
+- Userscript limits are visible before installation. Violentmonkey's content mode cannot install
+  the page-world observer used for promoted logging refusal and direct video discovery.
+
+### Fixed
+
+- The standalone README download now resolves its image and guide links from GitHub, so it works
+  outside a source checkout too.
+- Library storage no longer stays on Measuring. The profile layer now forwards measurement,
+  counts only the active profile's collections and reports unavailable measurements explicitly.
+- The source ZIP now contains the extension icons a clean build needs. A new regression check
+  and the post-build gate reject an archive that omits them. Historical concept snapshots remain
+  in the repository without being repackaged inside the compact build download.
+
 ## 1.49.3 (2026-09-08)
 
 ### Fixed

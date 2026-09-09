@@ -40,6 +40,7 @@ test("the declared floor refuses what is never source, with or without git", () 
   assert.equal(isExcludedSourcePath(".claude/settings.json"), true, "a declared directory covers what is under it");
   assert.equal(isExcludedSourcePath(".claude"), true);
   assert.equal(isExcludedSourcePath("aviary-downloads/clip.mp4"), true);
+  assert.equal(isExcludedSourcePath("assets/concepts/review/originals/source.zip.001.part"), true);
   assert.equal(isExcludedSourcePath("tools/i18n-manifest.json"), true);
   assert.equal(isExcludedSourcePath("src/main.ts"), false);
   assert.equal(isExcludedSourcePath("docs/CLAUDE.md"), false, "the rule is a path, not a filename anywhere");
@@ -107,6 +108,10 @@ test("the built source archive carries checkout inputs and nothing git ignores",
   const names = zipEntryNames(bytes);
   assert.ok(names.includes("src/main.ts"), "the archive must still carry the source it exists for");
   assert.ok(names.includes("package.json"));
+  for (const size of [16, 32, 48, 128, 512]) {
+    assert.ok(names.includes(`src/extension/icons/icon-${size}.png`),
+      `the source download must include the ${size}px extension icon needed by a clean build`);
+  }
 
   const { checked, ignored } = ignoredPaths(root, names);
   assert.equal(checked, true);
