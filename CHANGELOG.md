@@ -3,6 +3,12 @@
 ## Unreleased
 
 ### Fixed
+- **Photos and videos stop growing at a readable width instead of filling the screen.** On a wider
+  timeline the column is most of the browser window, and media on the post you are reading was
+  taking all of it: measured on a 2560px screen, one photo rendered 2,538px across. That is not a
+  bigger picture so much as a wall, and it leaves the caption a screen away from the image it
+  belongs to. Media now stops at 720px, which is wider than X gives it and narrower than your
+  monitor. The default timeline width is untouched, because its column never had that much to give.
 - **Asking your system for less motion now actually stops the motion.** The Control Center animates
   about ten things, and the rule that was meant to switch those off named two of them, one of which
   never animated in the first place. So a reader who had asked for reduced motion still got the

@@ -1044,6 +1044,7 @@ var Aviary = (() => {
   var CONVERSATION_LINE_MIN_HEIGHT = 12;
   var CONVERSATION_LINE_CENTER_TOLERANCE = 4;
   var MEDIA_EXCLUSIONS = ':not([data-testid="quoteTweet"] *):not([aria-labelledby="quoted"] *):not(div[role="link"][tabindex="0"] *):not([data-av-conversation-role="reply"] *)';
+  var MEDIA_CEILING_PX = 720;
   var themeFeature = {
     id: "appearance.theme",
     title: "Theme foundation",
@@ -1448,12 +1449,19 @@ html[data-av-width="wide"][data-av-surface="conversation"]
    and wrong for media that belongs to someone else's post: under a conversation it turned every
    reply's photo, video and GIF into a full-width banner, and a handful of replies was enough to
    push the thread off the screen. A quoted post is the same case one level in. Both are excluded
-   here rather than reset by a later rule, so X's own sizing is never overridden to begin with. */
+   here rather than reset by a later rule, so X's own sizing is never overridden to begin with.
+
+   "Fills the column" needs a ceiling of its own, because the column is not always a reading column.
+   Without a ceiling the photo was however wide the browser window was: measured on the
+   themed fixture, a photo rendered 978px at comfortable and 2,538px on a 2560px screen at wide.
+   That is not a bigger picture, it is a wall, and it puts the caption a screen away from the image
+   it belongs to. MEDIA_CEILING_PX is above what the default column can give media, so the default
+   layout is unchanged and the ceiling only bites where Aviary itself widened the column. */
 html[data-av-theme] [data-testid="tweetPhoto"]${MEDIA_EXCLUSIONS},
 html[data-av-theme] [data-testid="videoPlayer"]${MEDIA_EXCLUSIONS},
 html[data-av-theme] [data-testid="videoComponent"]${MEDIA_EXCLUSIONS} {
   inline-size: 100% !important;
-  max-inline-size: none !important;
+  max-inline-size: min(100%, ${MEDIA_CEILING_PX}px) !important;
 }
 
 html[data-av-theme] [data-testid="tweetPhoto"],

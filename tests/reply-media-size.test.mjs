@@ -89,8 +89,8 @@ after(async () => {
 });
 
 /** Serves one of the fixtures above at a real x.com URL, themed, and measures what it drew. */
-async function measure(url, body, selectors) {
-  const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+async function measure(url, body, selectors, viewportWidth = 1280) {
+  const page = await browser.newPage({ viewport: { width: viewportWidth, height: 900 } });
   try {
     await page.route("https://x.com/**", (route) =>
       route.fulfill({ status: 200, contentType: "text/html", body })
@@ -121,6 +121,7 @@ async function measure(url, body, selectors) {
       }
       out.roles.focal = document.querySelectorAll('article[data-av-conversation-role="focal"]').length;
       out.roles.reply = document.querySelectorAll('article[data-av-conversation-role="reply"]').length;
+      out.declaredCeiling = AviaryTheme.MEDIA_CEILING_PX;
       return out;
     }, selectors);
   } finally {
@@ -205,4 +206,45 @@ test("the post the route names is the focal one, not whichever renders first", a
     seen.replyPhoto <= CEILING_WITH_BORDER_PX,
     `and the reply below it keeps X's ceiling, saw ${seen.replyPhoto}px`
   );
+});
+
+/**
+ * Filling the column is not the same as filling the browser window.
+ *
+ * The rule that lets the post being read use the whole column dropped X's ceiling and put nothing
+ * in its place, so on a wide timeline, where the column is the viewport, one photo was as wide as
+ * the screen: measured on this fixture before the ceiling existed, 1,258px at a 1280px viewport and
+ * 2,538px at 2560px. That leaves the caption a screen away from the picture it belongs to.
+ */
+test("media on the post being read stops at a readable width instead of the whole screen", async () => {
+  for (const viewportWidth of [1280, 1920, 2560]) {
+    const seen = await measure(
+      "https://x.com/home",
+      TIMELINE,
+      { photo: "#photo-9", video: "#video-9", column: '[data-testid="primaryColumn"]' },
+      viewportWidth
+    );
+    const ceilingWithBorder = seen.declaredCeiling + 2;
+
+    // The control: wide really does hand the column the whole window, so a small photo is the
+    // ceiling doing its job and not the column having been narrow all along.
+    assert.ok(
+      seen.column >= viewportWidth - 2,
+      `wide must hand the column the window, saw ${seen.column}px of ${viewportWidth}px`
+    );
+    assert.ok(
+      seen.photo <= ceilingWithBorder,
+      `a photo must stop at ${seen.declaredCeiling}px, saw ${seen.photo}px at ${viewportWidth}px`
+    );
+    assert.ok(
+      seen.video <= ceilingWithBorder,
+      `and so must a video, saw ${seen.video}px at ${viewportWidth}px`
+    );
+    // It must still be larger than the ceiling X itself would have given it, or the rule has been
+    // undone rather than bounded.
+    assert.ok(
+      seen.photo > CEILING_WITH_BORDER_PX,
+      `media on the post being read should still beat X's own cap, saw ${seen.photo}px`
+    );
+  }
 });
