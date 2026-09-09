@@ -433,6 +433,45 @@ test("smoke spec scaffold ships with explicit setup instructions", async () => {
   );
 });
 
+test("anything running more than one visual lane at once runs them one at a time", async () => {
+  // Each visual lane launches its own headless Chromium against a persistent profile, and
+  // `node --test` runs files at `os.availableParallelism() - 1` unless told otherwise. Three
+  // browsers competing made the Control Center take tens of seconds to mount, so the lanes failed
+  // on a WebDriver-side timeout on a different viewport every run instead of on a pixel
+  // difference -- and the parallel run was slower anyway, 265-278s against 239s serial.
+  //
+  // The rule is tied to the condition rather than to a fixed string: a runner that drives one lane
+  // needs no flag, and one that drives several does. Dropping back to a single lane must not fail
+  // this, and adding a fourth entry point that forgets the flag must.
+  const pkg = JSON.parse(await readFile(path.join(root, "package.json"), "utf8"));
+  const runners = [
+    { name: "package.json test:visual", source: pkg.scripts["test:visual"] },
+    {
+      name: "tools/release-gate.mjs",
+      source: await readFile(path.join(root, "tools/release-gate.mjs"), "utf8")
+    },
+    {
+      name: "tools/update-settings-visuals.mjs",
+      source: await readFile(path.join(root, "tools/update-settings-visuals.mjs"), "utf8")
+    }
+  ];
+
+  let checked = 0;
+  for (const runner of runners) {
+    assert.ok(runner.source, `${runner.name} is missing`);
+    const lanes = new Set(runner.source.match(/[\w-]+-visual-regression\.test\.mjs/g) ?? []);
+    if (lanes.size < 2) continue;
+    checked += 1;
+    assert.match(
+      runner.source,
+      /--test-concurrency=1/,
+      `${runner.name} drives ${lanes.size} visual lanes at once without serialising them`
+    );
+  }
+  // Without this, deleting a lane from all three runners would leave nothing asserted and pass.
+  assert.equal(checked, 3, `expected three multi-lane runners, checked ${checked}`);
+});
+
 test("Playwright smoke stays local and leaves no hosted build workflow", async () => {
   await assert.rejects(
     readFile(path.join(root, ".github/workflows/smoke.yml"), "utf8"),

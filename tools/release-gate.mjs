@@ -19,7 +19,13 @@ const steps = [
   [npm, npmCli ? [npmCli, "run", "test"] : ["run", "test"]],
   [npm, npmCli ? [npmCli, "run", "build"] : ["run", "build"]],
   [npm, npmCli ? [npmCli, "run", "preflight"] : ["run", "preflight"]],
-  [process.execPath, ["--test", ...visualTests]],
+  // `--test-concurrency=1` for the same reason the `test:visual` script carries it: each of these
+  // lanes launches its own headless Chromium against a persistent profile, and `node --test`
+  // otherwise runs the files at `os.availableParallelism() - 1`. The browsers then starve each
+  // other and the Control Center takes tens of seconds to mount, which surfaces as a WebDriver-side
+  // timeout on a different viewport every run rather than as a pixel difference. Serial is also
+  // faster here, measured 239s against 265-278s.
+  [process.execPath, ["--test", "--test-concurrency=1", ...visualTests]],
   [npm, npmCli ? [npmCli, "run", "smoke"] : ["run", "smoke"]]
 ];
 

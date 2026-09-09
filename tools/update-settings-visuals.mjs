@@ -10,7 +10,11 @@ const testFiles = [
   path.join(root, "tests", "visual", "settings-visual-regression.test.mjs"),
   path.join(root, "tests", "visual", "injected-visual-regression.test.mjs")
 ];
-const child = spawn(process.execPath, ["--test", ...testFiles], {
+// One file at a time, for the same reason `test:visual` does it: each of these launches its own
+// headless Chromium with a persistent profile, and `node --test` otherwise runs the files at
+// `os.availableParallelism() - 1`. Two browsers competing made the Control Center take tens of
+// seconds to mount, which reads as a stuck panel rather than as load.
+const child = spawn(process.execPath, ["--test", "--test-concurrency=1", ...testFiles], {
   cwd: root,
   env: { ...process.env, AVIARY_UPDATE_VISUALS: "1" },
   stdio: "inherit"

@@ -3,6 +3,13 @@
 ## Unreleased
 
 ### Fixed
+- **The screenshot tests stopped failing at random.** They run three browsers, and the runner was
+  starting all three at once, so they starved each other until the settings panel took tens of
+  seconds to open and whichever lane was unlucky that run gave up waiting. A different window size
+  failed every time, which reads like a real fault and was not one. They run one after another now,
+  which also turns out to be quicker: 239 seconds against 265 to 278 for the version that kept
+  failing.
+### Fixed
 - **The screenshot tests were photographing the wrong thing.** The step that closes the settings
   panel so the timeline underneath can be photographed was opening it instead: the panel mounts a
   moment after the click, the helper read "not there yet" as "already closed", clicked the launcher
