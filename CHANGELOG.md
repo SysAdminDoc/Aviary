@@ -3,6 +3,14 @@
 ## Unreleased
 
 ### Fixed
+- **Asking your system for less motion now actually stops the motion.** The Control Center animates
+  about ten things, and the rule that was meant to switch those off named two of them, one of which
+  never animated in the first place. So a reader who had asked for reduced motion still got the
+  toggle sliding, the buttons fading and the rows shifting on every setting they touched. One rule
+  covers the whole panel now, which cannot fall behind a control added later.
+- **And choosing "never reduce motion" is respected again.** That setting was being overridden by
+  the operating system's own preference, so a reader who had deliberately turned reduction off lost
+  their animations anyway. The decision is made in one place now and the OS cannot overrule it.
 - **A test that watched an animation on a stopwatch.** The RTL Control Center test waited a fixed
   180ms for a 140ms transition and then read the result, which is a bet that the browser got 140ms
   of frames inside that window. On a busy machine it does not, and the test failed once in a full

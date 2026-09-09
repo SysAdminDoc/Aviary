@@ -10,20 +10,19 @@ Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tas
 
 ### P1, Next
 
+- **P1. The committed visual baselines are stale and `npm run test:visual` fails 10 of 15.**
+  Measured 2026-09-08 on v1.49.2 with a clean tree: `dark X`, `desktop settings screenshots stay
+  within the reviewed visual threshold`, `injected timeline surfaces stay within the reviewed
+  visual threshold` and others fail against the PNGs in the tree. This is not new work breaking
+  them; it reproduces with every uncommitted change reverted, so the baselines have drifted behind
+  the UI over several releases. While it stays red the lane cannot report a real regression, and
+  `npm run verify:release` cannot pass. WHEN the tree is clean, `npm run test:visual` SHALL pass.
+  Review each diff before regenerating: the point of the lane is that a screenshot changed for a
+  reason someone agreed to, so `npm run test:visual:update` is the last step, not the first. Note
+  which release each drift belongs to in the update commit.
+
 ### P2, Later
 
-- **P2. `prefers-reduced-motion: reduce` leaves most of the Control Center still animating.**
-  Found 2026-09-08 while fixing the RTL test's fixed waits. `src/ui/control-center.ts` declares
-  around a dozen 140ms and 150ms transitions -- the toggle knob's `transform`, section buttons,
-  inputs, the nav pill -- and the two `@media (prefers-reduced-motion: reduce)` blocks cover only
-  `.av-launcher`, `.av-panel` and `.av-nav-launcher-pill`. The `:host([data-av-motion="reduce"])`
-  rules, which the in-app reduce-motion setting drives, cover the same three. So a reader who has
-  asked their system for less motion still gets an animated toggle knob every time they change a
-  setting. WHEN `prefers-reduced-motion: reduce` is set, or the host carries
-  `data-av-motion="reduce"`, every transition in the Control Center's shadow tree SHALL be none.
-  Prefer one rule that disables transitions across the tree over extending the selector list a
-  fourth time, and assert it in a test that reads a computed transition from more than one control,
-  since a rule naming three selectors is exactly how this was missed.
 
 ### P3, Under Consideration
 

@@ -2679,12 +2679,8 @@ const NAV_LAUNCHER_CSS = `
   display: none;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .av-nav-launcher-pill {
-    transition: none;
-  }
-}
-
+/* Same single source as the panel: the host attribute already carries the decision, and a media
+   query here would override a reader who chose "never". */
 :host([data-av-motion="reduce"]) .av-nav-launcher-pill {
   transition: none;
 }
@@ -4150,19 +4146,30 @@ input[type="checkbox"] {
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .av-launcher,
-  .av-panel {
-    transition: none;
-  }
+/* Motion reduction is decided once, in prefersReducedMotion(), and stamped on the host as
+   data-av-motion, because a page-level class cannot cross into this shadow tree. There is
+   deliberately no @media (prefers-reduced-motion: reduce) block beside this. That block used to
+   sit here naming .av-launcher and .av-panel, and it was wrong twice over: .av-panel has no
+   transition to stop, and the media query does not know about the reduceMotion setting, so a reader
+   who had explicitly chosen "never" still had their animations taken away by the OS preference.
+   Under the OS preference the host already reads "reduce", so the block added nothing it did not
+   also break.
+
+   The selector is the whole tree rather than a list of controls. The list version named two and
+   missed five: the toggle and its knob, buttons and rows, which is every control a reader touches
+   while changing a setting. A tree-wide rule cannot fall behind a control added later. It sits last
+   in the stylesheet deliberately, because it ties on specificity with the rules it overrides and
+   wins on order. */
+:host([data-av-motion="reduce"]) *,
+:host([data-av-motion="reduce"]) *::before,
+:host([data-av-motion="reduce"]) *::after {
+  transition: none;
 }
 
-/* The reduceMotion setting can force reduction with no OS preference set, and a page-level
-   class cannot cross into this shadow tree, the host carries the state instead. */
+/* The launcher's resting lift is a transform rather than a transition, so it needs saying
+   separately. */
 :host([data-av-motion="reduce"]) .av-launcher,
-:host([data-av-motion="reduce"]) .av-launcher:hover,
-:host([data-av-motion="reduce"]) .av-panel {
-  transition: none;
+:host([data-av-motion="reduce"]) .av-launcher:hover {
   transform: none;
 }
 `;

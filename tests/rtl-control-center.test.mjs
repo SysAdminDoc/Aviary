@@ -125,3 +125,101 @@ test("the Control Center mirrors RTL direction and returns to LTR immediately", 
   assert.equal(result.english.documentDir, null, "X's document direction must remain untouched");
   assert.equal(result.hostAfterDestroy, null);
 });
+
+// Motion reduction is decided in one place, prefersReducedMotion(), and stamped on the host. These
+// two tests pin both halves of that: what it covers, and what it must not override.
+
+const mountPanel = (reduceMotion) =>
+  page.evaluate(async (choice) => {
+    const settings = AviaryRTL.cloneSettings(AviaryRTL.DEFAULT_SETTINGS);
+    if (choice) settings.accessibility.reduceMotion = choice;
+    globalThis.__avMotionPanel = AviaryRTL.mountControlCenter({
+      settings,
+      diagnostics: () => [],
+      onChange: async () => {},
+      onError: () => {},
+      listLocales: () => AviaryRTL.supportedLocales(),
+      setLocale: async () => {}
+    });
+    const shadow = document.getElementById("av-control-center").shadowRoot;
+    shadow.querySelector(".av-launcher").click();
+    shadow.querySelector('[data-av-section="appearance"]').click();
+  }, reduceMotion ?? null);
+
+const unmountPanel = () =>
+  page.evaluate(() => {
+    globalThis.__avMotionPanel.destroy();
+    delete globalThis.__avMotionPanel;
+  });
+
+// Controls the old rule never named, plus .av-launcher, which it did, as the control: a change that
+// broke the stylesheet outright would fail that one too. .av-panel is not read, because it has no
+// transition to stop -- the old rule named it anyway, which is part of why a hand-kept list was the
+// wrong shape here.
+const readDurations = () =>
+  page.evaluate(() => {
+    const shadow = document.getElementById("av-control-center").shadowRoot;
+    const of = (selector, pseudo) => {
+      const element = shadow.querySelector(selector);
+      if (!element) return `missing: ${selector}`;
+      return getComputedStyle(element, pseudo ?? undefined).transitionDuration;
+    };
+    return {
+      launcher: of(".av-launcher"),
+      toggle: of(".av-toggle"),
+      toggleKnob: of(".av-toggle", "::before"),
+      button: of(".av-button"),
+      row: of(".av-row")
+    };
+  });
+
+const stillFor = (durations) =>
+  Object.entries(durations).filter(([, value]) =>
+    value.split(",").some((part) => part.trim() !== "0s")
+  );
+
+test("reduced motion stops every transition in the panel, not the three anyone listed", async () => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await mountPanel();
+  const moving = await readDurations();
+  await unmountPanel();
+
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await mountPanel();
+  const reduced = await readDurations();
+  await unmountPanel();
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+
+  // Without the preference these animate, which is what makes the second half mean something: a
+  // selector that matched nothing would report 0s in both columns and prove nothing at all.
+  for (const [name, duration] of Object.entries(moving)) {
+    assert.ok(!duration.startsWith("missing:"), `${name} was not found in the panel`);
+    assert.notEqual(duration, "0s", `${name} should animate when no reduction is asked for`);
+  }
+
+  assert.deepEqual(
+    stillFor(reduced).map(([name]) => name),
+    [],
+    "these still animate under prefers-reduced-motion: reduce"
+  );
+});
+
+test("an explicit 'never' keeps the animations the OS preference would have taken away", async () => {
+  // The @media block this replaced could not see the setting, so a reader who had chosen "never"
+  // lost their animations anyway the moment their OS asked for less motion.
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await mountPanel("never");
+  const durations = await readDurations();
+  const motionAttribute = await page.evaluate(
+    () => document.getElementById("av-control-center").dataset.avMotion
+  );
+  await unmountPanel();
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+
+  assert.equal(motionAttribute, "full", "an explicit never must stamp the host as full");
+  assert.equal(
+    stillFor(durations).length,
+    Object.keys(durations).length,
+    `the OS preference overrode an explicit never: ${JSON.stringify(durations)}`
+  );
+});
