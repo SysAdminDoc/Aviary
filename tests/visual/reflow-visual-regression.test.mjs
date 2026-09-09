@@ -121,7 +121,10 @@ async function ensureControlCenterOpen(page) {
       return panel instanceof HTMLElement && getComputedStyle(panel).display !== "none";
     },
     null,
-    { timeout: 10_000 }
+    // Generous because it waits for a state, not for a duration. Three browser-driving lanes share
+    // one machine under npm run test:visual, and at 10s this timed out on a different viewport each
+    // run while the lane passed on its own.
+    { timeout: 30_000 }
   );
 }
 

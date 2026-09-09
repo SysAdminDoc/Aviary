@@ -3,6 +3,16 @@
 ## Unreleased
 
 ### Fixed
+- **The screenshot tests were photographing the wrong thing.** The step that closes the settings
+  panel so the timeline underneath can be photographed was opening it instead: the panel mounts a
+  moment after the click, the helper read "not there yet" as "already closed", clicked the launcher
+  a second time, and the check passed on that same instant. So the baseline for Aviary's controls on
+  a post was a picture of the settings panel, and 80% of its pixels differed from the reviewed one.
+  The helper waits for the panel to exist before closing it now, and clicks the real close button,
+  which never carried the class the old code looked for. The reviewed screenshots have also been
+  regenerated: they were captured at v1.47.2 and had not seen the library storage controls that
+  shipped since.
+### Fixed
 - **Photos and videos stop growing at a readable width instead of filling the screen.** On a wider
   timeline the column is most of the browser window, and media on the post you are reading was
   taking all of it: measured on a 2560px screen, one photo rendered 2,538px across. That is not a

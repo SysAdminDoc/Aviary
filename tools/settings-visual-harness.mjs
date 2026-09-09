@@ -339,27 +339,45 @@ export async function prepareSettingsScreenshot(page) {
  * it.
  */
 export async function closeControlCenter(page) {
+  // The launcher click that opens the panel mounts it asynchronously, so for a moment after launch
+  // there is no `.av-panel` in the shadow tree at all. "Absent" is not "closed", and reading it as
+  // closed is what broke every injected baseline: the old close selector matched nothing, the
+  // fallback clicked the launcher a *second* time, and the wait below passed on the same instant
+  // because the panel had not appeared yet. The panel then finished opening over the timeline, and
+  // the post-controls screenshot photographed the settings panel. Waiting for it to exist first is
+  // what makes the rest of this a close rather than a toggle.
+  await page.waitForFunction(
+    () => Boolean(document.querySelector("#av-control-center")?.shadowRoot?.querySelector(".av-panel")),
+    null,
+    { timeout: 30_000 }
+  );
+
   await page.evaluate(() => {
-    const shadow =
-      document.querySelector("#av-control-center")?.shadowRoot ??
-      document.querySelector("#av-control-center-nav")?.shadowRoot;
-    const close = shadow?.querySelector(".av-panel-close, .av-close");
-    if (close instanceof HTMLElement) {
+    const shadow = document.querySelector("#av-control-center")?.shadowRoot;
+    const panel = shadow?.querySelector(".av-panel");
+    if (!shadow || !panel) return;
+    // The panel's close control carries no class of its own -- it is a plain secondary button, and
+    // `.av-panel-close, .av-close` matched nothing in this markup. Its accessible name is what
+    // identifies it, and the harness runs in the default locale.
+    const close = Array.from(shadow.querySelectorAll("button")).find(
+      (button) => (button.getAttribute("aria-label") ?? button.textContent ?? "").trim() === "Close"
+    );
+    if (close) {
       close.click();
       return;
     }
-    const launcher =
-      document.querySelector("#av-control-center-nav")?.shadowRoot?.querySelector(".av-nav-launcher") ??
-      document.querySelector("#av-control-center")?.shadowRoot?.querySelector(".av-launcher");
-    if (launcher instanceof HTMLElement) launcher.click();
+    if (panel.matches(":popover-open")) panel.hidePopover?.();
   });
+
   await page.waitForFunction(
     () => {
       const panel = document.querySelector("#av-control-center")?.shadowRoot?.querySelector(".av-panel");
-      return !panel || getComputedStyle(panel).display === "none";
+      // Absent means removed on close here, because the wait above already saw it present.
+      if (!panel) return true;
+      return !panel.matches(":popover-open") || getComputedStyle(panel).display === "none";
     },
     null,
-    { timeout: 10_000 }
+    { timeout: 30_000 }
   );
   await settleVisuals(page);
 }
