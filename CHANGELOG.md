@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.49.3 (2026-09-08)
+
 ### Fixed
 - **The screenshot tests stopped failing at random.** They run three browsers, and the runner was
   starting all three at once, so they starved each other until the settings panel took tens of
