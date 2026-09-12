@@ -1,6 +1,7 @@
 # Aviary marketing archive
 
 This folder records the v1.49.4 README and installation refresh on September 9, 2026.
+The September 12 follow-up puts the approved evergreen share card at the top of the README exactly once. The first README check and the final render with current extension screenshots are preserved under `working-captures/readme-hero-v1.49.5/` and `working-captures/readme-hero-v1.49.5-final/`.
 The original cyan and violet bird icon remains the product identity. No replacement logo was
 selected. Its silhouette and negative-space A are more distinctive than a generic browser badge.
 
@@ -33,6 +34,8 @@ They are reference material, not current product screenshots.
 These preserve the rendered UI text without replacing diagnostic values or timestamps.
 Screenshots use a disposable headless Chromium profile and the repository's synthetic X page.
 No signed-in account, private messages or live personal timeline was used.
+
+`working-captures/current-settings-v1.49.5/` contains the 15 rebuilt extension screens used for the hero follow-up. Presets, Appearance and Export are the selected current README images.
 
 ## Selection
 

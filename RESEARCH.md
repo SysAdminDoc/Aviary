@@ -3,7 +3,7 @@ Date: 2026-09-06. Replaces all prior research.
 
 ## Executive Summary
 
-Aviary v1.49.4 is the current release. The findings below preserve the September 6 research record,
+Aviary v1.49.5 is the current release. The findings below preserve the September 6 research record,
 not a fresh assessment of today's implementation. Check [CHANGELOG.md](CHANGELOG.md) for fixes that
 shipped afterward and [Roadmap_Blocked.md](Roadmap_Blocked.md) for work still waiting on external
 evidence. The review prioritized dependable media capture and storage recovery over another visual

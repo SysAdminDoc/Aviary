@@ -1,0 +1,112 @@
+{
+  "version": "1.49.5",
+  "capturedAt": "2026-09-12T22:42:04.136Z",
+  "method": "Installed Chromium MV3 package in an owned headless profile with a synthetic X fixture.",
+  "records": [
+    {
+      "file": "presets.png",
+      "section": "presets",
+      "width": 1440,
+      "height": 900,
+      "sha256": "122f54fa40127aeeee187fb8ea921cdd387b292e7b84b22788f3d9022fd71a5b"
+    },
+    {
+      "file": "appearance.png",
+      "section": "appearance",
+      "width": 1440,
+      "height": 900,
+      "sha256": "20ed6ccfaa47d5d1dd3770f09ca4b79b986f4a7adc80ea5fff1abc7c3b3a4fc4"
+    },
+    {
+      "file": "layout.png",
+      "section": "layout",
+      "width": 1440,
+      "height": 900,
+      "sha256": "3119797b860087fa232a5357ff0a14167ee75a67cf77739a971826c679115fae"
+    },
+    {
+      "file": "filtering.png",
+      "section": "filtering",
+      "width": 1440,
+      "height": 900,
+      "sha256": "d5adfb73629744995360b00e73fe4f347939d8c3bf4fd7731c7c0661e95611eb"
+    },
+    {
+      "file": "catchup.png",
+      "section": "catchup",
+      "width": 1440,
+      "height": 900,
+      "sha256": "0e7703fb02bf4eb7d4d8a87306e53584945fe04f1d97181eef0f205932dabe1e"
+    },
+    {
+      "file": "hidden.png",
+      "section": "hidden",
+      "width": 1440,
+      "height": 900,
+      "sha256": "08b18dd8dda52e887f731cc288fc8153fad906521f338d149e04ffeaaffcec0f"
+    },
+    {
+      "file": "performance.png",
+      "section": "performance",
+      "width": 1440,
+      "height": 900,
+      "sha256": "7c5bdbf8d0353b87cee2632b29793f488e7a322bbd46ccabfe3f5196602d2b5e"
+    },
+    {
+      "file": "media.png",
+      "section": "media",
+      "width": 1440,
+      "height": 900,
+      "sha256": "80a4aea12caab4672aad095823c280cb48efa83699c61046cdd172fbad1ced40"
+    },
+    {
+      "file": "export.png",
+      "section": "export",
+      "width": 1440,
+      "height": 900,
+      "sha256": "a75515610d39be8b042e1abac335d360a086832187920fd336d92c1f1c9dbe96"
+    },
+    {
+      "file": "library.png",
+      "section": "library",
+      "width": 1440,
+      "height": 900,
+      "sha256": "e82dbb3d030855d7fa6b336de4422c4a5b277813271726f11117aaa36fad71c6"
+    },
+    {
+      "file": "snapshots.png",
+      "section": "snapshots",
+      "width": 1440,
+      "height": 900,
+      "sha256": "a5adffcb76fbc3145c26cd828e90273f331b9ff5a8922478cafb1e13826c0796"
+    },
+    {
+      "file": "integrations.png",
+      "section": "integrations",
+      "width": 1440,
+      "height": 900,
+      "sha256": "7483d98df8b4fa9c4d8b4b9eeec9f74217748e8cbbc7dacc6e35b15fd5e7e2e8"
+    },
+    {
+      "file": "backup.png",
+      "section": "backup",
+      "width": 1440,
+      "height": 900,
+      "sha256": "d4c726ea11888f9197e1d31983aa180f14def50a3607a1d714b3fb925baa9a4d"
+    },
+    {
+      "file": "trust.png",
+      "section": "trust",
+      "width": 1440,
+      "height": 900,
+      "sha256": "a91a4e086e8c1ddcd36c298ca7d79babc22da32b6a3585e156067cc0055fb12f"
+    },
+    {
+      "file": "options.png",
+      "section": "options",
+      "width": 1440,
+      "height": 900,
+      "sha256": "73a632cb2e78f7d82eb824ddb152ae2d910e308e45673f550bc31f0401dd2208"
+    }
+  ]
+}

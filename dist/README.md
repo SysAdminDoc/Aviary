@@ -1,8 +1,8 @@
-<img src="https://github.com/SysAdminDoc/Aviary/raw/main/src/extension/icons/icon-128.png" alt="Aviary bird icon" width="72" height="72">
+![Aviary, a quieter way to read X and keep a local media library](https://github.com/SysAdminDoc/Aviary/raw/main/docs/marketing/social-preview.png)
 
-# Aviary v1.49.4
+# Aviary v1.49.5
 
-![Version](https://img.shields.io/badge/version-1.49.4-2f81f7) [![License](https://img.shields.io/badge/license-MIT-3fb950)](https://github.com/SysAdminDoc/Aviary/blob/main/LICENSE) ![Platform](https://img.shields.io/badge/platform-Chrome%20%7C%20Firefox%20%7C%20userscript-8b5cf6) ![Runtime dependencies](https://img.shields.io/badge/runtime%20dependencies-0-0ea5e9)
+![Version](https://img.shields.io/badge/version-1.49.5-2f81f7) [![License](https://img.shields.io/badge/license-MIT-3fb950)](https://github.com/SysAdminDoc/Aviary/blob/main/LICENSE) ![Platform](https://img.shields.io/badge/platform-Chrome%20%7C%20Firefox%20%7C%20userscript-8b5cf6) ![Runtime dependencies](https://img.shields.io/badge/runtime%20dependencies-0-0ea5e9)
 
 **A quieter X. A local copy of what matters.**
 
@@ -10,11 +10,11 @@ Aviary adds media downloads and ad removal to X, with a Control Center for every
 Choose a reading preset, filter your feed or keep a searchable library of posts in your browser.
 It doesn't need a separate Aviary account. Optional integrations stay off until you enable them.
 
-[Download v1.49.4](https://github.com/SysAdminDoc/Aviary/releases/tag/v1.49.4) · [Installation guide](https://github.com/SysAdminDoc/Aviary/blob/main/docs/INSTALL.md) · [Feature reference](https://github.com/SysAdminDoc/Aviary/blob/main/docs/FEATURES.md) · [Privacy](https://github.com/SysAdminDoc/Aviary/blob/main/docs/PRIVACY.md)
+[Download v1.49.5](https://github.com/SysAdminDoc/Aviary/releases/tag/v1.49.5) · [Installation guide](https://github.com/SysAdminDoc/Aviary/blob/main/docs/INSTALL.md) · [Feature reference](https://github.com/SysAdminDoc/Aviary/blob/main/docs/FEATURES.md) · [Privacy](https://github.com/SysAdminDoc/Aviary/blob/main/docs/PRIVACY.md)
 
 ![Aviary's installed extension showing six reading and archiving presets](https://github.com/SysAdminDoc/Aviary/raw/main/docs/marketing/presets.png)
 
-*Captured from the built v1.49.4 extension in an isolated browser. X pages and posts in these
+*Captured from the built v1.49.5 extension in an isolated browser. X pages and posts in these
 screenshots are synthetic test content, not a signed-in account or evidence of current live-X compatibility.*
 
 ## Install
@@ -24,8 +24,8 @@ Use the Chromium extension for the most complete installation path.
 
 | Your browser | Download | Installation |
 | --- | --- | --- |
-| Chrome, Edge or Brave | [Chromium ZIP](https://github.com/SysAdminDoc/Aviary/releases/download/v1.49.4/extension-chrome-v1.49.4.zip) | Extract it to a folder you'll keep. Open your browser's extensions page, enable **Developer mode**, then choose **Load unpacked** and select the folder containing `manifest.json`. |
-| Firefox | [Firefox ZIP](https://github.com/SysAdminDoc/Aviary/releases/download/v1.49.4/extension-firefox-v1.49.4.zip) | Extract it. Open `about:debugging#/runtime/this-firefox`, choose **Load Temporary Add-on**, then select `manifest.json`. This unsigned add-on disappears when Firefox restarts. |
+| Chrome, Edge or Brave | [Chromium ZIP](https://github.com/SysAdminDoc/Aviary/releases/download/v1.49.5/extension-chrome-v1.49.5.zip) | Extract it to a folder you'll keep. Open your browser's extensions page, enable **Developer mode**, then choose **Load unpacked** and select the folder containing `manifest.json`. |
+| Firefox | [Firefox ZIP](https://github.com/SysAdminDoc/Aviary/releases/download/v1.49.5/extension-firefox-v1.49.5.zip) | Extract it. Open `about:debugging#/runtime/this-firefox`, choose **Load Temporary Add-on**, then select `manifest.json`. This unsigned add-on disappears when Firefox restarts. |
 | A userscript manager | [Install userscript](https://raw.githubusercontent.com/SysAdminDoc/Aviary/main/dist/aviary.user.js) | Open the link in Tampermonkey or Violentmonkey and review the manager's install prompt. Read the limitation below before choosing this route. |
 
 The Firefox manifest still has a **placeholder add-on id**. It isn't an AMO-signed permanent
@@ -120,7 +120,7 @@ npm run verify:fast
 
 This builds `dist/aviary.user.js`, reloadable Chrome and Firefox directories, and the ZIP packages.
 Before releasing, run `npm run verify:release` for the serial visual and browser smoke lanes too.
-The compact `aviary-source-v1.49.4.zip` includes code and runtime icons for a clean build;
+The compact `aviary-source-v1.49.5.zip` includes code and runtime icons for a clean build;
 use the full Git checkout for screenshot baselines and repository-level verification.
 [Build and release details](https://github.com/SysAdminDoc/Aviary/blob/main/docs/INSTALL.md#reproduce-the-source-archive-on-linux-arm64).
 
@@ -129,7 +129,7 @@ use the full Git checkout for screenshot baselines and repository-level verifica
 <!-- Generated by tools/docs-facts.mjs from the manifests and the panel's own metadata.
      Edit those, then run `npm run docs:facts`. -->
 
-Aviary 1.49.4 registers 31 feature modules, draws 14 Control Center destinations, and watches 21 selector surfaces on X.
+Aviary 1.49.5 registers 31 feature modules, draws 14 Control Center destinations, and watches 21 selector surfaces on X.
 
 <!-- docs-facts:end -->
 

@@ -23,10 +23,10 @@ test("nested badges gain a portable target without changing external or anchor l
   assert.equal(releaseReadme(output, repository), output, "rebuilding does not double-prefix URLs");
 });
 
-test("the current release README resolves the root logo, screenshot and guide paths", async () => {
+test("the current release README resolves the hero, screenshot and guide paths", async () => {
   const input = await readFile(new URL('../README.md', import.meta.url), 'utf8');
   const output = releaseReadme(input, repository);
-  assert.ok(output.includes(`${repository}/raw/main/src/extension/icons/icon-128.png`));
+  assert.ok(output.includes(`${repository}/raw/main/docs/marketing/social-preview.png`));
   assert.ok(output.includes(`${repository}/raw/main/docs/marketing/presets.png`));
   assert.ok(output.includes(`${repository}/blob/main/docs/INSTALL.md`));
   assert.ok(!output.includes('](docs/'));

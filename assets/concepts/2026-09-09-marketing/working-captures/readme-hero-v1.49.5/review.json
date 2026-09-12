@@ -1,0 +1,118 @@
+{
+  "heroPath": "docs/marketing/social-preview.png",
+  "referenceCount": 1,
+  "checks": [
+    {
+      "name": "desktop",
+      "width": 1280,
+      "height": 1000,
+      "overflow": false,
+      "images": [
+        {
+          "src": "docs/marketing/social-preview.png",
+          "loaded": true,
+          "width": 1200,
+          "height": 630
+        },
+        {
+          "src": "https://img.shields.io/badge/version-1.49.5-2f81f7",
+          "loaded": true,
+          "width": 96,
+          "height": 20
+        },
+        {
+          "src": "https://img.shields.io/badge/license-MIT-3fb950",
+          "loaded": true,
+          "width": 78,
+          "height": 20
+        },
+        {
+          "src": "https://img.shields.io/badge/platform-Chrome%20%7C%20Firefox%20%7C%20userscript-8b5cf6",
+          "loaded": true,
+          "width": 228,
+          "height": 20
+        },
+        {
+          "src": "https://img.shields.io/badge/runtime%20dependencies-0-0ea5e9",
+          "loaded": true,
+          "width": 150,
+          "height": 20
+        },
+        {
+          "src": "docs/marketing/presets.png",
+          "loaded": true,
+          "width": 1440,
+          "height": 900
+        },
+        {
+          "src": "docs/marketing/appearance.png",
+          "loaded": true,
+          "width": 1440,
+          "height": 900
+        },
+        {
+          "src": "docs/marketing/export.png",
+          "loaded": true,
+          "width": 1440,
+          "height": 900
+        }
+      ]
+    },
+    {
+      "name": "mobile",
+      "width": 390,
+      "height": 844,
+      "overflow": false,
+      "images": [
+        {
+          "src": "docs/marketing/social-preview.png",
+          "loaded": true,
+          "width": 1200,
+          "height": 630
+        },
+        {
+          "src": "https://img.shields.io/badge/version-1.49.5-2f81f7",
+          "loaded": true,
+          "width": 96,
+          "height": 20
+        },
+        {
+          "src": "https://img.shields.io/badge/license-MIT-3fb950",
+          "loaded": true,
+          "width": 78,
+          "height": 20
+        },
+        {
+          "src": "https://img.shields.io/badge/platform-Chrome%20%7C%20Firefox%20%7C%20userscript-8b5cf6",
+          "loaded": true,
+          "width": 228,
+          "height": 20
+        },
+        {
+          "src": "https://img.shields.io/badge/runtime%20dependencies-0-0ea5e9",
+          "loaded": true,
+          "width": 150,
+          "height": 20
+        },
+        {
+          "src": "docs/marketing/presets.png",
+          "loaded": true,
+          "width": 1440,
+          "height": 900
+        },
+        {
+          "src": "docs/marketing/appearance.png",
+          "loaded": true,
+          "width": 1440,
+          "height": 900
+        },
+        {
+          "src": "docs/marketing/export.png",
+          "loaded": true,
+          "width": 1440,
+          "height": 900
+        }
+      ]
+    }
+  ]
+}

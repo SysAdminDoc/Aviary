@@ -1,9 +1,9 @@
-# Install Aviary 1.49.4
+# Install Aviary 1.49.5
 
 Aviary ships as a readable userscript and as Manifest V3 extensions. Both builds run on X pages;
 the extensions also provide a dedicated options page for optional browser permissions.
 
-Start with the [v1.49.4 release downloads](https://github.com/SysAdminDoc/Aviary/releases/tag/v1.49.4).
+Start with the [v1.49.5 release downloads](https://github.com/SysAdminDoc/Aviary/releases/tag/v1.49.5).
 You don't need Node or a source checkout to load the ZIP packages. The Chromium extension is the
 most complete path; Firefox requires temporary loading, and userscript managers have the limits
 below. Aviary isn't listed in a browser extension store.
@@ -71,7 +71,7 @@ state and reports a refusal or failure instead of claiming the file was saved.
 
 ## Chrome, Edge, or Brave (developer load)
 
-1. Download [the Chromium ZIP](https://github.com/SysAdminDoc/Aviary/releases/download/v1.49.4/extension-chrome-v1.49.4.zip)
+1. Download [the Chromium ZIP](https://github.com/SysAdminDoc/Aviary/releases/download/v1.49.5/extension-chrome-v1.49.5.zip)
    and extract it into a folder you'll keep. Source checkout users can instead run
    `npm ci --ignore-scripts`, then `npm run verify:release` to create `dist/extension-chrome/`.
 2. Open `chrome://extensions/` (or the equivalent extensions page), enable **Developer mode**, and
@@ -180,7 +180,7 @@ nvm install 24.18.1
 nvm use 24.18.1
 npm ci --ignore-scripts
 npm run build
-sha256sum dist/aviary-source-v1.49.4.zip
+sha256sum dist/aviary-source-v1.49.5.zip
 ```
 
 The source archive is a sorted, STORE-only ZIP with a fixed timestamp. It contains the checkout
@@ -191,7 +191,7 @@ the exact X-matched panel chunk is web-accessible only where the manifest declar
 
 ## Firefox (temporary load)
 
-Download and extract [the Firefox ZIP](https://github.com/SysAdminDoc/Aviary/releases/download/v1.49.4/extension-firefox-v1.49.4.zip), then:
+Download and extract [the Firefox ZIP](https://github.com/SysAdminDoc/Aviary/releases/download/v1.49.5/extension-firefox-v1.49.5.zip), then:
 
 1. Keep the extracted directory. If building from source, use `npm ci --ignore-scripts` and
    `npm run verify:release` first; `dist/extension-firefox/` isn't carried in Git.

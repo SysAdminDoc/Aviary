@@ -6,6 +6,21 @@ import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
+test("the README opens with one evergreen marketing hero", async () => {
+  const readme = await readFile(path.join(root, "README.md"), "utf8");
+  const reference = "![Aviary, a quieter way to read X and keep a local media library](docs/marketing/social-preview.png)";
+  assert.ok(readme.startsWith(reference));
+  assert.equal(readme.split("docs/marketing/social-preview.png").length - 1, 1);
+
+  const source = await readFile(path.join(root, "docs/marketing/social-preview.html"), "utf8");
+  assert.doesNotMatch(source, /\bv\d+\.\d+\.\d+\b/i);
+
+  const png = await readFile(path.join(root, "docs/marketing/social-preview.png"));
+  assert.deepEqual([...png.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
+  assert.equal(png.readUInt32BE(16), 1200);
+  assert.equal(png.readUInt32BE(20), 630);
+});
+
 test("install + FAQ docs exist and reference the right primitives", async () => {
   const install = await readFile(path.join(root, "docs/INSTALL.md"), "utf8");
   assert.match(install, /Tampermonkey/);
