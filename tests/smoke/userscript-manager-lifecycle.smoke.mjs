@@ -18,6 +18,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { isDeepStrictEqual } from "node:util";
 import { build } from "esbuild";
 import { chromium } from "playwright";
 import {
@@ -458,7 +459,11 @@ async function exercisePair(pages, managerName) {
   const key = `manager.smoke.${Date.now()}`;
   const initial = { manager: managerName, phase: "initial" };
   assert.deepEqual(await sendChromiumProbe(pages[0], { op: "put", key, value: initial }), { ok: true });
-  assert.deepEqual(await sendChromiumProbe(pages[1], { op: "get", key, fallback: null }), { value: initial });
+  await waitForSharedValue(
+    () => sendChromiumProbe(pages[1], { op: "get", key, fallback: null }),
+    initial,
+    `${managerName} did not propagate the initial value across origins`
+  );
 
   const watchId = `${managerName}-watch`;
   const watch = await sendChromiumProbe(pages[0], { op: "watch", key, watchId });
@@ -494,7 +499,11 @@ async function exercisePair(pages, managerName) {
   const interrupted = await sendChromiumProbe(pages[0], { op: "throwingLock", key: interruptedKey });
   assert.equal(interrupted.rejected, true);
   await sendChromiumProbe(pages[1], { op: "replace", key: interruptedKey, value: { recovered: true } });
-  assert.deepEqual(await sendChromiumProbe(pages[0], { op: "get", key: interruptedKey, fallback: null }), { value: { recovered: true } });
+  await waitForSharedValue(
+    () => sendChromiumProbe(pages[0], { op: "get", key: interruptedKey, fallback: null }),
+    { recovered: true },
+    `${managerName} did not propagate the recovery write across origins`
+  );
 
   const staleKey = `${key}.stale`;
   const fresh = { manager: managerName, phase: "fresh" };
@@ -515,7 +524,11 @@ async function exerciseFirefoxPair(driver, tabs, managerName) {
   const initial = { manager: managerName, phase: "initial" };
   await switchFirefoxWindow(driver, tabs[0]);
   assert.deepEqual(await sendFirefoxProbe(driver, tabs[0], { op: "put", key, value: initial }), { ok: true });
-  assert.deepEqual(await sendFirefoxProbe(driver, tabs[1], { op: "get", key, fallback: null }), { value: initial });
+  await waitForSharedValue(
+    () => sendFirefoxProbe(driver, tabs[1], { op: "get", key, fallback: null }),
+    initial,
+    `${managerName} did not propagate the initial value across origins`
+  );
 
   const watchId = `${managerName}-watch`;
   const watch = await sendFirefoxProbe(driver, tabs[0], { op: "watch", key, watchId });
@@ -546,7 +559,11 @@ async function exerciseFirefoxPair(driver, tabs, managerName) {
   const interruptedKey = `${key}.interrupted`;
   assert.equal((await sendFirefoxProbe(driver, tabs[0], { op: "throwingLock", key: interruptedKey })).rejected, true);
   await sendFirefoxProbe(driver, tabs[1], { op: "replace", key: interruptedKey, value: { recovered: true } });
-  assert.deepEqual(await sendFirefoxProbe(driver, tabs[0], { op: "get", key: interruptedKey, fallback: null }), { value: { recovered: true } });
+  await waitForSharedValue(
+    () => sendFirefoxProbe(driver, tabs[0], { op: "get", key: interruptedKey, fallback: null }),
+    { recovered: true },
+    `${managerName} did not propagate the recovery write across origins`
+  );
 
   const staleKey = `${key}.stale`;
   const fresh = { manager: managerName, phase: "fresh" };
@@ -560,6 +577,18 @@ async function exerciseFirefoxPair(driver, tabs, managerName) {
   assert.deepEqual(await sendFirefoxProbe(driver, tabs[1], { op: "get", key: staleKey, fallback: null }), { value: fresh });
   await sendFirefoxProbe(driver, tabs[0], { op: "remove", key });
   return { key: contentionKey, finalValue };
+}
+
+async function waitForSharedValue(readValue, expectedValue, message) {
+  const expected = { value: expectedValue };
+  const deadline = Date.now() + PROBE_TIMEOUT_MS;
+  let actual = null;
+  while (Date.now() < deadline) {
+    actual = await readValue();
+    if (isDeepStrictEqual(actual, expected)) return;
+    await delay(100);
+  }
+  assert.deepEqual(actual, expected, message);
 }
 
 async function launchChromiumManager(profileDir, extensionDir) {
