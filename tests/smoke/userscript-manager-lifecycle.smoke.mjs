@@ -871,11 +871,22 @@ async function sendFirefoxProbe(driver, handle, command) {
 
 async function waitForFirefox(driver, predicate, message) {
   const deadline = Date.now() + PROBE_TIMEOUT_MS;
+  let lastNavigationError = null;
   while (Date.now() < deadline) {
-    if (await driver.evaluate(null, predicate)) return;
+    try {
+      if (await driver.evaluate(null, predicate)) return;
+      lastNavigationError = null;
+    } catch (error) {
+      // Firefox can replace about:blank while WebDriver has an async evaluation in flight.
+      // Retry until the destination document settles, then preserve the last error on timeout.
+      lastNavigationError = error;
+    }
     await delay(100);
   }
-  throw new Error(message);
+  throw new Error(
+    lastNavigationError ? `${message}: ${lastNavigationError.message}` : message,
+    lastNavigationError ? { cause: lastNavigationError } : undefined
+  );
 }
 
 async function waitForFirefoxEvent(driver, handle, criteria) {
