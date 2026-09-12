@@ -8,6 +8,7 @@
 
 - The README now opens with the selected Aviary share card. It replaces the small repeated logo and explains the product before the install choices.
 - The evergreen artwork carries no release number. A repository check keeps it first, allows one reference and verifies the 1200 by 630 image.
+- The Chromium private-window smoke now fulfills the checked-in X fixture before it inspects storage. It no longer depends on a live x.com response or mistakes Chrome's error document for the private page.
 
 ## 1.49.4 (2026-09-09)
 

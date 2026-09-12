@@ -9,6 +9,7 @@ import { assertCurrentExtensionBuild } from "../../tools/settings-visual-harness
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const extensionDir = path.join(root, "dist", "extension-chrome");
+const fixturePath = path.join(root, "tests", "smoke", "current-x-home.html");
 
 if (!existsSync(extensionDir)) {
   console.error("Build the extension first: `npm run build`.");
@@ -16,6 +17,7 @@ if (!existsSync(extensionDir)) {
 }
 
 await assertCurrentExtensionBuild(extensionDir);
+const fixtureHtml = await readFile(fixturePath, "utf8");
 
 let commandId = 0;
 
@@ -45,7 +47,89 @@ async function sendToTarget(cdp, sessionId, method, params = {}) {
   return result;
 }
 
-async function probe(extensionPath) {
+async function loadFixtureState(cdp, sessionId, { expectBoot }) {
+  const fixtureBody = Buffer.from(fixtureHtml).toString("base64");
+  let fulfillError = null;
+  let fixtureRequestSeen = false;
+  let lastState = null;
+  const onEvent = (event) => {
+    if (
+      event.method !== "Target.receivedMessageFromTarget" ||
+      event.params.sessionId !== sessionId
+    ) {
+      return;
+    }
+    const message = JSON.parse(event.params.message);
+    if (message.method !== "Fetch.requestPaused") return;
+    fixtureRequestSeen = true;
+    void sendToTarget(cdp, sessionId, "Fetch.fulfillRequest", {
+      requestId: message.params.requestId,
+      responseCode: 200,
+      responseHeaders: [{ name: "Content-Type", value: "text/html; charset=utf-8" }],
+      body: fixtureBody
+    }).catch((error) => {
+      fulfillError = error;
+    });
+  };
+
+  cdp.on("event", onEvent);
+  try {
+    await sendToTarget(cdp, sessionId, "Page.enable");
+    await sendToTarget(cdp, sessionId, "Runtime.enable");
+    await sendToTarget(cdp, sessionId, "Fetch.enable", {
+      patterns: [{ urlPattern: "https://x.com/*", resourceType: "Document", requestStage: "Request" }]
+    });
+    await sendToTarget(cdp, sessionId, "Page.navigate", {
+      url: "https://x.com/incognito-smoke"
+    });
+
+    const deadline = Date.now() + 15_000;
+    while (Date.now() < deadline) {
+      if (fulfillError) throw fulfillError;
+      const evaluation = await sendToTarget(cdp, sessionId, "Runtime.evaluate", {
+        expression: `(async () => {
+          if (location.origin !== "https://x.com") {
+            return { href: location.href, origin: location.origin, readyState: document.readyState };
+          }
+          return {
+            href: location.href,
+            origin: location.origin,
+            readyState: document.readyState,
+            ready: document.documentElement.dataset.avReady ?? null,
+            local: Object.keys(localStorage).filter((key) => key.startsWith("aviary.")),
+            session: Object.keys(sessionStorage).filter((key) => key.startsWith("aviary.")),
+            databases: (await indexedDB.databases())
+              .map((database) => database.name ?? "")
+              .filter((name) => name.startsWith("aviary.")),
+            bootNotice: document.querySelector("#av-boot-notice")?.shadowRoot?.textContent ?? ""
+          };
+        })()`,
+        awaitPromise: true,
+        returnByValue: true
+      });
+      if (evaluation.exceptionDetails) {
+        throw new Error(evaluation.exceptionDetails.exception?.description ?? evaluation.exceptionDetails.text);
+      }
+      lastState = evaluation.result?.value ?? null;
+      const fixtureSettled =
+        lastState?.origin === "https://x.com" &&
+        lastState?.readyState !== "loading" &&
+        Array.isArray(lastState?.local) &&
+        Array.isArray(lastState?.session) &&
+        Array.isArray(lastState?.databases);
+      if (fixtureSettled && (!expectBoot || lastState.ready === "true")) return lastState;
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    throw new Error(
+      `private fixture did not settle (request=${fixtureRequestSeen}, state=${JSON.stringify(lastState)})`
+    );
+  } finally {
+    cdp.off("event", onEvent);
+    await sendToTarget(cdp, sessionId, "Fetch.disable").catch(() => {});
+  }
+}
+
+async function probe(extensionPath, { expectBoot }) {
   const userData = await mkdtemp(path.join(tmpdir(), "aviary-incognito-smoke-"));
   const context = await chromium.launchPersistentContext(userData, {
     headless: false,
@@ -70,28 +154,15 @@ async function probe(extensionPath) {
     await new Promise((resolve) => setTimeout(resolve, 700));
     const created = await cdp.send("Target.createBrowserContext", {});
     const target = await cdp.send("Target.createTarget", {
-      url: "https://x.com/incognito-smoke",
+      url: "about:blank",
       browserContextId: created.browserContextId
     });
     const attached = await cdp.send("Target.attachToTarget", {
       targetId: target.targetId,
       flatten: false
     });
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    const state = await sendToTarget(cdp, attached.sessionId, "Runtime.evaluate", {
-      expression: `(async () => ({
-        ready: document.documentElement.dataset.avReady ?? null,
-        local: Object.keys(localStorage).filter((key) => key.startsWith("aviary.")),
-        session: Object.keys(sessionStorage).filter((key) => key.startsWith("aviary.")),
-        databases: (await indexedDB.databases())
-          .map((database) => database.name ?? "")
-          .filter((name) => name.startsWith("aviary.")),
-        bootNotice: document.querySelector("#av-boot-notice")?.shadowRoot?.textContent ?? ""
-      }))()`,
-      awaitPromise: true,
-      returnByValue: true
-    });
-    return { id: extension.id, state: state.result?.value };
+    const state = await loadFixtureState(cdp, attached.sessionId, { expectBoot });
+    return { id: extension.id, state };
   } finally {
     await context.close();
     await rm(userData, { recursive: true, force: true });
@@ -106,8 +177,8 @@ try {
   delete manifest.incognito;
   await writeFile(manifestPath, JSON.stringify(manifest), "utf8");
 
-  const declared = await probe(extensionDir);
-  const control = await probe(controlExtension);
+  const declared = await probe(extensionDir, { expectBoot: false });
+  const control = await probe(controlExtension, { expectBoot: true });
   assert.notEqual(declared.state?.ready, "true", "Aviary booted in a private window");
   assert.deepEqual(declared.state?.local, [], "private-window localStorage contains Aviary keys");
   assert.deepEqual(declared.state?.session, [], "private-window sessionStorage contains Aviary keys");
