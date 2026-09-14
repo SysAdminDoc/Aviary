@@ -4,6 +4,16 @@
 
 ![Version](https://img.shields.io/badge/version-1.49.5-2f81f7) [![License](https://img.shields.io/badge/license-MIT-3fb950)](LICENSE) ![Platform](https://img.shields.io/badge/platform-Chrome%20%7C%20Firefox%20%7C%20userscript-8b5cf6) ![Runtime dependencies](https://img.shields.io/badge/runtime%20dependencies-0-0ea5e9)
 
+<p align="center">
+  <a href="https://ko-fi.com/X8K126YVER">
+    <img height="42" src="https://storage.ko-fi.com/cdn/kofi2.png?v=3" alt="Buy me a coffee on Ko-fi" />
+  </a>
+</p>
+
+<p align="center">
+  <sub><em>If this project helps you, a coffee helps me keep working on it.</em></sub>
+</p>
+
 **A quieter X. A local copy of what matters.**
 
 Aviary adds media downloads and ad removal to X, with a Control Center for everything else.
