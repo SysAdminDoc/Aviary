@@ -13,6 +13,7 @@ import {
   selectorHealthFeature
 } from "./features/core/selector-health.ts";
 import { filterEngineFeature } from "./features/filtering/filter-engine.ts";
+import { replyMediaFeature } from "./features/filtering/reply-media.ts";
 import { seenPostsFeature } from "./features/filtering/seen-posts-feature.ts";
 import { readingMarkerFeature } from "./features/filtering/reading-marker-feature.ts";
 import { hiddenPostsFeature } from "./features/filtering/hidden-posts-feature.ts";
@@ -420,6 +421,7 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
   registry.register(threadRecommendationsFeature);
   registry.register(focusModeFeature);
   registry.register(filterEngineFeature);
+  registry.register(replyMediaFeature);
   registry.register(seenPostsFeature);
   registry.register(readingMarkerFeature);
   registry.register(hiddenPostsFeature);

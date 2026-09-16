@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## 1.49.6 (2026-09-16)
+
+### Added
+
+- **Hide replies that are just images or video.** A comment section under a popular post is mostly memes: reaction GIFs, screenshots, the same image reposted by twenty accounts. Turn this on in Reading and every reply carrying a photo, video or GIF drops out of the thread you're reading. The post itself keeps its media, so does the thread above it, and so does a reply that quotes a post with a picture, because somebody wrote something there. Off by default, translated into all nine languages.
+- The existing media filters could not do this. They apply per surface, so aiming them at a conversation hides the post you came to read along with the replies under it. This one reads the status id in the URL to find the post being read and only acts below it.
+
+### Changed
+
+- The rule that decides which rendered post a conversation is about now lives in one place, `src/platform/conversation.ts`, instead of being written twice. The theme's media sizing and the new reply filter read the same answer. The first version of that rule picked whichever post rendered first, which is wrong on any reply permalink, and two copies of it would have drifted again.
+
 ## 1.49.5 (2026-09-12)
 
 ### Changed

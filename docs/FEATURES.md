@@ -173,6 +173,30 @@ post instead of X's inline composer, which is where a reply gets written anyway.
 - The first press absorbed on a page raises a toast saying so, once. Without it a working guard and
   a build that never loaded are indistinguishable, since both do nothing when you click a row.
 
+## Replies carrying pictures
+
+A comment section under a popular post is mostly memes: reaction GIFs, screenshots, the same image
+reposted by twenty accounts. **Hide replies with images, GIFs or video** (Reading section, off by
+default) drops them.
+
+- Carrying media is the whole test. A caption beside the image changes nothing, because meme
+  replies almost always come captioned and sparing those would leave most of them on screen.
+- It only acts on a conversation route, and only on rows below the post the URL names. The post
+  itself keeps its own media, and so does the thread above it, which is the conversation you
+  navigated into.
+- The media selectors are the ones in `src/features/filtering/predicates.ts`, so this and the filter
+  engine cannot disagree about what counts as a photo.
+- A reply that quotes a post with a picture stays. Somebody wrote something there, and the quoted
+  image is not what makes a comment section unreadable.
+- JS decides only which rows are comments; a `:has()` rule decides which of them carry media. Media
+  that loads after the row was marked is caught by the stylesheet, where a JS pass that had already
+  finished with the row would never look again.
+- The whole row is hidden rather than the media inside it, because X positions conversation rows
+  absolutely and hiding the article alone leaves its slot reserved.
+
+This is deliberately separate from the media filters above it. Those are per-surface, so pointing
+them at a conversation hides the post you came to read along with the memes under it.
+
 ## Hidden Posts
 
 Every post carries a **Hide** control next to its More menu. Clicking it records the post locally and collapses it for good, so the following post is promoted into the slot instead of leaving a gap, you can clear a timeline by tapping Hide rather than scrolling past.

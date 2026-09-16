@@ -657,6 +657,18 @@ export function buildFilterRows(ctx: PanelContext): HTMLElement[] {
   );
 
   rows.push(
+    ctx.toggleRow(
+      "Hide replies with images, GIFs or video",
+      "Under a post you opened, drop every reply that carries a photo, a GIF or a video. Text alongside it makes no difference, since most memes come captioned. The post itself and the thread above it are untouched, and a reply that only quotes a post with a picture stays. This works on its own, without the filters above, because pointing those at a conversation would hide the post you came to read.",
+      ctx.options.settings.filter.hideMediaReplies,
+      async (checked) => {
+        ctx.options.settings.filter.hideMediaReplies = checked;
+        await ctx.save(checked ? "Media replies hidden." : "Media replies shown again.");
+      }
+    )
+  );
+
+  rows.push(
     ctx.selectRow(
       "Say why a post was filtered",
       ctx.options.settings.filter.showReason,

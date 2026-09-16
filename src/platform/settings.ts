@@ -320,6 +320,14 @@ export interface AviarySettings {
     selfRepost: FilterAction;
     /** Posts that quote another post. Structural — see features/filtering/predicates.ts. */
     quotePosts: FilterAction;
+    /**
+     * Drop replies whose contribution is a picture, on a conversation route only.
+     *
+     * Separate from `mediaTypes` because that one is per-surface: pointing it at the conversation
+     * route hides the post being read along with the memes under it. This leaves the post and its
+     * parent chain alone and takes only what comes after them.
+     */
+    hideMediaReplies: boolean;
     /** Whether a suppressed post names what caught it. */
     showReason: FilterReasonMode;
     /** Posts under `engagementMin` on `engagementMetric`. Off unless the minimum is above zero. */
@@ -498,6 +506,7 @@ export const DEFAULT_SETTINGS: AviarySettings = {
     // can tell one apart from an ordinary repost. "off" until then, so nothing is claimed.
     selfRepost: "off",
     quotePosts: "off",
+    hideMediaReplies: false,
     showReason: "dimmed",
     engagementRule: "off",
     engagementMetric: "likes",
@@ -910,6 +919,10 @@ export function normalizeSettings(input: unknown): AviarySettings {
       ),
       selfRepost: enumValue(filter.selfRepost, FILTER_ACTIONS, DEFAULT_SETTINGS.filter.selfRepost),
       quotePosts: enumValue(filter.quotePosts, FILTER_ACTIONS, DEFAULT_SETTINGS.filter.quotePosts),
+      hideMediaReplies: booleanValue(
+        filter.hideMediaReplies,
+        DEFAULT_SETTINGS.filter.hideMediaReplies
+      ),
       showReason: enumValue(
         filter.showReason,
         [...FILTER_REASON_MODES],

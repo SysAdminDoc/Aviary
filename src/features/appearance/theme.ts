@@ -1,5 +1,6 @@
 import type { FeatureModule } from "../registry.ts";
 import { COUNT_METRICS, type AviarySettings, type ThemeId } from "../../platform/settings.ts";
+import { conversationPosts, focalPostIndex } from "../../platform/conversation.ts";
 
 const STYLE_ID = "av-theme-foundation";
 const ACTIVE_NAV_ATTRIBUTE = "data-av-active-route";
@@ -197,13 +198,7 @@ function syncConversationStructure(enabled: boolean): void {
   const primary = document.querySelector<HTMLElement>('[data-testid="primaryColumn"]');
   if (!primary) return;
 
-  const posts: { cell: HTMLElement; article: HTMLElement }[] = [];
-  for (const cell of Array.from(primary.querySelectorAll<HTMLElement>('[data-testid="cellInnerDiv"]'))) {
-    const article = cell.querySelector<HTMLElement>('article[data-testid="tweet"]');
-    if (!article || article.closest('[data-testid="cellInnerDiv"]') !== cell) continue;
-    posts.push({ cell, article });
-  }
-
+  const posts = conversationPosts();
   const focalIndex = focalPostIndex(posts);
   posts.forEach(({ cell, article }, index) => {
     const role = index === focalIndex ? "focal" : "reply";
@@ -211,34 +206,6 @@ function syncConversationStructure(enabled: boolean): void {
     article.setAttribute(CONVERSATION_ROLE_ATTRIBUTE, role);
     if (role === "reply") stampConversationLines(article);
   });
-}
-
-/**
- * Which rendered post the route is actually about.
- *
- * Position alone is wrong: opening a reply's permalink renders the parent chain above it, so the
- * first cell is someone else's post. That only shifted typography until the media rules started
- * reading this marker, at which point the post being read had its media capped while a parent got
- * the full-width treatment. The status id in the URL is the one thing that names the subject, so
- * it is matched against each post's own permalink.
- *
- * Links inside a quoted post are skipped: a reply quoting the focal post carries its id too, and
- * would otherwise claim the role from the post that owns it. Falling back to the first post keeps
- * the previous behaviour for a conversation whose subject has not rendered yet.
- */
-function focalPostIndex(posts: { article: HTMLElement }[]): number {
-  const statusId = /(?:^|\/)status\/(\d{1,25})(?:\/|$)/.exec(globalThis.location?.pathname ?? "")?.[1];
-  if (!statusId) return 0;
-
-  const permalink = new RegExp(`/status/${statusId}(?:[/?#]|$)`);
-  const found = posts.findIndex(({ article }) =>
-    Array.from(article.querySelectorAll("a[href]")).some(
-      (link) =>
-        link.closest('[role="link"][tabindex="0"]') === null &&
-        permalink.test(link.getAttribute("href") ?? "")
-    )
-  );
-  return found === -1 ? 0 : found;
 }
 
 /**
