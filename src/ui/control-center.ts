@@ -1249,8 +1249,8 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       integerInputRow(label, description, value, onChange, bounds, draftHooks, mode, actionLabel),
     textareaRow: (label, description, lines, onChange, actionLabel, mode) =>
       textareaRow(label, description, lines, onChange, actionLabel, draftHooks, mode),
-    surfaceRow: (label, description, selected, onChange) =>
-      surfaceRow(label, description, selected, onChange, draftHooks),
+    surfaceRow: (label, description, selected, onChange, exclude) =>
+      surfaceRow(label, description, selected, onChange, draftHooks, exclude),
     bookmarkField,
     splitBookmarkTags,
     toDatetimeLocal,
@@ -2495,7 +2495,8 @@ function surfaceRow(
   description: string,
   selected: FilterSurface[],
   onChange: (next: FilterSurface[]) => Promise<void>,
-  drafts?: DraftHooks
+  drafts?: DraftHooks,
+  exclude?: readonly FilterSurface[]
 ): HTMLElement {
   const row = el("div", "av-row av-row-stack");
   row.dataset.avLabel = label;
@@ -2508,8 +2509,9 @@ function surfaceRow(
   group.setAttribute("aria-label", t(label));
 
   const state = new Set<FilterSurface>(selected);
+  const available = exclude ? FILTER_SURFACES.filter((s) => !exclude.includes(s)) : FILTER_SURFACES;
 
-  for (const surface of FILTER_SURFACES) {
+  for (const surface of available) {
     const chip = document.createElement("label");
     chip.className = "av-chip";
     const input = document.createElement("input");

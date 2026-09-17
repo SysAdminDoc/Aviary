@@ -104,7 +104,8 @@ export interface PanelContext {
     label: string,
     description: string,
     selected: FilterSurface[],
-    onChange: (next: FilterSurface[]) => Promise<void>
+    onChange: (next: FilterSurface[]) => Promise<void>,
+    exclude?: readonly FilterSurface[]
   ) => HTMLElement;
   readonly bookmarkField: (label: string, value: string, placeholder: string) => HTMLInputElement;
   readonly splitBookmarkTags: (value: string) => string[];

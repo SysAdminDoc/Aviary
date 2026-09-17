@@ -1014,7 +1014,8 @@ export function buildHiddenPostRows(ctx: PanelContext): HTMLElement[] {
             ? `Hiding active on ${next.length} route${next.length === 1 ? "" : "s"}`
             : "Hiding off on every route."
         );
-      }
+      },
+      ["status"]
     )
   );
 

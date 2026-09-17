@@ -165,13 +165,12 @@ test("hidden settings normalize with their own defaults and a clamped cap", asyn
 
   assert.deepEqual(DEFAULT_SETTINGS.hidden.surfaces, [
     "home",
-    "status",
     "profile",
     "search",
     "notifications"
   ]);
-  // Off since v1.13.0. The surface list is still the full set, so enabling it needs one toggle
-  // rather than a toggle plus rebuilding the surfaces.
+  // Off since v1.13.0. The surface list covers every route except status pages, so enabling it
+  // needs one toggle rather than a toggle plus rebuilding the surfaces.
   assert.equal(DEFAULT_SETTINGS.hidden.enabled, false);
   // True, but gated by `enabled` above. Two separate switches meant turning "Hide posts" on
   // still produced no Hide button anywhere, with nothing to say a second toggle was needed.

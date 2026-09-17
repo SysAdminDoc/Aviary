@@ -217,6 +217,7 @@ function clearDecorations(): void {
 }
 
 function surfaceMatches(ctx: FeatureContext): boolean {
+  if (ctx.route.surface === "status") return false;
   const surfaces = ctx.settings.hidden.surfaces as readonly FilterSurface[];
   return surfaces.includes(ctx.route.surface as FilterSurface);
 }

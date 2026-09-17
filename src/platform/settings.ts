@@ -522,7 +522,7 @@ export const DEFAULT_SETTINGS: AviarySettings = {
     // True, but gated by `enabled` above: turning the feature on should give you the button that
     // operates it, not leave you hunting for a second switch.
     buttons: true,
-    surfaces: ["home", "status", "profile", "search", "notifications"],
+    surfaces: ["home", "profile", "search", "notifications"],
     maxEntries: 5000
   },
   media: {
