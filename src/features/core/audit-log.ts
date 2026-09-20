@@ -10,6 +10,7 @@ export type AuditAction =
   | "media.download.opened"
   | "media.download.duplicate"
   | "media.download.failed"
+  | "media.links.copied"
   | "media.batch"
   | "media.history.export"
   | "filter.applied"

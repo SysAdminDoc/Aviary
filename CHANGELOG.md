@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+## 1.51.0 (2026-09-20)
+
+### Added
+
+- **Restore position after Back** returns to the same visible post after opening another X page.
+  It uses a short-lived tab snapshot and stops as soon as the reader scrolls or touches the page.
+- **Expand long posts automatically** opens an outer post's own localized Show more control after
+  scrolling settles. It ignores quoted posts, cards, action bars, and similar labels.
+- **Show Copy media links** adds a separate post action that copies the best direct URLs for the
+  post's own images, GIFs, videos, audio, and captions. Quoted-post and link-card media are excluded.
+
+### Changed
+
+- Quiet Reader now enables the two optional reading aids. Media Archivist enables direct media-link
+  copying. Fresh installs still leave all three controls off.
+- The Control Center explains what each new action stores, when it runs, and how to stop it. All new
+  strings are translated in the eight non-English catalogs.
+- A dated userscript comparison records the maintained Greasy Fork tools reviewed, existing Aviary
+  overlap, the three additions selected, and the next two implementation candidates.
+
 ## 1.50.0 (2026-09-20)
 
 ### Added

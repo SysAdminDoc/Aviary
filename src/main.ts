@@ -32,6 +32,8 @@ import { videoPlaybackFeature } from "./features/performance/video-playback.ts";
 import { forceFollowingFeature } from "./features/layout/force-following.ts";
 import { postOpenGuardFeature } from "./features/layout/post-open-guard.ts";
 import { timelinePaginationFeature } from "./features/layout/timeline-pagination.ts";
+import { autoExpandPostsFeature } from "./features/layout/auto-expand-posts.ts";
+import { timelinePositionFeature } from "./features/layout/timeline-position.ts";
 import { inlineOriginalImagesFeature } from "./features/media/inline-original-images.ts";
 import { mediaButtonsFeature } from "./features/media/media-buttons.ts";
 import { mediaPresentationFeature } from "./features/media/media-presentation.ts";
@@ -447,6 +449,8 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
   registry.register(forceFollowingFeature);
   registry.register(postOpenGuardFeature);
   registry.register(timelinePaginationFeature);
+  registry.register(autoExpandPostsFeature);
+  registry.register(timelinePositionFeature);
   registry.register(inlineOriginalImagesFeature);
   registry.register(mobileTouchFeature);
   // Registered before networkCapture: it owns the page-side config that switches capture on.

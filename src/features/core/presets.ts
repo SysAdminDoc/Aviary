@@ -49,7 +49,13 @@ export const PRESETS: PresetDefinition[] = [
     ],
     overrides: {
       appearance: { theme: "dim", denseMode: true, hideCounts: true, hideBorders: true },
-      layout: { hideRightSidebar: true, hideTrends: true, hideGrok: true },
+      layout: {
+        hideRightSidebar: true,
+        hideTrends: true,
+        hideGrok: true,
+        autoExpandPostText: true,
+        restoreTimelinePosition: true
+      },
       filter: { enabled: true, premiumRule: "dim" },
       links: { expandTco: true, cleanShareButtons: true }
     }
@@ -67,6 +73,7 @@ export const PRESETS: PresetDefinition[] = [
       appearance: { theme: "lightsOut" },
       media: {
         buttons: true,
+        copyMediaLinks: true,
         preferOriginalImages: true,
         downloadHistory: true,
         layout: "stacked"

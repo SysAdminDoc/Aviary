@@ -21,8 +21,10 @@ map, [FAQ.md](FAQ.md) for the selector-regression workflow and export tips.
   promoted-content logger guard
 - Stable selector registry: `src/platform/selectors.ts`
 - Settings/storage foundations: `src/platform/settings.ts`, `src/platform/storage.ts`
-- Layout declutter, theme, and scoped custom CSS foundations: `src/features/layout/declutter.ts`,
-  `src/features/appearance/theme.ts`, `src/features/appearance/custom-css.ts`
+- Layout declutter, reading continuity, theme, and scoped custom CSS foundations:
+  `src/features/layout/declutter.ts`, `src/features/layout/auto-expand-posts.ts`,
+  `src/features/layout/timeline-position.ts`, `src/features/appearance/theme.ts`,
+  `src/features/appearance/custom-css.ts`
 - Filter engine and predicates: `src/features/filtering/filter-engine.ts`, `src/features/filtering/predicates.ts`
 - Catch-up digest: `src/features/filtering/catch-up.ts`, `src/features/filtering/catch-up-ui.ts`
 - Hidden posts: `src/features/filtering/hidden-posts.ts` (store), `src/features/filtering/hidden-posts-feature.ts` (Hide button + collapse)
@@ -47,6 +49,22 @@ shells, Hide Grok also catches its sidebar promotion and floating Chat drawer, a
 cleanup understands X's current Follow, Chat, Grok, History, Creator Studio and Premium destinations. The Minimal
 preset combines those reductions with a comfortable-width Noir timeline and can collapse the first
 Home tab after selecting Following. Every choice is reversible.
+
+## Reading continuity
+
+Two optional controls reduce the friction of opening posts from a virtual timeline:
+
+- **Expand long posts automatically** waits until scrolling has been idle for 180 milliseconds,
+  then clicks an exact, localized Show more control belonging to the outer post. Controls in quoted
+  posts, cards, and action groups are excluded. The feature makes no network request of its own.
+- **Restore position after Back** keeps a route-scoped snapshot in tab session storage for up to 30
+  minutes. The snapshot contains an absolute offset and up to six visible post ids with their
+  viewport positions. On Back or a browser cache restore, Aviary uses the offset while X rebuilds
+  the page and then corrects against the first matching post. Wheel, touch, pointer, and keyboard
+  scrolling cancel the operation immediately.
+
+Both controls start off. Quiet Reader enables them. The position snapshots close with the browser
+tab and are not included in settings or library backups.
 
 ## Privacy Model
 
@@ -245,6 +263,9 @@ rows and include the audience field so a later sharing decision can be made from
 The Control Center "Media" section exposes:
 
 - Default-on master toggle for one persistent post-level Download action plus per-asset Save / Thumb / eligible Video and GIF buttons.
+- Optional **Copy links** action that places the best direct URL for each owned media asset on the
+  clipboard, one per line. It uses the same quality and ownership rules as Download, so quoted-post
+  and card media are excluded.
 - Original-quality preference (`name=orig` first, then `4096x4096` only if the original transfer fails).
   Transient network, timeout, and server errors retry `orig` first. A cancellation never starts a
   fallback, and PNG, JPEG, and WebP source formats stay intact when the URL has no `format=` query.

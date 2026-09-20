@@ -1,33 +1,20 @@
 # Aviary ROADMAP
 
-Version: `1.50.0`
+Version: `1.51.0`
 
 Date: 2026-09-20
 
 Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tasks that require a fresh authenticated X capture, distribution identity, or another external environment.
 
-The account cleanup and Control Center clarity work are recorded in [CHANGELOG.md](CHANGELOG.md).
-Browser-store distribution and a fresh authenticated X capture remain tracked in
-[Roadmap_Blocked.md](Roadmap_Blocked.md).
+The account cleanup, Control Center clarity, and September userscript review are recorded in
+[CHANGELOG.md](CHANGELOG.md). Browser-store distribution and a fresh authenticated X capture remain
+tracked in [Roadmap_Blocked.md](Roadmap_Blocked.md).
 
 ## Research-Driven Additions
 
-### P1, Next
+### P2, Next implementation candidates
 
-
-### P2, Later
-
-
-### P3, Under Consideration
-
-## Research-Driven Additions (2026-09-05)
-
-### P2, Later
-
-### P1, Next
-
-## Research-Driven Additions (2026-09-06)
-
-### P1, Next
-
-### P2, Later
+- Build a dedicated profile media gallery with keyboard and screen-reader navigation, ownership
+  labels, duplicate handling, and fixture coverage for X's current profile Media routes.
+- Render a post-to-image card locally with explicit author, timestamp, permalink, media ownership,
+  alt text, and a copy or download action. Add visual baselines before exposing it in the post bar.

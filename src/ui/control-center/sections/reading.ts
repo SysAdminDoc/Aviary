@@ -321,6 +321,24 @@ export function buildLayoutRows(ctx: PanelContext): HTMLElement[] {
         { min: 0, max: 1000 }
       ),
       ctx.toggleRow(
+        "Expand long posts automatically",
+        "Click only the post's own Show more control after scrolling stops. Replies, sidebars, quoted posts, and other Show more links are left alone.",
+        ctx.options.settings.layout.autoExpandPostText,
+        async (checked) => {
+          ctx.options.settings.layout.autoExpandPostText = checked;
+          await ctx.save(checked ? "Long posts expand automatically." : "Long posts stay collapsed.");
+        }
+      ),
+      ctx.toggleRow(
+        "Restore position after Back",
+        "Return to the same visible post after opening a post or another X page and using the browser Back button. Any wheel, touch, pointer, or keyboard scroll cancels the restore immediately.",
+        ctx.options.settings.layout.restoreTimelinePosition,
+        async (checked) => {
+          ctx.options.settings.layout.restoreTimelinePosition = checked;
+          await ctx.save(checked ? "Back navigation restores your place." : "Back navigation uses X's position.");
+        }
+      ),
+      ctx.toggleRow(
         "Show read marker",
         "Keep a local position for each feed and show a new since you last looked line. It never adds an unread badge.",
         ctx.options.settings.layout.readMarker,

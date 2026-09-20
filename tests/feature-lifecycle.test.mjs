@@ -441,7 +441,7 @@ test("hiding engagement counts hides the numbers and keeps the buttons", async (
   assert.equal(result.after.replyCount, true, "destroy must bring the counts back");
 });
 
-test("every appearance and layout key a preset writes changes the page", async () => {
+test("every immediate appearance and layout key a preset writes changes the page", async () => {
   const unimplemented = await page.evaluate(() => {
     window.reset();
     // A fixture carrying every surface the appearance and layout features target, so a key that
@@ -481,9 +481,13 @@ test("every appearance and layout key a preset writes changes the page", async (
       ]);
 
     const misses = [];
+    // These two controls act only after a later scroll or Back navigation. Their own browser tests
+    // drive those events; a static page fingerprint here cannot distinguish their enabled state.
+    const eventDrivenLayoutKeys = new Set(["autoExpandPostText", "restoreTimelinePosition"]);
     for (const preset of AviaryLifecycle.PRESETS) {
       for (const group of ["appearance", "layout"]) {
         for (const [key, value] of Object.entries(preset.overrides[group] ?? {})) {
+          if (group === "layout" && eventDrivenLayoutKeys.has(key)) continue;
           // The question is whether the key drives anything, not whether this preset's value
           // happens to differ from the default — several presets set a boolean to false that is
           // already false, which is a no-op by design rather than an unimplemented key.

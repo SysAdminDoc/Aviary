@@ -176,6 +176,66 @@ test("a media control is visible at rest, not only on hover, and is big enough t
   assert.ok(control.hovered >= control.resting.opacity, "hover must not hide a persistent control");
 });
 
+test("the optional post action copies original URLs for owned media only", async () => {
+  const result = await page.evaluate(async () => {
+    const article = document.querySelector('article[data-testid="tweet"]');
+    const extraPhoto = document.createElement("div");
+    extraPhoto.setAttribute("data-testid", "tweetPhoto");
+    extraPhoto.style.cssText = "width:500px;height:120px";
+    extraPhoto.innerHTML = '<img src="https://pbs.twimg.com/media/photo-extra?format=png&name=small" alt="">';
+    const quote = document.createElement("div");
+    quote.setAttribute("role", "link");
+    quote.setAttribute("tabindex", "0");
+    quote.innerHTML = `
+      <a href="/bob/status/1900000000000999"><time>now</time></a>
+      <div data-testid="User-Name"><a href="/bob"><span>@bob</span></a></div>
+      <div data-testid="tweetText">quoted post</div>
+      <div data-testid="tweetPhoto"><img src="https://pbs.twimg.com/media/quoted?format=jpg&name=small" alt=""></div>`;
+    const actions = document.createElement("div");
+    actions.setAttribute("role", "group");
+    actions.innerHTML = '<button data-testid="reply" type="button">Reply</button>';
+    article.append(extraPhoto, quote, actions);
+
+    const copied = [];
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { async writeText(value) { copied.push(value); } }
+    });
+    const audits = [];
+    const ctx = window.mediaCtx((settings) => {
+      settings.media.copyMediaLinks = true;
+    });
+    ctx.auditLog = { async record(action, detail) { audits.push({ action, detail }); } };
+    await AviaryMedia.mediaButtonsFeature.init(ctx);
+    await AviaryMedia.mediaButtonsFeature.apply(ctx, document);
+    const copy = article.querySelector("[data-av-media-copy]");
+    copy.click();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    const output = {
+      buttonText: copy.textContent,
+      copied,
+      audits,
+      copyButtons: article.querySelectorAll("[data-av-media-copy]").length
+    };
+    await AviaryMedia.mediaButtonsFeature.destroy(ctx);
+    extraPhoto.remove();
+    quote.remove();
+    actions.remove();
+    return output;
+  });
+
+  assert.equal(result.copyButtons, 1);
+  assert.match(result.buttonText, /Copied/);
+  assert.equal(result.copied.length, 1);
+  const urls = result.copied[0].split("\n");
+  assert.deepEqual(urls, [
+    "https://pbs.twimg.com/media/photo1?format=jpg&name=orig",
+    "https://pbs.twimg.com/media/photo-extra?format=png&name=orig"
+  ]);
+  assert.ok(!result.copied[0].includes("quoted"), "quoted media must keep its own attribution");
+  assert.deepEqual(result.audits, [{ action: "media.links.copied", detail: { count: 2 } }]);
+});
+
 test("previously downloaded media carries a quiet visible and accessible marker", async () => {
   const marked = await page.evaluate(async () => {
     const identityHash = AviaryMedia.mediaIdentityHash(

@@ -49,6 +49,7 @@ import {
 const STYLE_ID = "av-media-buttons";
 const BUTTON_ATTR = "data-av-media-button";
 const ACTION_ATTR = "data-av-media-action";
+const COPY_ACTION_ATTR = "data-av-media-copy";
 const ACTION_SLOT_ATTR = "data-av-media-action-slot";
 const HELPER_SLOT_ATTR = "data-av-media-helper-slot";
 const HELPER_ACTION_ATTR = "data-av-media-helper-action";
@@ -107,6 +108,7 @@ let history: MediaHistory | undefined;
 let aria2History: Aria2History | undefined;
 let queue: DownloadQueue | undefined;
 let appliedPreferOriginalImages: boolean | undefined;
+let appliedCopyMediaLinks: boolean | undefined;
 let appliedMetadataVersion: number | undefined;
 const mediaMetadataCache = new MediaMetadataCache();
 let subscribedBridge: PageBridge | undefined;
@@ -169,6 +171,7 @@ export const mediaButtonsFeature: FeatureModule = {
     installContextDownload(ctx);
     applyToggleClass(ctx);
     appliedPreferOriginalImages = ctx.settings.media.preferOriginalImages;
+    appliedCopyMediaLinks = ctx.settings.media.copyMediaLinks;
     appliedMetadataVersion = mediaMetadataCache.version;
     scanArticles(document, ctx);
     ctx.diagnostics.info("Media buttons initialized", { history: history.size() });
@@ -184,6 +187,7 @@ export const mediaButtonsFeature: FeatureModule = {
       clearDecorations();
       pendingContextTarget = undefined;
       appliedPreferOriginalImages = undefined;
+      appliedCopyMediaLinks = undefined;
       appliedMetadataVersion = undefined;
       return;
     }
@@ -197,6 +201,14 @@ export const mediaButtonsFeature: FeatureModule = {
       clearDecorations();
     }
     if (
+      appliedCopyMediaLinks !== undefined &&
+      appliedCopyMediaLinks !== ctx.settings.media.copyMediaLinks
+    ) {
+      // The copy action shares the post-level slot with Download. Rebuild the slot when its
+      // visibility changes so an already-rendered timeline updates without a reload.
+      clearDecorations();
+    }
+    if (
       appliedMetadataVersion !== undefined &&
       appliedMetadataVersion !== mediaMetadataCache.version
     ) {
@@ -205,6 +217,7 @@ export const mediaButtonsFeature: FeatureModule = {
       clearDecorations();
     }
     appliedPreferOriginalImages = ctx.settings.media.preferOriginalImages;
+    appliedCopyMediaLinks = ctx.settings.media.copyMediaLinks;
     appliedMetadataVersion = mediaMetadataCache.version;
     ensureMediaStyle();
     if (!addedNodes || addedNodes.length === 0) {
@@ -217,6 +230,7 @@ export const mediaButtonsFeature: FeatureModule = {
       // its media subtree, so a once-only processed marker cannot prove controls still exist.
       if (
         node.hasAttribute(BUTTON_ATTR) ||
+        node.hasAttribute(COPY_ACTION_ATTR) ||
         node.hasAttribute(ACTION_SLOT_ATTR) ||
         node.hasAttribute(HELPER_SLOT_ATTR) ||
         node.hasAttribute(HELPER_ACTION_ATTR)
@@ -239,6 +253,7 @@ export const mediaButtonsFeature: FeatureModule = {
     await queue?.flush();
     queue = undefined;
     appliedPreferOriginalImages = undefined;
+    appliedCopyMediaLinks = undefined;
     appliedMetadataVersion = undefined;
     mediaMetadataCache.clear();
     // Same reason as copy-post-link: the toast host is on <html> with a live timer.
@@ -619,6 +634,9 @@ function decoratePostAction(tweet: ExtractedTweet, ctx: FeatureContext): void {
     // resolving. Metadata arrival rebuilds this control with the complete primary-asset set.
     const button = buildPostAction(tweet, hasPendingVideo ? [] : assets, ctx);
     slot.append(button);
+    if (ctx.settings.media.copyMediaLinks && !hasPendingVideo && assets.length > 0) {
+      slot.append(buildCopyMediaAction(assets, ctx));
+    }
     group.append(slot);
   }
   for (const asset of adaptiveAssets) {
@@ -694,6 +712,7 @@ function buildPostAction(
     ? ft(ctx, "Download this post's own media. Quoted and card media has its own Download button.")
     : ft(ctx, "Download all media in this post");
   button.dataset.idleLabel = idleLabel;
+  button.dataset.idleIcon = "↓";
   button.dataset.baseIdleAriaLabel = accessibleLabel;
   button.dataset.idleAriaLabel = accessibleLabel;
   button.setAttribute("aria-label", accessibleLabel);
@@ -738,6 +757,70 @@ function buildPostAction(
     void handlePostDownload(tweet, assets, completed, ctx, button);
   });
   return button;
+}
+
+function buildCopyMediaAction(
+  assets: PrimaryDownloadAsset[],
+  ctx: FeatureContext
+): HTMLButtonElement {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "av-media-action av-media-copy-action";
+  button.setAttribute(ACTION_ATTR, "copy");
+  button.setAttribute(COPY_ACTION_ATTR, "1");
+  const idleLabel = ft(ctx, "Copy links");
+  const accessibleLabel = ft(ctx, "Copy this post's best direct media links");
+  button.dataset.idleLabel = idleLabel;
+  button.dataset.idleIcon = "⧉";
+  button.dataset.baseIdleAriaLabel = accessibleLabel;
+  button.dataset.idleAriaLabel = accessibleLabel;
+  button.setAttribute("aria-label", accessibleLabel);
+  button.setAttribute("aria-live", "polite");
+  button.setAttribute("aria-busy", "false");
+
+  const icon = document.createElement("span");
+  icon.className = "av-media-action-icon";
+  icon.setAttribute("aria-hidden", "true");
+  icon.textContent = "⧉ ";
+  const label = document.createElement("span");
+  label.className = "av-media-action-label";
+  label.textContent = idleLabel;
+  button.append(icon, label);
+
+  const urls = [...new Set(assets.map((asset) => asset.target.url))];
+  button.addEventListener("click", (event) => {
+    event.stopPropagation();
+    event.preventDefault();
+    void copyMediaLinks(urls, button, ctx);
+  });
+  return button;
+}
+
+async function copyMediaLinks(
+  urls: string[],
+  button: HTMLButtonElement,
+  ctx: FeatureContext
+): Promise<void> {
+  try {
+    const clipboard = globalThis.navigator?.clipboard;
+    if (!clipboard?.writeText) throw new Error("This browser exposes no clipboard write.");
+    await clipboard.writeText(urls.join("\n"));
+    setButtonFeedback(button, {
+      label: ft(ctx, "Copied"),
+      icon: "✓",
+      className: "is-success"
+    });
+    void ctx.auditLog.record("media.links.copied", { count: urls.length });
+  } catch (error) {
+    setButtonFeedback(button, {
+      label: ft(ctx, "Failed"),
+      icon: "!",
+      className: "is-error"
+    });
+    ctx.diagnostics.warn("Media links could not be copied", errorDetails(error));
+    showFeatureToast(ft(ctx, "The clipboard refused this copy."), { tone: "error", ctx });
+  }
+  scheduleButtonRestore(button);
 }
 
 function buildYtDlpSlot(
@@ -1018,6 +1101,7 @@ function buildButton(
   button.setAttribute("aria-live", "polite");
   button.setAttribute("aria-busy", "false");
   button.dataset.idleLabel = idleLabel;
+  button.dataset.idleIcon = "↓";
   button.dataset.baseIdleAriaLabel = accessibleLabel;
   button.dataset.idleAriaLabel = accessibleLabel;
   button.textContent = `↓ ${ft(ctx, buttonLabel(media))}`;
@@ -1573,7 +1657,7 @@ function restoreIdleButton(button: HTMLButtonElement): void {
   const label = button.querySelector<HTMLElement>(
     ".av-media-button-label, .av-media-action-label"
   );
-  if (icon) icon.textContent = "↓ ";
+  if (icon) icon.textContent = `${button.dataset.idleIcon ?? "↓"} `;
   if (label) label.textContent = button.dataset.idleLabel ?? "";
   const accessibleLabel = button.dataset.idleAriaLabel ?? button.dataset.idleLabel ?? "";
   button.setAttribute("aria-label", accessibleLabel);
@@ -1818,6 +1902,7 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
   flex: 0 0 auto;
   align-items: center;
   justify-content: flex-end;
+  gap: 5px;
   min-width: 112px;
   margin-inline-start: 4px;
 }
@@ -1924,6 +2009,19 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
 [${ACTION_ATTR}]:focus-visible {
   outline: 2px solid var(--av-accent, rgb(29, 155, 240));
   outline-offset: 2px;
+}
+
+[${COPY_ACTION_ATTR}] {
+  min-width: 88px;
+  border: 1px solid color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 48%, transparent);
+  background: transparent;
+  color: var(--av-accent, rgb(29, 155, 240));
+}
+
+[${COPY_ACTION_ATTR}]:hover:not(:disabled) {
+  border-color: var(--av-accent, rgb(29, 155, 240));
+  background: color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 12%, transparent);
+  color: var(--av-accent, rgb(29, 155, 240));
 }
 
 [${ACTION_ATTR}].is-success {
@@ -2074,7 +2172,8 @@ html:not(.av-media-buttons-enabled) [${ACTION_SLOT_ATTR}] {
   }
 
   [${ACTION_ATTR}] {
-    width: 100%;
+    flex: 1 1 0;
+    width: auto;
     min-width: 0;
     min-height: 46px;
     padding-inline: 14px;

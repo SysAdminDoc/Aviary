@@ -41,12 +41,15 @@ test("default settings enable only ad protection and user-invoked media saves", 
   assert.equal(s.layout.writerMode, false);
   assert.equal(s.layout.forceFollowing, false);
   assert.equal(s.layout.hideForYouTab, false);
+  assert.equal(s.layout.autoExpandPostText, false);
+  assert.equal(s.layout.restoreTimelinePosition, false);
   assert.deepEqual(s.layout.hideNavItems, []);
 
   // Media downloads are ready without setup, but remain user-invoked. No other post control is
   // injected by default. The AI button and snippet trigger were the two a schema-only check once
   // missed, so their explicit gates remain part of this contract.
   assert.equal(s.media.buttons, true);
+  assert.equal(s.media.copyMediaLinks, false);
   assert.equal(s.hidden.enabled, false);
   // True, but unreachable while `enabled` is false, so nothing is injected either way.
   assert.equal(s.hidden.buttons, true);

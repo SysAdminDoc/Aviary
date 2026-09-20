@@ -2,11 +2,11 @@
   "format": 1,
   "product": "Aviary",
   "target": "userscript",
-  "version": "1.50.0",
-  "sourceFingerprint": "sha256:a3c7be8b1d385aaf2756a09be6691ffaef42312a9a4911de9fc5c591db7b5db8",
+  "version": "1.51.0",
+  "sourceFingerprint": "sha256:1ff23608db5eacc02c0db022090748ce051555b5c371800ff6b7b7089c3b4473",
   "artifacts": {
-    "README.md": "sha256:204ab220df4d33d65180a745c13942157bcf9bdd5269520cb08c3c14f9407539",
-    "aviary.meta.js": "sha256:a1feb8c9c25a4d59507fc6363cf81aecf0b72aa962b70e27a60da67d6d115d4d",
-    "aviary.user.js": "sha256:2afe5bbd00f33a7aa60b2f55b5dcc8f6ae207859635879dedd4f4b9bb0347679"
+    "README.md": "sha256:c795854a62479d1543da7adebc4ca0b3d5fbac009b1d9cd646efca73c6d455e9",
+    "aviary.meta.js": "sha256:e399a96857f574d52d56b4940beab0c74e51bc3c87a79ccbc87872b81429f904",
+    "aviary.user.js": "sha256:cee9ee55e8399d01fb65f71f3eb4d693cea12ac696b5c4e050c5d630ff5496c3"
   }
 }

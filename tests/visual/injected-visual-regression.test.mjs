@@ -9,7 +9,8 @@ import {
   closeControlCenter,
   comparePngBuffers,
   launchSettingsVisualHarness,
-  prepareElementScreenshot
+  prepareElementScreenshot,
+  selectSettingsSection
 } from "../../tools/settings-visual-harness.mjs";
 
 /**
@@ -47,6 +48,18 @@ const SURFACES = [
         null,
         { timeout: 20_000 }
       );
+    }
+  },
+  {
+    name: "post-controls-copy",
+    selector: '[data-testid="tweet"]:has([data-av-media-copy])',
+    async ready(page) {
+      await openControlCenter(page);
+      await page.evaluate(() => {
+        document.querySelector('[data-testid="tweet"] [data-testid="videoPlayer"]')?.remove();
+      });
+      await enableCopyMediaLinks(page);
+      await closeControlCenter(page);
     }
   },
   {
@@ -109,6 +122,68 @@ test("injected timeline surfaces stay within the reviewed visual threshold", { t
     "injected baseline set drifted; regenerate it intentionally with npm run test:visual:update"
   );
 });
+
+async function openControlCenter(page) {
+  await page.evaluate(() => {
+    const launcher = document
+      .querySelector("#av-control-center-nav")
+      ?.shadowRoot?.querySelector(".av-nav-launcher");
+    if (!(launcher instanceof HTMLButtonElement)) throw new Error("Control Center launcher missing");
+    launcher.click();
+  });
+  await page.waitForFunction(
+    () => document.querySelector("#av-control-center-nav")?.shadowRoot
+      ?.querySelector(".av-nav-launcher")?.getAttribute("aria-expanded") === "true",
+    null,
+    { timeout: 15_000 }
+  );
+}
+
+async function enableCopyMediaLinks(page) {
+  await selectSettingsSection(page, "media");
+  await page.evaluate(() => {
+    const shadow = document.querySelector("#av-control-center")?.shadowRoot;
+    const row = Array.from(shadow?.querySelectorAll(".av-row") ?? [])
+      .find((candidate) => candidate.getAttribute("data-av-label") === "Show Copy media links");
+    const toggle = row?.querySelector('input[type="checkbox"]');
+    if (!(toggle instanceof HTMLInputElement)) throw new Error("Copy media links toggle missing");
+    if (!toggle.checked) toggle.click();
+  });
+  await page.waitForFunction(
+    () => document.querySelector("#av-control-center")?.getAttribute("data-av-draft-state") === "dirty",
+    null,
+    { timeout: 10_000 }
+  );
+  await page.evaluate(() => {
+    const shadow = document.querySelector("#av-control-center")?.shadowRoot;
+    const save = shadow?.querySelector(".av-transaction-save");
+    if (!(save instanceof HTMLButtonElement)) throw new Error("Control Center Save button missing");
+    save.click();
+  });
+  await page.waitForFunction(
+    () => document.querySelector("#av-control-center")?.getAttribute("data-av-draft-state") === "clean",
+    null,
+    { timeout: 10_000 }
+  );
+  const appeared = await page.waitForFunction(
+    () => document.querySelector('[data-testid="tweet"] [data-av-media-copy]') !== null,
+    null,
+    { timeout: 15_000 }
+  ).then(() => true, () => false);
+  if (!appeared) {
+    const state = await page.evaluate(() => {
+      const shadow = document.querySelector("#av-control-center")?.shadowRoot;
+      const row = Array.from(shadow?.querySelectorAll(".av-row") ?? [])
+        .find((candidate) => candidate.getAttribute("data-av-label") === "Show Copy media links");
+      return {
+        toggle: row?.querySelector('input[type="checkbox"]')?.checked ?? null,
+        rootClass: document.documentElement.className,
+        action: document.querySelector('[data-testid="tweet"] [data-av-media-action-slot]')?.outerHTML ?? null
+      };
+    });
+    assert.fail(`Copy media action did not appear after Save: ${JSON.stringify(state)}`);
+  }
+}
 
 async function assertScreenshot(harness, hostTheme, name, selector) {
   const file = `injected-${name}-${hostTheme}-${viewport.width}x${viewport.height}.png`;

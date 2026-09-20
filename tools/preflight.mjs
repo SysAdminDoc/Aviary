@@ -80,7 +80,9 @@ const DELIVERY_BUDGETS = [
   // Delete X activity adds the five-route runner and fail-closed DOM contracts. The clearer
   // Control Center adds task guidance and translated navigation. Measured 2,856,034 bytes; this
   // keeps about 34 kB of headroom without hiding another feature-sized increase.
-  { file: "aviary.user.js", maxBytes: 2_890_000 },
+  // v1.51 adds two reading-continuity modules, the owned-media link action, and their complete
+  // nine-language copy. Measured 2,901,587 bytes; the new ceiling keeps about 33 kB of headroom.
+  { file: "aviary.user.js", maxBytes: 2_935_000 },
   { file: "aviary.meta.js", maxBytes: 4_000 },
   // F298 keeps the document-start bootstrap below half of the previous 2.42 MB ceiling. The
   // panel, archive, WACZ worker, viewer, and translated catalog live in the separately budgeted
@@ -678,6 +680,13 @@ async function checkSourceExportReferences() {
 }
 
 function isScopedKeyboardInteraction(relative, text) {
+  if (relative === path.join("src", "features", "layout", "timeline-position.ts")) {
+    // This is user-intent detection, not a command. Native scrolling keys only cancel a bounded
+    // Back-navigation restore, and the handler neither consumes the event nor invokes an action.
+    return /const scrollKeys = new Set\(\[[\s\S]*"PageUp"[\s\S]*"PageDown"[\s\S]*"Home"[\s\S]*"End"[\s\S]*\]\);/.test(text) &&
+      /if \(scrollKeys\.has\(event\.code\) \|\| scrollKeys\.has\(event\.key\)\) registerUserIntent\(event\);/.test(text) &&
+      !/preventDefault\(|stopPropagation\(|location\s*=|\.click\(\)/.test(text);
+  }
   const allowed = new Set([
     path.join("src", "ui", "control-center.ts"),
     path.join("src", "features", "ai", "command-menu.ts"),

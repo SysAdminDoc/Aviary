@@ -1,8 +1,8 @@
 ![Aviary, a quieter way to read X and keep a local media library](https://github.com/SysAdminDoc/Aviary/raw/main/docs/marketing/social-preview.png)
 
-# Aviary v1.50.0
+# Aviary v1.51.0
 
-![Version](https://img.shields.io/badge/version-1.50.0-2f81f7) [![License](https://img.shields.io/badge/license-MIT-3fb950)](https://github.com/SysAdminDoc/Aviary/blob/main/LICENSE) ![Platform](https://img.shields.io/badge/platform-Chrome%20%7C%20Firefox%20%7C%20userscript-8b5cf6) ![Runtime dependencies](https://img.shields.io/badge/runtime%20dependencies-0-0ea5e9)
+![Version](https://img.shields.io/badge/version-1.51.0-2f81f7) [![License](https://img.shields.io/badge/license-MIT-3fb950)](https://github.com/SysAdminDoc/Aviary/blob/main/LICENSE) ![Platform](https://img.shields.io/badge/platform-Chrome%20%7C%20Firefox%20%7C%20userscript-8b5cf6) ![Runtime dependencies](https://img.shields.io/badge/runtime%20dependencies-0-0ea5e9)
 
 <p align="center">
   <a href="https://ko-fi.com/X8K126YVER">
@@ -16,20 +16,20 @@
 
 **A quieter X. A local copy of what matters.**
 
-Aviary adds media downloads, ad removal and deliberate account cleanup to X, with a Control Center
-for everything else. Choose a reading preset, filter your feed or keep a searchable library of
-posts in your browser. It doesn't need a separate Aviary account. Optional integrations stay off
-until you enable them.
+Aviary adds media downloads, ad removal, reading aids and deliberate account cleanup to X, with a
+Control Center for everything else. Choose a reading preset, filter your feed or keep a searchable
+library of posts in your browser. It doesn't need a separate Aviary account. Optional integrations
+stay off until you enable them.
 
 The Control Center opens on **Quick setup**, with direct paths for quieting X, filtering posts,
 downloading media and deleting account activity. Eight commonly used pages stay visible. Seven
 specialist pages sit under **More tools** until you need them.
 
-[Download v1.50.0](https://github.com/SysAdminDoc/Aviary/releases/tag/v1.50.0) · [Installation guide](https://github.com/SysAdminDoc/Aviary/blob/main/docs/INSTALL.md) · [Feature reference](https://github.com/SysAdminDoc/Aviary/blob/main/docs/FEATURES.md) · [Privacy](https://github.com/SysAdminDoc/Aviary/blob/main/docs/PRIVACY.md)
+[Download v1.51.0](https://github.com/SysAdminDoc/Aviary/releases/tag/v1.51.0) · [Installation guide](https://github.com/SysAdminDoc/Aviary/blob/main/docs/INSTALL.md) · [Feature reference](https://github.com/SysAdminDoc/Aviary/blob/main/docs/FEATURES.md) · [Privacy](https://github.com/SysAdminDoc/Aviary/blob/main/docs/PRIVACY.md)
 
 ![Aviary's Quick setup page with four common tasks and six ready-made setups](https://github.com/SysAdminDoc/Aviary/raw/main/docs/marketing/presets.png)
 
-*Captured from the built v1.50.0 extension in an isolated browser. X pages and posts in these
+*Captured from the built v1.51.0 extension in an isolated browser. X pages and posts in these
 screenshots are synthetic test content, not a signed-in account or evidence of current live-X compatibility.*
 
 ## Install
@@ -39,8 +39,8 @@ Use the Chromium extension for the most complete installation path.
 
 | Your browser | Download | Installation |
 | --- | --- | --- |
-| Chrome, Edge or Brave | [Chromium ZIP](https://github.com/SysAdminDoc/Aviary/releases/download/v1.50.0/extension-chrome-v1.50.0.zip) | Extract it to a folder you'll keep. Open your browser's extensions page, enable **Developer mode**, then choose **Load unpacked** and select the folder containing `manifest.json`. |
-| Firefox | [Firefox ZIP](https://github.com/SysAdminDoc/Aviary/releases/download/v1.50.0/extension-firefox-v1.50.0.zip) | Extract it. Open `about:debugging#/runtime/this-firefox`, choose **Load Temporary Add-on**, then select `manifest.json`. This unsigned add-on disappears when Firefox restarts. |
+| Chrome, Edge or Brave | [Chromium ZIP](https://github.com/SysAdminDoc/Aviary/releases/download/v1.51.0/extension-chrome-v1.51.0.zip) | Extract it to a folder you'll keep. Open your browser's extensions page, enable **Developer mode**, then choose **Load unpacked** and select the folder containing `manifest.json`. |
+| Firefox | [Firefox ZIP](https://github.com/SysAdminDoc/Aviary/releases/download/v1.51.0/extension-firefox-v1.51.0.zip) | Extract it. Open `about:debugging#/runtime/this-firefox`, choose **Load Temporary Add-on**, then select `manifest.json`. This unsigned add-on disappears when Firefox restarts. |
 | A userscript manager | [Install userscript](https://raw.githubusercontent.com/SysAdminDoc/Aviary/main/dist/aviary.user.js) | Open the link in Tampermonkey or Violentmonkey and review the manager's install prompt. Read the limitation below before choosing this route. |
 
 The Firefox manifest still has a **placeholder add-on id**. It isn't an AMO-signed permanent
@@ -83,6 +83,11 @@ Reading also has **Hide replies with images, GIFs or video**, for comment sectio
 reaction GIFs and screenshots. Any reply carrying media drops out of the thread you're reading,
 caption or no caption. The post itself keeps its media, and so does the thread above it.
 
+Two optional reading aids handle common X navigation problems. **Expand long posts automatically**
+opens an outer post's own Show more control after scrolling settles. **Restore position after
+Back** returns to the same visible post, then stops immediately if you scroll. The Quiet Reader
+preset enables both.
+
 Switches and fields wait until you choose **Save**. Action buttons run immediately and say what
 they will do. **Revert** restores the saved values. The detailed
 [feature reference](https://github.com/SysAdminDoc/Aviary/blob/main/docs/FEATURES.md) explains the individual controls.
@@ -105,6 +110,10 @@ and status only. Post text is never copied into it.
 Save local bookmarks with notes and tags, then search them alongside captured posts. Export the
 records you've collected as JSON, CSV, Markdown, HTML or XLSX. The ZIP includes an offline viewer.
 WARC and WACZ are available for preservation workflows.
+
+The Media page can add **Copy links** beside Download. It places the best direct URL for each of the
+post's own media files on the clipboard, one per line. Quoted-post and link-card media stay with
+their actual owner.
 
 The Library storage view measures the active profile's collections. It reports unavailable
 measurements explicitly instead of implying an empty library.
@@ -151,7 +160,7 @@ npm run verify:fast
 
 This builds `dist/aviary.user.js`, reloadable Chrome and Firefox directories, and the ZIP packages.
 Before releasing, run `npm run verify:release` for the serial visual and browser smoke lanes too.
-The compact `aviary-source-v1.50.0.zip` includes code and runtime icons for a clean build;
+The compact `aviary-source-v1.51.0.zip` includes code and runtime icons for a clean build;
 use the full Git checkout for screenshot baselines and repository-level verification.
 [Build and release details](https://github.com/SysAdminDoc/Aviary/blob/main/docs/INSTALL.md#reproduce-the-source-archive-on-linux-arm64).
 
@@ -160,7 +169,7 @@ use the full Git checkout for screenshot baselines and repository-level verifica
 <!-- Generated by tools/docs-facts.mjs from the manifests and the panel's own metadata.
      Edit those, then run `npm run docs:facts`. -->
 
-Aviary 1.50.0 registers 32 feature modules, draws 15 Control Center destinations, and watches 21 selector surfaces on X.
+Aviary 1.51.0 registers 34 feature modules, draws 15 Control Center destinations, and watches 21 selector surfaces on X.
 
 <!-- docs-facts:end -->
 
@@ -168,6 +177,8 @@ Aviary 1.50.0 registers 32 feature modules, draws 15 Control Center destinations
 
 [CHANGELOG.md](https://github.com/SysAdminDoc/Aviary/blob/main/CHANGELOG.md) records shipped changes. [ROADMAP.md](https://github.com/SysAdminDoc/Aviary/blob/main/ROADMAP.md) tracks active work;
 [Roadmap_Blocked.md](https://github.com/SysAdminDoc/Aviary/blob/main/Roadmap_Blocked.md) records work waiting on live captures or distribution access.
+The [recent userscript review](https://github.com/SysAdminDoc/Aviary/blob/main/docs/USERSCRIPT_REVIEW.md) records which maintained scripts informed
+the current reading and media improvements.
 
 The [brand and screenshot archive](https://github.com/SysAdminDoc/Aviary/blob/main/assets/concepts/2026-09-09-marketing/README.md) preserves the
 earlier materials and records this refresh's selections. Aviary is an independent MIT-licensed

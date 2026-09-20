@@ -1884,11 +1884,22 @@ export function buildMediaRows(ctx: PanelContext): HTMLElement[] {
   rows.push(
     ctx.toggleRow(
       "Show download buttons",
-      "Add one Download action to each media post, plus per-asset controls.",
+      "Add one Download action to each media post, plus per-asset controls. Turning this off also hides Copy media links.",
       ctx.options.settings.media.buttons,
       async (checked) => {
         ctx.options.settings.media.buttons = checked;
         await ctx.save(checked ? "Media buttons on." : "Media buttons off.");
+      }
+    )
+  );
+  rows.push(
+    ctx.toggleRow(
+      "Show Copy media links",
+      "Add a post action that copies the best direct image, GIF, video, audio, and caption URLs, one per line. It copies only that post's own media and requires the media controls above.",
+      ctx.options.settings.media.copyMediaLinks,
+      async (checked) => {
+        ctx.options.settings.media.copyMediaLinks = checked;
+        await ctx.save(checked ? "Copy media links on." : "Copy media links off.");
       }
     )
   );

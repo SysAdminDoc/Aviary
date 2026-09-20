@@ -71,6 +71,13 @@ test("source avoids unsafe injection and shortcut patterns", async () => {
 });
 
 function isScopedKeyboardInteraction(relative, text) {
+  if (relative === path.join("src", "features", "layout", "timeline-position.ts")) {
+    // This listener never invokes an Aviary command. It notices only native scrolling keys so a
+    // short Back-navigation restore stops the instant the reader takes control of the page.
+    return /const scrollKeys = new Set\(\[[\s\S]*"PageUp"[\s\S]*"PageDown"[\s\S]*"Home"[\s\S]*"End"[\s\S]*\]\);/.test(text) &&
+      /if \(scrollKeys\.has\(event\.code\) \|\| scrollKeys\.has\(event\.key\)\) registerUserIntent\(event\);/.test(text) &&
+      !/preventDefault\(|stopPropagation\(|location\s*=|\.click\(\)/.test(text);
+  }
   const allowed = new Set([
     path.join("src", "ui", "control-center.ts"),
     path.join("src", "features", "ai", "command-menu.ts"),

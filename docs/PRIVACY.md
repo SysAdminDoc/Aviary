@@ -1,6 +1,6 @@
 # Aviary Privacy Manifest
 
-Updated: 2026-09-20 · release 1.50.0
+Updated: 2026-09-20 · release 1.51.0
 
 ## Defaults and network boundaries
 
@@ -129,6 +129,7 @@ bounded roster under one manager key.
 | `aviary.hiddenPosts.v1` | Hidden status ids or handle/text signatures | Hide posts across visits; **Clear hidden posts** removes them. |
 | `aviary.seenPosts.v1` | Post ids and the time each first scrolled past, no text, handle, or URL | Fade a post the second time you pass it; capped at 4,000 entries and 30 days; **Forget seen posts** removes them. |
 | `aviary.readingMarkers.v1` | One last-read X post id and local update time per feed surface | Show a local new-post separator, advance it after an upward viewport exit or explicit action, and include it in library backups. No post text or unread badge. |
+| `aviary.timeline-position.v1:*` | Current route, scroll offset, save time, and up to six visible post ids, handles, and viewport offsets | Restore the same visible post after browser Back. This opt-in data uses tab session storage, expires after 30 minutes, closes with the tab, and is not included in settings or library backups. |
 | `aviary.catchUp.v1` | Bounded copies of rendered post text, account, permalink, media references, filter reason, and basic counts | Power the local Catch-up digest; capped at 4,000 rows and 30 days; **Forget seen posts** removes them. |
 | `aviary.adObservations.v1` | Which ad markers were present on a route, as counts, no post content | Notice when X changes its ad markup; bounded to 64 entries and 30 days. |
 | `aviary.diagnostics.v1` | Stable authored message id, severity, ISO time, and detail-key names only | Let a failure from an earlier page load still be reportable; bounded to 50 entries and 7 days; clearable from Trust. Legacy message and reason values are removed on migration. |
@@ -172,6 +173,10 @@ only bounded feature ids, pass types, invocation counts, and durations. It never
 route URLs, post text, handles, or DOM values. Imported media
 bytes are not retained after a completed archive import; resumable import state may retain the
 local source while the job is unfinished.
+
+The optional **Copy links** action writes the selected post's direct media URLs to the system
+clipboard only after a click. Aviary does not persist that clipboard payload or send a request to
+resolve more links.
 
 Account Cleanup uses the ordinary controls X rendered for the current signed-in session. Starting
 a destructive pass therefore causes the same X requests as manually removing a bookmark, undoing

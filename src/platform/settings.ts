@@ -304,6 +304,10 @@ export interface AviarySettings {
     openFromReplyOnly: boolean;
     /** Stop extending the feed past this many posts. Zero leaves X's endless scroll alone. */
     timelineStopAfter: number;
+    /** Click a post's own localized "Show more" control after scrolling settles. */
+    autoExpandPostText: boolean;
+    /** Restore the same visible post after browser Back on a feed or conversation. */
+    restoreTimelinePosition: boolean;
     /** Show a local position marker and "new since you last looked" separator. */
     readMarker: boolean;
     /** Feed surfaces where the local position marker is shown. */
@@ -350,6 +354,8 @@ export interface AviarySettings {
   };
   media: {
     buttons: boolean;
+    /** Add a post-level action that copies the best direct URL for each owned media asset. */
+    copyMediaLinks: boolean;
     preferOriginalImages: boolean;
     inlineOriginalImages: boolean;
     filenameTemplate: string;
@@ -489,6 +495,8 @@ export const DEFAULT_SETTINGS: AviarySettings = {
     focusStart: "09:00",
     focusEnd: "18:00",
     timelineStopAfter: 0,
+    autoExpandPostText: false,
+    restoreTimelinePosition: false,
     readMarker: true,
     readMarkerSurfaces: ["home", "status", "profile", "search", "notifications", "messages"]
   },
@@ -527,6 +535,7 @@ export const DEFAULT_SETTINGS: AviarySettings = {
   },
   media: {
     buttons: true,
+    copyMediaLinks: false,
     preferOriginalImages: true,
     inlineOriginalImages: false,
     filenameTemplate: "{handle}_{tweetId}_{index}",
@@ -893,6 +902,14 @@ export function normalizeSettings(input: unknown): AviarySettings {
         0,
         1000
       ),
+      autoExpandPostText: booleanValue(
+        layout.autoExpandPostText,
+        DEFAULT_SETTINGS.layout.autoExpandPostText
+      ),
+      restoreTimelinePosition: booleanValue(
+        layout.restoreTimelinePosition,
+        DEFAULT_SETTINGS.layout.restoreTimelinePosition
+      ),
       readMarker: booleanValue(layout.readMarker, DEFAULT_SETTINGS.layout.readMarker),
       readMarkerSurfaces: surfaceArray(
         layout.readMarkerSurfaces,
@@ -949,6 +966,7 @@ export function normalizeSettings(input: unknown): AviarySettings {
     },
     media: {
       buttons: booleanValue(media.buttons, DEFAULT_SETTINGS.media.buttons),
+      copyMediaLinks: booleanValue(media.copyMediaLinks, DEFAULT_SETTINGS.media.copyMediaLinks),
       preferOriginalImages: booleanValue(media.preferOriginalImages, DEFAULT_SETTINGS.media.preferOriginalImages),
       inlineOriginalImages: booleanValue(media.inlineOriginalImages, DEFAULT_SETTINGS.media.inlineOriginalImages),
       filenameTemplate: stringValue(media.filenameTemplate, DEFAULT_SETTINGS.media.filenameTemplate, 160),
