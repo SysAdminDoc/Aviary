@@ -6,6 +6,10 @@ import { customCssFeature } from "./features/appearance/custom-css.ts";
 import { controlCenterFeature } from "./features/core/control-center.ts";
 import { controlCenterLauncherFeature } from "./extension/control-center-launcher.ts";
 import { optionalFeatureModules } from "./features/core/optional-features.ts";
+import {
+  ACCOUNT_CLEANUP_KEY,
+  accountCleanupNeedsResume
+} from "./features/account-cleanup/state.ts";
 import { firstRunFeature } from "./features/core/first-run.ts";
 import {
   clearAdObservations as clearSelectorAdObservations,
@@ -137,8 +141,9 @@ async function importExtensionPanel(): Promise<ExtensionPanelModule> {
   return panel;
 }
 
-function settingsNeedPanelChunk(settings: AviarySettings): boolean {
-  return settings.export.enabled ||
+function settingsNeedPanelChunk(settings: AviarySettings, resumeAccountCleanup = false): boolean {
+  return resumeAccountCleanup ||
+    settings.export.enabled ||
     settings.export.preserveRawPayloads ||
     settings.links.cleanShareButtons ||
     settings.links.expandTco ||
@@ -314,6 +319,9 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
   const freshInstall = storedSettings === undefined;
   const settingsEnvelope = readSettingsEnvelope(storedSettings ?? DEFAULT_SETTINGS);
   const settings = settingsEnvelope.settings;
+  const resumeAccountCleanup = EXTENSION_LAZY && accountCleanupNeedsResume(
+    await storage.get<unknown>(ACCOUNT_CLEANUP_KEY, null)
+  );
   let lastSavedSettings = cloneSettings(settings);
   if (settingsEnvelope.applied.length > 0) {
     diagnostics.info("Settings schema upgraded", {
@@ -513,7 +521,7 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
     },
     requestApply() {
       reconcileRateLimit();
-      if (EXTENSION_LAZY && settingsNeedPanelChunk(settings)) {
+      if (EXTENSION_LAZY && settingsNeedPanelChunk(settings, resumeAccountCleanup)) {
         return loadPanelFeatures(context).then(() => registry.applyAll(context, document));
       }
       return registry.applyAll(context, document);
@@ -531,7 +539,7 @@ async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined
   // An explicitly enabled export or integration feature must begin observing the page before its
   // first response arrives. The default path leaves the panel, archive, WACZ worker, and catalog
   // unloaded until the launcher is clicked.
-  if (EXTENSION_LAZY && settingsNeedPanelChunk(settings)) {
+  if (EXTENSION_LAZY && settingsNeedPanelChunk(settings, resumeAccountCleanup)) {
     await loadPanelFeatures(context);
   }
 

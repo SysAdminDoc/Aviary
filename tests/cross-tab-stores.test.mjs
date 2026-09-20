@@ -1115,9 +1115,10 @@ test("diagnostic records merge by event and clear is authoritative", async () =>
   const b = new mod.DiagnosticsStore(mod.tab());
   await a.load();
   await b.load();
+  const recentAt = Date.now() - 60_000;
 
-  a.record({ level: "error", message: "A", at: "2026-09-06T00:00:00.000Z", details: { source: "a" } });
-  b.record({ level: "warn", message: "B", at: "2026-09-06T00:00:01.000Z", details: { source: "b" } });
+  a.record({ level: "error", message: "A", at: new Date(recentAt).toISOString(), details: { source: "a" } });
+  b.record({ level: "warn", message: "B", at: new Date(recentAt + 1_000).toISOString(), details: { source: "b" } });
   await Promise.all([a.flush(), b.flush()]);
   assert.deepEqual(
     mod.readShared(mod.DIAGNOSTICS_KEY).events.map((entry) => entry.messageId).sort(),
@@ -1125,7 +1126,7 @@ test("diagnostic records merge by event and clear is authoritative", async () =>
   );
 
   await a.clear();
-  b.record({ level: "warn", message: "C", at: "2026-09-06T00:00:02.000Z", details: { source: "c" } });
+  b.record({ level: "warn", message: "C", at: new Date(recentAt + 2_000).toISOString(), details: { source: "c" } });
   await b.flush();
   assert.deepEqual(mod.readShared(mod.DIAGNOSTICS_KEY).events.map((entry) => entry.messageId), [mod.diagnosticMessageId("C")]);
 });

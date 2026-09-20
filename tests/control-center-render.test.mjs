@@ -189,10 +189,17 @@ test("the panel draws one section at a time behind a grouped nav rail", async ()
     const content = shadow.querySelector(".av-content");
     return {
       ids: items.map((item) => item.dataset.avSection),
-      groups: [...nav.querySelectorAll(".av-nav-group")].map((node) => node.textContent),
-      order: [...nav.children].map((node) =>
-        node.classList.contains("av-nav-group") ? `#${node.textContent}` : node.dataset.avSection
+      groups: [...nav.querySelectorAll(".av-nav-group")].map(
+        (node) => node.querySelector(".av-nav-group-label")?.textContent ?? node.textContent
       ),
+      order: [...nav.children].map((node) =>
+        node.classList.contains("av-nav-group")
+          ? `#${node.querySelector(".av-nav-group-label")?.textContent ?? node.textContent}`
+          : node.dataset.avSection
+      ),
+      visible: items.filter((item) => !item.hidden).map((item) => item.dataset.avSection),
+      hidden: items.filter((item) => item.hidden).map((item) => item.dataset.avSection),
+      moreExpanded: nav.querySelector(".av-nav-group-toggle")?.getAttribute("aria-expanded"),
       sectionsRendered: content.querySelectorAll(".av-section").length,
       active: items.filter((item) => item.getAttribute("aria-current") === "true").map((i) => i.dataset.avSection)
     };
@@ -206,11 +213,80 @@ test("the panel draws one section at a time behind a grouped nav rail", async ()
     rail.ids.length,
     "section ids must be unique — a duplicate makes one section unreachable"
   );
-  assert.deepEqual(rail.groups, ["Start", "Reading", "Data", "Advanced"], "group order is the rail's reading order");
+  assert.deepEqual(
+    rail.groups,
+    ["Start here", "Everyday", "Your data", "More tools"],
+    "group order is the rail's reading order"
+  );
   // Every group heading must precede the items it labels, or the rail reads as one flat list.
-  assert.equal(rail.order[0], "#Start");
+  assert.equal(rail.order[0], "#Start here");
+  assert.deepEqual(
+    rail.visible,
+    ["presets", "appearance", "layout", "filtering", "media", "library", "export", "account"],
+    "the first view should contain only the settings most people need"
+  );
+  assert.deepEqual(
+    rail.hidden,
+    ["catchup", "hidden", "performance", "snapshots", "integrations", "backup", "trust"],
+    "specialist tools stay reachable without crowding the first view"
+  );
+  assert.equal(rail.moreExpanded, "false");
   assert.deepEqual(rail.active, [rail.ids[0]], "exactly one rail item may be current");
   assert.equal(rail.sectionsRendered, 1, "building all twelve sections puts the scrolling straight back");
+});
+
+test("quick tasks explain saving and open the destination they describe", async () => {
+  await mount();
+
+  const result = await page.evaluate(async () => {
+    const shadow = document.getElementById("av-control-center").shadowRoot;
+    const cards = [...shadow.querySelectorAll(".av-start-task")];
+    const note = shadow.querySelector(".av-start-note")?.textContent ?? "";
+    const targets = cards.map((card) => card.dataset.avOpenSection);
+    cards.find((card) => card.dataset.avOpenSection === "filtering")?.click();
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    return {
+      note,
+      targets,
+      rendered: shadow.querySelector(".av-content .av-section")?.dataset.avSection,
+      current: shadow.querySelector('.av-nav-item[aria-current="true"]')?.dataset.avSection
+    };
+  });
+
+  assert.match(result.note, /wait for Save/i);
+  assert.match(result.note, /run right away/i);
+  assert.deepEqual(result.targets, ["layout", "filtering", "media", "account"]);
+  assert.equal(result.rendered, "filtering");
+  assert.equal(result.current, "filtering");
+});
+
+test("More tools expands on demand and stays open on a specialist page", async () => {
+  await mount();
+
+  const result = await page.evaluate(async () => {
+    const shadow = document.getElementById("av-control-center").shadowRoot;
+    const toggle = shadow.querySelector(".av-nav-group-toggle");
+    const trust = shadow.querySelector('.av-nav-item[data-av-section="trust"]');
+    const before = { expanded: toggle.getAttribute("aria-expanded"), hidden: trust.hidden };
+    toggle.click();
+    const revealed = { expanded: toggle.getAttribute("aria-expanded"), hidden: trust.hidden };
+    trust.click();
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    const rebuiltToggle = shadow.querySelector(".av-nav-group-toggle");
+    return {
+      before,
+      revealed,
+      rendered: shadow.querySelector(".av-content .av-section")?.dataset.avSection,
+      expandedAfterNavigation: rebuiltToggle.getAttribute("aria-expanded"),
+      hiddenAfterNavigation: shadow.querySelector('.av-nav-item[data-av-section="trust"]').hidden
+    };
+  });
+
+  assert.deepEqual(result.before, { expanded: "false", hidden: true });
+  assert.deepEqual(result.revealed, { expanded: "true", hidden: false });
+  assert.equal(result.rendered, "trust");
+  assert.equal(result.expandedAfterNavigation, "true");
+  assert.equal(result.hiddenAfterNavigation, false);
 });
 
 test("each rail destination renders only itself", async () => {
@@ -555,7 +631,7 @@ test("a section that cannot be drawn says so and leaves the rest of the panel us
   assert.match(result.broken.copy, /could not be drawn/, "the panel must say the section is broken");
   assert.match(result.broken.copy, /selector health blew up/, "and must carry the reason");
   assert.ok(
-    result.errors.some((message) => /could not draw the Trust section/i.test(message)),
+    result.errors.some((message) => /could not draw the Privacy & diagnostics section/i.test(message)),
     `the failure must reach diagnostics, saw ${JSON.stringify(result.errors)}`
   );
 

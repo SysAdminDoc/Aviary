@@ -1,8 +1,8 @@
 ![Aviary, a quieter way to read X and keep a local media library](docs/marketing/social-preview.png)
 
-# Aviary v1.49.5
+# Aviary v1.50.0
 
-![Version](https://img.shields.io/badge/version-1.49.6-2f81f7) [![License](https://img.shields.io/badge/license-MIT-3fb950)](LICENSE) ![Platform](https://img.shields.io/badge/platform-Chrome%20%7C%20Firefox%20%7C%20userscript-8b5cf6) ![Runtime dependencies](https://img.shields.io/badge/runtime%20dependencies-0-0ea5e9)
+![Version](https://img.shields.io/badge/version-1.50.0-2f81f7) [![License](https://img.shields.io/badge/license-MIT-3fb950)](LICENSE) ![Platform](https://img.shields.io/badge/platform-Chrome%20%7C%20Firefox%20%7C%20userscript-8b5cf6) ![Runtime dependencies](https://img.shields.io/badge/runtime%20dependencies-0-0ea5e9)
 
 <p align="center">
   <a href="https://ko-fi.com/X8K126YVER">
@@ -16,15 +16,20 @@
 
 **A quieter X. A local copy of what matters.**
 
-Aviary adds media downloads and ad removal to X, with a Control Center for everything else.
-Choose a reading preset, filter your feed or keep a searchable library of posts in your browser.
-It doesn't need a separate Aviary account. Optional integrations stay off until you enable them.
+Aviary adds media downloads, ad removal and deliberate account cleanup to X, with a Control Center
+for everything else. Choose a reading preset, filter your feed or keep a searchable library of
+posts in your browser. It doesn't need a separate Aviary account. Optional integrations stay off
+until you enable them.
 
-[Download v1.49.5](https://github.com/SysAdminDoc/Aviary/releases/tag/v1.49.5) · [Installation guide](docs/INSTALL.md) · [Feature reference](docs/FEATURES.md) · [Privacy](docs/PRIVACY.md)
+The Control Center opens on **Quick setup**, with direct paths for quieting X, filtering posts,
+downloading media and deleting account activity. Eight commonly used pages stay visible. Seven
+specialist pages sit under **More tools** until you need them.
 
-![Aviary's installed extension showing six reading and archiving presets](docs/marketing/presets.png)
+[Download v1.50.0](https://github.com/SysAdminDoc/Aviary/releases/tag/v1.50.0) · [Installation guide](docs/INSTALL.md) · [Feature reference](docs/FEATURES.md) · [Privacy](docs/PRIVACY.md)
 
-*Captured from the built v1.49.5 extension in an isolated browser. X pages and posts in these
+![Aviary's Quick setup page with four common tasks and six ready-made setups](docs/marketing/presets.png)
+
+*Captured from the built v1.50.0 extension in an isolated browser. X pages and posts in these
 screenshots are synthetic test content, not a signed-in account or evidence of current live-X compatibility.*
 
 ## Install
@@ -34,8 +39,8 @@ Use the Chromium extension for the most complete installation path.
 
 | Your browser | Download | Installation |
 | --- | --- | --- |
-| Chrome, Edge or Brave | [Chromium ZIP](https://github.com/SysAdminDoc/Aviary/releases/download/v1.49.5/extension-chrome-v1.49.5.zip) | Extract it to a folder you'll keep. Open your browser's extensions page, enable **Developer mode**, then choose **Load unpacked** and select the folder containing `manifest.json`. |
-| Firefox | [Firefox ZIP](https://github.com/SysAdminDoc/Aviary/releases/download/v1.49.5/extension-firefox-v1.49.5.zip) | Extract it. Open `about:debugging#/runtime/this-firefox`, choose **Load Temporary Add-on**, then select `manifest.json`. This unsigned add-on disappears when Firefox restarts. |
+| Chrome, Edge or Brave | [Chromium ZIP](https://github.com/SysAdminDoc/Aviary/releases/download/v1.50.0/extension-chrome-v1.50.0.zip) | Extract it to a folder you'll keep. Open your browser's extensions page, enable **Developer mode**, then choose **Load unpacked** and select the folder containing `manifest.json`. |
+| Firefox | [Firefox ZIP](https://github.com/SysAdminDoc/Aviary/releases/download/v1.50.0/extension-firefox-v1.50.0.zip) | Extract it. Open `about:debugging#/runtime/this-firefox`, choose **Load Temporary Add-on**, then select `manifest.json`. This unsigned add-on disappears when Firefox restarts. |
 | A userscript manager | [Install userscript](https://raw.githubusercontent.com/SysAdminDoc/Aviary/main/dist/aviary.user.js) | Open the link in Tampermonkey or Violentmonkey and review the manager's install prompt. Read the limitation below before choosing this route. |
 
 The Firefox manifest still has a **placeholder add-on id**. It isn't an AMO-signed permanent
@@ -68,22 +73,34 @@ Every preset shows the changes it will apply.
 
 ## Make X easier to read
 
-![The current Appearance controls, with theme and layout changes off by default](docs/marketing/appearance.png)
+![The current Look and feel controls, with theme and layout changes off by default](docs/marketing/appearance.png)
 
-**Appearance** offers Noir and other themes. Keep X's own styling, use a denser timeline or hide
-engagement counts. **Filtering** adds keyword and media rules with hide or dim actions. Saved
+**Look & feel** offers Noir and other themes. Keep X's own styling, use a denser timeline or hide
+engagement counts. **Content filters** adds keyword and media rules with hide or dim actions. Saved
 hidden posts can be restored, including from the Undo action after hiding one.
 
 Reading also has **Hide replies with images, GIFs or video**, for comment sections that are mostly
 reaction GIFs and screenshots. Any reply carrying media drops out of the thread you're reading,
 caption or no caption. The post itself keeps its media, and so does the thread above it.
 
-Control Center settings stay in a draft until you choose **Save**. **Revert** restores the saved
-values. The detailed [feature reference](docs/FEATURES.md) explains the individual controls.
+Switches and fields wait until you choose **Save**. Action buttons run immediately and say what
+they will do. **Revert** restores the saved values. The detailed
+[feature reference](docs/FEATURES.md) explains the individual controls.
+
+## Clear account activity deliberately
+
+**Delete X activity** previews posts, replies, reposts, likes and bookmarks before changing anything.
+Choose the categories, review the totals, then type the account-specific phrase to unlock deletion.
+The signed-in handle is checked again during the pass. X login or anti-abuse challenges stop it.
+
+Cleanup removes saved activity before authored content, with randomized waits and longer rests
+between batches. You can pause, resume or stop from the Control Center. Deleted posts and replies
+cannot be restored, so the preview is required rather than optional. Cleanup history keeps counts
+and status only. Post text is never copied into it.
 
 ## Keep a copy you can use later
 
-![The installed extension's Export controls for local formats and capture settings](docs/marketing/export.png)
+![The installed extension's Import and export controls for local formats and capture settings](docs/marketing/export.png)
 
 Save local bookmarks with notes and tags, then search them alongside captured posts. Export the
 records you've collected as JSON, CSV, Markdown, HTML or XLSX. The ZIP includes an offline viewer.
@@ -116,7 +133,7 @@ The extension targets Chromium 102+ and Firefox 140+. Use a maintained browser r
 X changes frequently. The current DOM reference was captured on May 19, 2026; its existing
 freshness waiver expires September 30, 2026. Isolated fixture tests aren't a fresh authenticated-X check.
 
-If controls disappear after an X change, open **Trust → Selector health** and copy the redacted
+If controls disappear after an X change, open **More tools → Privacy & diagnostics → Selector health** and copy the redacted
 diagnostics. Include your browser, install method and Aviary version in a
 [bug report](https://github.com/SysAdminDoc/Aviary/issues/new?template=bug_report.yml).
 Don't attach your credentials, account archive or private posts.
@@ -134,7 +151,7 @@ npm run verify:fast
 
 This builds `dist/aviary.user.js`, reloadable Chrome and Firefox directories, and the ZIP packages.
 Before releasing, run `npm run verify:release` for the serial visual and browser smoke lanes too.
-The compact `aviary-source-v1.49.6.zip` includes code and runtime icons for a clean build;
+The compact `aviary-source-v1.50.0.zip` includes code and runtime icons for a clean build;
 use the full Git checkout for screenshot baselines and repository-level verification.
 [Build and release details](docs/INSTALL.md#reproduce-the-source-archive-on-linux-arm64).
 
@@ -143,7 +160,7 @@ use the full Git checkout for screenshot baselines and repository-level verifica
 <!-- Generated by tools/docs-facts.mjs from the manifests and the panel's own metadata.
      Edit those, then run `npm run docs:facts`. -->
 
-Aviary 1.49.6 registers 32 feature modules, draws 14 Control Center destinations, and watches 21 selector surfaces on X.
+Aviary 1.50.0 registers 32 feature modules, draws 15 Control Center destinations, and watches 21 selector surfaces on X.
 
 <!-- docs-facts:end -->
 

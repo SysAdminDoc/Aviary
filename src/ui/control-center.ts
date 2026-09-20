@@ -13,6 +13,7 @@ import { buildBackupRows, buildIntegrationRows, buildTrustRows } from "./control
 import { buildExportRows, buildLibraryRows, buildMediaRows, buildSnapshotRows } from "./control-center/sections/data.ts";
 import { buildAppearanceRows, buildCatchUpRows, buildFilterRows, buildHiddenPostRows, buildLayoutRows, buildPerformanceRows } from "./control-center/sections/reading.ts";
 import { buildPresetRows } from "./control-center/sections/presets.ts";
+import { buildAccountCleanupRows } from "./control-center/sections/account.ts";
 import type {
   DraftCommit,
   DraftRollback,
@@ -45,6 +46,7 @@ import type { RuleSetImportMode, RuleSetImportPlan, RuleSetImportPreview } from 
 declare const __AVIARY_VERSION__: string;
 
 const AVIARY_VERSION = typeof __AVIARY_VERSION__ === "undefined" ? "dev" : __AVIARY_VERSION__;
+const MORE_TOOLS_GROUP = "More tools";
 
 
 import type { DiagnosticEvent } from "../platform/diagnostics.ts";
@@ -57,6 +59,12 @@ import type { LibraryBackupPreview, LibraryBackupRestoreResult } from "../featur
 import type { IntegrationUsageStatus } from "../features/integrations/usage.ts";
 import type { ExportAudienceSummary } from "../features/export/audience.ts";
 import type { BisectStatus, BisectVerdict } from "../features/core/feature-bisect.ts";
+import {
+  defaultAccountCleanupCategories,
+  type AccountCleanupCommandResult,
+  type AccountCleanupStartOptions,
+  type AccountCleanupStatus
+} from "../features/account-cleanup/state.ts";
 
 export interface MediaStatus {
   historySize: number;
@@ -310,6 +318,17 @@ export interface ControlCenterOptions {
   getCleanupQueueSize?: () => { total: number; queued: number; approved: number; skipped: number };
   enqueueCleanupReview?: () => Promise<{ added: number; protected: number }>;
   clearCleanupQueue?: () => Promise<void>;
+  getAccountCleanupStatus?: () => AccountCleanupStatus;
+  startAccountCleanupPreview?: (
+    options: AccountCleanupStartOptions
+  ) => Promise<AccountCleanupCommandResult>;
+  startAccountCleanup?: (
+    options: AccountCleanupStartOptions & { previewId: string; acknowledgement: string }
+  ) => Promise<AccountCleanupCommandResult>;
+  pauseAccountCleanup?: () => Promise<AccountCleanupCommandResult>;
+  resumeAccountCleanup?: () => Promise<AccountCleanupCommandResult>;
+  stopAccountCleanup?: () => Promise<AccountCleanupCommandResult>;
+  clearAccountCleanupRecord?: () => Promise<AccountCleanupCommandResult>;
   pauseMediaBatch?: () => { ok: boolean; error?: string };
   resumeMediaBatch?: () => { ok: boolean; error?: string };
   cancelMediaBatch?: () => { ok: boolean; error?: string };
@@ -497,12 +516,15 @@ interface DraftHooks {
 /** English row labels are stable identifiers; visible group titles still pass through t(). */
 const SECTION_GROUP_BREAKS: Record<string, Array<{ before: string; title: string }>> = {
   presets: [
-    { before: "Quiet Reader", title: "Preset packs" },
+    { before: "Common tasks", title: "Common tasks" },
+    { before: "Quiet Reader", title: "Ready-made setups" },
     { before: "Locale", title: "Language" }
   ],
   appearance: [
-    { before: "Theme", title: "Display" },
-    { before: "High contrast", title: "Accessibility" }
+    { before: "Theme", title: "Look & layout" },
+    { before: "Hide engagement counts", title: "Post details" },
+    { before: "High contrast", title: "Accessibility" },
+    { before: "Custom CSS", title: "Advanced styling" }
   ],
   layout: [
     { before: "Ad-free mode", title: "Ad protection" },
@@ -543,7 +565,13 @@ const SECTION_GROUP_BREAKS: Record<string, Array<{ before: string; title: string
     { before: "Search all local collections", title: "Universal search" },
     { before: "Local bookmarks", title: "Bookmarks" },
     { before: "Show the AI button on posts", title: "Post tools" },
-    { before: "Account notes", title: "Writing tools" }
+    { before: "Account notes", title: "Writing tools" },
+    { before: "Library storage", title: "Storage & reports" }
+  ],
+  account: [
+    { before: "Signed-in X account", title: "Account guard" },
+    { before: "What to clean", title: "Cleanup plan" },
+    { before: "Account cleanup controls", title: "Run controls" }
   ],
   snapshots: [
     { before: "Snapshots stored", title: "Live snapshots" },
@@ -638,13 +666,13 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
   const header = el("header", "av-panel-header");
   const titleWrap = el("div", "av-title-wrap");
   const titleRow = el("div", "av-title-row");
-  const title = el("h2", "av-title", t("Aviary"));
+  const title = el("h2", "av-title", t("Aviary settings"));
   title.id = "av-control-title";
   panel.setAttribute("aria-labelledby", title.id);
   // Data, not copy: never routed through t(), and never counted against locale coverage.
   const version = el("span", "av-version", `v${AVIARY_VERSION}`);
   titleRow.append(title, version);
-  const subtitle = el("p", "av-subtitle", t("Local controls for a quieter X."));
+  const subtitle = el("p", "av-subtitle", t("Quieter X. Local data."));
   titleWrap.append(titleRow, subtitle);
 
   const close = button("Close", "av-button av-button-secondary");
@@ -657,6 +685,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
   host.dataset.avSaveState = "saved";
 
   const transactionBar = el("footer", "av-transaction-bar");
+  const transactionStatus = el("div", "av-transaction-status");
   const transactionActions = el("div", "av-transaction-actions");
   const revertDraftButton = button("Revert", "av-button av-button-secondary av-transaction-revert");
   revertDraftButton.type = "button";
@@ -665,7 +694,13 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
   saveDraftButton.type = "button";
   saveDraftButton.disabled = true;
   transactionActions.append(revertDraftButton, saveDraftButton);
-  transactionBar.append(status, transactionActions);
+  const transactionHint = el(
+    "span",
+    "av-transaction-hint",
+    t("Switches and fields wait for Save. Buttons run right away.")
+  );
+  transactionStatus.append(status, transactionHint);
+  transactionBar.append(transactionStatus, transactionActions);
 
   /**
    * The search field lives in the chrome rather than the body. `render()` replaces the body
@@ -676,7 +711,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
   const search = document.createElement("input");
   search.type = "search";
   search.className = "av-search-input";
-  search.placeholder = t("Search settings");
+  search.placeholder = t("Search ads, downloads, filters, and more");
   search.setAttribute("aria-label", t("Search settings"));
   search.spellcheck = false;
   searchBar.append(searchIcon(), search);
@@ -692,9 +727,12 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
   let dirtyWhileBusy = false;
   /** Which section the content pane is showing. Survives a re-render via the closure. */
   let activeSectionId = "presets";
+  /** Specialist destinations stay one click away without making the first view feel like a sitemap. */
+  let moreToolsExpanded = false;
   /** Non-empty means the content pane shows matches from every section instead of one. */
   let searchQuery = "";
   /** Search, backup, and restore state survives section rebuilds and settings saves. */
+  const savedAccountCleanup = options.getAccountCleanupStatus?.().run?.settings;
   const panelState: PanelState = {
     bookmarkQuery: "",
     libraryQuery: "",
@@ -704,7 +742,13 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     pendingLibraryBackupPayload: null,
     pendingLibraryBackupPreview: null,
     libraryRestoreRunning: false,
-    libraryRestoreAbort: null
+    libraryRestoreAbort: null,
+    accountCleanupCategories: savedAccountCleanup
+      ? { ...savedAccountCleanup.categories }
+      : defaultAccountCleanupCategories(),
+    accountCleanupPacing: savedAccountCleanup?.pacing ?? "careful",
+    accountCleanupMaxActions: savedAccountCleanup?.maxActions ?? 0,
+    accountCleanupAcknowledgement: ""
   };
   const draftSettings = cloneSettings(options.settings);
   const panelOptions: ControlCenterOptions = { ...options, settings: draftSettings };
@@ -866,6 +910,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     open = value;
     if (open && selectorHealthDegraded()) {
       activeSectionId = "trust";
+      moreToolsExpanded = true;
     }
     launcher.setAttribute("aria-expanded", String(open));
     navLauncher.setAttribute("aria-expanded", String(open));
@@ -1154,8 +1199,8 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     host.dir = localeDirection(panelLocale);
     resetCoverageTally();
     // Chrome is built once at mount, so a locale change has to repaint it explicitly.
-    title.textContent = t("Aviary");
-    subtitle.textContent = t("Local controls for a quieter X.");
+    title.textContent = t("Aviary settings");
+    subtitle.textContent = t("Quieter X. Local data.");
     close.textContent = t("Close");
     launcher.textContent = t("Aviary");
     navLauncherLabel.textContent = t("Aviary");
@@ -1164,10 +1209,11 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     panel.setAttribute("aria-label", t("Aviary settings"));
     // Chrome outside `body` survives the re-render, which is the point — but that also means
     // nothing repaints it on a locale change unless it is done here.
-    search.placeholder = t("Search settings");
+    search.placeholder = t("Search ads, downloads, filters, and more");
     search.setAttribute("aria-label", t("Search settings"));
     revertDraftButton.textContent = t("Revert");
     saveDraftButton.textContent = t("Save");
+    transactionHint.textContent = t("Switches and fields wait for Save. Buttons run right away.");
     // The status line keeps its English source so a locale change can re-translate whatever it
     // is currently showing, rather than stranding the last toast in the previous language.
     status.textContent = formatCopy(t(lastStatusEnglish), lastStatusValues);
@@ -1222,6 +1268,17 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     }
   };
 
+  const openSection = (section: ControlCenterSectionId): void => {
+    if (holdDirtyDraft()) return;
+    activeSectionId = section;
+    if (CONTROL_CENTER_SECTION_MANIFEST.find((entry) => entry.id === section)?.group === MORE_TOOLS_GROUP) {
+      moreToolsExpanded = true;
+    }
+    searchQuery = "";
+    search.value = "";
+    render();
+  };
+
   const panelContext: PanelContext = {
     options: panelOptions,
     settings: draftSettings,
@@ -1233,6 +1290,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     setStatusCopy,
     save: (message) => save(message),
     render,
+    openSection: (section) => openSection(section),
     guardDraft: holdDirtyDraft,
     actionRow,
     toggleRow: (label, description, checked, onChange) =>
@@ -1294,12 +1352,13 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     panelSection("appearance", () => buildAppearanceRows(panelContext)),
     panelSection("layout", () => buildLayoutRows(panelContext)),
     panelSection("filtering", () => buildFilterRows(panelContext)),
+    panelSection("media", () => buildMediaRows(panelContext)),
+    panelSection("library", () => buildLibraryRows(panelContext)),
+    panelSection("export", () => buildExportRows(panelContext)),
+    panelSection("account", () => buildAccountCleanupRows(panelContext)),
     panelSection("catchup", () => buildCatchUpRows(panelContext)),
     panelSection("hidden", () => buildHiddenPostRows(panelContext)),
     panelSection("performance", () => buildPerformanceRows(panelContext)),
-    panelSection("media", () => buildMediaRows(panelContext)),
-    panelSection("export", () => buildExportRows(panelContext)),
-    panelSection("library", () => buildLibraryRows(panelContext)),
     panelSection("snapshots", () => buildSnapshotRows(panelContext)),
     panelSection("integrations", () => buildIntegrationRows(panelContext)),
     panelSection("backup", () => buildBackupRows(panelContext)),
@@ -1309,28 +1368,46 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
   const buildNav = (registry: PanelSection[]): HTMLElement => {
     const nav = el("nav", "av-nav");
     nav.setAttribute("aria-label", t("Settings sections"));
+    const moreToolsCount = registry.filter((entry) => entry.group === MORE_TOOLS_GROUP).length;
 
     let currentGroup = "";
     for (const entry of registry) {
       if (entry.group !== currentGroup) {
         currentGroup = entry.group;
-        nav.append(el("p", "av-nav-group", t(currentGroup)));
+        if (currentGroup === MORE_TOOLS_GROUP) {
+          const groupToggle = el("button", "av-nav-group av-nav-group-toggle") as HTMLButtonElement;
+          groupToggle.type = "button";
+          groupToggle.setAttribute("aria-expanded", String(moreToolsExpanded));
+          groupToggle.setAttribute("aria-label", t(MORE_TOOLS_GROUP));
+          const count = el("span", "av-nav-group-count", String(moreToolsCount));
+          count.setAttribute("aria-hidden", "true");
+          groupToggle.append(el("span", "av-nav-group-label", t(MORE_TOOLS_GROUP)), count);
+          groupToggle.addEventListener("click", () => {
+            moreToolsExpanded = !moreToolsExpanded;
+            groupToggle.setAttribute("aria-expanded", String(moreToolsExpanded));
+            for (const secondary of nav.querySelectorAll<HTMLElement>("[data-av-secondary='true']")) {
+              secondary.hidden = !moreToolsExpanded;
+            }
+          });
+          nav.append(groupToggle);
+        } else {
+          nav.append(el("p", "av-nav-group", t(currentGroup)));
+        }
       }
       const item = el("button", "av-nav-item", t(entry.title)) as HTMLButtonElement;
       item.type = "button";
       item.dataset.avSection = entry.id;
+      if (entry.group === MORE_TOOLS_GROUP) {
+        item.dataset.avSecondary = "true";
+        item.hidden = !moreToolsExpanded;
+      }
       item.style.setProperty("--av-page-accent", entry.accent);
       const selected = searchQuery.trim().length === 0 && entry.id === activeSectionId;
       item.classList.toggle("is-active", selected);
       // A rail of buttons is a tablist in behaviour; say so rather than leaving it to guesswork.
       item.setAttribute("aria-current", selected ? "true" : "false");
       item.addEventListener("click", () => {
-        if (holdDirtyDraft()) return;
-        activeSectionId = entry.id;
-        // Choosing a section is an explicit "show me this", so drop any active filter.
-        searchQuery = "";
-        search.value = "";
-        render();
+        openSection(entry.id);
       });
       nav.append(item);
     }
@@ -1854,6 +1931,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     },
     openSelectorHealth() {
       activeSectionId = "trust";
+      moreToolsExpanded = true;
       if (!open) {
         setOpen(true);
         return;
@@ -2069,6 +2147,7 @@ function sectionIcon(icon: SectionIcon): SVGSVGElement {
     media: ["M4 5h16v14H4z", "M7 16l3-4 3 3 2-2 3 3", "M9 9h.01"],
     export: ["M12 3v12", "M7 10l5 5 5-5", "M5 21h14"],
     library: ["M5 4h14v16H5z", "M8 8h8M8 12h8M8 16h5"],
+    account: ["M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6l7-3Z", "M8 12h8M12 8v8"],
     snapshots: ["M12 7v5l3 2", "M4.9 4.9A10 10 0 1 1 2 12", "M2 5v7h7"],
     integrations: ["M8 3v4M16 3v4", "M6 7h12v5a6 6 0 0 1-12 0V7Z", "M12 18v3"],
     backup: ["M4 4v5h5", "M4.8 8.8A8 8 0 1 1 6.3 17.7", "M12 8v5l3 2"],
@@ -2777,6 +2856,8 @@ const CONTROL_CENTER_CSS = `
 .av-button:focus-visible,
 .av-select:focus-visible,
 .av-nav-item:focus-visible,
+.av-nav-group-toggle:focus-visible,
+.av-start-task:focus-visible,
 input:focus-visible,
 textarea:focus-visible {
   outline: 2px solid var(--av-accent, rgb(29, 155, 240));
@@ -3037,6 +3118,60 @@ textarea:focus-visible {
   margin-top: 0;
 }
 
+.av-nav-group-toggle {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 10px;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  min-height: 34px;
+  margin-top: 11px;
+  padding-block: 0;
+  padding-inline: 10px 8px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  font-family: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.av-nav-group-toggle:hover,
+.av-nav-group-toggle:focus-visible {
+  border-color: var(--av-border, rgb(47, 51, 54));
+  background: var(--av-surface-raised, rgb(22, 24, 28));
+  color: var(--av-text, rgb(239, 243, 244));
+}
+
+.av-nav-group-toggle::after {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-inline-end: 1.5px solid currentColor;
+  border-block-end: 1.5px solid currentColor;
+  transform: rotate(45deg) translate(-1px, -1px);
+  transition: transform 140ms ease;
+}
+
+.av-nav-group-toggle[aria-expanded="true"]::after {
+  transform: rotate(225deg) translate(-1px, -1px);
+}
+
+.av-nav-group-label {
+  min-width: 0;
+}
+
+.av-nav-group-count {
+  min-width: 20px;
+  padding: 2px 4px;
+  border: 1px solid var(--av-border, rgb(47, 51, 54));
+  border-radius: 4px;
+  color: var(--av-muted, rgb(132, 139, 145));
+  font-size: 10px;
+  line-height: 1.1;
+  text-align: center;
+}
+
 .av-nav-item {
   position: relative;
   min-height: 33px;
@@ -3156,7 +3291,7 @@ textarea:focus-visible {
   display: -webkit-box;
   overflow: hidden;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 1;
+  -webkit-line-clamp: 2;
   overflow-wrap: anywhere;
 }
 
@@ -3254,6 +3389,78 @@ textarea:focus-visible {
   overflow: hidden;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 1;
+}
+
+.av-start-guide {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.av-start-note {
+  display: grid;
+  gap: 3px;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 32%, var(--av-border, rgb(47, 51, 54)));
+  border-inline-start: 3px solid var(--av-page-accent, rgb(77, 199, 255));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 6%, var(--av-surface-raised, rgb(17, 25, 33)));
+}
+
+.av-start-note-title,
+.av-start-task-title {
+  color: var(--av-text, rgb(239, 243, 244));
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.av-start-note-copy,
+.av-start-task-description {
+  color: var(--av-muted, rgb(132, 139, 145));
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.av-start-task-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.av-start-task {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 64px;
+  padding: 10px 12px;
+  border: 1px solid var(--av-border, rgb(47, 51, 54));
+  border-radius: 8px;
+  background: var(--av-surface-raised, rgb(17, 25, 33));
+  font-family: inherit;
+  text-align: start;
+  cursor: pointer;
+  transition: border-color 140ms ease, background 140ms ease;
+}
+
+.av-start-task:hover {
+  border-color: color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 58%, var(--av-border, rgb(47, 51, 54)));
+  background: color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 8%, var(--av-surface-raised, rgb(17, 25, 33)));
+}
+
+.av-start-task-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.av-start-task-action {
+  color: var(--av-page-accent, rgb(77, 199, 255));
+  font-size: 12px;
+  font-weight: 720;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
 .av-row {
@@ -3714,6 +3921,149 @@ input[type="checkbox"] {
   padding: 0 10px;
 }
 
+.av-button-danger {
+  border-color: color-mix(in srgb, var(--av-danger, rgb(244, 33, 46)) 76%, white 12%);
+  background: color-mix(in srgb, var(--av-danger, rgb(244, 33, 46)) 82%, black 10%);
+  color: white;
+}
+
+.av-button-danger:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--av-danger, rgb(244, 33, 46)) 62%, white 38%);
+  background: var(--av-danger, rgb(244, 33, 46));
+}
+
+.av-cleanup-notice,
+.av-cleanup-workspace {
+  grid-column: 1 / -1;
+  border: 1px solid var(--av-border, rgb(47, 51, 54));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--av-surface-raised, rgb(22, 24, 28)) 68%, transparent);
+}
+
+.av-cleanup-notice {
+  display: grid;
+  gap: 5px;
+  padding: 13px 14px;
+  border-inline-start: 3px solid var(--av-warn, rgb(247, 183, 73));
+}
+
+.av-cleanup-notice-title {
+  color: var(--av-text, rgb(239, 243, 244));
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.av-cleanup-notice-copy {
+  color: var(--av-muted, rgb(132, 139, 145));
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.av-cleanup-categories {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.av-cleanup-categories > legend {
+  padding: 0;
+}
+
+.av-cleanup-category-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
+}
+
+.av-cleanup-category {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--av-border, rgb(47, 51, 54));
+  border-radius: 8px;
+  background: var(--av-surface, rgb(15, 20, 25));
+  cursor: pointer;
+}
+
+.av-cleanup-category:has(input:checked) {
+  border-color: color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 64%, transparent);
+  background: color-mix(in srgb, var(--av-page-accent, rgb(77, 199, 255)) 8%, var(--av-surface, rgb(15, 20, 25)));
+}
+
+.av-cleanup-category:has(input:disabled) {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+.av-cleanup-category input {
+  flex: 0 0 auto;
+  margin: 1px 0 0;
+}
+
+.av-cleanup-category-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.av-cleanup-category-title {
+  color: var(--av-text, rgb(239, 243, 244));
+  font-size: 12px;
+}
+
+.av-cleanup-category-description {
+  color: var(--av-muted, rgb(132, 139, 145));
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.av-cleanup-number {
+  width: 96px;
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--av-border, rgb(47, 51, 54));
+  border-radius: 8px;
+  background: var(--av-surface-raised, rgb(17, 25, 33));
+  color: var(--av-text, rgb(239, 243, 244));
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.2;
+}
+
+.av-cleanup-workspace {
+  display: grid;
+  gap: 14px;
+  padding: 14px;
+}
+
+.av-cleanup-buttons,
+.av-cleanup-destructive-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.av-cleanup-gate {
+  display: grid;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--av-border, rgb(47, 51, 54));
+}
+
+.av-cleanup-acknowledgement {
+  flex: 1 1 240px;
+  width: auto;
+  min-width: 180px;
+}
+
+.av-cleanup-destructive-controls .av-button {
+  flex: 0 0 auto;
+}
+
 .av-transaction-bar {
   display: flex;
   align-items: center;
@@ -3726,6 +4076,13 @@ input[type="checkbox"] {
   box-shadow: none;
 }
 
+.av-transaction-status {
+  display: grid;
+  flex: 1 1 auto;
+  gap: 2px;
+  min-width: 0;
+}
+
 .av-status {
   display: flex;
   align-items: center;
@@ -3735,6 +4092,12 @@ input[type="checkbox"] {
   color: var(--av-muted, rgb(132, 139, 145));
   font-size: 13px;
   line-height: 1.3;
+}
+
+.av-transaction-hint {
+  color: var(--av-muted, rgb(132, 139, 145));
+  font-size: 11px;
+  line-height: 1.25;
 }
 
 .av-transaction-actions {
@@ -3857,6 +4220,9 @@ input[type="checkbox"] {
   .av-button,
   .av-select,
   .av-preset-card,
+  .av-start-note,
+  .av-start-task,
+  .av-nav-group-toggle,
   .av-transaction-bar,
   .av-nav-launcher-pill,
   input,
@@ -3889,6 +4255,8 @@ input[type="checkbox"] {
   .av-button:focus-visible,
   .av-select:focus-visible,
   .av-nav-item:focus-visible,
+  .av-nav-group-toggle:focus-visible,
+  .av-start-task:focus-visible,
   input:focus-visible,
   textarea:focus-visible {
     outline: 2px solid Highlight;
@@ -3934,9 +4302,17 @@ input[type="checkbox"] {
   .av-section[data-av-section="media"] .av-page-grid {
     grid-template-columns: minmax(0, 1fr);
   }
+
+  .av-transaction-hint {
+    display: none;
+  }
 }
 
 @media (max-width: 900px) {
+  .av-start-task-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   /* Keep form rows usable before the compact rail breakpoint. The old three-column minimums
      were wider than the content pane once the browser reserved space for its scrollbar. */
   .av-row-stack:has(> .av-text-input),
@@ -4017,9 +4393,20 @@ input[type="checkbox"] {
     min-height: 44px;
   }
 
-  /* The group headings only make sense stacked; the chip order still follows them. */
-  .av-nav-group {
+  /* Static group headings only make sense stacked. The More tools disclosure remains reachable. */
+  .av-nav-group:not(.av-nav-group-toggle) {
     display: none;
+  }
+
+  .av-nav-group-toggle {
+    display: grid;
+    flex: 0 0 auto;
+    width: auto;
+    min-height: 44px;
+    margin: 0;
+    padding-inline: 12px 10px;
+    border-color: var(--av-border, rgb(47, 51, 54));
+    color: var(--av-muted, rgb(132, 139, 145));
   }
 
   .av-content {
@@ -4086,6 +4473,10 @@ input[type="checkbox"] {
     grid-template-columns: minmax(0, 1fr);
   }
 
+  .av-start-task-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .av-preset-highlights {
     grid-column: auto;
   }
@@ -4136,6 +4527,10 @@ input[type="checkbox"] {
 
   .av-inline-controls .av-button {
     flex: 1 1 100%;
+  }
+
+  .av-start-task {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .av-transaction-bar {

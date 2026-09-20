@@ -26,6 +26,7 @@ const additionFiles = [
   ...process.argv.slice(2).filter((a) => !a.startsWith("--"))
 ];
 const allowIncomplete = process.argv.includes("--allow-incomplete");
+const reportAllMissing = process.argv.includes("--report-all");
 
 const manifestPath = path.join(root, "tools/i18n-manifest.json");
 if (!existsSync(manifestPath)) {
@@ -72,7 +73,9 @@ try {
     const missing = manifest.filter((source) => merged[locale][source] === undefined);
     if (missing.length > 0) {
       incomplete = true;
-      console.error(`${locale}: missing ${missing.length} — ${JSON.stringify(missing.slice(0, 5))}`);
+      console.error(
+        `${locale}: missing ${missing.length} — ${JSON.stringify(reportAllMissing ? missing : missing.slice(0, 5))}`
+      );
     } else {
       console.log(`${locale}: ${present.length}/${manifest.length}`);
     }

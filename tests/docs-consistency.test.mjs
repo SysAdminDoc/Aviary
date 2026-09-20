@@ -72,17 +72,17 @@ test("the FAQ settings reference lists every control the Control Center draws", 
       );
     }
   }
-  const media = pages.find((page) => page.page === "Media");
+  const downloads = pages.find((page) => page.page === "Downloads");
   assert.equal(
-    media.rows.find((row) => row.label === "Media layout")?.description,
+    downloads.rows.find((row) => row.label === "Media layout")?.description,
     "A choice control.",
     "a select row borrowed choices from the next control"
   );
   assert.equal(
-    media.rows.find((row) => row.label === "Metadata sidecar")?.description,
+    downloads.rows.find((row) => row.label === "Metadata sidecar")?.description,
     "Choose one: Off, Text, JSON."
   );
-  const filtering = pages.find((page) => page.page === "Filtering");
+  const filtering = pages.find((page) => page.page === "Content filters");
   assert.equal(
     filtering.rows.find((row) => row.label === "Portable rule set")?.description,
     "Export plain text, or paste a set to preview before adding or replacing rules."

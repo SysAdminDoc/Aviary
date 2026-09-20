@@ -23,6 +23,7 @@ export const PROFILE_MIGRATION_KEYS = [
   "aviary.catchUp.v1",
   "aviary.media.last-download.v1",
   "aviary.cleanupQueue.v1",
+  "aviary.accountCleanup.v1",
   "aviary.userNotes.v1",
   "aviary.audit.v1",
   "aviary.firstRun.v1",

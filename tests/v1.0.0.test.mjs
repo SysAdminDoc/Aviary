@@ -53,8 +53,8 @@ test("i18n bundle exposes locales and reports direction", async () => {
 
   // The lookup that does ship: the English source string is the key, and an unknown one degrades
   // to itself rather than to an empty box.
-  assert.equal(translateText("en", "Appearance"), "Appearance");
-  assert.equal(translateText("es", "Appearance"), "Apariencia");
+  assert.equal(translateText("en", "Look & feel"), "Look & feel");
+  assert.equal(translateText("es", "Look & feel"), "Aspecto");
   assert.equal(translateText("ja", "no such string in any catalog"), "no such string in any catalog");
 
   assert.equal(localeDirection("ar"), "rtl");

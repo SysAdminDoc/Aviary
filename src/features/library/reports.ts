@@ -93,7 +93,7 @@ export function buildMarkdownReport(input: ReportInputs): string {
 
   lines.push("## Reminder");
   lines.push("");
-  lines.push("Aviary never deletes anything for you in this release. The cleanup preview is read-only; destructive actions stay disabled per the v1.0 trust contract.");
+  lines.push("This local Library cleanup preview is read-only. Its destructive path stays disabled; Account Cleanup is a separate tool for explicit X account actions.");
   lines.push("");
 
   return `${lines.join("\n")}\n`;

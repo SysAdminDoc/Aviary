@@ -92,6 +92,15 @@ import {
 import { previewCleanup } from "../library/cleanup-preview.ts";
 import { CleanupQueue } from "../library/cleanup-queue.ts";
 import {
+  clearAccountCleanupRecord,
+  getAccountCleanupStatus,
+  pauseAccountCleanup,
+  resumeAccountCleanup,
+  startAccountCleanup,
+  startAccountCleanupPreview,
+  stopAccountCleanup
+} from "../account-cleanup/account-cleanup-feature.ts";
+import {
   cancelMediaBatch,
   countCapturedMedia,
   getMediaBatchStatus,
@@ -1025,6 +1034,13 @@ export const controlCenterFeature: FeatureModule = {
       async clearCleanupQueue() {
         await cleanupQueue?.clear();
       },
+      getAccountCleanupStatus,
+      startAccountCleanupPreview,
+      startAccountCleanup,
+      pauseAccountCleanup,
+      resumeAccountCleanup,
+      stopAccountCleanup,
+      clearAccountCleanupRecord,
       async crosspost(target, options) {
         const text = readComposerText();
         if (!text) {

@@ -542,7 +542,8 @@ function libraryCaptureSizeRows(ctx: PanelContext): HTMLElement[] {
 }
 
 export function buildLibraryRows(ctx: PanelContext): HTMLElement[] {
-  const rows: HTMLElement[] = [...libraryStorageRows(ctx), ...libraryCaptureSizeRows(ctx)];
+  const rows: HTMLElement[] = [];
+  const maintenanceRows: HTMLElement[] = [...libraryStorageRows(ctx), ...libraryCaptureSizeRows(ctx)];
 
   if (ctx.options.getUnderTheHoodStatus && ctx.options.importUnderTheHood) {
     const status = ctx.options.getUnderTheHoodStatus();
@@ -583,10 +584,10 @@ export function buildLibraryRows(ctx: PanelContext): HTMLElement[] {
         });
     });
     intro.append(copy, file);
-    rows.push(intro);
+    maintenanceRows.push(intro);
 
     if (status.latest) {
-      rows.push(
+      maintenanceRows.push(
         ctx.dataRow(
           "Latest Under the Hood report",
           `${status.latest.period} · ${status.latest.postCount} eligible posts · ${status.latest.postLabelCount} labeled posts · ${status.latest.accountLabelDayCount} account label-days`
@@ -596,14 +597,14 @@ export function buildLibraryRows(ctx: PanelContext): HTMLElement[] {
         ...status.latest.postLabels.map((label) => `post: ${label}`),
         ...status.latest.accountLabels.map((label) => `account: ${label}`)
       ];
-      rows.push(
+      maintenanceRows.push(
         ctx.readonlyRow(
           "Labels in latest report",
           labels.length > 0 ? labels.join(" · ") : ctx.t("No visibility labels were reported for this month.")
         )
       );
     } else {
-      rows.push(ctx.readonlyRow("Under the Hood reports", ctx.t("No X report imported yet.")));
+      maintenanceRows.push(ctx.readonlyRow("Under the Hood reports", ctx.t("No X report imported yet.")));
     }
 
     if (status.comparison && status.previous && status.latest) {
@@ -615,18 +616,18 @@ export function buildLibraryRows(ctx: PanelContext): HTMLElement[] {
         ...comparison.addedAccountLabels.map((label) => `new account: ${label}`),
         ...comparison.removedAccountLabels.map((label) => `removed account: ${label}`)
       ];
-      rows.push(
+      maintenanceRows.push(
         ctx.dataRow(
           "Month-over-month",
           `${comparison.earlier} → ${comparison.later} · posts ${signed(comparison.postCountDelta)} · labeled posts ${signed(comparison.postLabelCountDelta)} · account label-days ${signed(comparison.accountLabelDayCountDelta)}${labelChanges.length > 0 ? ` · ${labelChanges.join(" · ")}` : ""}`
         )
       );
     } else if (status.reportCount > 0) {
-      rows.push(ctx.readonlyRow("Month-over-month", ctx.t("Import another month to compare reports.")));
+      maintenanceRows.push(ctx.readonlyRow("Month-over-month", ctx.t("Import another month to compare reports.")));
     }
 
     if (ctx.options.exportUnderTheHood) {
-      rows.push(
+      maintenanceRows.push(
         ctx.actionRow(
           "Export saved Under the Hood reports",
           "Downloads the normalized reports as local JSON. This is user data from X; Aviary does not add ranking weights or infer a score.",
@@ -1271,6 +1272,7 @@ export function buildLibraryRows(ctx: PanelContext): HTMLElement[] {
     )
   );
 
+  rows.push(...maintenanceRows);
   return rows;
 }
 

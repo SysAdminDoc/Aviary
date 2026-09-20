@@ -20,6 +20,7 @@ const SECTION_FILES = [
   "src/ui/control-center/sections/reading.ts",
   "src/ui/control-center/sections/data.ts",
   "src/ui/control-center/sections/advanced.ts",
+  "src/ui/control-center/sections/account.ts",
   "src/ui/control-center/sections/presets.ts"
 ];
 
@@ -32,19 +33,21 @@ export const END_MARKER = "<!-- settings-reference:end -->";
  * A page added without an entry here fails rather than being quietly left out of the reference.
  */
 const PAGE_TITLES = {
-  buildAppearanceRows: "Appearance",
-  buildLayoutRows: "Layout",
-  buildPerformanceRows: "Performance",
-  buildFilterRows: "Filtering",
+  buildAppearanceRows: "Look & feel",
+  buildLayoutRows: "Page cleanup",
+  buildPerformanceRows: "Video playback",
+  buildFilterRows: "Content filters",
+  buildCatchUpRows: "Catch up",
   buildHiddenPostRows: "Hidden posts",
-  buildMediaRows: "Media",
-  buildExportRows: "Export",
-  buildLibraryRows: "Library",
-  buildSnapshotRows: "Snapshots",
-  buildBackupRows: "Backup",
-  buildIntegrationRows: "Integrations",
-  buildTrustRows: "Trust",
-  buildPresetRows: "Presets"
+  buildMediaRows: "Downloads",
+  buildExportRows: "Import & export",
+  buildLibraryRows: "Saved posts",
+  buildSnapshotRows: "X archive",
+  buildAccountCleanupRows: "Delete X activity",
+  buildBackupRows: "Backup & reset",
+  buildIntegrationRows: "Connections",
+  buildTrustRows: "Privacy & diagnostics",
+  buildPresetRows: "Quick setup"
 };
 
 function pageTitle(fnName) {

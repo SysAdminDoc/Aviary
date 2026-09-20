@@ -175,6 +175,13 @@ test("every durable store key declared in src is registered everywhere it must b
     // Records the two-phase legacy adoption receipt. It is install-wide metadata, never a profile
     // collection and never part of a user backup.
     "aviary.profile.migration.v1": { profile: "install-wide migration journal", backup: "profile plumbing, not user data" },
+    // This owner token lives in sessionStorage so only the tab that started a cleanup can resume it
+    // after an X route navigation. It must never migrate between profiles, devices, or tabs.
+    "aviary.accountCleanup.tabToken.v1": {
+      durable: "session-only cleanup ownership token",
+      profile: "session-only cleanup ownership token",
+      backup: "session-only cleanup ownership token"
+    },
     // Lives in the extension service worker's chrome.storage, not the page StorageGateway, and is
     // derived from settings — it mirrors whether one DNR rule is installed.
     "aviary.runtime.adLoggerRule.v1": { durable: "extension realm, not the page gateway", profile: "extension realm, not the page gateway", backup: "derived runtime state, rebuilt from settings" },

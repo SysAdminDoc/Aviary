@@ -32,6 +32,7 @@ map, [FAQ.md](FAQ.md) for the selector-regression workflow and export tips.
 - AI: `src/features/ai/command-menu.ts` (local prompt builder; optionally runs through `features/integrations/ai-provider.ts` when the user supplies an API key)
 - Integrations: `src/features/integrations/` (`aria2.ts`, `crosspost.ts`, `ai-provider.ts`, `semantic-search.ts`, `usage.ts`)
 - Library: `src/features/library/` (`user-notes.ts`, `link-unshorten.ts`, `snapshots.ts`, `snapshots-feature.ts`, `archive-import.ts`, `cleanup-preview.ts`, `cleanup-queue.ts`, `reports.ts`, `local-search.ts`, `bookmarks.ts`, `bookmark-capture.ts`, `bookmarks-feature.ts`, `under-the-hood.ts`)
+- Account cleanup: `src/features/account-cleanup/` (`state.ts`, `dom.ts`, `runner.ts`, `account-cleanup-feature.ts`)
 - Composer: `src/features/composer/composer-snippets.ts`
 - i18n: `src/platform/i18n.ts` + `src/features/core/i18n-feature.ts`
 - Presets: `src/features/core/presets.ts`
@@ -132,9 +133,9 @@ Aviary does not encrypt its local data, and deliberately offers no setting that 
 
 See [PRIVACY.md](PRIVACY.md) for the local data map and optional permission notes.
 
-## Filtering
+## Content filters
 
-The Control Center "Filtering" section exposes:
+The Control Center **Content filters** page exposes:
 
 - Master toggle for all filter rules.
 - Field rules with optional titles, expiry windows, and hide or dim actions.
@@ -223,7 +224,7 @@ reason visible.
 
 Catch-up never marks anything read, requests another timeline, or claims to know what X did not
 render. It stores a bounded copy of the rendered text, account, permalink, media references, and
-basic engagement counts for up to 4,000 posts or 30 days. **Filtering → Dim posts you have already
+basic engagement counts for up to 4,000 posts or 30 days. **Content filters → Dim posts you have already
 seen** enables the companion store. A timeline post must keep at least half its box or 200 CSS
 pixels visible for one second before it is recorded. Hidden tabs, fast scroll-through, detached
 nodes, and interrupted dwell do not count; a direct Status route records its focal post immediately.
@@ -369,9 +370,9 @@ The Control Center "Export" section exposes:
 
 Tweets are gathered passively from the DOM; no auth headers, cookies, or session tokens are ever read or persisted.
 
-## Backup & audit
+## Backup and reset
 
-The Control Center "Backup & Audit" section exposes:
+The Control Center **More tools → Backup & reset** page exposes:
 
 - **Export settings**, downloads a versioned JSON envelope with every Aviary preference. API keys and passwords are replaced with a placeholder so the file is safe to share; importing it keeps the credentials already saved on this machine.
 - **Import settings**, paste an envelope and choose Import. Settings are normalized, unsupported keys are dropped, and version mismatches are reported as warnings (never silent overwrites).
@@ -433,6 +434,29 @@ The Control Center "Library" section exposes:
 - **Composer snippets**, reusable replies / templates edited in Library and inserted into the focused
   composer from the Snippets toolbar button.
 
+## Delete X activity
+
+**Delete X activity** is separate from the Saved posts cleanup preview. The Saved posts tool reviews
+local records and never acts on X. Delete X activity uses the controls X renders for the signed-in account.
+It can remove bookmarks and likes, undo reposts, then delete replies and posts.
+
+- A preview is required before a destructive pass. It walks the same routes and counts matching
+  controls without clicking them. The category set must still match when deletion starts.
+- The signed-in handle comes from X's profile navigation or account switcher. It is checked before
+  the pass and while each category is scanned. A changed account blocks the run.
+- Destructive mode requires the exact phrase `DELETE @handle`. This is an inline gate, not a
+  browser confirmation dialog, so the selected categories and preview totals stay visible.
+- Careful, Balanced and Brisk pacing add randomized waits. Each preset also takes a longer rest
+  after a bounded batch. An optional action limit pauses the run and Resume begins a fresh batch.
+- A pass can move through `/i/history`, `/i/history/likes`, `/handle/reposts`,
+  `/handle/with_replies` and `/handle`. The owning tab resumes after each navigation.
+- X login and anti-abuse challenges block the run. Four consecutive action failures block it too.
+  Missing delete controls are skipped rather than guessed.
+- Deletion recognizes X's confirmation control, known localized delete labels, or X's danger-red
+  menu treatment. If none is present, the menu closes and nothing is deleted.
+- The resumable job keeps bounded status ids while it is active. It never stores post text. Status
+  ids and per-item failure keys are dropped when the pass completes or is stopped.
+
 ## Build & preflight
 
 `npm run verify` chains TypeScript checking, pinned ESLint static analysis, the full test suite, an esbuild bundle, and `tools/preflight.mjs`. The lint stage covers source, tests, and tooling while ignoring generated bundles and captured fixtures. The preflight gate enforces:
@@ -457,9 +481,11 @@ creates checksummed ZIP and signed CRX3 assets, and keeps resumable state outsid
 Historical versions use detached temporary worktrees, so an old release is never rebuilt from a
 later working tree.
 
-## Presets, i18n, desktop interaction, cleanup, bookmarks, snippets, capture
+## Quick setup, i18n, desktop interaction, cleanup, bookmarks, snippets, capture
 
-- **Presets**, Quiet Reader, Media Archivist, Creator, Researcher, Classic, Minimal. The Control Center "Presets" section applies any preset in one click and reports the exact deltas in the status line.
+- **Quick setup**, four task cards explain where to quiet X, filter posts, download media and delete
+  account activity. Six ready-made setups apply a group of settings in one click and report the
+  exact changes in the status line.
 - **i18n + RTL**, 9-locale translation table with English fallback, browser-native `_locales`
   bundles for Chrome and Firefox, localized manifest and media context-menu copy, shared direction
   metadata on the Options page, `av-rtl`/`av-ltr` HTML classes, canonical post-language fields, and
@@ -473,12 +499,14 @@ later working tree.
   and mouse/keyboard-friendly controls are verified at the supported desktop widths.
 - **Hide row borders**, drops the 1px divider under each timeline post and the primary column's side rules. The rule anchors on `[data-testid="cellInnerDiv"] > div`, not on X's generated `r-*` class names, so a rename does not silently disable it.
 - **Writer mode**, while focus is inside the composer, the sidebar and the timeline behind it fade back; everything returns the moment focus leaves, and hovering a faded row restores it. Driven by `focusin`/`focusout` only, Aviary registers no key handlers.
-- **Snapshots & Archive**, capture follower / following lists from the active page; import official
+- **X archive**, under **More tools**, captures follower / following lists from the active page; imports official
   X archive ZIPs through resumable fixed-size staging; expand t.co destinations and identify numeric
   participants from the ZIP or local GraphQL captures without making a request; reject malformed or
   unrelated checkpoint evidence;
   search captured records; download a Markdown report.
-- **Cleanup review queue**, Aviary never deletes account data; the queue is a read-only review surface (`destructiveAllowed()` returns `false` by policy).
+- **Cleanup review queue**, a read-only surface for local Library records. Its destructive path stays disabled (`destructiveAllowed()` returns `false` by policy).
+- **Delete X activity**, an explicit preview-first tool for X bookmarks, likes, reposts, replies and
+  posts. It is the only cleanup surface that changes X account data.
 - **Bookmark library**, tags, folders, reminders, and due-time queries stored locally.
 - **Unified local search**, ranks exact handles, quoted phrases, and rare terms across captured posts,
   likes, bookmarks, notes, tags, folders, snapshots, and imported archive metadata. Filters and text

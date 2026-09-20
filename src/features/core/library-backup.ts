@@ -5,6 +5,7 @@ import { INTEGRATION_USAGE_KEY } from "../integrations/usage.ts";
 import { ARCHIVE_IMPORT_JOBS_KEY } from "../library/archive-import-jobs.ts";
 import { ARCHIVE_LIBRARY_KEY } from "../library/archive-library.ts";
 import { CLEANUP_QUEUE_KEY } from "../library/cleanup-queue.ts";
+import { ACCOUNT_CLEANUP_KEY } from "../account-cleanup/state.ts";
 import { BOOKMARKS_KEY } from "../library/bookmarks.ts";
 import { SNAPSHOTS_KEY } from "../library/snapshots.ts";
 import { USER_NOTES_KEY } from "../library/user-notes.ts";
@@ -71,6 +72,7 @@ export const LIBRARY_BACKUP_COLLECTIONS = [
   { key: CATCH_UP_KEY, label: "Catch-up records", version: 1 },
   { key: LAST_DOWNLOAD_KEY, label: "Last download", version: 1 },
   { key: CLEANUP_QUEUE_KEY, label: "Cleanup queue", version: 1 },
+  { key: ACCOUNT_CLEANUP_KEY, label: "Account cleanup state", version: 1 },
   { key: USER_NOTES_KEY, label: "User notes", version: 1 },
   { key: AUDIT_LOG_KEY, label: "Audit log", version: 1 },
   { key: BOOKMARKS_KEY, label: "Bookmarks", version: 1 },

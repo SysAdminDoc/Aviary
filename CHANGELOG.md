@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+## 1.50.0 (2026-09-20)
+
+### Added
+
+- **Delete X activity can clear posts, replies, reposts, likes and bookmarks.** It starts with a read-only preview, keeps the signed-in account fixed for the whole pass, and works through X at a measured pace. Each category can be turned on or off.
+- Cleanup survives route changes and page reloads in the tab that started it. Pause, resume, stop and per-batch limits are available from the Control Center.
+- Destructive mode stays locked until a matching preview finishes and the account-specific phrase is typed. X login or anti-abuse challenges stop the pass. Four failed actions in a row stop it too.
+- The cleanup controls and status copy are translated in all nine supported languages. The same runner ships in the readable userscript and both browser extensions.
+
+### Changed
+
+- The Control Center now starts with four plain-language task cards. Eight common pages remain visible, while seven specialist pages are grouped under **More tools**.
+- Switches and fields now explain that they wait for **Save**, while action buttons run immediately. Saved posts opens with search and bookmarks, and custom CSS now sits under **Advanced styling**.
+- The existing Saved posts cleanup queue remains a local, read-only review tool. **Delete X activity** is a separate page with its own storage record, audit events and privacy documentation.
+- Account activity is removed before authored content. Aviary processes bookmarks, likes and reposts first, then replies and posts. This keeps the references available long enough to remove them cleanly.
+- All new Control Center labels and explanations are translated in all nine supported languages.
+
+### Security
+
+- Post deletion fails closed when Aviary cannot identify X's delete item or confirmation control. Cleanup stores status ids only while a pass can still resume, never post text, and removes those ids when the pass ends.
+
 ## 1.49.6 (2026-09-16)
 
 ### Added

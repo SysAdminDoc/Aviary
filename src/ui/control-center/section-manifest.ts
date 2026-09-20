@@ -10,6 +10,7 @@ export type SectionIcon =
   | "media"
   | "export"
   | "library"
+  | "account"
   | "snapshots"
   | "integrations"
   | "backup"
@@ -24,20 +25,21 @@ export interface ControlCenterSectionManifest {
 }
 
 export const CONTROL_CENTER_SECTION_MANIFEST = [
-  { id: "presets", title: "Presets", group: "Start", summary: "Local controls for a quieter X.", icon: "presets" },
-  { id: "appearance", title: "Appearance", group: "Reading", summary: "Use stronger borders and text contrast.", icon: "appearance" },
-  { id: "layout", title: "Layout", group: "Reading", summary: "Reduce trends, recommendations, and footer noise.", icon: "layout" },
-  { id: "filtering", title: "Filtering", group: "Reading", summary: "Master switch for keyword, regex, premium, and media filters.", icon: "filtering" },
-  { id: "catchup", title: "Catch-up", group: "Reading", summary: "Review posts Aviary has already rendered, with no new requests.", icon: "catchup" },
-  { id: "hidden", title: "Hidden posts", group: "Reading", summary: "Keep posts you hid collapsed so the next post rises to the top.", icon: "hidden" },
-  { id: "performance", title: "Performance", group: "Reading", summary: "Stops decoding timeline video once it leaves the screen, and resumes it when it comes back. A video you paused yourself stays paused.", icon: "performance" },
-  { id: "media", title: "Media", group: "Data", summary: "Adds Download and Thumb buttons to post photos and video thumbnails.", icon: "media" },
-  { id: "export", title: "Export", group: "Data", summary: "Accumulate posts visible on the active page for the next export run.", icon: "export" },
-  { id: "library", title: "Library", group: "Data", summary: "Save, search, organize, and revisit posts in a local bookmark library.", icon: "library" },
-  { id: "snapshots", title: "Snapshots & Archive", group: "Data", summary: "Walks UserCell rows on the current page. Open a /handle/followers view first.", icon: "snapshots" },
-  { id: "integrations", title: "Integrations", group: "Advanced", summary: "Send large media downloads to a self-hosted Aria2 JSON-RPC endpoint.", icon: "integrations" },
-  { id: "backup", title: "Backup & Audit", group: "Advanced", summary: "Downloads your preferences as JSON. API keys and passwords are replaced with a placeholder, so the file is safe to share; importing it here keeps the credentials already saved on this machine.", icon: "backup" },
-  { id: "trust", title: "Trust", group: "Advanced", summary: "Settings stay in this browser.", icon: "trust" }
+  { id: "presets", title: "Quick setup", group: "Start here", summary: "Choose a ready-made setup or jump to a common task.", icon: "presets" },
+  { id: "appearance", title: "Look & feel", group: "Everyday", summary: "Change colors, spacing, text, and the numbers shown on posts.", icon: "appearance" },
+  { id: "layout", title: "Page cleanup", group: "Everyday", summary: "Hide ads and parts of X you do not use.", icon: "layout" },
+  { id: "filtering", title: "Content filters", group: "Everyday", summary: "Hide or dim posts by words, media, account badges, or page.", icon: "filtering" },
+  { id: "media", title: "Downloads", group: "Everyday", summary: "Set up download buttons, quality, filenames, and queues.", icon: "media" },
+  { id: "library", title: "Saved posts", group: "Your data", summary: "Search and manage posts stored in this browser.", icon: "library" },
+  { id: "export", title: "Import & export", group: "Your data", summary: "Capture posts on the page and download portable copies.", icon: "export" },
+  { id: "account", title: "Delete X activity", group: "Your data", summary: "Preview first, then remove selected activity from the signed-in X account.", icon: "account" },
+  { id: "catchup", title: "Catch up", group: "More tools", summary: "Review posts Aviary already saw without asking X for more.", icon: "catchup" },
+  { id: "hidden", title: "Hidden posts", group: "More tools", summary: "Choose where hidden posts stay hidden, or bring them back.", icon: "hidden" },
+  { id: "performance", title: "Video playback", group: "More tools", summary: "Pause videos after they leave the screen.", icon: "performance" },
+  { id: "snapshots", title: "X archive", group: "More tools", summary: "Import an official X archive or compare follower snapshots.", icon: "snapshots" },
+  { id: "integrations", title: "Connections", group: "More tools", summary: "Set up optional local services and AI providers.", icon: "integrations" },
+  { id: "backup", title: "Backup & reset", group: "More tools", summary: "Back up local data, restore it, or reset Aviary.", icon: "backup" },
+  { id: "trust", title: "Privacy & diagnostics", group: "More tools", summary: "See what stays local and check whether Aviary still works with X.", icon: "trust" }
 ] as const satisfies readonly ControlCenterSectionManifest[];
 
 export type ControlCenterSectionId = (typeof CONTROL_CENTER_SECTION_MANIFEST)[number]["id"];

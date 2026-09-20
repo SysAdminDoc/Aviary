@@ -91,7 +91,7 @@ posts**. It never changes the post on X.
 
 ## What is the Catch-up digest?
 
-Turn on **Filtering → Dim posts you have already seen** to keep a local copy of each rendered post.
+Turn on **Content filters → Dim posts you have already seen** to keep a local copy of each rendered post.
 Open **Catch-up** from the Reading section to review the last 1, 2, 4, 6, 8, or 12 hours, or the
 older-than-12-hours window. You can filter by original posts, replies, quotes, reposts, or filtered
 rows, group by author, sort by time or density, inspect top links, and open an original post.
@@ -146,7 +146,7 @@ hashes and timestamps but omit source media URLs.
 
 ## How do I export what I am seeing?
 
-1. Open **Export** and enable capture.
+1. Open **Import & export** and enable capture.
 2. Select any combination of JSON, CSV, HTML, Markdown, or XLSX.
 3. Scroll the home/profile/search/status surface or thread so its rendered posts are collected.
 4. Press **Export visible tweets**.
@@ -164,7 +164,7 @@ and media-status filtering. Aviary does not silently fetch X when an exported fi
 
 **WARC** is the plain archival record stream. **WACZ** wraps that WARC with a CDXJ index, a page
 list, and checksums so a replay tool can find individual captures without scanning the whole file.
-Open **Export → Preservation archive** to download either one. The WACZ action shows an estimated
+Open **Import & export → Preservation archive** to download either one. The WACZ action shows an estimated
 size before it runs, then **Open replayweb.page** takes you to the compatible browser viewer.
 
 Aviary writes captured media as real HTTP responses when the received status is available, and gives
@@ -186,7 +186,7 @@ archive or that the captured content was complete.
 
 ## How do I share or restore filter rules?
 
-Open **Filtering**, then use **Portable rule set**. **Export .txt** downloads the current rules in a
+Open **Content filters**, then use **Portable rule set**. **Export .txt** downloads the current rules in a
 documented one-rule-per-line form. Paste that file into another profile and choose **Preview**.
 Aviary shows what **Add rules** and **Replace rules** would do, including duplicates and line-specific
 parse errors, before either action becomes available. Rule titles, comments, and expiry windows stay
@@ -214,7 +214,7 @@ and this repair path makes no request.
 
 **Export settings** alone is not a full backup: it creates a versioned preferences envelope,
 redacts API keys/passwords, and preserves credentials already stored on the destination browser.
-Use **Backup & Audit → Export full library backup** for every profile's local collections, jobs,
+Use **More tools → Backup & reset → Export full library backup** for every profile's local collections, jobs,
 notes, indexes, and settings, together with the profile list and the active-profile pointer, so a
 restore on a new browser rebuilds the whole install rather than one profile. Restore first offers a checksum/conflict preview and dry run,
 then rolls earlier writes back if a later collection fails. A save from another open X tab waits
@@ -226,7 +226,7 @@ converted into offline assets.
 
 The active profile can contain settings, credentials, hidden posts, media history and queue,
 last-download metadata, audit entries, export checkpoints, retention limits, GraphQL query ids,
-Aria2 history, snapshots, bookmarks, notes, cleanup candidates, semantic vectors, archive-import
+Aria2 history, snapshots, bookmarks, notes, cleanup candidates, an account-cleanup pass, semantic vectors, archive-import
 jobs, archive-library data, and an optional WACZ signing identity. See the complete key table and clearing guidance in
 [PRIVACY.md](PRIVACY.md).
 
@@ -250,11 +250,24 @@ Use **Clear audit log** whenever you want to remove it.
 Those filter predicates remain reserved until an authenticated fixture capture provides reliable
 markup for them. The current build does not pretend that those surfaces are supported.
 
+## How does Delete X activity work?
+
+Open **Delete X activity** in the Control Center and choose the X activity you want to remove. The
+first pass is a read-only preview. It counts matching bookmarks, likes, reposts, replies and posts
+without clicking them. After the preview finishes, type the account-specific phrase shown in the
+panel to unlock deletion.
+
+The signed-in handle is checked throughout the pass. Cleanup stops if the account changes, if X
+shows a login or anti-abuse challenge, or if several actions fail in a row. You can also set a batch
+limit, pause, resume or stop. Deleted posts and replies cannot be restored, so check the preview
+counts before starting.
+
 ## Will Aviary post, follow, like, or delete for me?
 
-No. Aviary never auto-likes, auto-follows, posts, deletes, or engages on your behalf. Crossposting
-is an explicit Control Center action to a configured Bluesky or Mastodon account, and cleanup is a
-read-only review queue.
+Aviary never auto-posts, follows or adds likes. Crossposting is an explicit Control Center action to
+a configured Bluesky or Mastodon account. **Delete X activity** can remove selected X activity only after
+you finish a matching preview and type the signed-in account's deletion phrase. The older Library
+cleanup queue remains a read-only review tool for local records.
 
 ## What can I actually change? (every control, by page)
 
@@ -263,9 +276,9 @@ read-only review queue.
 <!-- Generated by tools/settings-reference.mjs from the Control Center source.
      Run `npm run docs:settings` after adding or renaming a control. -->
 
-Every control Aviary offers, by Control Center page. 96 controls across 13 pages.
+Every control Aviary offers, by Control Center page. 101 controls across 14 pages.
 
-#### Appearance
+#### Look & feel
 
 | Control | What it does |
 | --- | --- |
@@ -290,7 +303,7 @@ Every control Aviary offers, by Control Center page. 96 controls across 13 pages
 | Sidebar CSS | Scoped to X's discovery sidebar. |
 | Composer CSS | Scoped to the composer toolbar and text area. |
 
-#### Layout
+#### Page cleanup
 
 | Control | What it does |
 | --- | --- |
@@ -311,7 +324,7 @@ Every control Aviary offers, by Control Center page. 96 controls across 13 pages
 | Open posts from the reply icon only | X makes the whole row a link, so a press on the text or beside a control opens a post you did not choose. This takes the click target off the row and gives it to the reply icon, which opens the post rather than the inline composer. Links, buttons, media and quoted posts keep working. |
 | Hide navigation items | One stable X navigation id per line: home, explore, notifications, follow, chat, messages, grok, history, studio, premium, profile, or more. |
 
-#### Performance
+#### Video playback
 
 | Control | What it does |
 | --- | --- |
@@ -320,7 +333,7 @@ Every control Aviary offers, by Control Center page. 96 controls across 13 pages
 | Loop videos | Restart a video when it reaches the end instead of stopping. |
 | Pin video playlists to their best rendition | When X hands Aviary a playlist listing several qualities, keep only the highest. X often settles below the best available on a fast connection. This uses more data, and it can only act on playlists Aviary sees. |
 
-#### Filtering
+#### Content filters
 
 | Control | What it does |
 | --- | --- |
@@ -345,14 +358,14 @@ Every control Aviary offers, by Control Center page. 96 controls across 13 pages
 | Hide dismissed posts | Keep posts you hid collapsed so the next post rises to the top. |
 | Show hide buttons | Adds a Hide control to every post next to the More menu. |
 
-#### Snapshots
+#### X archive
 
 | Control | What it does |
 | --- | --- |
 | Downscale captured images | Choose one: Keep the original, Three quarters, Half, Quarter. |
 | Video poster frames only | Store the still X serves for a video instead of the video itself. The record says the video was left out, so a later export cannot present the still as the whole post. |
 
-#### Library
+#### Saved posts
 
 | Control | What it does |
 | --- | --- |
@@ -364,7 +377,7 @@ Every control Aviary offers, by Control Center page. 96 controls across 13 pages
 | Account notes | Format: handle: note. One per line. Empty notes remove the entry. |
 | Composer snippets | One snippet per line. Reusable replies / templates insert from the composer toolbar. |
 
-#### Export
+#### Import & export
 
 | Control | What it does |
 | --- | --- |
@@ -377,7 +390,7 @@ Every control Aviary offers, by Control Center page. 96 controls across 13 pages
 | Preservation archive | Download a raw WARC or a replay-ready WACZ. WACZ keeps archive and index members uncompressed. |
 | Aviary-only WACZ proof | Aviary-only WACZ proof actions |
 
-#### Media
+#### Downloads
 
 | Control | What it does |
 | --- | --- |
@@ -390,7 +403,7 @@ Every control Aviary offers, by Control Center page. 96 controls across 13 pages
 | Duplicate history | Skip the same X asset or exact image bytes without storing its source URL. |
 | Download pacing | Choose one: Conservative, Balanced. |
 
-#### Trust
+#### Privacy & diagnostics
 
 | Control | What it does |
 | --- | --- |
@@ -399,7 +412,7 @@ Every control Aviary offers, by Control Center page. 96 controls across 13 pages
 | Monitor selector health | Check the current X surface for required and fallback anchors. Turn this off when you do not want selector diagnostics. |
 | Switch profile | A choice control. |
 
-#### Integrations
+#### Connections
 
 | Control | What it does |
 | --- | --- |
@@ -413,18 +426,28 @@ Every control Aviary offers, by Control Center page. 96 controls across 13 pages
 | Semantic search | Send captured record text to the configured embedding endpoint for similarity search. The destination, fields, retention, and byte budget are shown here. |
 | Auto-embed every export | Before enabling, review the endpoint, captured-record fields, local retention, and daily byte budget above. After each export, embed in the background. Off by default. |
 
-#### Backup
+#### Backup & reset
 
 | Control | What it does |
 | --- | --- |
 | Import settings (JSON) | Paste a settings file exported from Aviary, then choose Import. Redacted credentials keep the values already saved here. |
 | Keep a local action log | Records downloads, exports and settings changes on this device so you can review what Aviary did. Nothing is sent anywhere. Turning this off stops new entries immediately; existing ones stay until you clear them. |
 
-#### Presets
+#### Delete X activity
+
+| Control | What it does |
+| --- | --- |
+| What to clean | Run order is bookmarks, likes, reposts, replies, then posts so references are removed before authored content. |
+| Cleanup pacing | Choose one: Careful, Balanced, Brisk. |
+| Actions per batch | Pause after this many matches. Use 0 for no limit. Resume starts a fresh batch. |
+| Account cleanup controls | Finish a preview with the same categories before deletion is available. |
+
+#### Quick setup
 
 | Control | What it does |
 | --- | --- |
 | Locale | A choice control. |
+| Common tasks | How saving works |
 
 <!-- settings-reference:end -->
 

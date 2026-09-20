@@ -254,12 +254,14 @@ test("a narrow window still fits the panel on screen", async () => {
     const layout = await page.evaluate((mount) => {
       const shadow = eval(mount);
       const panel = shadow.querySelector(".av-panel").getBoundingClientRect();
+      const taskGrid = shadow.querySelector(".av-start-task-grid");
       return {
         narrow: matchMedia("(max-width: 760px)").matches,
         width: panel.width,
         viewport: window.innerWidth,
         overflowsRight: panel.right > window.innerWidth + 1,
-        overflowsLeft: panel.left < -1
+        overflowsLeft: panel.left < -1,
+        taskColumns: getComputedStyle(taskGrid).gridTemplateColumns.split(" ").length
       };
     }, MOUNT("(settings) => { settings.appearance.theme = 'dim'; }"));
 
@@ -267,6 +269,7 @@ test("a narrow window still fits the panel on screen", async () => {
     assert.ok(layout.width <= layout.viewport, `panel is ${layout.width}px in a ${layout.viewport}px window`);
     assert.equal(layout.overflowsRight, false, "the panel must not run off the right edge");
     assert.equal(layout.overflowsLeft, false);
+    assert.equal(layout.taskColumns, 1, "common task cards must stack before their copy becomes cramped");
   } finally {
     await context.close();
   }

@@ -77,7 +77,10 @@ const DELIVERY_BUDGETS = [
   // across the eight locales, and the catalog is where most of that lands. Measured 2,702,647
   // bytes against the 2,690,000 that stood before; the new ceiling keeps the same narrow headroom
   // every entry above it does rather than buying room for the next feature as well.
-  { file: "aviary.user.js", maxBytes: 2_730_000 },
+  // Delete X activity adds the five-route runner and fail-closed DOM contracts. The clearer
+  // Control Center adds task guidance and translated navigation. Measured 2,856,034 bytes; this
+  // keeps about 34 kB of headroom without hiding another feature-sized increase.
+  { file: "aviary.user.js", maxBytes: 2_890_000 },
   { file: "aviary.meta.js", maxBytes: 4_000 },
   // F298 keeps the document-start bootstrap below half of the previous 2.42 MB ceiling. The
   // panel, archive, WACZ worker, viewer, and translated catalog live in the separately budgeted
@@ -91,8 +94,10 @@ const DELIVERY_BUDGETS = [
   // which is 874 bytes under the ceiling that stood before: close enough that the next translated
   // string would have tripped a gate about something unrelated to it. Raised with the same narrow
   // headroom as the userscript above.
-  { file: "extension-chrome/chunks/extension-panel.js", maxBytes: 2_280_000 },
-  { file: "extension-firefox/chunks/extension-panel.js", maxBytes: 2_280_000 },
+  // The same cleanup controls, task guidance and translations live in this lazy chunk. Measured
+  // 2,397,788 bytes, so the ceiling keeps the same narrow headroom as the readable userscript.
+  { file: "extension-chrome/chunks/extension-panel.js", maxBytes: 2_430_000 },
+  { file: "extension-firefox/chunks/extension-panel.js", maxBytes: 2_430_000 },
   { file: `aviary-source-v${pkg.version}.zip`, maxBytes: 10_000_000 }
 ];
 

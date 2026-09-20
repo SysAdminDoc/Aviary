@@ -49,10 +49,6 @@ export function buildAppearanceRows(ctx: PanelContext): HTMLElement[] {
         },
         "Comfortable keeps the discovery rail. Wide fills the remaining space and hides the rail."
       ),
-      ctx.readonlyRow(
-        "Custom CSS",
-        "Optional local overrides for the scoped surfaces below. CSS never leaves this profile and is not covered by bug-report expectations."
-      ),
       ctx.toggleRow(
         "Restore the Chirp font",
         "Force X's own Chirp typeface where the site has fallen back to a system font.",
@@ -180,6 +176,12 @@ export function buildAppearanceRows(ctx: PanelContext): HTMLElement[] {
     ["sidebar", "Sidebar CSS", "Scoped to X's discovery sidebar."],
     ["composer", "Composer CSS", "Scoped to the composer toolbar and text area."]
   ];
+  rows.push(
+    ctx.readonlyRow(
+      "Custom CSS",
+      "Optional local overrides for the scoped surfaces below. CSS never leaves this profile and is not covered by bug-report expectations."
+    )
+  );
   for (const [scope, label, description] of cssRows) {
     rows.push(
       ctx.textareaRow(

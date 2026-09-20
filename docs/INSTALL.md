@@ -1,4 +1,4 @@
-# Install Aviary 1.49.6
+# Install Aviary 1.50.0
 
 Aviary ships as a readable userscript and as Manifest V3 extensions. Both builds run on X pages;
 the extensions also provide a dedicated options page for optional browser permissions.
@@ -180,7 +180,7 @@ nvm install 24.18.1
 nvm use 24.18.1
 npm ci --ignore-scripts
 npm run build
-sha256sum dist/aviary-source-v1.49.6.zip
+sha256sum dist/aviary-source-v1.50.0.zip
 ```
 
 The source archive is a sorted, STORE-only ZIP with a fixed timestamp. It contains the checkout
@@ -227,7 +227,7 @@ Control Center status/about surface.
 ## Uninstall and data removal
 
 Before uninstalling, use the Control Center clear actions for hidden posts, media history, audit,
-snapshots, bookmarks, notes, cleanup queue, and semantic index as needed. **Export settings** only
+snapshots, bookmarks, notes, the local cleanup queue, account-cleanup state, and semantic index as needed. **Export settings** only
 moves preferences (with credentials redacted); it is not a full backup of the local library.
 Settings are stored under the local `aviary.settings.v1` key; library collections use separate
 versioned local stores.

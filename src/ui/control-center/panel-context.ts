@@ -9,6 +9,11 @@ import type { DurableStorageBreakdown } from "../../platform/durable-storage.ts"
 import type { LibraryBackupPreview } from "../../features/core/library-backup.ts";
 import type { RuleSetImportPreview } from "../../features/filtering/rules.ts";
 import type { ControlCenterOptions } from "../control-center.ts";
+import type {
+  AccountCleanupCategory,
+  AccountCleanupPacing
+} from "../../features/account-cleanup/state.ts";
+import type { ControlCenterSectionId } from "./section-manifest.ts";
 
 export type LocalizedCopy =
   | string
@@ -31,6 +36,10 @@ export interface PanelState {
   pendingLibraryBackupPreview: LibraryBackupPreview | null;
   libraryRestoreRunning: boolean;
   libraryRestoreAbort: AbortController | null;
+  accountCleanupCategories: Record<AccountCleanupCategory, boolean>;
+  accountCleanupPacing: AccountCleanupPacing;
+  accountCleanupMaxActions: number;
+  accountCleanupAcknowledgement: string;
 }
 
 export interface PanelContext {
@@ -44,6 +53,7 @@ export interface PanelContext {
   readonly setStatusCopy: (source: string, values: Record<string, string | number>) => void;
   readonly save: (message: string) => Promise<void>;
   readonly render: () => void;
+  readonly openSection: (section: ControlCenterSectionId) => void;
   readonly guardDraft: () => boolean;
   readonly actionRow: (
     label: string,

@@ -1,4 +1,5 @@
 import type { FeatureModule } from "../registry.ts";
+import { accountCleanupFeature } from "../account-cleanup/account-cleanup-feature.ts";
 import { aiCommandMenuFeature } from "../ai/command-menu.ts";
 import { composerSnippetsFeature } from "../composer/composer-snippets.ts";
 import { exportFeature } from "../export/export-feature.ts";
@@ -17,6 +18,7 @@ import { bookmarksFeature } from "../library/bookmarks-feature.ts";
  * single readable file keeps the same surface as before.
  */
 export const optionalFeatureModules: FeatureModule[] = [
+  accountCleanupFeature,
   exportFeature,
   bookmarksFeature,
   userNotesFeature,

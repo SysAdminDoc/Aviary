@@ -1,6 +1,6 @@
 # Aviary Privacy Manifest
 
-Updated: 2026-09-12 · release 1.49.6
+Updated: 2026-09-20 · release 1.50.0
 
 ## Defaults and network boundaries
 
@@ -147,7 +147,8 @@ bounded roster under one manager key.
 | `aviary.library.bookmarks.v1` | Local bookmarks, tags, folders, reminders, notes, captured source and operation metadata | Search/edit the local library; mirrored records contain only posts X sent while you scrolled past them; individual bookmarks or **Clear local bookmarks** remove them. |
 | `aviary.library.underTheHood.v1` | Normalized monthly summaries from JSON reports the user downloaded from X, including reporting periods, aggregate label names, counts, and explanations | Read X's own summary locally, compare stored months, include it in library backups, or export the normalized copy. Aviary never adds ranking weights or infers a production score. |
 | `aviary.userNotes.v1` | Private account notes | Decorate matching posts; **Clear all account notes** removes them. |
-| `aviary.cleanupQueue.v1` | Review candidates from cleanup previews | Review-only queue; **Clear cleanup queue** removes it. Aviary does not delete X data. |
+| `aviary.cleanupQueue.v1` | Review candidates from local Library cleanup previews | Review-only queue; **Clear cleanup queue** removes it. This store never triggers an X action. |
+| `aviary.accountCleanup.v1` | Signed-in handle, selected categories, pass state, counts, pacing, and bounded status ids or failure keys while a pass can resume | Resume Account Cleanup across X routes. Post text is never stored. Status ids and failure keys are removed when the pass completes or is stopped; **Clear cleanup record** removes the remaining summary. |
 | `aviary.semanticIndex.v1` | Embedding vectors and record metadata | Local semantic search; **Clear semantic index** removes it. |
 | `aviary.archive.imports.v1` | Official X archive import jobs and checkpoints | Pause/resume/retry imports and preserve progress. |
 | `aviary.archive.library.v1` | Imported archive collections, including typed account/media/list data | Keep archive data separate from public-post search. |
@@ -171,6 +172,12 @@ only bounded feature ids, pass types, invocation counts, and durations. It never
 route URLs, post text, handles, or DOM values. Imported media
 bytes are not retained after a completed archive import; resumable import state may retain the
 local source while the job is unfinished.
+
+Account Cleanup uses the ordinary controls X rendered for the current signed-in session. Starting
+a destructive pass therefore causes the same X requests as manually removing a bookmark, undoing
+a repost, removing a like or confirming a post deletion. Aviary does not read cookies or copy
+request headers to do this. Its local audit entries keep the account handle, selected category
+names, pacing, limits and final counts. They do not contain post text, URLs or status ids.
 
 ## Data not stored
 
@@ -213,5 +220,7 @@ data; review that separately without clearing unrelated X data. The Control Cent
 remain available while installed. Optional `downloads` and media-host permissions can be revoked
 from the extension's dedicated Options page.
 
-Every feature is reversible: disabling it removes the DOM nodes, styles, observers, timers, and
-listeners it created. Aviary never auto-likes, auto-follows, posts, deletes, or syncs account data.
+Display and capture features are reversible: disabling them removes the DOM nodes, styles,
+observers, timers and listeners they created. Aviary never auto-likes, auto-follows or posts.
+Account Cleanup is the exception for deletion. It runs only after a matching preview and an
+account-specific acknowledgement. Deleting posts or replies cannot be undone by Aviary.
