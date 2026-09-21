@@ -1,12 +1,12 @@
 # Aviary ROADMAP
 
-Version: `1.51.0`
+Version: `1.51.1`
 
 Date: 2026-09-20
 
 Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tasks that require a fresh authenticated X capture, distribution identity, or another external environment.
 
-The account cleanup, Control Center clarity, and September userscript review are recorded in
+The simplified account cleanup, Control Center clarity, and September userscript review are recorded in
 [CHANGELOG.md](CHANGELOG.md). Browser-store distribution and a fresh authenticated X capture remain
 tracked in [Roadmap_Blocked.md](Roadmap_Blocked.md).
 

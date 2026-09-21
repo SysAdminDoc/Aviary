@@ -1,6 +1,6 @@
 # Aviary Privacy Manifest
 
-Updated: 2026-09-20 · release 1.51.0
+Updated: 2026-09-20 · release 1.51.1
 
 ## Defaults and network boundaries
 
@@ -227,5 +227,5 @@ from the extension's dedicated Options page.
 
 Display and capture features are reversible: disabling them removes the DOM nodes, styles,
 observers, timers and listeners they created. Aviary never auto-likes, auto-follows or posts.
-Account Cleanup is the exception for deletion. It runs only after a matching preview and an
-account-specific acknowledgement. Deleting posts or replies cannot be undone by Aviary.
+Delete X activity is the exception for deletion. Pressing **Run** starts removing the selected
+activity immediately. Deleting posts or replies cannot be undone by Aviary.

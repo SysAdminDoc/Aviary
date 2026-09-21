@@ -358,13 +358,6 @@ export function createAccountCleanupRun(input: {
   };
 }
 
-export function accountCleanupPlansMatch(
-  left: readonly AccountCleanupCategory[],
-  right: readonly AccountCleanupCategory[]
-): boolean {
-  return left.length === right.length && left.every((category, index) => category === right[index]);
-}
-
 export function accountCleanupNeedsResume(value: unknown): boolean {
   const run = normalizeAccountCleanupRun(value);
   if (!run || run.status !== "running") return false;

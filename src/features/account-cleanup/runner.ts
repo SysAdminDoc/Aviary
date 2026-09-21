@@ -5,7 +5,6 @@ import {
   ACCOUNT_CLEANUP_KEY,
   ACCOUNT_CLEANUP_PACING,
   ACCOUNT_CLEANUP_TIMING,
-  accountCleanupPlansMatch,
   accountCleanupRouteFor,
   accountCleanupRouteMatches,
   clearAccountCleanupTransientState,
@@ -61,10 +60,6 @@ interface AccountCleanupRunnerOptions {
   onEvent?: (event: AccountCleanupRunnerEvent) => void;
 }
 
-interface StartGuard {
-  previewId?: string;
-}
-
 interface StoreStartResult extends AccountCleanupCommandResult {
   run?: AccountCleanupRun;
 }
@@ -93,8 +88,7 @@ export class AccountCleanupStore {
     account: string,
     ownerId: string,
     mode: AccountCleanupMode,
-    options: AccountCleanupStartOptions,
-    guard: StartGuard = {}
+    options: AccountCleanupStartOptions
   ): Promise<StoreStartResult> {
     let result: StoreStartResult = { ok: false, reason: "start_failed" };
     await mutateStored<unknown>(this.#storage, ACCOUNT_CLEANUP_KEY, null, (stored) => {
@@ -113,19 +107,6 @@ export class AccountCleanupStore {
       if (candidate.plan.length === 0) {
         result = { ok: false, reason: "no_categories" };
         return current;
-      }
-      if (mode === "cleanup") {
-        if (
-          !current ||
-          current.id !== guard.previewId ||
-          current.status !== "complete" ||
-          current.settings.mode !== "preview" ||
-          !sameAccountCleanupHandle(current.account, account) ||
-          !accountCleanupPlansMatch(current.plan, candidate.plan)
-        ) {
-          result = { ok: false, reason: "preview_required" };
-          return current;
-        }
       }
       result = { ok: true, run: candidate };
       return candidate;
@@ -287,12 +268,11 @@ export class AccountCleanupRunner {
   async start(
     mode: AccountCleanupMode,
     account: string,
-    options: AccountCleanupStartOptions,
-    guard: StartGuard = {}
+    options: AccountCleanupStartOptions
   ): Promise<AccountCleanupCommandResult> {
     if (this.isRunning) return { ok: false, reason: "already_running" };
     const ownerId = createAccountCleanupToken();
-    const result = await this.#store.start(account, ownerId, mode, options, guard);
+    const result = await this.#store.start(account, ownerId, mode, options);
     if (!result.ok || !result.run) return commandResult(false, result.reason);
     this.#ownerId = ownerId;
     this.#runId = result.run.id;

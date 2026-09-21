@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+## 1.51.1 (2026-09-20)
+
+### Changed
+
+- **Delete X activity now has one Run button.** Select activity and press it. Deletion starts
+  immediately, with no preview, arming phrase or confirmation step.
+- Cleanup pacing and the per-batch limit now sit under **Advanced options**. During an active pass,
+  the primary action is replaced by Pause or Resume and Stop controls.
+- The simpler flow is translated in all nine supported languages and covered across idle,
+  starting, running, paused and failed states.
+
+### Fixed
+
+- A failed start now restores an enabled Run button instead of leaving a dead busy state on screen.
+
 ## 1.51.0 (2026-09-20)
 
 ### Added

@@ -18,7 +18,7 @@ const COMMON_TASKS = [
   },
   {
     title: "Delete account activity",
-    description: "Preview and remove posts, replies, reposts, likes, or bookmarks.",
+    description: "Remove posts, replies, reposts, likes, or bookmarks.",
     section: "account"
   }
 ] as const;

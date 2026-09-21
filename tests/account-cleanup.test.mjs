@@ -88,35 +88,18 @@ test("stored cleanup state is bounded and rejects malformed identity", () => {
   assert.deepEqual(normalized.failures, { "posts:44": 20 });
 });
 
-test("destructive start requires the exact completed preview", async () => {
-  let now = 1_000;
+test("cleanup starts directly without a preview", async () => {
   const storage = memoryStorage();
-  const store = new source.AccountCleanupStore(storage, () => now);
+  const store = new source.AccountCleanupStore(storage, () => 1_000);
   const options = {
     categories: selected("likes"),
     pacing: "careful",
     maxActions: 0
   };
-  const preview = await store.start("alice", "tab-a", "preview", options);
-  assert.equal(preview.ok, true);
-
-  preview.run.status = "complete";
-  preview.run.phase = "complete";
-  preview.run.finishedAt = now;
-  source.clearAccountCleanupTransientState(preview.run);
-  await store.save(preview.run, "tab-a");
-
-  const wrongPreview = await store.start("alice", "tab-a", "cleanup", options, {
-    previewId: "wrong-id"
-  });
-  assert.deepEqual(wrongPreview, { ok: false, reason: "preview_required" });
-
-  now += 1;
-  const cleanup = await store.start("alice", "tab-a", "cleanup", options, {
-    previewId: preview.run.id
-  });
+  const cleanup = await store.start("alice", "tab-a", "cleanup", options);
   assert.equal(cleanup.ok, true);
   assert.equal(cleanup.run.settings.mode, "cleanup");
+  assert.deepEqual(cleanup.run.plan, ["likes"]);
 });
 
 test("an unexpired cleanup lease cannot be stolen by another tab", async () => {

@@ -153,12 +153,10 @@ function stubs(variant) {
       leaseUntil: 0
     }` : "null"}
   }),
-  startAccountCleanupPreview: async () => ({ ok: true }),
   startAccountCleanup: async () => ({ ok: true }),
   pauseAccountCleanup: async () => ({ ok: true }),
   resumeAccountCleanup: async () => ({ ok: true }),
   stopAccountCleanup: async () => ({ ok: true }),
-  clearAccountCleanupRecord: async () => ({ ok: true }),
   runMediaBatch: async () => ({ total: 0, downloaded: 0, duplicate: 0, failed: 0 }),
   offlineSearch: () => [],
   offlineSemanticSearch: async () => [],

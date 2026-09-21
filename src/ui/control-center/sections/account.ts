@@ -1,8 +1,6 @@
 import {
   ACCOUNT_CLEANUP_CATEGORIES,
   ACCOUNT_CLEANUP_CATEGORY_DEFINITIONS,
-  accountCleanupPlansMatch,
-  sameAccountCleanupHandle,
   type AccountCleanupCommandResult,
   type AccountCleanupRun,
   type AccountCleanupStartOptions
@@ -17,62 +15,29 @@ export function buildAccountCleanupRows(ctx: PanelContext): HTMLElement[] {
   );
   const hasSelection = selectedPlan.length > 0;
   const activeJob = run?.status === "running" || run?.status === "paused" || run?.status === "blocked";
-  const previewReady = Boolean(
-    run &&
-    run.status === "complete" &&
-    run.settings.mode === "preview" &&
-    sameAccountCleanupHandle(run.account, status?.activeHandle ?? null) &&
-    accountCleanupPlansMatch(run.plan, selectedPlan)
-  );
-  const acknowledgement = status?.activeHandle
-    ? `DELETE @${status.activeHandle}`
-    : "";
-  const acknowledgementMatches = previewReady &&
-    ctx.state.accountCleanupAcknowledgement.trim() === acknowledgement;
 
   return [
-    safetyNotice(ctx),
-    ctx.dataRow("Signed-in X account", status?.activeHandle ? `@${status.activeHandle}` : "Not detected"),
-    ctx.dataRow("Cleanup status", status?.message ?? "Account Cleanup is still loading."),
-    ...(run ? [
-      ctx.dataRow("Current pass", describePass(run.settings.mode, run.status, run.stepIndex, run.plan.length)),
-      ctx.dataRow("Pass totals", describeTotals(run))
-    ] : []),
     categoryPicker(ctx, activeJob),
-    pacingRow(ctx, activeJob),
-    actionLimitRow(ctx, activeJob),
     actionWorkspace(ctx, {
       activeJob,
-      acknowledgement,
-      acknowledgementMatches,
+      activeHandle: status?.activeHandle ?? null,
       hasSelection,
-      previewReady,
-      runId: run?.id ?? "",
-      runStatus: run?.status ?? null
-    })
+      run,
+      runStatus: run?.status ?? null,
+      statusMessage: status?.message ?? "Delete X activity is still loading."
+    }),
+    advancedOptions(ctx, activeJob)
   ];
-}
-
-function safetyNotice(ctx: PanelContext): HTMLElement {
-  const row = ctx.el("div", "av-cleanup-notice");
-  const title = ctx.el("strong", "av-cleanup-notice-title", ctx.t("Preview first. Delete only when the count looks right."));
-  const body = ctx.el(
-    "span",
-    "av-cleanup-notice-copy",
-    ctx.t("Deleting posts and replies cannot be undone. Aviary checks the signed-in account before every pass, stops on X challenges, and never stores post text in cleanup history.")
-  );
-  row.append(title, body);
-  return row;
 }
 
 function categoryPicker(ctx: PanelContext, disabled: boolean): HTMLElement {
   const fieldset = ctx.el("fieldset", "av-row av-row-stack av-cleanup-categories");
-  fieldset.dataset.avLabel = "What to clean";
-  const legend = ctx.el("legend", "av-row-label", ctx.t("What to clean"));
+  fieldset.dataset.avLabel = "What to delete";
+  const legend = ctx.el("legend", "av-row-label", ctx.t("What to delete"));
   const description = ctx.el(
     "span",
     "av-row-description",
-    ctx.t("Run order is bookmarks, likes, reposts, replies, then posts so references are removed before authored content.")
+    ctx.t("Selected activity is removed in this order: bookmarks, likes, reposts, replies, posts.")
   );
   const choices = ctx.el("div", "av-cleanup-category-grid");
   for (const category of ACCOUNT_CLEANUP_CATEGORIES) {
@@ -84,7 +49,6 @@ function categoryPicker(ctx: PanelContext, disabled: boolean): HTMLElement {
     input.disabled = disabled;
     input.addEventListener("change", () => {
       ctx.state.accountCleanupCategories[category] = input.checked;
-      ctx.state.accountCleanupAcknowledgement = "";
       ctx.render();
     });
     const copy = ctx.el("span", "av-cleanup-category-copy");
@@ -101,7 +65,7 @@ function categoryPicker(ctx: PanelContext, disabled: boolean): HTMLElement {
 
 function pacingRow(ctx: PanelContext, disabled: boolean): HTMLElement {
   const row = ctx.selectRow(
-    "Cleanup pacing",
+    "Speed",
     ctx.state.accountCleanupPacing,
     [
       ["careful", "Careful"],
@@ -111,7 +75,6 @@ function pacingRow(ctx: PanelContext, disabled: boolean): HTMLElement {
     async (value) => {
       if (value === "careful" || value === "balanced" || value === "brisk") {
         ctx.state.accountCleanupPacing = value;
-        ctx.state.accountCleanupAcknowledgement = "";
       }
     },
     "Adds a randomized delay between account actions and longer rests after each batch.",
@@ -145,42 +108,56 @@ function actionLimitRow(ctx: PanelContext, disabled: boolean): HTMLElement {
     ctx.state.accountCleanupMaxActions = Number.isFinite(numeric)
       ? Math.min(100_000, Math.max(0, Math.trunc(numeric)))
       : 0;
-    ctx.state.accountCleanupAcknowledgement = "";
   });
   row.append(copy, input);
   return row;
 }
 
+function advancedOptions(ctx: PanelContext, disabled: boolean): HTMLElement {
+  const details = ctx.el("details", "av-cleanup-advanced");
+  details.dataset.avLabel = "Advanced options";
+  const summary = ctx.el("summary", "av-cleanup-advanced-summary");
+  const copy = ctx.el("span", "av-cleanup-advanced-copy");
+  copy.append(
+    ctx.el("strong", "av-cleanup-advanced-title", ctx.t("Advanced options")),
+    ctx.el(
+      "span",
+      "av-cleanup-advanced-description",
+      ctx.t("Change deletion speed or pause after a set number of actions.")
+    )
+  );
+  summary.append(copy);
+  const body = ctx.el("div", "av-cleanup-advanced-body");
+  body.append(pacingRow(ctx, disabled), actionLimitRow(ctx, disabled));
+  details.append(summary, body);
+  return details;
+}
+
 function actionWorkspace(ctx: PanelContext, input: {
   activeJob: boolean;
-  acknowledgement: string;
-  acknowledgementMatches: boolean;
+  activeHandle: string | null;
   hasSelection: boolean;
-  previewReady: boolean;
-  runId: string;
+  run: AccountCleanupRun | null;
   runStatus: "running" | "paused" | "blocked" | "complete" | "stopped" | null;
+  statusMessage: string;
 }): HTMLElement {
   const workspace = ctx.el("div", "av-cleanup-workspace");
-  workspace.dataset.avLabel = "Account cleanup controls";
+  workspace.dataset.avLabel = "Run";
 
-  const preview = ctx.button("Preview selected", "av-button av-button-secondary");
-  preview.type = "button";
-  preview.disabled = input.activeJob || !input.hasSelection || !ctx.options.startAccountCleanupPreview;
-  preview.addEventListener("click", () => {
-    void runCommand(ctx, "Starting account preview…", async () => {
-      const result = await ctx.options.startAccountCleanupPreview?.(startOptions(ctx));
-      return result ?? { ok: false, reason: "not_ready" };
-    });
-  });
+  const status = input.run
+    ? `${input.statusMessage} ${describeTotals(input.run)}`
+    : input.activeHandle
+      ? ctx.localizedCopy("Ready to run on @{handle}.", { handle: input.activeHandle })
+      : ctx.t("Sign in to X before running.");
+  workspace.append(ctx.el("span", "av-cleanup-guidance", status));
 
   const controls = ctx.el("div", "av-cleanup-buttons");
-  controls.append(preview);
   if (input.runStatus === "running") {
     const pause = ctx.button("Pause", "av-button av-button-secondary");
     pause.type = "button";
     pause.disabled = !ctx.options.pauseAccountCleanup;
     pause.addEventListener("click", () => {
-      void runCommand(ctx, "Pausing account cleanup…", () => invoke(ctx.options.pauseAccountCleanup));
+      void runCommand(ctx, "Pausing deletion…", () => invoke(ctx.options.pauseAccountCleanup));
     });
     controls.append(pause);
   }
@@ -189,73 +166,45 @@ function actionWorkspace(ctx: PanelContext, input: {
     resume.type = "button";
     resume.disabled = !ctx.options.resumeAccountCleanup;
     resume.addEventListener("click", () => {
-      void runCommand(ctx, "Resuming account cleanup…", () => invoke(ctx.options.resumeAccountCleanup));
+      void runCommand(ctx, "Resuming deletion…", () => invoke(ctx.options.resumeAccountCleanup));
     });
     controls.append(resume);
   }
   if (input.activeJob) {
-    const stop = ctx.button("Stop pass", "av-button av-button-secondary");
+    const stop = ctx.button("Stop", "av-button av-button-secondary");
     stop.type = "button";
     stop.disabled = !ctx.options.stopAccountCleanup;
     stop.addEventListener("click", () => {
-      void runCommand(ctx, "Stopping account cleanup…", () => invoke(ctx.options.stopAccountCleanup));
+      void runCommand(ctx, "Stopping deletion…", () => invoke(ctx.options.stopAccountCleanup));
     });
     controls.append(stop);
   }
 
-  const gate = ctx.el("div", "av-cleanup-gate");
-  const gateCopy = input.previewReady
-    ? ctx.localizedCopy("Preview is complete for @{handle}. Type {phrase} to enable deletion.", {
-        handle: ctx.options.getAccountCleanupStatus?.().activeHandle ?? "",
-        phrase: input.acknowledgement
-      })
-    : ctx.t("Finish a preview with the same categories before deletion is available.");
-  gate.append(ctx.el("span", "av-row-description", gateCopy));
+  if (input.activeJob) {
+    workspace.append(controls);
+    return workspace;
+  }
 
-  const acknowledgementInput = document.createElement("input");
-  acknowledgementInput.type = "text";
-  acknowledgementInput.className = "av-text-input av-cleanup-acknowledgement";
-  acknowledgementInput.value = ctx.state.accountCleanupAcknowledgement;
-  acknowledgementInput.placeholder = input.acknowledgement || ctx.t("Signed-in account required");
-  acknowledgementInput.disabled = !input.previewReady || input.activeJob;
-  acknowledgementInput.spellcheck = false;
-  acknowledgementInput.autocomplete = "off";
-  acknowledgementInput.setAttribute("aria-label", ctx.t("Deletion acknowledgement"));
-
-  const cleanup = ctx.button("Delete selected account data", "av-button av-button-danger");
-  cleanup.type = "button";
-  cleanup.disabled = !input.acknowledgementMatches || input.activeJob || !ctx.options.startAccountCleanup;
-  acknowledgementInput.addEventListener("input", () => {
-    ctx.state.accountCleanupAcknowledgement = acknowledgementInput.value;
-    cleanup.disabled = acknowledgementInput.value.trim() !== input.acknowledgement || input.activeJob;
-  });
-  cleanup.addEventListener("click", () => {
-    void runCommand(ctx, "Starting account cleanup…", async () => {
-      const result = await ctx.options.startAccountCleanup?.({
-        ...startOptions(ctx),
-        previewId: input.runId,
-        acknowledgement: ctx.state.accountCleanupAcknowledgement
-      });
+  const run = ctx.button("Run", "av-button av-button-danger av-cleanup-primary-action");
+  run.type = "button";
+  run.dataset.avCleanupPrimary = "1";
+  run.disabled = !input.activeHandle || !input.hasSelection || !ctx.options.startAccountCleanup;
+  run.addEventListener("click", () => {
+    setPendingButton(run, ctx.t("Starting deletion…"));
+    void runCommand(ctx, "Starting deletion…", async () => {
+      const result = await ctx.options.startAccountCleanup?.(startOptions(ctx));
       return result ?? { ok: false, reason: "not_ready" };
     });
   });
-  const destructiveControls = ctx.el("div", "av-cleanup-destructive-controls");
-  destructiveControls.append(acknowledgementInput, cleanup);
-  gate.append(destructiveControls);
-
-  if (!input.activeJob && input.runStatus !== null) {
-    const clear = ctx.button("Clear cleanup record", "av-button av-button-secondary");
-    clear.type = "button";
-    clear.disabled = !ctx.options.clearAccountCleanupRecord;
-    clear.addEventListener("click", () => {
-      ctx.state.accountCleanupAcknowledgement = "";
-      void runCommand(ctx, "Clearing account cleanup record…", () => invoke(ctx.options.clearAccountCleanupRecord));
-    });
-    controls.append(clear);
-  }
-
-  workspace.append(controls, gate);
+  controls.append(run);
+  workspace.append(controls);
   return workspace;
+}
+
+function setPendingButton(button: HTMLButtonElement, label: string): void {
+  button.disabled = true;
+  button.setAttribute("aria-busy", "true");
+  button.textContent = label;
 }
 
 function startOptions(ctx: PanelContext): AccountCleanupStartOptions {
@@ -275,11 +224,12 @@ async function runCommand(
   try {
     const result = await command();
     const status = ctx.options.getAccountCleanupStatus?.();
-    ctx.setStatus(status?.message ?? (result.ok ? "Account cleanup updated." : "Account cleanup command failed."));
+    ctx.setStatus(status?.message ?? (result.ok ? "Deletion updated." : "Deletion command failed."));
     ctx.render();
   } catch (error) {
-    ctx.options.onError("Account cleanup command failed", error);
-    ctx.setStatus("Account cleanup command failed.");
+    ctx.options.onError("Deletion command failed", error);
+    ctx.setStatus("Deletion command failed.");
+    ctx.render();
   }
 }
 
@@ -287,16 +237,6 @@ function invoke(
   command: (() => Promise<AccountCleanupCommandResult>) | undefined
 ): Promise<AccountCleanupCommandResult> {
   return command?.() ?? Promise.resolve({ ok: false, reason: "not_ready" });
-}
-
-function describePass(
-  mode: "preview" | "cleanup",
-  status: string,
-  stepIndex: number,
-  totalSteps: number
-): string {
-  const label = mode === "preview" ? "Preview" : "Cleanup";
-  return `${label} · ${status} · ${Math.min(stepIndex + 1, totalSteps)}/${totalSteps}`;
 }
 
 function describeTotals(run: AccountCleanupRun): string {

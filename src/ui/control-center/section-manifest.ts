@@ -32,7 +32,7 @@ export const CONTROL_CENTER_SECTION_MANIFEST = [
   { id: "media", title: "Downloads", group: "Everyday", summary: "Set up download buttons, quality, filenames, and queues.", icon: "media" },
   { id: "library", title: "Saved posts", group: "Your data", summary: "Search and manage posts stored in this browser.", icon: "library" },
   { id: "export", title: "Import & export", group: "Your data", summary: "Capture posts on the page and download portable copies.", icon: "export" },
-  { id: "account", title: "Delete X activity", group: "Your data", summary: "Preview first, then remove selected activity from the signed-in X account.", icon: "account" },
+  { id: "account", title: "Delete X activity", group: "Your data", summary: "Select activity and press Run. Deletion starts immediately.", icon: "account" },
   { id: "catchup", title: "Catch up", group: "More tools", summary: "Review posts Aviary already saw without asking X for more.", icon: "catchup" },
   { id: "hidden", title: "Hidden posts", group: "More tools", summary: "Choose where hidden posts stay hidden, or bring them back.", icon: "hidden" },
   { id: "performance", title: "Video playback", group: "More tools", summary: "Pause videos after they leave the screen.", icon: "performance" },

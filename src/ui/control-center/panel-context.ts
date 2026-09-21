@@ -39,7 +39,6 @@ export interface PanelState {
   accountCleanupCategories: Record<AccountCleanupCategory, boolean>;
   accountCleanupPacing: AccountCleanupPacing;
   accountCleanupMaxActions: number;
-  accountCleanupAcknowledgement: string;
 }
 
 export interface PanelContext {

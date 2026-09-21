@@ -461,14 +461,13 @@ The Control Center "Library" section exposes:
 local records and never acts on X. Delete X activity uses the controls X renders for the signed-in account.
 It can remove bookmarks and likes, undo reposts, then delete replies and posts.
 
-- A preview is required before a destructive pass. It walks the same routes and counts matching
-  controls without clicking them. The category set must still match when deletion starts.
+- Choose the categories and press **Run**. Deletion starts immediately, with no preview, arming
+  phrase or confirmation step.
 - The signed-in handle comes from X's profile navigation or account switcher. It is checked before
   the pass and while each category is scanned. A changed account blocks the run.
-- Destructive mode requires the exact phrase `DELETE @handle`. This is an inline gate, not a
-  browser confirmation dialog, so the selected categories and preview totals stay visible.
-- Careful, Balanced and Brisk pacing add randomized waits. Each preset also takes a longer rest
-  after a bounded batch. An optional action limit pauses the run and Resume begins a fresh batch.
+- **Advanced options** contains Careful, Balanced and Brisk pacing plus the optional action limit.
+  Pacing adds randomized waits and longer rests. A limited run pauses at the boundary, and Resume
+  begins a fresh batch.
 - A pass can move through `/i/history`, `/i/history/likes`, `/handle/reposts`,
   `/handle/with_replies` and `/handle`. The owning tab resumes after each navigation.
 - X login and anti-abuse challenges block the run. Four consecutive action failures block it too.
@@ -526,8 +525,8 @@ later working tree.
   unrelated checkpoint evidence;
   search captured records; download a Markdown report.
 - **Cleanup review queue**, a read-only surface for local Library records. Its destructive path stays disabled (`destructiveAllowed()` returns `false` by policy).
-- **Delete X activity**, an explicit preview-first tool for X bookmarks, likes, reposts, replies and
-  posts. It is the only cleanup surface that changes X account data.
+- **Delete X activity**, a direct tool for removing X bookmarks, likes, reposts, replies and posts.
+  It starts as soon as you press **Run** and is the only cleanup surface that changes X account data.
 - **Bookmark library**, tags, folders, reminders, and due-time queries stored locally.
 - **Unified local search**, ranks exact handles, quoted phrases, and rare terms across captured posts,
   likes, bookmarks, notes, tags, folders, snapshots, and imported archive metadata. Filters and text

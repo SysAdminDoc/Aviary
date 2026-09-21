@@ -319,16 +319,12 @@ export interface ControlCenterOptions {
   enqueueCleanupReview?: () => Promise<{ added: number; protected: number }>;
   clearCleanupQueue?: () => Promise<void>;
   getAccountCleanupStatus?: () => AccountCleanupStatus;
-  startAccountCleanupPreview?: (
-    options: AccountCleanupStartOptions
-  ) => Promise<AccountCleanupCommandResult>;
   startAccountCleanup?: (
-    options: AccountCleanupStartOptions & { previewId: string; acknowledgement: string }
+    options: AccountCleanupStartOptions
   ) => Promise<AccountCleanupCommandResult>;
   pauseAccountCleanup?: () => Promise<AccountCleanupCommandResult>;
   resumeAccountCleanup?: () => Promise<AccountCleanupCommandResult>;
   stopAccountCleanup?: () => Promise<AccountCleanupCommandResult>;
-  clearAccountCleanupRecord?: () => Promise<AccountCleanupCommandResult>;
   pauseMediaBatch?: () => { ok: boolean; error?: string };
   resumeMediaBatch?: () => { ok: boolean; error?: string };
   cancelMediaBatch?: () => { ok: boolean; error?: string };
@@ -569,9 +565,7 @@ const SECTION_GROUP_BREAKS: Record<string, Array<{ before: string; title: string
     { before: "Library storage", title: "Storage & reports" }
   ],
   account: [
-    { before: "Signed-in X account", title: "Account guard" },
-    { before: "What to clean", title: "Cleanup plan" },
-    { before: "Account cleanup controls", title: "Run controls" }
+    { before: "Run", title: "Run" }
   ],
   snapshots: [
     { before: "Snapshots stored", title: "Live snapshots" },
@@ -747,8 +741,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
       ? { ...savedAccountCleanup.categories }
       : defaultAccountCleanupCategories(),
     accountCleanupPacing: savedAccountCleanup?.pacing ?? "careful",
-    accountCleanupMaxActions: savedAccountCleanup?.maxActions ?? 0,
-    accountCleanupAcknowledgement: ""
+    accountCleanupMaxActions: savedAccountCleanup?.maxActions ?? 0
   };
   const draftSettings = cloneSettings(options.settings);
   const panelOptions: ControlCenterOptions = { ...options, settings: draftSettings };
@@ -3932,31 +3925,12 @@ input[type="checkbox"] {
   background: var(--av-danger, rgb(244, 33, 46));
 }
 
-.av-cleanup-notice,
-.av-cleanup-workspace {
+.av-cleanup-workspace,
+.av-cleanup-advanced {
   grid-column: 1 / -1;
   border: 1px solid var(--av-border, rgb(47, 51, 54));
   border-radius: 8px;
   background: color-mix(in srgb, var(--av-surface-raised, rgb(22, 24, 28)) 68%, transparent);
-}
-
-.av-cleanup-notice {
-  display: grid;
-  gap: 5px;
-  padding: 13px 14px;
-  border-inline-start: 3px solid var(--av-warn, rgb(247, 183, 73));
-}
-
-.av-cleanup-notice-title {
-  color: var(--av-text, rgb(239, 243, 244));
-  font-size: 13px;
-  line-height: 1.35;
-}
-
-.av-cleanup-notice-copy {
-  color: var(--av-muted, rgb(132, 139, 145));
-  font-size: 12px;
-  line-height: 1.45;
 }
 
 .av-cleanup-categories {
@@ -4035,33 +4009,74 @@ input[type="checkbox"] {
 
 .av-cleanup-workspace {
   display: grid;
-  gap: 14px;
+  gap: 12px;
   padding: 14px;
+  border-color: color-mix(in srgb, var(--av-danger, rgb(244, 33, 46)) 34%, var(--av-border, rgb(47, 51, 54)));
 }
 
-.av-cleanup-buttons,
-.av-cleanup-destructive-controls {
+.av-cleanup-buttons {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
 }
 
-.av-cleanup-gate {
-  display: grid;
-  gap: 8px;
-  padding-top: 12px;
-  border-top: 1px solid var(--av-border, rgb(47, 51, 54));
+.av-cleanup-guidance {
+  color: var(--av-text, rgb(239, 243, 244));
+  font-size: 13px;
+  line-height: 1.45;
 }
 
-.av-cleanup-acknowledgement {
-  flex: 1 1 240px;
-  width: auto;
+.av-cleanup-primary-action {
   min-width: 180px;
+  min-height: 42px;
+  padding-inline: 22px;
+  font-size: 14px;
+  font-weight: 780;
 }
 
-.av-cleanup-destructive-controls .av-button {
-  flex: 0 0 auto;
+.av-cleanup-advanced {
+  overflow: hidden;
+}
+
+.av-cleanup-advanced-summary {
+  min-height: 48px;
+  padding: 10px 14px;
+  color: var(--av-text, rgb(239, 243, 244));
+  cursor: pointer;
+}
+
+.av-cleanup-advanced-summary:focus-visible {
+  outline: 2px solid var(--av-page-accent, rgb(77, 199, 255));
+  outline-offset: -3px;
+}
+
+.av-cleanup-advanced-copy {
+  display: inline-grid;
+  gap: 2px;
+  padding-inline-start: 6px;
+  vertical-align: middle;
+}
+
+.av-cleanup-advanced-title {
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.av-cleanup-advanced-description {
+  color: var(--av-muted, rgb(132, 139, 145));
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.av-cleanup-advanced-body {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 0 12px 12px;
+}
+
+.av-cleanup-advanced-body .av-row {
+  min-width: 0;
 }
 
 .av-transaction-bar {
@@ -4443,6 +4458,11 @@ input[type="checkbox"] {
     grid-template-columns: minmax(0, 1fr);
   }
 
+  .av-cleanup-category-grid,
+  .av-cleanup-advanced-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .av-rule-set-preview {
     grid-column: auto;
   }
@@ -4527,6 +4547,15 @@ input[type="checkbox"] {
 
   .av-inline-controls .av-button {
     flex: 1 1 100%;
+  }
+
+  .av-cleanup-buttons {
+    align-items: stretch;
+  }
+
+  .av-cleanup-primary-action {
+    flex: 1 1 100%;
+    width: 100%;
   }
 
   .av-start-task {

@@ -179,43 +179,117 @@ test("engagement routes expose only their active removal controls", async () => 
   });
 });
 
-test("the Control Center unlocks deletion only for the exact account phrase", async () => {
+test("the Control Center starts deletion immediately from one Run button", async () => {
   const result = await page.evaluate(async () => {
     document.body.replaceChildren();
     const profile = document.createElement("a");
     profile.dataset.testid = "AppTabBar_Profile_Link";
     profile.href = "/alice";
     document.body.append(profile);
-    const categories = { bookmarks: true, likes: true, reposts: true, replies: true, posts: true };
-    const stats = Object.fromEntries(
-      Object.keys(categories).map((category) => [category, {
-        completed: 0,
-        previewed: 1,
-        failed: 0,
-        skipped: 0
-      }])
+    let runOptions = null;
+    const handle = AviaryAccountCleanupDom.mountControlCenter({
+      settings: AviaryAccountCleanupDom.cloneSettings(AviaryAccountCleanupDom.DEFAULT_SETTINGS),
+      diagnostics: () => [],
+      onChange: async () => {},
+      onError() {},
+      getAccountCleanupStatus: () => ({
+        activeHandle: "alice",
+        run: null,
+        runningInThisTab: false,
+        message: "No account cleanup has run."
+      }),
+      startAccountCleanup: async (options) => {
+        runOptions = options;
+        return { ok: true };
+      }
+    });
+    const shadow = document.querySelector("#av-control-center").shadowRoot;
+    shadow.querySelector(".av-launcher").click();
+    shadow.querySelector('[data-av-section="account"]').click();
+    const primaryActions = [...shadow.querySelectorAll("[data-av-cleanup-primary]")];
+    const button = primaryActions[0];
+    const advanced = shadow.querySelector(".av-cleanup-advanced");
+    const workspace = shadow.querySelector(".av-cleanup-workspace");
+    const acknowledgement = shadow.querySelector(".av-cleanup-acknowledgement");
+    const safetyNotice = shadow.querySelector(".av-cleanup-notice");
+    const retiredActions = [...shadow.querySelectorAll("button")]
+      .filter((candidate) =>
+        candidate.textContent === "Preview selected" ||
+        candidate.textContent === "Delete selected account data" ||
+        candidate.textContent === "Run cleanup"
+      ).length;
+    const actionBeforeAdvanced = Boolean(
+      workspace.compareDocumentPosition(advanced) & Node.DOCUMENT_POSITION_FOLLOWING
     );
+    const initialLabel = button.textContent;
+    const initiallyEnabled = !button.disabled;
+    button.click();
+    const pendingLabel = button.textContent;
+    const pendingBusy = button.getAttribute("aria-busy");
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    handle.destroy();
+    return {
+      actionBeforeAdvanced,
+      acknowledgementPresent: acknowledgement !== null,
+      advancedOpen: advanced.open,
+      initialLabel,
+      initiallyEnabled,
+      pendingBusy,
+      pendingLabel,
+      runOptions,
+      primaryCount: primaryActions.length,
+      retiredActions,
+      safetyNoticePresent: safetyNotice !== null
+    };
+  });
+
+  assert.equal(result.primaryCount, 1);
+  assert.equal(result.initialLabel, "Run");
+  assert.equal(result.initiallyEnabled, true);
+  assert.equal(result.acknowledgementPresent, false);
+  assert.equal(result.safetyNoticePresent, false);
+  assert.equal(result.advancedOpen, false);
+  assert.equal(result.actionBeforeAdvanced, true);
+  assert.equal(result.retiredActions, 0);
+  assert.equal(result.pendingLabel, "Starting deletion…");
+  assert.equal(result.pendingBusy, "true");
+  assert.deepEqual(result.runOptions.categories, {
+    bookmarks: true,
+    likes: true,
+    reposts: true,
+    replies: true,
+    posts: true
+  });
+});
+
+test("active cleanup replaces the primary action with only pause resume and stop controls", async () => {
+  const result = await page.evaluate(() => {
+    document.body.replaceChildren();
+    const profile = document.createElement("a");
+    profile.dataset.testid = "AppTabBar_Profile_Link";
+    profile.href = "/alice";
+    document.body.append(profile);
+    const categories = { bookmarks: true, likes: false, reposts: false, replies: false, posts: false };
     const run = {
       schema: 1,
-      id: "preview-1",
+      id: "cleanup-1",
       ownerId: "tab-1",
       account: "alice",
-      status: "complete",
-      phase: "complete",
+      status: "running",
+      phase: "bookmarks",
       reason: null,
-      plan: ["bookmarks", "likes", "reposts", "replies", "posts"],
-      stepIndex: 5,
-      settings: { mode: "preview", categories, pacing: "careful", maxActions: 0 },
-      stats,
-      processed: { bookmarks: [], likes: [], reposts: [], replies: [], posts: [] },
+      plan: ["bookmarks"],
+      stepIndex: 0,
+      settings: { mode: "cleanup", categories, pacing: "careful", maxActions: 0 },
+      stats: { bookmarks: { completed: 1, previewed: 0, failed: 0, skipped: 0 } },
+      processed: { bookmarks: [] },
       failures: {},
-      actionsThisSession: 5,
+      actionsThisSession: 1,
       startedAt: 1,
       updatedAt: 2,
-      finishedAt: 2,
-      leaseUntil: 0
+      finishedAt: null,
+      leaseUntil: 3
     };
-    let received = null;
     const handle = AviaryAccountCleanupDom.mountControlCenter({
       settings: AviaryAccountCleanupDom.cloneSettings(AviaryAccountCleanupDom.DEFAULT_SETTINGS),
       diagnostics: () => [],
@@ -224,38 +298,79 @@ test("the Control Center unlocks deletion only for the exact account phrase", as
       getAccountCleanupStatus: () => ({
         activeHandle: "alice",
         run,
-        runningInThisTab: false,
-        message: "Preview complete. No X account data was changed."
+        runningInThisTab: true,
+        message: "Cleanup is running."
       }),
-      startAccountCleanup: async (options) => {
-        received = options;
-        return { ok: true };
-      },
-      startAccountCleanupPreview: async () => ({ ok: true }),
-      clearAccountCleanupRecord: async () => ({ ok: true })
+      pauseAccountCleanup: async () => ({ ok: true }),
+      resumeAccountCleanup: async () => ({ ok: true }),
+      stopAccountCleanup: async () => ({ ok: true })
     });
     const shadow = document.querySelector("#av-control-center").shadowRoot;
     shadow.querySelector(".av-launcher").click();
     shadow.querySelector('[data-av-section="account"]').click();
-    const input = shadow.querySelector(".av-cleanup-acknowledgement");
-    const button = Array.from(shadow.querySelectorAll("button"))
-      .find((candidate) => candidate.textContent === "Delete selected account data");
-    const initiallyDisabled = button.disabled;
-    input.value = "DELETE @bob";
-    input.dispatchEvent(new Event("input", { bubbles: true }));
-    const wrongDisabled = button.disabled;
-    input.value = "DELETE @alice";
-    input.dispatchEvent(new Event("input", { bubbles: true }));
-    const exactEnabled = !button.disabled;
-    button.click();
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    const labels = () => [...shadow.querySelectorAll(".av-cleanup-buttons button")]
+      .map((button) => button.textContent);
+    const runningLabels = labels();
+    const runningPrimaryCount = shadow.querySelectorAll("[data-av-cleanup-primary]").length;
+    run.status = "paused";
+    handle.refresh();
+    const pausedLabels = labels();
+    const pausedPrimaryCount = shadow.querySelectorAll("[data-av-cleanup-primary]").length;
     handle.destroy();
-    return { initiallyDisabled, wrongDisabled, exactEnabled, received };
+    return { pausedLabels, pausedPrimaryCount, runningLabels, runningPrimaryCount };
   });
 
-  assert.equal(result.initiallyDisabled, true);
-  assert.equal(result.wrongDisabled, true);
-  assert.equal(result.exactEnabled, true);
-  assert.equal(result.received.previewId, "preview-1");
-  assert.equal(result.received.acknowledgement, "DELETE @alice");
+  assert.deepEqual(result.runningLabels, ["Pause", "Stop"]);
+  assert.equal(result.runningPrimaryCount, 0);
+  assert.deepEqual(result.pausedLabels, ["Resume", "Stop"]);
+  assert.equal(result.pausedPrimaryCount, 0);
+});
+
+test("a failed deletion start restores an enabled Run button", async () => {
+  const result = await page.evaluate(async () => {
+    document.body.replaceChildren();
+    const profile = document.createElement("a");
+    profile.dataset.testid = "AppTabBar_Profile_Link";
+    profile.href = "/alice";
+    document.body.append(profile);
+    let errors = 0;
+    const handle = AviaryAccountCleanupDom.mountControlCenter({
+      settings: AviaryAccountCleanupDom.cloneSettings(AviaryAccountCleanupDom.DEFAULT_SETTINGS),
+      diagnostics: () => [],
+      onChange: async () => {},
+      onError() {
+        errors += 1;
+      },
+      getAccountCleanupStatus: () => ({
+        activeHandle: "alice",
+        run: null,
+        runningInThisTab: false,
+        message: "No account cleanup has run."
+      }),
+      startAccountCleanup: async () => {
+        throw new Error("Start failed");
+      }
+    });
+    const shadow = document.querySelector("#av-control-center").shadowRoot;
+    shadow.querySelector(".av-launcher").click();
+    shadow.querySelector('[data-av-section="account"]').click();
+    shadow.querySelector("[data-av-cleanup-primary]").click();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    const button = shadow.querySelector("[data-av-cleanup-primary]");
+    const response = {
+      ariaBusy: button.getAttribute("aria-busy"),
+      enabled: !button.disabled,
+      errors,
+      label: button.textContent
+    };
+    handle.destroy();
+    return response;
+  });
+
+  assert.deepEqual(result, {
+    ariaBusy: null,
+    enabled: true,
+    errors: 1,
+    label: "Run"
+  });
 });

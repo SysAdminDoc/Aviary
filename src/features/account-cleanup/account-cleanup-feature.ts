@@ -11,16 +11,11 @@ import {
   type AccountCleanupStatus
 } from "./state.ts";
 
-interface AccountCleanupDestructiveStartOptions extends AccountCleanupStartOptions {
-  previewId: string;
-  acknowledgement: string;
-}
-
 const EMPTY_STATUS: AccountCleanupStatus = {
   activeHandle: null,
   run: null,
   runningInThisTab: false,
-  message: "No account cleanup has run."
+  message: "Ready."
 };
 
 class AccountCleanupController {
@@ -59,33 +54,10 @@ class AccountCleanupController {
     };
   }
 
-  async preview(options: AccountCleanupStartOptions): Promise<AccountCleanupCommandResult> {
+  async cleanup(options: AccountCleanupStartOptions): Promise<AccountCleanupCommandResult> {
     const account = readActiveAccountHandle();
     if (!account) return this.#fail("login_required");
-    const result = await this.#runner.start("preview", account, options);
-    await this.#afterCommand(result);
-    if (result.ok) {
-      void this.#ctx.auditLog.record("account.cleanup.preview", {
-        account,
-        categories: selectedCategories(options),
-        maxActions: options.maxActions
-      });
-    }
-    return result;
-  }
-
-  async cleanup(options: AccountCleanupDestructiveStartOptions): Promise<AccountCleanupCommandResult> {
-    const account = readActiveAccountHandle();
-    if (!account) return this.#fail("login_required");
-    if (options.acknowledgement.trim() !== `DELETE @${account}`) {
-      return this.#fail("acknowledgement_mismatch");
-    }
-    if (!this.#run || !sameAccountCleanupHandle(this.#run.account, account)) {
-      return this.#fail("preview_required");
-    }
-    const result = await this.#runner.start("cleanup", account, options, {
-      previewId: options.previewId
-    });
+    const result = await this.#runner.start("cleanup", account, options);
     await this.#afterCommand(result);
     if (result.ok) {
       void this.#ctx.auditLog.record("account.cleanup.start", {
@@ -115,12 +87,6 @@ class AccountCleanupController {
     const result = await this.#runner.stop();
     await this.#afterCommand(result);
     if (result.ok) void this.#ctx.auditLog.record("account.cleanup.stop");
-    return result;
-  }
-
-  async clear(): Promise<AccountCleanupCommandResult> {
-    const result = await this.#runner.clear();
-    await this.#afterCommand(result);
     return result;
   }
 
@@ -209,14 +175,8 @@ export function getAccountCleanupStatus(): AccountCleanupStatus {
   return controller?.status() ?? EMPTY_STATUS;
 }
 
-export function startAccountCleanupPreview(
-  options: AccountCleanupStartOptions
-): Promise<AccountCleanupCommandResult> {
-  return controller?.preview(options) ?? Promise.resolve({ ok: false, reason: "not_ready" });
-}
-
 export function startAccountCleanup(
-  options: AccountCleanupDestructiveStartOptions
+  options: AccountCleanupStartOptions
 ): Promise<AccountCleanupCommandResult> {
   return controller?.cleanup(options) ?? Promise.resolve({ ok: false, reason: "not_ready" });
 }
@@ -233,10 +193,6 @@ export function stopAccountCleanup(): Promise<AccountCleanupCommandResult> {
   return controller?.stop() ?? Promise.resolve({ ok: false, reason: "not_ready" });
 }
 
-export function clearAccountCleanupRecord(): Promise<AccountCleanupCommandResult> {
-  return controller?.clear() ?? Promise.resolve({ ok: false, reason: "not_ready" });
-}
-
 function selectedCategories(options: AccountCleanupStartOptions): string[] {
   return ACCOUNT_CLEANUP_CATEGORIES.filter((category) => options.categories[category]);
 }
@@ -246,35 +202,33 @@ function describeRun(run: AccountCleanupRun | null): string {
   if (run.status === "complete") {
     return run.settings.mode === "preview"
       ? "Preview complete. No X account data was changed."
-      : "Selected account cleanup passes are complete.";
+      : "Deletion complete.";
   }
   if (run.status === "paused") {
     return run.reason === "action_limit_reached"
       ? "The action limit was reached. Resume to run another batch."
-      : "Account cleanup paused.";
+      : "Deletion paused.";
   }
   if (run.status === "blocked") return commandFailureMessage(run.reason);
-  if (run.status === "stopped") return "Account cleanup stopped.";
-  return run.settings.mode === "preview" ? "Preview is running." : "Account cleanup is running.";
+  if (run.status === "stopped") return "Deletion stopped.";
+  return run.settings.mode === "preview" ? "Preview is running." : "Deletion is running.";
 }
 
 function commandFailureMessage(reason: string | undefined | null): string {
   const messages: Record<string, string> = {
-    acknowledgement_mismatch: "Type the account-specific acknowledgement exactly as shown.",
     account_changed: "The signed-in account changed. No further actions were taken.",
-    active_in_another_tab: "Another X tab is already running this account cleanup.",
-    already_running: "This tab is already running an account cleanup.",
+    active_in_another_tab: "Another X tab is already running this deletion.",
+    already_running: "This tab is already running a deletion.",
     challenge_detected: "X displayed a login or anti-abuse challenge. Complete it, then resume.",
-    login_required: "Sign in to X before starting account cleanup.",
+    login_required: "Sign in to X before running.",
     no_categories: "Select at least one account category.",
-    nothing_to_pause: "There is no running account cleanup to pause.",
-    nothing_to_resume: "There is no paused account cleanup to resume.",
-    nothing_to_stop: "There is no account cleanup to stop.",
-    not_ready: "Account Cleanup is still loading.",
-    owned_by_another_tab: "Resume this cleanup from the X tab that started it.",
-    preview_required: "Run and finish a matching preview before deleting account data.",
+    nothing_to_pause: "There is no running deletion to pause.",
+    nothing_to_resume: "There is no paused deletion to resume.",
+    nothing_to_stop: "There is no deletion to stop.",
+    not_ready: "Delete X activity is still loading.",
+    owned_by_another_tab: "Resume this deletion from the X tab that started it.",
     repeated_action_failures: "Several actions failed in a row. X may have changed its page controls.",
-    unexpected_error: "An unexpected error stopped the account cleanup."
+    unexpected_error: "An unexpected error stopped the deletion."
   };
-  return messages[reason ?? ""] ?? "The account cleanup command could not be completed.";
+  return messages[reason ?? ""] ?? "The deletion command could not be completed.";
 }
