@@ -131,6 +131,51 @@ test("browser timing is labeled as a shared-map model, apart from extension and 
   });
 });
 
+test("userscript contenders wait for cross-origin propagation before entering", async () => {
+  const previous = {
+    chrome: globalThis.chrome,
+    GM_getValue: globalThis.GM_getValue,
+    GM_setValue: globalThis.GM_setValue,
+    GM_listValues: globalThis.GM_listValues,
+    GM_deleteValue: globalThis.GM_deleteValue
+  };
+  const values = new Map();
+  delete globalThis.chrome;
+  globalThis.GM_getValue = async (key, fallback) =>
+    values.has(key) ? structuredClone(values.get(key)) : fallback;
+  globalThis.GM_setValue = async (key, value) => {
+    values.set(key, structuredClone(value));
+  };
+  globalThis.GM_listValues = async () => [...values.keys()];
+  globalThis.GM_deleteValue = async (key) => {
+    values.delete(key);
+  };
+
+  try {
+    const mod = await importSourceModule("src/platform/storage-lock.ts", { fresh: true });
+    const started = performance.now();
+    await mod.withStorageLock("aviary.userscript.settle", async () => undefined, {
+      restoreGate: false
+    });
+    const elapsed = performance.now() - started;
+    assert.ok(
+      elapsed >= mod.USERSCRIPT_LOCK_SETTLE_MS - 20,
+      `userscript lock entered after ${elapsed}ms instead of waiting for manager propagation`
+    );
+  } finally {
+    if (previous.chrome) globalThis.chrome = previous.chrome;
+    else delete globalThis.chrome;
+    if (previous.GM_getValue) globalThis.GM_getValue = previous.GM_getValue;
+    else delete globalThis.GM_getValue;
+    if (previous.GM_setValue) globalThis.GM_setValue = previous.GM_setValue;
+    else delete globalThis.GM_setValue;
+    if (previous.GM_listValues) globalThis.GM_listValues = previous.GM_listValues;
+    else delete globalThis.GM_listValues;
+    if (previous.GM_deleteValue) globalThis.GM_deleteValue = previous.GM_deleteValue;
+    else delete globalThis.GM_deleteValue;
+  }
+});
+
 test("userscript lock polls read the roster value instead of listing manager storage", async () => {
   const previous = {
     chrome: globalThis.chrome,

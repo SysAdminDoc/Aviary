@@ -72,6 +72,7 @@ async function mountOptions({ granted = [], grantOutcome = true, persistedDiagno
   await page.evaluate(
     ({ initial, outcome, persisted, background }) => {
       const held = new Set(initial);
+      const lockRosters = new Map();
       window.__calls = { request: [], remove: [], contains: [] };
       const key = (request) => JSON.stringify(request.permissions ?? request.origins);
       globalThis.chrome = {
@@ -79,6 +80,18 @@ async function mountOptions({ granted = [], grantOutcome = true, persistedDiagno
           id: "options-test",
           getManifest: () => ({ version: "9.9.9" }),
           async sendMessage(message) {
+            if (message?.type === "AVIARY_STORAGE_LOCK_REGISTER") {
+              const prefix = String(message.prefix ?? "");
+              const entries = new Map(lockRosters.get(prefix) ?? []);
+              if (message.operation === "entries") {
+                return { ok: true, entries: [...entries.entries()] };
+              }
+              if (message.operation === "remove") entries.delete(message.key);
+              else entries.set(message.key, message.value);
+              if (entries.size === 0) lockRosters.delete(prefix);
+              else lockRosters.set(prefix, [...entries.entries()]);
+              return { ok: true };
+            }
             if (message?.type === "AVIARY_STORAGE_FENCE") {
               return {
                 ok: true,
@@ -360,7 +373,11 @@ test("each card explains its own grant rather than borrowing the other's", async
   for (const card of ["downloads", "media"]) {
     await mountOptions();
     await page.click(`#${card}-grant`);
-    await page.waitForTimeout(60);
+    await page.waitForFunction(
+      () => Boolean(document.getElementById("status")?.textContent?.trim()),
+      null,
+      { timeout: 2_000 }
+    );
     messages[card] = await page.evaluate(() => document.getElementById("status").textContent);
   }
 
@@ -406,7 +423,13 @@ test("support diagnostics copy a merged redacted report after a worker restart",
   });
 
   await page.click("#diagnostics-copy");
-  await page.waitForTimeout(60);
+  await page.waitForFunction(
+    () =>
+      /Diagnostics copied/i.test(document.getElementById("diagnostics-status")?.textContent ?? "") &&
+      Boolean(window.__clipboard),
+    null,
+    { timeout: 2_000 }
+  );
   const result = await page.evaluate(() => ({
     status: document.getElementById("diagnostics-status").textContent,
     report: window.__clipboard

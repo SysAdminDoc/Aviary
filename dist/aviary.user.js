@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Aviary for X
 // @namespace    https://github.com/SysAdminDoc
-// @version      1.52.1
+// @version      1.52.2
 // @description  Local-first X/Twitter enhancer with reversible controls and privacy-first defaults.
 // @author       SysAdminDoc
 // @homepage     https://github.com/SysAdminDoc/Aviary
@@ -4168,7 +4168,7 @@ ${body}
   }
 
   // src/platform/build-version.ts
-  var AVIARY_VERSION = false ? "dev" : "1.52.1";
+  var AVIARY_VERSION = false ? "dev" : "1.52.2";
 
   // src/platform/diagnostics.ts
   var UNKNOWN_DIAGNOSTIC_MESSAGE_ID = "diagnostic.unknown";
@@ -9386,7 +9386,7 @@ ${body}
   ];
 
   // src/ui/control-center.ts
-  var AVIARY_VERSION2 = false ? "dev" : "1.52.1";
+  var AVIARY_VERSION2 = false ? "dev" : "1.52.2";
   var MORE_TOOLS_GROUP = "More tools";
   var SECTION_GROUP_BREAKS = {
     presets: [
@@ -15085,6 +15085,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
   var SHARED_LOCK_LEASE_MS = 3e4;
   var SHARED_LOCK_RENEW_MS = 8e3;
   var SHARED_LOCK_POLL_MS = 12;
+  var USERSCRIPT_LOCK_SETTLE_MS = 200;
   function lockManager() {
     const locks = globalThis.navigator?.locks;
     return typeof locks?.request === "function" ? locks : void 0;
@@ -15216,6 +15217,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
         expiresAt: Date.now() + SHARED_LOCK_LEASE_MS
       };
       await store6.write(prefix, key, contender);
+      if (store6.kind === "userscript") await waitForUserscriptLockSettle();
       while (!await lockCanEnter(store6, prefix, contender)) {
         await waitForLockPoll();
         contender = await renewLockContender(store6, key, contender);
@@ -15274,7 +15276,13 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     }
   }
   async function lockCanEnter(store6, prefix, contender) {
-    const peers = await readLockContenders(store6, prefix, contender.owner);
+    const contenders = await readLockContenders(store6, prefix);
+    const self = contenders.find((entry) => entry.owner === contender.owner);
+    if (!self || self.phase !== contender.phase || self.ticket !== contender.ticket || self.mode !== contender.mode) {
+      await store6.write(prefix, `${prefix}.${contender.owner}`, contender);
+      return false;
+    }
+    const peers = contenders.filter((entry) => entry.owner !== contender.owner);
     if (peers.some((peer) => peer.phase === "choosing")) return false;
     return !peers.some((peer) => {
       if (peer.phase !== "waiting") return false;
@@ -15282,7 +15290,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       return compareLockContenders(peer, contender) < 0;
     });
   }
-  async function readLockContenders(store6, prefix, owner) {
+  async function readLockContenders(store6, prefix, excludedOwner) {
     const now6 = Date.now();
     const contenders = [];
     for (const [key, value] of await store6.entries(prefix)) {
@@ -15290,7 +15298,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
         await store6.remove(prefix, key);
         continue;
       }
-      if (value.owner !== owner) contenders.push(value);
+      if (value.owner !== excludedOwner) contenders.push(value);
     }
     return contenders;
   }
@@ -15315,6 +15323,11 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
   function waitForLockPoll() {
     return new Promise((resolve) => {
       globalThis.setTimeout(resolve, SHARED_LOCK_POLL_MS);
+    });
+  }
+  function waitForUserscriptLockSettle() {
+    return new Promise((resolve) => {
+      globalThis.setTimeout(resolve, USERSCRIPT_LOCK_SETTLE_MS);
     });
   }
   function sharedLockRegisterStore() {

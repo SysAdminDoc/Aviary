@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 1.52.2 (2026-09-21)
+
+### Fixed
+
+- Userscript storage locks now wait for cross-origin manager propagation and verify their own
+  roster claim before entering. Tampermonkey and Violentmonkey no longer allow simultaneous writes
+  when x.com and twitter.com contend during a busy run.
+
 ## 1.52.1 (2026-09-21)
 
 ### Fixed

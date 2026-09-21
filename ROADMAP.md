@@ -1,6 +1,6 @@
 # Aviary ROADMAP
 
-Version: `1.52.1`
+Version: `1.52.2`
 
 Date: 2026-09-21
 

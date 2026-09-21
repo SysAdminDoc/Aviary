@@ -94,6 +94,8 @@ export const SHARED_LOCK_LEASE_MS = 30_000;
 export const SHARED_LOCK_RENEW_MS = 8_000;
 /** How often a waiting contender re-reads the register. Bounds handoff latency. */
 export const SHARED_LOCK_POLL_MS = 12;
+/** Gives eventually consistent userscript-manager storage time to expose another origin's claim. */
+export const USERSCRIPT_LOCK_SETTLE_MS = 200;
 
 function lockManager(): LockManagerLike | undefined {
   const locks = (globalThis.navigator as { locks?: LockManagerLike } | undefined)?.locks;
@@ -273,6 +275,7 @@ async function runUnderRegisterLock<T>(
       expiresAt: Date.now() + SHARED_LOCK_LEASE_MS
     };
     await store.write(prefix, key, contender);
+    if (store.kind === "userscript") await waitForUserscriptLockSettle();
 
     while (!(await lockCanEnter(store, prefix, contender))) {
       await waitForLockPoll();
@@ -348,7 +351,18 @@ async function lockCanEnter(
   prefix: string,
   contender: SharedLockContender
 ): Promise<boolean> {
-  const peers = await readLockContenders(store, prefix, contender.owner);
+  const contenders = await readLockContenders(store, prefix);
+  const self = contenders.find((entry) => entry.owner === contender.owner);
+  if (
+    !self ||
+    self.phase !== contender.phase ||
+    self.ticket !== contender.ticket ||
+    self.mode !== contender.mode
+  ) {
+    await store.write(prefix, `${prefix}.${contender.owner}`, contender);
+    return false;
+  }
+  const peers = contenders.filter((entry) => entry.owner !== contender.owner);
   if (peers.some((peer) => peer.phase === "choosing")) return false;
   return !peers.some((peer) => {
     if (peer.phase !== "waiting") return false;
@@ -360,7 +374,7 @@ async function lockCanEnter(
 async function readLockContenders(
   store: SharedLockRegisterStore,
   prefix: string,
-  owner: string
+  excludedOwner?: string
 ): Promise<SharedLockContender[]> {
   const now = Date.now();
   const contenders: SharedLockContender[] = [];
@@ -369,7 +383,7 @@ async function readLockContenders(
       await store.remove(prefix, key);
       continue;
     }
-    if (value.owner !== owner) contenders.push(value);
+    if (value.owner !== excludedOwner) contenders.push(value);
   }
   return contenders;
 }
@@ -415,6 +429,12 @@ function nextLockOwner(): string {
 function waitForLockPoll(): Promise<void> {
   return new Promise((resolve) => {
     globalThis.setTimeout(resolve, SHARED_LOCK_POLL_MS);
+  });
+}
+
+function waitForUserscriptLockSettle(): Promise<void> {
+  return new Promise((resolve) => {
+    globalThis.setTimeout(resolve, USERSCRIPT_LOCK_SETTLE_MS);
   });
 }
 
