@@ -260,6 +260,8 @@ test("the Control Center starts deletion immediately from one Run button", async
     replies: true,
     posts: true
   });
+  assert.equal(result.runOptions.pacing, "balanced");
+  assert.equal(result.runOptions.maxActions, 0);
 });
 
 test("active cleanup replaces the primary action with only pause resume and stop controls", async () => {
@@ -270,6 +272,7 @@ test("active cleanup replaces the primary action with only pause resume and stop
     profile.href = "/alice";
     document.body.append(profile);
     const categories = { bookmarks: true, likes: false, reposts: false, replies: false, posts: false };
+    let statusMessage = "Cleanup is running.";
     const run = {
       schema: 1,
       id: "cleanup-1",
@@ -299,7 +302,7 @@ test("active cleanup replaces the primary action with only pause resume and stop
         activeHandle: "alice",
         run,
         runningInThisTab: true,
-        message: "Cleanup is running."
+        message: statusMessage
       }),
       pauseAccountCleanup: async () => ({ ok: true }),
       resumeAccountCleanup: async () => ({ ok: true }),
@@ -312,16 +315,21 @@ test("active cleanup replaces the primary action with only pause resume and stop
       .map((button) => button.textContent);
     const runningLabels = labels();
     const runningPrimaryCount = shadow.querySelectorAll("[data-av-cleanup-primary]").length;
+    run.phase = "batch_pause";
+    statusMessage = "Resting for 12 seconds after 60 actions. Deletion continues automatically.";
+    handle.refresh();
+    const restGuidance = shadow.querySelector(".av-cleanup-guidance").textContent;
     run.status = "paused";
     handle.refresh();
     const pausedLabels = labels();
     const pausedPrimaryCount = shadow.querySelectorAll("[data-av-cleanup-primary]").length;
     handle.destroy();
-    return { pausedLabels, pausedPrimaryCount, runningLabels, runningPrimaryCount };
+    return { pausedLabels, pausedPrimaryCount, restGuidance, runningLabels, runningPrimaryCount };
   });
 
   assert.deepEqual(result.runningLabels, ["Pause", "Stop"]);
   assert.equal(result.runningPrimaryCount, 0);
+  assert.match(result.restGuidance, /Resting for 12 seconds.*Deletion continues automatically\./);
   assert.deepEqual(result.pausedLabels, ["Resume", "Stop"]);
   assert.equal(result.pausedPrimaryCount, 0);
 });

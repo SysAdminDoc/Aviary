@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Aviary for X
 // @namespace    https://github.com/SysAdminDoc
-// @version      1.51.1
+// @version      1.51.2
 // @description  Local-first X/Twitter enhancer with reversible controls and privacy-first defaults.
 // @author       SysAdminDoc
 // @homepage     https://github.com/SysAdminDoc/Aviary
@@ -3918,7 +3918,7 @@ ${body}
   }
 
   // src/platform/build-version.ts
-  var AVIARY_VERSION = false ? "dev" : "1.51.1";
+  var AVIARY_VERSION = false ? "dev" : "1.51.2";
 
   // src/platform/diagnostics.ts
   var UNKNOWN_DIAGNOSTIC_MESSAGE_ID = "diagnostic.unknown";
@@ -8634,24 +8634,24 @@ ${body}
   var ACCOUNT_CLEANUP_PACING = {
     careful: {
       label: "Careful",
-      minDelayMs: 2600,
-      maxDelayMs: 4800,
-      batchSize: 18,
-      batchPauseMs: 6e4
+      minDelayMs: 2e3,
+      maxDelayMs: 3500,
+      batchSize: 40,
+      batchPauseMs: 2e4
     },
     balanced: {
       label: "Balanced",
-      minDelayMs: 1700,
-      maxDelayMs: 3300,
-      batchSize: 24,
-      batchPauseMs: 45e3
+      minDelayMs: 1e3,
+      maxDelayMs: 1800,
+      batchSize: 60,
+      batchPauseMs: 12e3
     },
     brisk: {
       label: "Brisk",
-      minDelayMs: 950,
-      maxDelayMs: 1900,
-      batchSize: 30,
-      batchPauseMs: 35e3
+      minDelayMs: 400,
+      maxDelayMs: 900,
+      batchSize: 80,
+      batchPauseMs: 6e3
     }
   };
   var ACCOUNT_CLEANUP_TIMING = {
@@ -8659,6 +8659,15 @@ ${body}
     menuTimeoutMs: 2500,
     scrollPauseMs: 1600,
     idleScrollLimit: 14,
+    maxScrollsWithoutAction: 60,
+    requiredEmptyVerificationPasses: 1,
+    likeRateWindowActionLimit: 500,
+    likeRateWindowMs: 15 * 6e4,
+    rateWindowGraceMs: 5e3,
+    recoveryFailureThreshold: 2,
+    maxPageRecoveryAttempts: 5,
+    recoveryPauseBaseMs: 3e4,
+    recoveryPauseMaxMs: 3e5,
     failureBackoffBaseMs: 4e3,
     failureBackoffMaxMs: 9e4,
     leaseMs: 3e4,
@@ -8727,7 +8736,7 @@ ${body}
         source.categories?.[category] !== false
       ])
     );
-    const pacing = source.pacing && source.pacing in ACCOUNT_CLEANUP_PACING ? source.pacing : "careful";
+    const pacing = source.pacing && source.pacing in ACCOUNT_CLEANUP_PACING ? source.pacing : "balanced";
     return {
       mode: source.mode === "cleanup" ? "cleanup" : "preview",
       categories,
@@ -8770,7 +8779,7 @@ ${body}
       })
     );
     const failures = Object.fromEntries(
-      Object.entries(source.failures ?? {}).filter(([key]) => /^(bookmarks|likes|reposts|replies|posts):\d+$/.test(key)).slice(-2e3).map(([key, attempts]) => [key, clampInteger(attempts, 0, 20, 0)])
+      Object.entries(source.failures ?? {}).filter(([key]) => /^(bookmarks|likes|reposts|replies|posts):\d+$/.test(key)).slice(-2e3).map(([key, attempts]) => [key, clampInteger(attempts, 0, 20, 0)]).filter(([, attempts]) => attempts > 0)
     );
     const status = isAccountCleanupStatus(source.status) ? source.status : "paused";
     return {
@@ -8787,6 +8796,25 @@ ${body}
       stats,
       processed,
       failures,
+      pageRecoveryAttempts: clampInteger(
+        source.pageRecoveryAttempts,
+        0,
+        ACCOUNT_CLEANUP_TIMING.maxPageRecoveryAttempts,
+        0
+      ),
+      categoryVerificationPasses: clampInteger(
+        source.categoryVerificationPasses,
+        0,
+        ACCOUNT_CLEANUP_TIMING.requiredEmptyVerificationPasses,
+        0
+      ),
+      likeRateWindowStartedAt: source.likeRateWindowStartedAt === null ? null : finiteNumber(source.likeRateWindowStartedAt, null),
+      likeRateWindowActions: clampInteger(
+        source.likeRateWindowActions,
+        0,
+        ACCOUNT_CLEANUP_TIMING.likeRateWindowActionLimit,
+        0
+      ),
       actionsThisSession: clampInteger(source.actionsThisSession, 0, 1e7, 0),
       startedAt: finiteNumber(source.startedAt, Date.now()),
       updatedAt: finiteNumber(source.updatedAt, Date.now()),
@@ -8817,6 +8845,10 @@ ${body}
         ACCOUNT_CLEANUP_CATEGORIES.map((category) => [category, []])
       ),
       failures: {},
+      pageRecoveryAttempts: 0,
+      categoryVerificationPasses: 0,
+      likeRateWindowStartedAt: null,
+      likeRateWindowActions: 0,
       actionsThisSession: 0,
       startedAt: now6,
       updatedAt: now6,
@@ -8850,6 +8882,10 @@ ${body}
   function clearAccountCleanupTransientState(run) {
     for (const category of ACCOUNT_CLEANUP_CATEGORIES) run.processed[category] = [];
     run.failures = {};
+    run.pageRecoveryAttempts = 0;
+    run.categoryVerificationPasses = 0;
+    run.likeRateWindowStartedAt = null;
+    run.likeRateWindowActions = 0;
     run.leaseUntil = 0;
   }
   function normalizePath2(pathname) {
@@ -9100,7 +9136,7 @@ ${body}
   ];
 
   // src/ui/control-center.ts
-  var AVIARY_VERSION2 = false ? "dev" : "1.51.1";
+  var AVIARY_VERSION2 = false ? "dev" : "1.51.2";
   var MORE_TOOLS_GROUP = "More tools";
   var SECTION_GROUP_BREAKS = {
     presets: [
@@ -9295,7 +9331,7 @@ ${body}
       libraryRestoreRunning: false,
       libraryRestoreAbort: null,
       accountCleanupCategories: savedAccountCleanup ? { ...savedAccountCleanup.categories } : defaultAccountCleanupCategories(),
-      accountCleanupPacing: savedAccountCleanup?.pacing ?? "careful",
+      accountCleanupPacing: savedAccountCleanup?.pacing ?? "balanced",
       accountCleanupMaxActions: savedAccountCleanup?.maxActions ?? 0
     };
     const draftSettings = cloneSettings(options.settings);
@@ -32402,7 +32438,7 @@ a.av-link-clean {
       });
       return result;
     }
-    async claim(ownerId) {
+    async claim(ownerId, resetActions = false) {
       let result = { ok: false, reason: "nothing_to_resume" };
       await mutateStored(this.#storage, ACCOUNT_CLEANUP_KEY, null, (stored) => {
         const current = normalizeAccountCleanupRun(stored);
@@ -32417,7 +32453,7 @@ a.av-link-clean {
         current.phase = "resuming";
         current.reason = null;
         current.finishedAt = null;
-        current.actionsThisSession = 0;
+        if (resetActions) current.actionsThisSession = 0;
         current.updatedAt = now6;
         current.leaseUntil = now6 + ACCOUNT_CLEANUP_TIMING.leaseMs;
         result = { ok: true, run: current };
@@ -32565,7 +32601,7 @@ a.av-link-clean {
         return { ok: false, reason: "owned_by_another_tab" };
       }
       const ownerId = tabToken === current.ownerId ? current.ownerId : createAccountCleanupToken();
-      const result = await this.#store.claim(ownerId);
+      const result = await this.#store.claim(ownerId, !options.automatic);
       if (!result.ok || !result.run) return commandResult(false, result.reason);
       this.#ownerId = ownerId;
       this.#runId = result.run.id;
@@ -32696,9 +32732,12 @@ a.av-link-clean {
       const pacing = ACCOUNT_CLEANUP_PACING[run.settings.pacing];
       const processed = new Set(run.processed[category]);
       let idleScrolls = 0;
+      let scrollsSinceAction = 0;
       let consecutiveFailures = 0;
-      let actionsInBatch = 0;
-      while (idleScrolls < ACCOUNT_CLEANUP_TIMING.idleScrollLimit) {
+      let actionsInBatch = run.stats[category].completed % pacing.batchSize;
+      const categoryLabel2 = ACCOUNT_CLEANUP_CATEGORY_DEFINITIONS[category].label;
+      const categoryLabelLower = categoryLabel2.toLocaleLowerCase();
+      while (idleScrolls < ACCOUNT_CLEANUP_TIMING.idleScrollLimit && scrollsSinceAction < ACCOUNT_CLEANUP_TIMING.maxScrollsWithoutAction) {
         throwIfAborted2(signal);
         if (this.#dependencies.isChallengePresent(this.#document, this.#location)) {
           await this.#blockRun("challenge_detected");
@@ -32711,19 +32750,30 @@ a.av-link-clean {
         }
         const visibleTargets = this.#dependencies.findTargets(category, run.account, this.#document);
         const targets = visibleTargets.filter((target2) => !processed.has(target2.id));
-        this.#emit(
-          "progress",
-          run,
-          `${targets.length} visible ${ACCOUNT_CLEANUP_CATEGORY_DEFINITIONS[category].label.toLocaleLowerCase()} pending.`
-        );
         if (targets.length === 0) {
-          await this.#dependencies.scrollForMore({
+          run.phase = "loading_more";
+          this.#emit("progress", run, `Loading more ${categoryLabelLower}.`);
+          const scrollResult = await this.#dependencies.scrollForMore({
             documentObject: this.#document,
             windowObject: this.#window,
             signal
           });
+          scrollsSinceAction += 1;
           const after = this.#dependencies.findTargets(category, run.account, this.#document).filter((target2) => !processed.has(target2.id));
-          idleScrolls = after.length > 0 ? 0 : idleScrolls + 1;
+          if (after.length > 0) {
+            idleScrolls = 0;
+            this.#emit("progress", run, `${after.length} more ${categoryLabelLower} loaded.`);
+          } else if (scrollResult.changed) {
+            idleScrolls = 0;
+            this.#emit("progress", run, `X is still loading older ${categoryLabelLower}.`);
+          } else {
+            idleScrolls += 1;
+            this.#emit(
+              "progress",
+              run,
+              `Checking for more ${categoryLabelLower} (${idleScrolls}/${ACCOUNT_CLEANUP_TIMING.idleScrollLimit}).`
+            );
+          }
           continue;
         }
         idleScrolls = 0;
@@ -32744,10 +32794,18 @@ a.av-link-clean {
           run.stats[category].previewed += 1;
           run.actionsThisSession += 1;
           run.phase = "previewing";
+          scrollsSinceAction = 0;
           await this.#save(run);
-          this.#emit("action", run, "Preview found one matching action.");
+          this.#emit(
+            "action",
+            run,
+            `${categoryLabel2}: ${run.stats[category].previewed} found.`
+          );
           await this.#dependencies.sleep(35, signal);
           continue;
+        }
+        if (category === "likes" && await this.#waitForLikeRateWindow(run, signal)) {
+          return "navigating";
         }
         const delay2 = randomBetween(pacing.minDelayMs, pacing.maxDelayMs, this.#random);
         run.phase = "waiting";
@@ -32761,16 +32819,38 @@ a.av-link-clean {
           run.processed[category] = boundedIds(processed);
           run.stats[category].completed += 1;
           run.actionsThisSession += 1;
-          run.failures[`${category}:${target.id}`] = 0;
+          if (category === "likes") {
+            if (run.pageRecoveryAttempts > 0) {
+              run.likeRateWindowStartedAt = null;
+              run.likeRateWindowActions = 0;
+            }
+            this.#recordLikeRateWindowAction(run);
+          }
+          delete run.failures[`${category}:${target.id}`];
+          run.pageRecoveryAttempts = 0;
+          run.categoryVerificationPasses = 0;
           consecutiveFailures = 0;
           actionsInBatch += 1;
+          scrollsSinceAction = 0;
           await this.#save(run);
-          this.#emit("action", run, "One account action completed.");
+          this.#emit(
+            "action",
+            run,
+            `${categoryLabel2}: ${run.stats[category].completed} removed.`
+          );
           if (actionsInBatch >= pacing.batchSize) {
             actionsInBatch = 0;
             run.phase = "batch_pause";
             await this.#save(run);
+            this.#emit(
+              "status",
+              run,
+              `Resting for ${Math.ceil(pacing.batchPauseMs / 1e3)} seconds after ${pacing.batchSize} actions. Deletion continues automatically.`
+            );
             await this.#dependencies.sleep(pacing.batchPauseMs, signal);
+            run.phase = "scanning";
+            await this.#save(run);
+            this.#emit("status", run, `Continuing ${categoryLabel2}.`);
           }
           continue;
         }
@@ -32779,6 +32859,8 @@ a.av-link-clean {
           processed.add(target.id);
           run.processed[category] = boundedIds(processed);
           run.stats[category].skipped += 1;
+          run.pageRecoveryAttempts = 0;
+          scrollsSinceAction = 0;
           await this.#save(run);
           this.#emit("action", run, "One item was skipped because its expected control was missing.");
           continue;
@@ -32788,13 +32870,10 @@ a.av-link-clean {
         run.failures[failureKey] = attempts;
         run.stats[category].failed += 1;
         consecutiveFailures += 1;
-        if (attempts >= 2) {
-          processed.add(target.id);
-          run.processed[category] = boundedIds(processed);
-        }
         await this.#save(run);
         this.#emit("action", run, `An account action failed: ${outcome.reason ?? "unknown_error"}.`);
-        if (consecutiveFailures >= 4) {
+        if (consecutiveFailures >= ACCOUNT_CLEANUP_TIMING.recoveryFailureThreshold) {
+          if (await this.#recoverPage(run, category, signal)) return "navigating";
           await this.#blockRun("repeated_action_failures");
           return "blocked";
         }
@@ -32804,10 +32883,102 @@ a.av-link-clean {
           ACCOUNT_CLEANUP_TIMING.failureBackoffMaxMs
         ), signal);
       }
+      if (run.settings.mode === "cleanup" && run.categoryVerificationPasses < ACCOUNT_CLEANUP_TIMING.requiredEmptyVerificationPasses) {
+        run.categoryVerificationPasses += 1;
+        run.processed[category] = [];
+        run.pageRecoveryAttempts = 0;
+        run.phase = "verification_reload";
+        run.reason = category;
+        await this.#save(run);
+        this.#emit(
+          "navigation",
+          run,
+          `Reloading ${categoryLabel2} from the top to verify that nothing was missed.`
+        );
+        this.#stopRenewal();
+        this.#location.assign(new URL(accountCleanupRouteFor(category, run.account), "https://x.com").href);
+        return "navigating";
+      }
       run.phase = "category_complete";
       run.reason = category;
+      run.pageRecoveryAttempts = 0;
+      run.categoryVerificationPasses = 0;
       await this.#save(run);
+      this.#emit(
+        "progress",
+        run,
+        run.settings.mode === "cleanup" ? `Fresh verification found no more ${categoryLabelLower}.` : `No more ${categoryLabelLower} found.`
+      );
       return "complete";
+    }
+    #recordLikeRateWindowAction(run) {
+      const now6 = this.#clock();
+      const startedAt = run.likeRateWindowStartedAt;
+      if (startedAt === null || now6 >= startedAt + ACCOUNT_CLEANUP_TIMING.likeRateWindowMs) {
+        run.likeRateWindowStartedAt = now6;
+        run.likeRateWindowActions = 0;
+      }
+      run.likeRateWindowActions += 1;
+    }
+    async #waitForLikeRateWindow(run, signal) {
+      const startedAt = run.likeRateWindowStartedAt;
+      if (startedAt === null || run.likeRateWindowActions < ACCOUNT_CLEANUP_TIMING.likeRateWindowActionLimit) {
+        return false;
+      }
+      const remainingMs = startedAt + ACCOUNT_CLEANUP_TIMING.likeRateWindowMs - this.#clock();
+      if (remainingMs <= 0) {
+        run.likeRateWindowStartedAt = null;
+        run.likeRateWindowActions = 0;
+        await this.#save(run);
+        return false;
+      }
+      const waitMs = remainingMs + ACCOUNT_CLEANUP_TIMING.rateWindowGraceMs;
+      run.phase = "rate_limit_wait";
+      run.reason = "likes";
+      await this.#save(run);
+      this.#emit(
+        "status",
+        run,
+        `X's 500-action Like limit was reached. Waiting ${formatWaitDuration(remainingMs)} for the next window. Deletion continues automatically.`
+      );
+      await this.#dependencies.sleep(waitMs, signal);
+      run.likeRateWindowStartedAt = null;
+      run.likeRateWindowActions = 0;
+      run.phase = "recovering";
+      await this.#save(run);
+      this.#emit("navigation", run, "Reloading Likes for the next X rate window.");
+      this.#stopRenewal();
+      this.#location.assign(new URL(this.#location.pathname, "https://x.com").href);
+      return true;
+    }
+    async #recoverPage(run, category, signal) {
+      if (run.pageRecoveryAttempts >= ACCOUNT_CLEANUP_TIMING.maxPageRecoveryAttempts) return false;
+      run.pageRecoveryAttempts += 1;
+      run.phase = "recovery_wait";
+      run.reason = category;
+      await this.#save(run);
+      const label = ACCOUNT_CLEANUP_CATEGORY_DEFINITIONS[category].label;
+      const waitMs = exponentialBackoff(
+        run.pageRecoveryAttempts,
+        ACCOUNT_CLEANUP_TIMING.recoveryPauseBaseMs,
+        ACCOUNT_CLEANUP_TIMING.recoveryPauseMaxMs
+      );
+      this.#emit(
+        "status",
+        run,
+        `X did not apply the action twice. Waiting ${Math.ceil(waitMs / 1e3)} seconds before reloading ${label} (${run.pageRecoveryAttempts}/${ACCOUNT_CLEANUP_TIMING.maxPageRecoveryAttempts}).`
+      );
+      await this.#dependencies.sleep(waitMs, signal);
+      run.phase = "recovering";
+      await this.#save(run);
+      this.#emit(
+        "navigation",
+        run,
+        `Reloading ${label} now. Deletion continues automatically.`
+      );
+      this.#stopRenewal();
+      this.#location.assign(new URL(this.#location.pathname, "https://x.com").href);
+      return true;
     }
     async #performTarget(target, signal) {
       try {
@@ -32885,10 +33056,16 @@ a.av-link-clean {
       account_changed: "The signed-in account changed. No further actions were taken.",
       challenge_detected: "X displayed a login or anti-abuse challenge. Complete it, then resume.",
       login_required: "Sign in to X, then resume.",
-      repeated_action_failures: "Several actions failed in a row. X may have changed its page controls.",
+      repeated_action_failures: "X did not apply the action after five automatic page reloads. Resume to try again.",
       unexpected_error: "An unexpected error stopped the account cleanup."
     };
     return messages[reason] ?? "The account cleanup is blocked and needs attention.";
+  }
+  function formatWaitDuration(milliseconds) {
+    const totalSeconds = Math.max(1, Math.ceil(milliseconds / 1e3));
+    if (totalSeconds < 60) return `${totalSeconds} seconds`;
+    const minutes = Math.ceil(totalSeconds / 60);
+    return `${minutes} ${minutes === 1 ? "minute" : "minutes"}`;
   }
   function commandResult(ok, reason) {
     return reason ? { ok, reason } : { ok };
@@ -33071,7 +33248,7 @@ a.av-link-clean {
       nothing_to_stop: "There is no deletion to stop.",
       not_ready: "Delete X activity is still loading.",
       owned_by_another_tab: "Resume this deletion from the X tab that started it.",
-      repeated_action_failures: "Several actions failed in a row. X may have changed its page controls.",
+      repeated_action_failures: "X did not apply the action after five automatic page reloads. Resume to try again.",
       unexpected_error: "An unexpected error stopped the deletion."
     };
     return messages[reason ?? ""] ?? "The deletion command could not be completed.";

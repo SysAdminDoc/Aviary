@@ -466,12 +466,24 @@ It can remove bookmarks and likes, undo reposts, then delete replies and posts.
 - The signed-in handle comes from X's profile navigation or account switcher. It is checked before
   the pass and while each category is scanned. A changed account blocks the run.
 - **Advanced options** contains Careful, Balanced and Brisk pacing plus the optional action limit.
-  Pacing adds randomized waits and longer rests. A limited run pauses at the boundary, and Resume
-  begins a fresh batch.
+  Balanced is the default. Every speed uses short randomized waits, and the status line names each
+  automatic rest before work continues. A limited run pauses at the boundary, and Resume begins a
+  fresh batch. Automatic route changes and recovery reloads do not reset that limit.
 - A pass can move through `/i/history`, `/i/history/likes`, `/handle/reposts`,
   `/handle/with_replies` and `/handle`. The owning tab resumes after each navigation.
-- X login and anti-abuse challenges block the run. Four consecutive action failures block it too.
-  Missing delete controls are skipped rather than guessed.
+- End-of-list checks continue while X is adding older activity. A category finishes only after the
+  timeline stops changing across consecutive checks.
+- Before a destructive category finishes, Aviary reloads that route from the top and requires a
+  fresh pass with no matching controls. If the reload exposes an item omitted by the long scrolled
+  timeline, Aviary removes it and verifies from the top again.
+- X currently returns a 500-action, 15-minute limit for Like removals. Aviary tracks that window,
+  shows the remaining wait after action 500, then reloads once and continues automatically. The
+  wait survives an extension reload or a manual pause.
+- An unchanged action is retried. Two consecutive failures start a 30-second recovery wait, reload
+  the current X page, and continue. Later waits grow gradually. Five unsuccessful recovery reloads
+  block the run for review instead of skipping the item.
+- X login and anti-abuse challenges block the run. Missing delete controls are skipped rather than
+  guessed.
 - Deletion recognizes X's confirmation control, known localized delete labels, or X's danger-red
   menu treatment. If none is present, the menu closes and nothing is deleted.
 - The resumable job keeps bounded status ids while it is active. It never stores post text. Status

@@ -2,6 +2,40 @@
 
 ## Unreleased
 
+## 1.51.2 (2026-09-20)
+
+### Fixed
+
+- **Delete X activity no longer looks frozen during normal work.** The Control Center now says when
+  Aviary is loading older activity, checking the end of a list, resting between batches, and
+  continuing after a rest.
+- End-of-list detection now follows X while the timeline is still growing. Fourteen consecutive
+  unchanged checks are required before a category is finished, with a separate hard limit to stop
+  a broken timeline from looping forever.
+- Each destructive category now reloads from the top and must pass a fresh empty scan before it can
+  finish. If that check finds activity X omitted from the first scrolled pass, Aviary removes it and
+  verifies again.
+- Batch progress survives a page reload. A reload no longer resets the count used for the next
+  automatic rest or the optional action limit. Only pressing Resume starts a fresh limited batch.
+- A temporarily unchanged X control is retried instead of being discarded after two attempts. If
+  both attempts fail, Aviary waits 30 seconds, reloads that X page, and continues. The wait doubles
+  after another failure, up to five recovery reloads, so a temporary X limit does not end the run.
+- Authenticated testing confirmed that X returns HTTP 429 after 500 Like removals in a 15-minute
+  rate window. Aviary now tracks successful Like removals, shows the remaining wait, and reloads
+  once for the next window before it sends action 501.
+- Successful actions no longer leave zero-valued failure records in storage. Long cleanup runs now
+  retain only real failure attempts.
+- The authenticated end-to-end run removed 2,868 Likes, undid a controlled repost, deleted a
+  controlled post, and finished with zero matching controls on fresh Likes, Reposts, and Posts
+  routes. Fresh verification found 104 Likes that X omitted from the first long scrolled pass.
+
+### Changed
+
+- Balanced is now the default speed. All three speed settings use shorter rests and larger batches;
+  Brisk waits 0.4 to 0.9 seconds per action and rests for six seconds after 80 actions.
+- Long runs send one screen update per completed action instead of redrawing the Control Center
+  again for the immediately following visible-item count.
+
 ## 1.51.1 (2026-09-20)
 
 ### Changed

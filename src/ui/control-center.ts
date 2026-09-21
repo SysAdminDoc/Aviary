@@ -740,7 +740,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     accountCleanupCategories: savedAccountCleanup
       ? { ...savedAccountCleanup.categories }
       : defaultAccountCleanupCategories(),
-    accountCleanupPacing: savedAccountCleanup?.pacing ?? "careful",
+    accountCleanupPacing: savedAccountCleanup?.pacing ?? "balanced",
     accountCleanupMaxActions: savedAccountCleanup?.maxActions ?? 0
   };
   const draftSettings = cloneSettings(options.settings);

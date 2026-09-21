@@ -270,11 +270,24 @@ markup for them. The current build does not pretend that those surfaces are supp
 
 Open **Delete X activity**, select bookmarks, likes, reposts, replies or posts, then press **Run**.
 Deletion starts immediately. There is no preview, arming phrase or confirmation step. Pacing and
-batch controls are tucked under **Advanced options**.
+batch controls are tucked under **Advanced options**. Balanced is the default speed. The live status
+names each automatic rest and says when X is still loading older activity, so a long pass does not
+look stuck.
+
+X currently accepts 500 Like removals in a 15-minute rate window. After removal 500, Aviary shows
+the remaining wait and continues automatically when the next window opens. Closing or reloading the
+Control Center does not cancel that wait.
+
+Every selected category is reloaded from the top before it is marked complete. Aviary requires a
+fresh empty pass, and repeats that verification when X exposes an item the first scrolled pass
+missed.
 
 The signed-in handle is checked throughout the pass. Cleanup stops if the account changes, if X
-shows a login or anti-abuse challenge, or if several actions fail in a row. You can also set a batch
-limit, pause, resume or stop. Deleted posts and replies cannot be restored.
+shows a login or anti-abuse challenge, or if repeated page reloads cannot recover an unchanged
+action. A temporary failure is retried. After two consecutive failures, Aviary waits 30 seconds,
+reloads the current X page, and continues. Later recovery waits grow if X still does not accept the
+action. You can also set a batch limit, pause, resume or stop. Deleted posts and replies cannot be
+restored.
 
 ## Will Aviary post, follow, like, or delete for me?
 

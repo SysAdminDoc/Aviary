@@ -71,24 +71,24 @@ export const ACCOUNT_CLEANUP_PACING: Record<
 > = {
   careful: {
     label: "Careful",
-    minDelayMs: 2_600,
-    maxDelayMs: 4_800,
-    batchSize: 18,
-    batchPauseMs: 60_000
+    minDelayMs: 2_000,
+    maxDelayMs: 3_500,
+    batchSize: 40,
+    batchPauseMs: 20_000
   },
   balanced: {
     label: "Balanced",
-    minDelayMs: 1_700,
-    maxDelayMs: 3_300,
-    batchSize: 24,
-    batchPauseMs: 45_000
+    minDelayMs: 1_000,
+    maxDelayMs: 1_800,
+    batchSize: 60,
+    batchPauseMs: 12_000
   },
   brisk: {
     label: "Brisk",
-    minDelayMs: 950,
-    maxDelayMs: 1_900,
-    batchSize: 30,
-    batchPauseMs: 35_000
+    minDelayMs: 400,
+    maxDelayMs: 900,
+    batchSize: 80,
+    batchPauseMs: 6_000
   }
 };
 
@@ -97,6 +97,15 @@ export const ACCOUNT_CLEANUP_TIMING = {
   menuTimeoutMs: 2_500,
   scrollPauseMs: 1_600,
   idleScrollLimit: 14,
+  maxScrollsWithoutAction: 60,
+  requiredEmptyVerificationPasses: 1,
+  likeRateWindowActionLimit: 500,
+  likeRateWindowMs: 15 * 60_000,
+  rateWindowGraceMs: 5_000,
+  recoveryFailureThreshold: 2,
+  maxPageRecoveryAttempts: 5,
+  recoveryPauseBaseMs: 30_000,
+  recoveryPauseMaxMs: 300_000,
   failureBackoffBaseMs: 4_000,
   failureBackoffMaxMs: 90_000,
   leaseMs: 30_000,
@@ -131,6 +140,10 @@ export interface AccountCleanupRun {
   stats: Record<AccountCleanupCategory, AccountCleanupCategoryStats>;
   processed: Record<AccountCleanupCategory, string[]>;
   failures: Record<string, number>;
+  pageRecoveryAttempts: number;
+  categoryVerificationPasses: number;
+  likeRateWindowStartedAt: number | null;
+  likeRateWindowActions: number;
   actionsThisSession: number;
   startedAt: number;
   updatedAt: number;
@@ -237,7 +250,7 @@ export function normalizeAccountCleanupSettings(value: unknown): AccountCleanupS
   ) as Record<AccountCleanupCategory, boolean>;
   const pacing = source.pacing && source.pacing in ACCOUNT_CLEANUP_PACING
     ? source.pacing
-    : "careful";
+    : "balanced";
   return {
     mode: source.mode === "cleanup" ? "cleanup" : "preview",
     categories,
@@ -296,7 +309,8 @@ export function normalizeAccountCleanupRun(value: unknown): AccountCleanupRun | 
     Object.entries(source.failures ?? {})
       .filter(([key]) => /^(bookmarks|likes|reposts|replies|posts):\d+$/.test(key))
       .slice(-2_000)
-      .map(([key, attempts]) => [key, clampInteger(attempts, 0, 20, 0)])
+      .map(([key, attempts]) => [key, clampInteger(attempts, 0, 20, 0)] as const)
+      .filter(([, attempts]) => attempts > 0)
   );
   const status = isAccountCleanupStatus(source.status) ? source.status : "paused";
   return {
@@ -313,6 +327,27 @@ export function normalizeAccountCleanupRun(value: unknown): AccountCleanupRun | 
     stats,
     processed,
     failures,
+    pageRecoveryAttempts: clampInteger(
+      source.pageRecoveryAttempts,
+      0,
+      ACCOUNT_CLEANUP_TIMING.maxPageRecoveryAttempts,
+      0
+    ),
+    categoryVerificationPasses: clampInteger(
+      source.categoryVerificationPasses,
+      0,
+      ACCOUNT_CLEANUP_TIMING.requiredEmptyVerificationPasses,
+      0
+    ),
+    likeRateWindowStartedAt: source.likeRateWindowStartedAt === null
+      ? null
+      : finiteNumber(source.likeRateWindowStartedAt, null),
+    likeRateWindowActions: clampInteger(
+      source.likeRateWindowActions,
+      0,
+      ACCOUNT_CLEANUP_TIMING.likeRateWindowActionLimit,
+      0
+    ),
     actionsThisSession: clampInteger(source.actionsThisSession, 0, 10_000_000, 0),
     startedAt: finiteNumber(source.startedAt, Date.now()),
     updatedAt: finiteNumber(source.updatedAt, Date.now()),
@@ -350,6 +385,10 @@ export function createAccountCleanupRun(input: {
       ACCOUNT_CLEANUP_CATEGORIES.map((category) => [category, [] as string[]])
     ) as Record<AccountCleanupCategory, string[]>,
     failures: {},
+    pageRecoveryAttempts: 0,
+    categoryVerificationPasses: 0,
+    likeRateWindowStartedAt: null,
+    likeRateWindowActions: 0,
     actionsThisSession: 0,
     startedAt: now,
     updatedAt: now,
@@ -395,6 +434,10 @@ export function createAccountCleanupToken(): string {
 export function clearAccountCleanupTransientState(run: AccountCleanupRun): void {
   for (const category of ACCOUNT_CLEANUP_CATEGORIES) run.processed[category] = [];
   run.failures = {};
+  run.pageRecoveryAttempts = 0;
+  run.categoryVerificationPasses = 0;
+  run.likeRateWindowStartedAt = null;
+  run.likeRateWindowActions = 0;
   run.leaseUntil = 0;
 }
 

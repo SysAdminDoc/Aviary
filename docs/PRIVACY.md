@@ -1,6 +1,6 @@
 # Aviary Privacy Manifest
 
-Updated: 2026-09-20 · release 1.51.1
+Updated: 2026-09-20 · release 1.51.2
 
 ## Defaults and network boundaries
 
@@ -149,7 +149,7 @@ bounded roster under one manager key.
 | `aviary.library.underTheHood.v1` | Normalized monthly summaries from JSON reports the user downloaded from X, including reporting periods, aggregate label names, counts, and explanations | Read X's own summary locally, compare stored months, include it in library backups, or export the normalized copy. Aviary never adds ranking weights or infers a production score. |
 | `aviary.userNotes.v1` | Private account notes | Decorate matching posts; **Clear all account notes** removes them. |
 | `aviary.cleanupQueue.v1` | Review candidates from local Library cleanup previews | Review-only queue; **Clear cleanup queue** removes it. This store never triggers an X action. |
-| `aviary.accountCleanup.v1` | Signed-in handle, selected categories, pass state, counts, pacing, and bounded status ids or failure keys while a pass can resume | Resume Account Cleanup across X routes. Post text is never stored. Status ids and failure keys are removed when the pass completes or is stopped; **Clear cleanup record** removes the remaining summary. |
+| `aviary.accountCleanup.v1` | Signed-in handle, selected categories, pass state, counts, pacing, recovery and fresh-pass state, the current Like rate-window timestamp and count, and bounded status ids or active failure keys while a pass can resume | Resume Account Cleanup across X routes, verify each category from the top, and wait for X's next Like-removal window without losing progress. Post text is never stored. Status ids, failure keys, verification state, and rate-window data are removed when the pass completes or is stopped; **Clear cleanup record** removes the remaining summary. |
 | `aviary.semanticIndex.v1` | Embedding vectors and record metadata | Local semantic search; **Clear semantic index** removes it. |
 | `aviary.archive.imports.v1` | Official X archive import jobs and checkpoints | Pause/resume/retry imports and preserve progress. |
 | `aviary.archive.library.v1` | Imported archive collections, including typed account/media/list data | Keep archive data separate from public-post search. |

@@ -227,7 +227,7 @@ function commandFailureMessage(reason: string | undefined | null): string {
     nothing_to_stop: "There is no deletion to stop.",
     not_ready: "Delete X activity is still loading.",
     owned_by_another_tab: "Resume this deletion from the X tab that started it.",
-    repeated_action_failures: "Several actions failed in a row. X may have changed its page controls.",
+    repeated_action_failures: "X did not apply the action after five automatic page reloads. Resume to try again.",
     unexpected_error: "An unexpected error stopped the deletion."
   };
   return messages[reason ?? ""] ?? "The deletion command could not be completed.";
