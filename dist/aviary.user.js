@@ -1115,14 +1115,16 @@ var Aviary = (() => {
   var MEDIA_CONTEXT_ATTRIBUTE = "data-av-media-context";
   var MEDIA_ASPECT_PROPERTY = "--av-media-aspect";
   var MEDIA_HOST_MAX_PROPERTY = "--av-media-host-max";
+  var MEDIA_VIEWPORT_MAX_PROPERTY = "--av-media-viewport-max";
   var MEDIA_SELECTOR = '[data-testid="tweetPhoto"], [data-testid="videoPlayer"], [data-testid="videoComponent"]';
   var CARD_BOUNDARY_SELECTOR = '[data-testid="card.wrapper"]';
   var CONVERSATION_LINE_MAX_WIDTH = 3;
   var CONVERSATION_LINE_MIN_HEIGHT = 12;
   var CONVERSATION_LINE_CENTER_TOLERANCE = 4;
-  var PRIMARY_MEDIA_MAX_WIDTH_PX = 960;
   var CONTEXT_MEDIA_MAX_WIDTH_PX = 720;
   var MEDIA_MAX_VIEWPORT_HEIGHT_PERCENT = 72;
+  var PROFILE_HEADER_MAX_WIDTH_PX = 960;
+  var listeningForMediaResize = false;
   var themeFeature = {
     id: "appearance.theme",
     title: "Theme foundation",
@@ -1159,6 +1161,7 @@ var Aviary = (() => {
       syncConversationStructure(false);
       syncWideStructure(false);
       syncMediaStructure(false);
+      syncMediaResizeListener(false);
       setColorScheme(document.documentElement, void 0);
       ctx.diagnostics.info("Theme foundation destroyed");
     }
@@ -1181,6 +1184,7 @@ var Aviary = (() => {
     root.dataset.avWidth = settings.appearance.timelineWidth;
     syncWideStructure(settings.appearance.timelineWidth === "wide");
     syncMediaStructure(theme !== "off");
+    syncMediaResizeListener(theme !== "off");
     root.classList.toggle("av-chirp", settings.appearance.restoreChirp);
     root.classList.toggle("av-dense", settings.appearance.denseMode);
     root.classList.toggle("av-hide-counts", settings.appearance.hideCounts);
@@ -1319,11 +1323,28 @@ var Aviary = (() => {
   }
   function stampMediaFrame(frame, media, kind) {
     const hostMax = kind === "reply" ? finiteComputedMax(frame) : null;
+    const aspect = mediaAspect(media, frame);
     frame.setAttribute(MEDIA_FRAME_ATTRIBUTE, kind);
-    frame.style.setProperty(MEDIA_ASPECT_PROPERTY, String(mediaAspect(media, frame)));
+    frame.style.setProperty(MEDIA_ASPECT_PROPERTY, String(aspect));
+    setMediaViewportMax(frame, aspect);
     if (hostMax) {
       frame.style.setProperty(MEDIA_HOST_MAX_PROPERTY, hostMax);
     }
+  }
+  function setMediaViewportMax(frame, aspect) {
+    const max = Math.max(1, Math.round(window.innerHeight * (MEDIA_MAX_VIEWPORT_HEIGHT_PERCENT / 100) * aspect));
+    frame.style.setProperty(MEDIA_VIEWPORT_MAX_PROPERTY, `${max}px`);
+  }
+  function refreshMediaViewportMax() {
+    for (const frame of Array.from(document.querySelectorAll(`[${MEDIA_FRAME_ATTRIBUTE}]`))) {
+      const aspect = Number.parseFloat(frame.style.getPropertyValue(MEDIA_ASPECT_PROPERTY));
+      if (Number.isFinite(aspect) && aspect > 0) setMediaViewportMax(frame, aspect);
+    }
+  }
+  function syncMediaResizeListener(enabled3) {
+    if (enabled3 === listeningForMediaResize) return;
+    listeningForMediaResize = enabled3;
+    window[enabled3 ? "addEventListener" : "removeEventListener"]("resize", refreshMediaViewportMax);
   }
   function clearMediaStructure() {
     for (const node of Array.from(
@@ -1333,6 +1354,7 @@ var Aviary = (() => {
       node.removeAttribute(MEDIA_CONTEXT_ATTRIBUTE);
       node.style.removeProperty(MEDIA_ASPECT_PROPERTY);
       node.style.removeProperty(MEDIA_HOST_MAX_PROPERTY);
+      node.style.removeProperty(MEDIA_VIEWPORT_MAX_PROPERTY);
     }
   }
   function mediaBoundary(article, media) {
@@ -1630,21 +1652,18 @@ html[data-av-theme] article[data-testid="tweet"] [role="group"] > :not([data-av-
   min-height: 36px;
 }
 
-html[data-av-width="wide"][data-av-surface="timeline"]
-  article[data-testid="tweet"] [role="group"],
-html[data-av-width="wide"][data-av-surface="conversation"]
-  article[data-av-conversation-role="focal"] [role="group"] {
+html[data-av-width="wide"] article[data-testid="tweet"] [role="group"] {
   justify-content: space-between;
-  width: min(100%, ${PRIMARY_MEDIA_MAX_WIDTH_PX}px) !important;
-  max-width: ${PRIMARY_MEDIA_MAX_WIDTH_PX}px !important;
+  width: 100% !important;
+  max-width: none !important;
 }
 
-/* Bound the frame that owns media geometry, not the absolutely positioned media child. Width is
-   capped both in pixels and by intrinsic aspect ratio, so portrait images and videos never grow
-   taller than 72% of the viewport. Context media stays smaller and a reply also honors any tighter
-   cap X already supplied. */
+/* Bound the frame that owns media geometry, not the absolutely positioned media child. Primary
+   media can use the full post width but its intrinsic aspect ratio prevents it from growing taller
+   than 72% of the viewport. Context media stays smaller and a reply also honors any tighter cap X
+   already supplied. */
 html[data-av-theme] [${MEDIA_FRAME_ATTRIBUTE}="primary"] {
-  --av-media-max-inline: ${PRIMARY_MEDIA_MAX_WIDTH_PX}px;
+  --av-media-max-inline: 100%;
 }
 
 html[data-av-theme] [${MEDIA_FRAME_ATTRIBUTE}="reply"] {
@@ -1656,7 +1675,7 @@ html[data-av-theme] [${MEDIA_FRAME_ATTRIBUTE}] {
     100%,
     var(${MEDIA_HOST_MAX_PROPERTY}, 100%),
     var(--av-media-max-inline),
-    calc(${MEDIA_MAX_VIEWPORT_HEIGHT_PERCENT}vh * var(${MEDIA_ASPECT_PROPERTY}))
+    var(${MEDIA_VIEWPORT_MAX_PROPERTY})
   ) !important;
   max-block-size: ${MEDIA_MAX_VIEWPORT_HEIGHT_PERCENT}vh !important;
 }
@@ -1736,6 +1755,13 @@ html[data-av-theme][data-av-surface="conversation"] [data-av-conversation-role="
   max-inline-size: min(68ch, 100%);
   font-size: 15.5px;
   line-height: 1.52;
+}
+
+/* Wide means the post content is wide too. The earlier character caps left a narrow text island
+   and short action row inside an otherwise full-width post on ultrawide displays. */
+html[data-av-width="wide"] article[data-testid="tweet"] [data-testid="tweetText"] {
+  inline-size: 100%;
+  max-inline-size: none !important;
 }
 
 html[data-av-theme][data-av-surface="conversation"] [data-testid^="tweetTextarea_"] {
@@ -1996,10 +2022,10 @@ html[data-av-width="wide"] [${WIDE_STREAM_ATTRIBUTE}] {
 html[data-av-width="wide"] [${PROFILE_HEADER_ATTRIBUTE}] {
   --av-profile-gutter: clamp(16px, 4.1vw, 64px);
   width: min(
-    ${PRIMARY_MEDIA_MAX_WIDTH_PX}px,
+    ${PROFILE_HEADER_MAX_WIDTH_PX}px,
     calc(100% - var(--av-profile-gutter) - var(--av-profile-gutter))
   ) !important;
-  max-width: ${PRIMARY_MEDIA_MAX_WIDTH_PX}px !important;
+  max-width: ${PROFILE_HEADER_MAX_WIDTH_PX}px !important;
   margin-inline-start: var(--av-profile-gutter) !important;
 }
 

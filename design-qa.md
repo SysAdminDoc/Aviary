@@ -14,9 +14,12 @@ Aviary 1.52.0: 15 destinations, 77 committed PNG baselines, 21 selector surfaces
 ## v1.52.0 live X layout audit
 
 - Verified Home, Search, Profile, and post-detail routes with the signed-in test account.
-- Checked desktop widths of 1920 and 1440 pixels, then compact widths of 768 and 390 pixels.
+- Checked desktop widths of 2851, 1920, and 1440 pixels, then compact widths of 768 and 390 pixels.
 - The real timeline lane now expands with Wide instead of staying at X's internal 600px cap.
-- Primary media stops at 960px and 72% of the viewport height. Quoted media stays within 720px.
+- At 2851px, live post text and action rows measured 2419px with no character-count cap. The page
+  stayed free of horizontal overflow.
+- Primary media grows according to its shape until it reaches 72% of the viewport height. Quoted
+  media stays within 720px.
 - Profile identity content stays on a 960px lane. The avatar is 160px on desktop and 112px on
   compact screens.
 - Video, portrait image, multi-image gallery, quoted-post, reply, and settings-panel states had no

@@ -58,10 +58,11 @@ a file instead of saving it when that optional permission is absent.
 
 ## Start in Noir and use the full timeline
 
-Fresh installs apply Noir and Wide. Posts use the space beside navigation while media stays within
-a readable 960px frame and 72% of the viewport height. Wide hides X's discovery rail. Ad removal
-and media buttons are also on; filters, offscreen video pausing, and broader analytics refusal wait
-for you to enable them.
+Fresh installs apply Noir and Wide. Post text and action rows use all available space beside
+navigation. Primary media grows with the post until its natural shape would exceed 72% of the
+viewport height, while replies and quoted cards stay compact. Wide hides X's discovery rail. Ad
+removal and media buttons are also on; filters, offscreen video pausing, and broader analytics
+refusal wait for you to enable them.
 
 - **Save media from a post.** Download photos, or the best direct video URL Aviary has observed.
   Media history helps prevent duplicate downloads. Adaptive video can use an optional local

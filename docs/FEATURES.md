@@ -47,10 +47,11 @@ Noir and Wide are the install defaults. Wide releases X's inner 600px stream lan
 discovery rail, so posts use the space beside navigation instead of widening an empty outer column.
 Off restores X's own colors, while Default or Comfortable returns to a narrower timeline.
 
-Primary photo and video frames stop at 960px and 72% of the viewport height. Reply and quoted-post
-media stays within 720px or any tighter size X supplied. A profile's identity block uses the same
-960px reading lane, with a 160px avatar on desktop and 112px on compact screens. Multi-image
-galleries are treated as one frame so their tiles do not widen independently.
+Post text and action rows use the full Wide content lane. Primary photo and video frames grow with
+that lane until their natural shape would exceed 72% of the viewport height. Reply and quoted-post
+media stays within 720px or any tighter size X supplied. A profile's identity block keeps a 960px
+reading lane, with a 160px avatar on desktop and 112px on compact screens. Multi-image galleries
+are treated as one frame so their tiles do not widen independently.
 
 ## Focused Home
 

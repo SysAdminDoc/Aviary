@@ -19,8 +19,11 @@
   actions use the available timeline.
 - Profile banners no longer turn into wall-sized blocks on a wide screen. Identity content stops
   at 960px, with a 160px desktop avatar and a 112px compact avatar.
-- Media limits now apply to X's real bordered frame. Photos and video stop at 960px and 72% of the
-  viewport height, while replies and quoted cards stay at 720px or X's tighter value.
+- Wide post text and action rows now use the full content lane. They no longer stop at 72 characters
+  or 960px while the rest of the row remains empty on an ultrawide screen.
+- Media limits now apply to X's real bordered frame. Primary photos and video grow with the post
+  until their natural shape reaches 72% of the viewport height. Replies and quoted cards stay at
+  720px or X's tighter value.
 - Multi-image galleries are measured as one component. Their tiles no longer expand separately or
   create horizontal overflow.
 - Signed-in checks covered Home, Search, Profile, post detail, replies, video, portrait media,

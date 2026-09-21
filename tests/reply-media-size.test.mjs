@@ -167,15 +167,16 @@ async function measure(url, body, selectors, viewportWidth = 1280) {
       });
     });
     return await page.evaluate((wanted) => {
-      const out = { roles: {}, heights: {} };
+      const out = { roles: {}, heights: {}, maxInlineSizes: {} };
       for (const [name, selector] of Object.entries(wanted)) {
         const node = document.querySelector(selector);
         out[name] = node ? Math.round(node.getBoundingClientRect().width) : null;
         out.heights[name] = node ? Math.round(node.getBoundingClientRect().height) : null;
+        out.maxInlineSizes[name] = node ? getComputedStyle(node).maxInlineSize : null;
       }
       out.roles.focal = document.querySelectorAll('article[data-av-conversation-role="focal"]').length;
       out.roles.reply = document.querySelectorAll('article[data-av-conversation-role="reply"]').length;
-      out.declaredCeiling = AviaryTheme.PRIMARY_MEDIA_MAX_WIDTH_PX;
+      out.mediaHeightPercent = AviaryTheme.MEDIA_MAX_VIEWPORT_HEIGHT_PERCENT;
       out.contextCeiling = AviaryTheme.CONTEXT_MEDIA_MAX_WIDTH_PX;
       out.mediaFrames = document.querySelectorAll('[data-av-media-frame]').length;
       out.contexts = document.querySelectorAll('[data-av-media-context="embedded"]').length;
@@ -268,14 +269,13 @@ test("the post the route names is the focal one, not whichever renders first", a
 });
 
 /**
- * Filling the column is not the same as filling the browser window.
+ * Filling the column is not the same as making media taller than the browser window.
  *
- * The rule that lets the post being read use the whole column dropped X's ceiling and put nothing
- * in its place, so on a wide timeline, where the column is the viewport, one photo was as wide as
- * the screen: measured on this fixture before the ceiling existed, 1,258px at a 1280px viewport and
- * 2,538px at 2560px. That leaves the caption a screen away from the picture it belongs to.
+ * A fixed pixel cap makes an ultrawide post look needlessly small, while an unlimited frame can put
+ * its caption a screen away. The intrinsic aspect ratio and viewport height give both shapes a
+ * useful width without letting a portrait or video take over the page.
  */
-test("media on the post being read stops at a readable width instead of the whole screen", async () => {
+test("media on the post being read fills useful width without growing taller than the viewport", async () => {
   for (const viewportWidth of [1280, 1920, 2560]) {
     const seen = await measure(
       "https://x.com/home",
@@ -283,17 +283,18 @@ test("media on the post being read stops at a readable width instead of the whol
       { photo: "#photo-9", video: "#video-9", column: '[data-testid="primaryColumn"]' },
       viewportWidth
     );
-    const ceilingWithBorder = seen.declaredCeiling + 2;
+    const aspectRatio = 16 / 9;
+    const ceilingWithBorder = Math.round((900 * seen.mediaHeightPercent * aspectRatio) / 100) + 2;
 
-    // The control: wide really does hand the column the whole window, so a small photo is the
-    // ceiling doing its job and not the column having been narrow all along.
+    // The control: wide really does hand the column the whole window, so the media limit comes from
+    // its shape and viewport height rather than from a narrow parent.
     assert.ok(
       seen.column >= viewportWidth - 2,
       `wide must hand the column the window, saw ${seen.column}px of ${viewportWidth}px`
     );
     assert.ok(
       seen.photo <= ceilingWithBorder,
-      `a photo must stop at ${seen.declaredCeiling}px, saw ${seen.photo}px at ${viewportWidth}px`
+      `a photo must respect the viewport-height ceiling, saw ${seen.photo}px at ${viewportWidth}px`
     );
     assert.ok(
       seen.video <= ceilingWithBorder,
@@ -315,6 +316,7 @@ test("true-wide posts bound the real media frame and keep quote galleries togeth
     {
       column: '[data-testid="primaryColumn"]',
       article: 'article[data-testid="tweet"]',
+      text: '[data-testid="tweetText"]',
       frame: "#wide-media-frame",
       actions: "#wide-actions",
       quote: "#quote",
@@ -325,12 +327,12 @@ test("true-wide posts bound the real media frame and keep quote galleries togeth
 
   assert.ok(seen.column >= 1918, `wide column stayed narrow at ${seen.column}px`);
   assert.equal(seen.article, seen.column, "the post must use the true-wide column");
-  assert.ok(
-    seen.frame <= seen.declaredCeiling + 2,
-    `the media frame exceeded ${seen.declaredCeiling}px: ${seen.frame}px`
-  );
-  assert.ok(seen.frame > 900, `wide media was needlessly shrunk to ${seen.frame}px`);
-  assert.equal(seen.actions, seen.declaredCeiling, "the action row must align with wide media");
+  const mediaCeiling = Math.round((900 * seen.mediaHeightPercent * (16 / 9)) / 100) + 2;
+  assert.ok(seen.frame <= mediaCeiling, `the media frame exceeded ${mediaCeiling}px: ${seen.frame}px`);
+  assert.ok(seen.frame > 1100, `wide media was needlessly shrunk to ${seen.frame}px`);
+  assert.ok(seen.actions > 1700, `the action row left most of the post empty at ${seen.actions}px`);
+  assert.equal(seen.text, seen.actions, "text and actions must use the same true-wide content lane");
+  assert.equal(seen.maxInlineSizes.text, "none", "wide text kept a character-count ceiling");
   assert.ok(
     seen.quote <= seen.contextCeiling + 2,
     `the quoted post exceeded ${seen.contextCeiling}px: ${seen.quote}px`
