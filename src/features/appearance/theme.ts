@@ -6,35 +6,25 @@ const STYLE_ID = "av-theme-foundation";
 const ACTIVE_NAV_ATTRIBUTE = "data-av-active-route";
 const CONVERSATION_ROLE_ATTRIBUTE = "data-av-conversation-role";
 const CONVERSATION_LINE_ATTRIBUTE = "data-av-conversation-line";
+const WIDE_STREAM_ATTRIBUTE = "data-av-wide-stream";
+const PROFILE_HEADER_ATTRIBUTE = "data-av-profile-header";
+const MEDIA_FRAME_ATTRIBUTE = "data-av-media-frame";
+const MEDIA_CONTEXT_ATTRIBUTE = "data-av-media-context";
+const MEDIA_ASPECT_PROPERTY = "--av-media-aspect";
+const MEDIA_HOST_MAX_PROPERTY = "--av-media-host-max";
+const MEDIA_SELECTOR =
+  '[data-testid="tweetPhoto"], [data-testid="videoPlayer"], [data-testid="videoComponent"]';
+const CARD_BOUNDARY_SELECTOR = '[data-testid="card.wrapper"]';
 /** X paints the connector 2px wide. Allow for device-pixel rounding, refuse anything wider. */
 const CONVERSATION_LINE_MAX_WIDTH = 3;
 /** Below this it is a divider or a spacer, not a connector running down the thread. */
 const CONVERSATION_LINE_MIN_HEIGHT = 12;
 /** How far the connector's centre may sit from the avatar's centre and still be the same gutter. */
 const CONVERSATION_LINE_CENTER_TOLERANCE = 4;
-/**
- * Media that belongs to a post the reader is not on: a quoted post, or a reply in a conversation.
- *
- * Written once because the full-width rule and anything else that reshapes media has to agree on
- * what it may reshape. The reply half reads the marker `syncConversationStructure` stamps, so it
- * costs no extra DOM work.
- *
- * The quote half is the same three-part boundary `QUOTE_BOUNDARY_SELECTOR` uses in
- * `features/media/extract.ts`, and for the reason recorded there: X uses `role="link"` widely for
- * things that are not quotes, so the bare role would exclude far more of the page than intended.
- */
-const MEDIA_EXCLUSIONS =
-  ':not([data-testid="quoteTweet"] *):not([aria-labelledby="quoted"] *)' +
-  ':not(div[role="link"][tabindex="0"] *):not([data-av-conversation-role="reply"] *)';
-
-/**
- * How wide a photo or video may render on the post being read, whatever the column is doing.
- *
- * The default column gives media about 578px, so this is deliberately above that: the default
- * layout is untouched and the ceiling only applies where a wider timeline would otherwise let one
- * image span the whole browser window.
- */
-export const MEDIA_CEILING_PX = 720;
+/** Maximum media widths after Wide releases X's fixed 600px timeline lane. */
+export const PRIMARY_MEDIA_MAX_WIDTH_PX = 960;
+export const CONTEXT_MEDIA_MAX_WIDTH_PX = 720;
+export const MEDIA_MAX_VIEWPORT_HEIGHT_PERCENT = 72;
 
 export const themeFeature: FeatureModule = {
   id: "appearance.theme",
@@ -73,6 +63,8 @@ export const themeFeature: FeatureModule = {
     delete document.documentElement.dataset.avSurface;
     syncActiveNavigation(false);
     syncConversationStructure(false);
+    syncWideStructure(false);
+    syncMediaStructure(false);
     setColorScheme(document.documentElement, undefined);
     ctx.diagnostics.info("Theme foundation destroyed");
   }
@@ -99,6 +91,8 @@ export function applyTheme(settings: AviarySettings): void {
   syncActiveNavigation(theme === "noir");
   syncConversationStructure(theme !== "off" && root.dataset.avSurface === "conversation");
   root.dataset.avWidth = settings.appearance.timelineWidth;
+  syncWideStructure(settings.appearance.timelineWidth === "wide");
+  syncMediaStructure(theme !== "off");
   root.classList.toggle("av-chirp", settings.appearance.restoreChirp);
   root.classList.toggle("av-dense", settings.appearance.denseMode);
   root.classList.toggle("av-hide-counts", settings.appearance.hideCounts);
@@ -206,6 +200,186 @@ function syncConversationStructure(enabled: boolean): void {
     article.setAttribute(CONVERSATION_ROLE_ATTRIBUTE, role);
     if (role === "reply") stampConversationLines(article);
   });
+}
+
+/**
+ * Current X keeps the virtualized timeline in a 600px lane inside `primaryColumn`.
+ *
+ * Widening only the outer column leaves posts at 600px in the middle of an empty canvas. Long text
+ * then overflows the article while images and action rows continue to use the old measure. The
+ * timeline region is stable and its direct parent is the lane that owns that cap, so stamp that
+ * parent instead of depending on X's generated width class.
+ */
+function syncWideStructure(enabled: boolean): void {
+  for (const node of Array.from(
+    document.querySelectorAll<HTMLElement>(`[${WIDE_STREAM_ATTRIBUTE}], [${PROFILE_HEADER_ATTRIBUTE}]`)
+  )) {
+    node.removeAttribute(WIDE_STREAM_ATTRIBUTE);
+    node.removeAttribute(PROFILE_HEADER_ATTRIBUTE);
+  }
+  if (!enabled) return;
+
+  for (const primary of Array.from(
+    document.querySelectorAll<HTMLElement>('[data-testid="primaryColumn"]')
+  )) {
+    for (const region of Array.from(primary.querySelectorAll<HTMLElement>('section[role="region"]'))) {
+      if (!region.querySelector('[data-testid="cellInnerDiv"]')) continue;
+      const lane = region.parentElement;
+      if (lane && lane !== primary && lane.closest('[data-testid="primaryColumn"]') === primary) {
+        lane.setAttribute(WIDE_STREAM_ATTRIBUTE, "1");
+        for (const child of Array.from(lane.children)) {
+          if (child.querySelector('[data-testid="UserProfileHeader_Items"]')) {
+            child.setAttribute(PROFILE_HEADER_ATTRIBUTE, "1");
+          }
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Marks X's real media frames so width caps reshape the box that owns the aspect ratio.
+ *
+ * Styling `tweetPhoto` alone is not enough. On current X that node is absolutely positioned inside
+ * a larger bordered frame, so a cap on the inner node leaves a full-width black box behind it. The
+ * frame is found by geometry and stable semantics: an overflow-clipped, bordered, rounded ancestor
+ * between the media and its article. A simple fixture can use the media node itself as the frame.
+ *
+ * Quoted posts and link cards are bounded as one component. Treating each tile in a gallery as an
+ * independent frame turns X's horizontal gallery into several full-width columns and creates page
+ * overflow. Replies keep a host max-width when X supplied one, then receive Aviary's ceiling.
+ */
+function syncMediaStructure(enabled: boolean): void {
+  clearMediaStructure();
+  if (!enabled) return;
+
+  for (const article of Array.from(
+    document.querySelectorAll<HTMLElement>('article[data-testid="tweet"]')
+  )) {
+    const roots = Array.from(article.querySelectorAll<HTMLElement>(MEDIA_SELECTOR)).filter(
+      (node) =>
+        node.closest('article[data-testid="tweet"]') === article &&
+        node.parentElement?.closest(MEDIA_SELECTOR) === null
+    );
+    if (roots.length === 0) continue;
+
+    const own: HTMLElement[] = [];
+    const embedded = new Set<HTMLElement>();
+    for (const media of roots) {
+      const boundary = mediaBoundary(article, media);
+      if (boundary) embedded.add(boundary);
+      else own.push(media);
+    }
+
+    for (const boundary of embedded) {
+      boundary.setAttribute(MEDIA_CONTEXT_ATTRIBUTE, "embedded");
+    }
+    if (own.length === 0) continue;
+
+    const kind = article.dataset.avConversationRole === "reply" ? "reply" : "primary";
+    const first = own[0];
+    if (!first) continue;
+    const shared = own.length > 1 ? commonAncestor(own, article) : null;
+    if (shared) {
+      stampMediaFrame(shared, own, kind);
+    } else {
+      for (const media of own) {
+        stampMediaFrame(findMediaFrame(media, article), [media], kind);
+      }
+    }
+  }
+}
+
+function stampMediaFrame(
+  frame: HTMLElement,
+  media: HTMLElement[],
+  kind: "primary" | "reply"
+): void {
+  const hostMax = kind === "reply" ? finiteComputedMax(frame) : null;
+  frame.setAttribute(MEDIA_FRAME_ATTRIBUTE, kind);
+  frame.style.setProperty(MEDIA_ASPECT_PROPERTY, String(mediaAspect(media, frame)));
+  if (hostMax) {
+    frame.style.setProperty(MEDIA_HOST_MAX_PROPERTY, hostMax);
+  }
+}
+
+function clearMediaStructure(): void {
+  for (const node of Array.from(
+    document.querySelectorAll<HTMLElement>(`[${MEDIA_FRAME_ATTRIBUTE}], [${MEDIA_CONTEXT_ATTRIBUTE}]`)
+  )) {
+    node.removeAttribute(MEDIA_FRAME_ATTRIBUTE);
+    node.removeAttribute(MEDIA_CONTEXT_ATTRIBUTE);
+    node.style.removeProperty(MEDIA_ASPECT_PROPERTY);
+    node.style.removeProperty(MEDIA_HOST_MAX_PROPERTY);
+  }
+}
+
+function mediaBoundary(article: HTMLElement, media: HTMLElement): HTMLElement | null {
+  let card: HTMLElement | null = null;
+  for (let node = media.parentElement; node && node !== article; node = node.parentElement) {
+    if (isQuoteBoundary(node)) return node;
+    if (!card && node.matches(CARD_BOUNDARY_SELECTOR)) card = node;
+  }
+  return card;
+}
+
+function isQuoteBoundary(node: HTMLElement): boolean {
+  if (node.matches('[data-testid="quoteTweet"], [aria-labelledby="quoted"]')) return true;
+  return (
+    node.matches('div[role="link"][tabindex="0"]') &&
+    node.querySelector('[data-testid="User-Name"]') !== null
+  );
+}
+
+function commonAncestor(nodes: HTMLElement[], limit: HTMLElement): HTMLElement | null {
+  const first = nodes[0];
+  if (!first) return null;
+  for (
+    let candidate: HTMLElement | null = first;
+    candidate && candidate !== limit;
+    candidate = candidate.parentElement
+  ) {
+    if (nodes.every((node) => candidate?.contains(node))) return candidate;
+  }
+  return null;
+}
+
+function findMediaFrame(media: HTMLElement, article: HTMLElement): HTMLElement {
+  for (let node = media.parentElement; node && node !== article; node = node.parentElement) {
+    const style = getComputedStyle(node);
+    if (
+      style.overflow === "hidden" &&
+      Number.parseFloat(style.borderTopWidth) > 0 &&
+      Number.parseFloat(style.borderRadius) > 0
+    ) {
+      return node;
+    }
+  }
+  return media;
+}
+
+function mediaAspect(media: HTMLElement[], frame: HTMLElement): number {
+  let ratio = 0;
+  const first = media[0];
+  if (media.length === 1 && first) {
+    const video = first.querySelector<HTMLVideoElement>("video");
+    const image = first.querySelector<HTMLImageElement>("img");
+    if (video && video.videoWidth > 0 && video.videoHeight > 0) {
+      ratio = video.videoWidth / video.videoHeight;
+    } else if (image && image.naturalWidth > 0 && image.naturalHeight > 0) {
+      ratio = image.naturalWidth / image.naturalHeight;
+    }
+  }
+  if (!ratio) {
+    const box = frame.getBoundingClientRect();
+    ratio = box.width > 0 && box.height > 0 ? box.width / box.height : 16 / 9;
+  }
+  return Math.max(0.35, Math.min(3, ratio));
+}
+
+function finiteComputedMax(element: HTMLElement): string {
+  const value = getComputedStyle(element).maxWidth;
+  return /^\d+(?:\.\d+)?px$/.test(value) ? value : "100%";
 }
 
 /**
@@ -485,27 +659,40 @@ html[data-av-width="wide"][data-av-surface="timeline"]
 html[data-av-width="wide"][data-av-surface="conversation"]
   article[data-av-conversation-role="focal"] [role="group"] {
   justify-content: space-between;
-  width: 100%;
+  width: min(100%, ${PRIMARY_MEDIA_MAX_WIDTH_PX}px) !important;
+  max-width: ${PRIMARY_MEDIA_MAX_WIDTH_PX}px !important;
 }
 
-/* Media fills the column on the post being read, and only there.
-   Dropping X's own cap is right for the post in front of the reader
-   and wrong for media that belongs to someone else's post: under a conversation it turned every
-   reply's photo, video and GIF into a full-width banner, and a handful of replies was enough to
-   push the thread off the screen. A quoted post is the same case one level in. Both are excluded
-   here rather than reset by a later rule, so X's own sizing is never overridden to begin with.
+/* Bound the frame that owns media geometry, not the absolutely positioned media child. Width is
+   capped both in pixels and by intrinsic aspect ratio, so portrait images and videos never grow
+   taller than 72% of the viewport. Context media stays smaller and a reply also honors any tighter
+   cap X already supplied. */
+html[data-av-theme] [${MEDIA_FRAME_ATTRIBUTE}="primary"] {
+  --av-media-max-inline: ${PRIMARY_MEDIA_MAX_WIDTH_PX}px;
+}
 
-   "Fills the column" needs a ceiling of its own, because the column is not always a reading column.
-   Without a ceiling the photo was however wide the browser window was: measured on the
-   themed fixture, a photo rendered 978px at comfortable and 2,538px on a 2560px screen at wide.
-   That is not a bigger picture, it is a wall, and it puts the caption a screen away from the image
-   it belongs to. MEDIA_CEILING_PX is above what the default column can give media, so the default
-   layout is unchanged and the ceiling only bites where Aviary itself widened the column. */
-html[data-av-theme] [data-testid="tweetPhoto"]${MEDIA_EXCLUSIONS},
-html[data-av-theme] [data-testid="videoPlayer"]${MEDIA_EXCLUSIONS},
-html[data-av-theme] [data-testid="videoComponent"]${MEDIA_EXCLUSIONS} {
+html[data-av-theme] [${MEDIA_FRAME_ATTRIBUTE}="reply"] {
+  --av-media-max-inline: ${CONTEXT_MEDIA_MAX_WIDTH_PX}px;
+}
+
+html[data-av-theme] [${MEDIA_FRAME_ATTRIBUTE}] {
+  max-inline-size: min(
+    100%,
+    var(${MEDIA_HOST_MAX_PROPERTY}, 100%),
+    var(--av-media-max-inline),
+    calc(${MEDIA_MAX_VIEWPORT_HEIGHT_PERCENT}vh * var(${MEDIA_ASPECT_PROPERTY}))
+  ) !important;
+  max-block-size: ${MEDIA_MAX_VIEWPORT_HEIGHT_PERCENT}vh !important;
+}
+
+html[data-av-theme] [${MEDIA_FRAME_ATTRIBUTE}]
+  :is([data-testid="tweetPhoto"], [data-testid="videoPlayer"], [data-testid="videoComponent"]) {
   inline-size: 100% !important;
-  max-inline-size: min(100%, ${MEDIA_CEILING_PX}px) !important;
+  max-inline-size: 100% !important;
+}
+
+html[data-av-theme] [${MEDIA_CONTEXT_ATTRIBUTE}="embedded"] {
+  max-inline-size: min(100%, ${CONTEXT_MEDIA_MAX_WIDTH_PX}px) !important;
 }
 
 html[data-av-theme] [data-testid="tweetPhoto"],
@@ -814,6 +1001,56 @@ html[data-av-width="wide"] main[role="main"] div:has([data-testid="primaryColumn
 html[data-av-width="wide"] [data-testid="timeline-shell"],
 html[data-av-width="wide"] main[role="main"] div:has(> [data-testid="primaryColumn"]) {
   justify-content: center !important;
+}
+
+/* X now nests the actual stream in its own 600px lane. The outer primary column can be wide while
+   every post remains narrow unless this independently capped inner lane is released too. */
+html[data-av-width="wide"] [${WIDE_STREAM_ATTRIBUTE}] {
+  flex: 1 1 auto !important;
+  align-self: stretch !important;
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+}
+
+/* A profile banner scales from its container width, so making the stream truly wide used to turn
+   a 150px avatar into a 384px portrait and a modest banner into half a screen. Keep the profile
+   identity block on the same reading lane as post content while the timeline below stays wide. */
+html[data-av-width="wide"] [${PROFILE_HEADER_ATTRIBUTE}] {
+  --av-profile-gutter: clamp(16px, 4.1vw, 64px);
+  width: min(
+    ${PRIMARY_MEDIA_MAX_WIDTH_PX}px,
+    calc(100% - var(--av-profile-gutter) - var(--av-profile-gutter))
+  ) !important;
+  max-width: ${PRIMARY_MEDIA_MAX_WIDTH_PX}px !important;
+  margin-inline-start: var(--av-profile-gutter) !important;
+}
+
+html[data-av-width="wide"] [${PROFILE_HEADER_ATTRIBUTE}]
+  a[href$="/photo"]:has([data-testid^="UserAvatar-Container-"]),
+html[data-av-width="wide"] [${PROFILE_HEADER_ATTRIBUTE}]
+  [data-testid^="UserAvatar-Container-"] {
+  width: 160px !important;
+  height: 160px !important;
+  max-width: 160px !important;
+  max-height: 160px !important;
+}
+
+@media (max-width: 760px) {
+  html[data-av-width="wide"] [${PROFILE_HEADER_ATTRIBUTE}] {
+    --av-profile-gutter: 0px;
+    width: 100% !important;
+  }
+
+  html[data-av-width="wide"] [${PROFILE_HEADER_ATTRIBUTE}]
+    a[href$="/photo"]:has([data-testid^="UserAvatar-Container-"]),
+  html[data-av-width="wide"] [${PROFILE_HEADER_ATTRIBUTE}]
+    [data-testid^="UserAvatar-Container-"] {
+    width: 112px !important;
+    height: 112px !important;
+    max-width: 112px !important;
+    max-height: 112px !important;
+  }
 }
 
 /* TwitterChirp is the family X registers the font under -- confirmed in the captured

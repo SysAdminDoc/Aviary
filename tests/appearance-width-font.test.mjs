@@ -81,6 +81,27 @@ before(async () => {
   // in `_decoded/dom-schema.json` under `layout`, with the date they were measured.
   currentPage = await browser.newPage({ viewport: { width: 1400, height: 900 } });
   await currentPage.goto(await captureUrl("home-layout"));
+  await currentPage.evaluate(() => {
+    const primary = document.querySelector('[data-testid="primaryColumn"]');
+    const region = primary?.querySelector('section[role="region"]');
+    if (!primary || !region) throw new Error("timeline region missing from current-X fixture");
+    const lane = document.createElement("div");
+    lane.id = "current-x-stream-lane";
+    lane.style.cssText =
+      "display:flex;flex-direction:column;align-self:center;width:100%;max-width:600px;min-width:0";
+    region.replaceWith(lane);
+    const profileHeader = document.createElement("div");
+    profileHeader.id = "current-x-profile-header";
+    profileHeader.style.width = "100%";
+    profileHeader.innerHTML = `
+      <div style="width:100%;aspect-ratio:3/1;background:#333"></div>
+      <a href="/fixture/photo" style="display:block;width:25%;aspect-ratio:1">
+        <div data-testid="UserAvatar-Container-fixture" style="width:100%;height:100%"></div>
+      </a>
+      <div data-testid="UserProfileHeader_Items">Joined today</div>`;
+    lane.append(profileHeader);
+    lane.append(region);
+  });
   await currentPage.addScriptTag({ path: bundle });
 });
 
@@ -124,10 +145,19 @@ async function measureCurrent(appearance) {
       });
       const column = document.querySelector('[data-testid="primaryColumn"]');
       const available = column.closest('main[role="main"]') ?? column.parentElement;
+      const stream = document.querySelector("#current-x-stream-lane");
+      const article = stream?.querySelector('article[data-testid="tweet"]');
+      const profileHeader = document.querySelector("#current-x-profile-header");
+      const profileAvatar = profileHeader?.querySelector('[data-testid^="UserAvatar-Container-"]');
       return {
         width: Math.round(column.getBoundingClientRect().width),
         parentWidth: Math.round(column.parentElement.getBoundingClientRect().width),
         availableWidth: Math.round(available.getBoundingClientRect().width),
+        streamWidth: Math.round(stream.getBoundingClientRect().width),
+        streamMaxWidth: getComputedStyle(stream).maxWidth,
+        articleWidth: Math.round(article.getBoundingClientRect().width),
+        profileHeaderWidth: Math.round(profileHeader.getBoundingClientRect().width),
+        profileAvatarWidth: Math.round(profileAvatar.getBoundingClientRect().width),
         flexBasis: getComputedStyle(column).flexBasis,
         viewportWidth: window.innerWidth,
         scrollWidth: document.documentElement.scrollWidth
@@ -195,6 +225,31 @@ test("wide fills all space beside navigation", async () => {
     `wide left unused canvas beside the feed: ${wide.width}px of ${wide.availableWidth}px`
   );
   assert.equal(wide.scrollWidth, wide.viewportWidth, "full width introduced horizontal scrolling");
+});
+
+test("wide releases X's nested 600px stream lane instead of widening empty canvas", async () => {
+  await currentPage.setViewportSize({ width: 1920, height: 1080 });
+  const base = await measureCurrent({ timelineWidth: "default" });
+  const wide = await measureCurrent({ timelineWidth: "wide" });
+  await currentPage.setViewportSize({ width: 1400, height: 900 });
+
+  assert.equal(base.streamWidth, 600, "the regression fixture must reproduce X's inner cap");
+  assert.ok(wide.streamWidth > 1200, `wide left the post stream at ${wide.streamWidth}px`);
+  assert.equal(wide.streamMaxWidth, "none", "wide did not release the inner max-width");
+  assert.ok(
+    Math.abs(wide.streamWidth - wide.width) <= 1,
+    `the stream uses ${wide.streamWidth}px of a ${wide.width}px primary column`
+  );
+  assert.equal(wide.articleWidth, wide.streamWidth, "posts did not expand with the stream lane");
+});
+
+test("wide keeps the profile identity block and avatar at a readable size", async () => {
+  await currentPage.setViewportSize({ width: 1920, height: 1080 });
+  const wide = await measureCurrent({ timelineWidth: "wide" });
+  await currentPage.setViewportSize({ width: 1400, height: 900 });
+
+  assert.equal(wide.profileHeaderWidth, 960, "the profile banner grew past the media lane");
+  assert.equal(wide.profileAvatarWidth, 160, "the profile avatar became a screen-sized portrait");
 });
 
 test("timelineWidth never overflows a viewport narrower than the tier", async () => {

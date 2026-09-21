@@ -63,6 +63,59 @@ const TIMELINE = `<!doctype html><meta charset=utf-8><style>${HOST_CSS}</style>
    </div>`
 )}</div></body>`;
 
+const WIDE_MEDIA = `<!doctype html><meta charset=utf-8><style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #000; color: #fff; font: 15px system-ui, sans-serif; }
+  [data-testid="primaryColumn"] { width: 600px; }
+  [data-testid="cellInnerDiv"] { width: 100%; }
+  article[data-testid="tweet"] { width: 100%; padding: 24px 64px; }
+  .media-frame { position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; border: 1px solid #333; border-radius: 16px; }
+  .media-frame > [data-testid="tweetPhoto"] { position: absolute; inset: 0; width: 100%; height: 100%; }
+  [role="group"] { display: flex; width: 100%; max-width: 600px; }
+  #quote { display: block; width: 100%; margin-top: 20px; border: 1px solid #333; padding: 12px; }
+  #quote-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+  #quote-grid [data-testid="tweetPhoto"] { aspect-ratio: 4 / 3; min-width: 0; background: #16181c; }
+</style><body><div data-testid="primaryColumn"><div data-testid="cellInnerDiv"><article data-testid="tweet">
+  <div data-testid="User-Name"><a href="/author">Author</a></div>
+  <a href="/author/status/55">2h</a>
+  <div data-testid="tweetText">A wide post with bounded media.</div>
+  <div class="media-frame" id="wide-media-frame"><div data-testid="tweetPhoto"></div></div>
+  <div role="group" id="wide-actions"><button>Reply</button><button>Like</button></div>
+  <div role="link" tabindex="0" id="quote">
+    <div data-testid="User-Name"><a href="/quoted">Quoted author</a></div>
+    <div id="quote-grid">
+      <div data-testid="tweetPhoto"></div><div data-testid="tweetPhoto"></div>
+      <div data-testid="tweetPhoto"></div><div data-testid="tweetPhoto"></div>
+    </div>
+  </div>
+</article></div></div></body>`;
+
+const STALE_HEIGHT_MEDIA = `<!doctype html><meta charset=utf-8><style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #000; color: #fff; }
+  [data-testid="primaryColumn"] { width: 600px; }
+  article[data-testid="tweet"] { width: 100%; padding: 24px 64px; }
+  #stale-height-frame {
+    position: relative;
+    width: 100%;
+    height: 820px;
+    overflow: hidden;
+    border: 1px solid #333;
+    border-radius: 16px;
+  }
+  #stale-height-frame > [data-testid="tweetPhoto"] {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+</style><body><div data-testid="primaryColumn"><div data-testid="cellInnerDiv"><article data-testid="tweet">
+  <div data-testid="User-Name"><a href="/author">Author</a></div>
+  <a href="/author/status/88">2h</a>
+  <div data-testid="tweetText">A host frame whose stale height must not take over the viewport.</div>
+  <div id="stale-height-frame"><div data-testid="tweetPhoto"></div></div>
+</article></div></div></body>`;
+
 let browser;
 let temp;
 let bundle;
@@ -114,14 +167,20 @@ async function measure(url, body, selectors, viewportWidth = 1280) {
       });
     });
     return await page.evaluate((wanted) => {
-      const out = { roles: {} };
+      const out = { roles: {}, heights: {} };
       for (const [name, selector] of Object.entries(wanted)) {
         const node = document.querySelector(selector);
         out[name] = node ? Math.round(node.getBoundingClientRect().width) : null;
+        out.heights[name] = node ? Math.round(node.getBoundingClientRect().height) : null;
       }
       out.roles.focal = document.querySelectorAll('article[data-av-conversation-role="focal"]').length;
       out.roles.reply = document.querySelectorAll('article[data-av-conversation-role="reply"]').length;
-      out.declaredCeiling = AviaryTheme.MEDIA_CEILING_PX;
+      out.declaredCeiling = AviaryTheme.PRIMARY_MEDIA_MAX_WIDTH_PX;
+      out.contextCeiling = AviaryTheme.CONTEXT_MEDIA_MAX_WIDTH_PX;
+      out.mediaFrames = document.querySelectorAll('[data-av-media-frame]').length;
+      out.contexts = document.querySelectorAll('[data-av-media-context="embedded"]').length;
+      out.scrollWidth = document.documentElement.scrollWidth;
+      out.viewportWidth = document.documentElement.clientWidth;
       return out;
     }, selectors);
   } finally {
@@ -247,4 +306,52 @@ test("media on the post being read stops at a readable width instead of the whol
       `media on the post being read should still beat X's own cap, saw ${seen.photo}px`
     );
   }
+});
+
+test("true-wide posts bound the real media frame and keep quote galleries together", async () => {
+  const seen = await measure(
+    "https://x.com/home",
+    WIDE_MEDIA,
+    {
+      column: '[data-testid="primaryColumn"]',
+      article: 'article[data-testid="tweet"]',
+      frame: "#wide-media-frame",
+      actions: "#wide-actions",
+      quote: "#quote",
+      quoteTile: "#quote-grid [data-testid=\"tweetPhoto\"]"
+    },
+    1920
+  );
+
+  assert.ok(seen.column >= 1918, `wide column stayed narrow at ${seen.column}px`);
+  assert.equal(seen.article, seen.column, "the post must use the true-wide column");
+  assert.ok(
+    seen.frame <= seen.declaredCeiling + 2,
+    `the media frame exceeded ${seen.declaredCeiling}px: ${seen.frame}px`
+  );
+  assert.ok(seen.frame > 900, `wide media was needlessly shrunk to ${seen.frame}px`);
+  assert.equal(seen.actions, seen.declaredCeiling, "the action row must align with wide media");
+  assert.ok(
+    seen.quote <= seen.contextCeiling + 2,
+    `the quoted post exceeded ${seen.contextCeiling}px: ${seen.quote}px`
+  );
+  assert.ok(seen.quoteTile < seen.quote / 2, "quote gallery tiles were expanded independently");
+  assert.equal(seen.mediaFrames, 1, "only the post's own media frame should be stamped");
+  assert.equal(seen.contexts, 1, "the quote must be bounded as one component");
+  assert.ok(seen.scrollWidth <= seen.viewportWidth + 1, "media created horizontal page overflow");
+});
+
+test("a stale host height cannot make wide media taller than the viewport ceiling", async () => {
+  const seen = await measure(
+    "https://x.com/home",
+    STALE_HEIGHT_MEDIA,
+    { frame: "#stale-height-frame" },
+    1920
+  );
+  const viewportCeiling = Math.round((900 * 72) / 100);
+
+  assert.ok(
+    seen.heights.frame <= viewportCeiling,
+    `the media frame exceeded the ${viewportCeiling}px viewport ceiling: ${seen.heights.frame}px`
+  );
 });
