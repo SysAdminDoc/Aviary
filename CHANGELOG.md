@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 1.52.1 (2026-09-21)
+
+### Fixed
+
+- Wide post text and action rows now fill the post on ultrawide screens instead of keeping their
+  old 72-character and 960px limits.
+- Primary media now grows from its real aspect ratio up to a 72vh height ceiling. Landscape media
+  gains useful width, while portrait images and videos do not become screen-tall.
+
 ## 1.52.0 (2026-09-21)
 
 ### Changed

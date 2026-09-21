@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Aviary for X
 // @namespace    https://github.com/SysAdminDoc
-// @version      1.52.0
+// @version      1.52.1
 // @description  Local-first X/Twitter enhancer with reversible controls and privacy-first defaults.
 // @author       SysAdminDoc
 // @homepage     https://github.com/SysAdminDoc/Aviary
@@ -4168,7 +4168,7 @@ ${body}
   }
 
   // src/platform/build-version.ts
-  var AVIARY_VERSION = false ? "dev" : "1.52.0";
+  var AVIARY_VERSION = false ? "dev" : "1.52.1";
 
   // src/platform/diagnostics.ts
   var UNKNOWN_DIAGNOSTIC_MESSAGE_ID = "diagnostic.unknown";
@@ -9386,7 +9386,7 @@ ${body}
   ];
 
   // src/ui/control-center.ts
-  var AVIARY_VERSION2 = false ? "dev" : "1.52.0";
+  var AVIARY_VERSION2 = false ? "dev" : "1.52.1";
   var MORE_TOOLS_GROUP = "More tools";
   var SECTION_GROUP_BREAKS = {
     presets: [
