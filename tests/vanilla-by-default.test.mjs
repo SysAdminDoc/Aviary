@@ -10,29 +10,18 @@ import { build } from "esbuild";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
-/**
- * Out of the box, Aviary leaves organic X content alone and removes ads.
- *
- * Until v1.13.0 a fresh install hid the right sidebar, hid trends, hid Grok, repainted the page
- * with the "dim" theme, forced `color-scheme: dark` over X's own setting, added a Hide button and
- * two media buttons to every post, rewrote share buttons and paused video that scrolled offscreen.
- * None of that was asked for; it was simply what the defaults happened to be.
- *
- * The rule is now: ads and user-invoked media saves are the two visible default-on exceptions.
- * Every theme, layout, filtering, and integration control stays opt-in; local bookkeeping remains
- * on.
- */
-test("default settings enable only ad protection and user-invoked media saves", async () => {
+/** Noir and true-wide are authored defaults; behavioral tools still wait for the reader. */
+test("default settings apply the authored canvas without enabling behavioral tools", async () => {
   const { DEFAULT_SETTINGS } = await importSourceModule("src/platform/settings.ts");
   const s = DEFAULT_SETTINGS;
 
-  // Appearance: X paints itself.
-  assert.equal(s.appearance.theme, "off");
+  // Appearance: Aviary paints its authored dark, true-wide canvas.
+  assert.equal(s.appearance.theme, "noir");
   assert.equal(s.appearance.denseMode, false);
   assert.equal(s.appearance.hideBorders, false);
   assert.equal(s.appearance.hideCounts, false);
   assert.equal(s.appearance.restoreChirp, false);
-  assert.equal(s.appearance.timelineWidth, "default");
+  assert.equal(s.appearance.timelineWidth, "wide");
 
   // Layout: nothing hidden, nothing moved.
   assert.equal(s.layout.hideRightSidebar, false);
@@ -82,10 +71,10 @@ test("default settings enable only ad protection and user-invoked media saves", 
 });
 
 /**
- * The measurable half of the same claim: default CSS must leave organic timeline surfaces alone
- * while a structurally sponsored cell is collapsed.
+ * The measurable half of the same claim: default CSS must paint Noir and Wide while a
+ * structurally sponsored cell is collapsed.
  */
-test("default styles leave organic timeline surfaces unchanged and collapse ads", async () => {
+test("default styles paint Noir wide and collapse ads", async () => {
   const { chromium } = await import("playwright");
   const { DEFAULT_SETTINGS } = await importSourceModule("src/platform/settings.ts");
 
@@ -112,7 +101,21 @@ test("default styles leave organic timeline surfaces unchanged and collapse ads"
     await page.evaluate(() => globalThis.__mod.installEarlyAdShield());
 
     const after = await snapshot(page);
-    assert.deepEqual(after, before, "default settings must leave organic timeline surfaces exactly as X drew them");
+    assert.notDeepEqual(after, before, "the authored default must visibly repaint X");
+    const authored = await page.evaluate(() => ({
+      theme: document.documentElement.dataset.avTheme,
+      width: document.documentElement.dataset.avWidth,
+      noir: document.documentElement.classList.contains("av-theme-noir"),
+      sidebar: getComputedStyle(document.querySelector('[data-testid="sidebarColumn"]')).display,
+      rootBackground: getComputedStyle(document.documentElement).backgroundColor,
+      mediaMax: getComputedStyle(document.querySelector('[data-av-media-frame]')).maxWidth
+    }));
+    assert.equal(authored.theme, "noir");
+    assert.equal(authored.width, "wide");
+    assert.equal(authored.noir, true);
+    assert.equal(authored.sidebar, "none");
+    assert.notEqual(authored.rootBackground, "rgba(0, 0, 0, 0)");
+    assert.notEqual(authored.mediaMax, "none", "default media must have a readable ceiling");
 
     const adDisplay = await page.evaluate(() => {
       const cell = document.createElement("div");

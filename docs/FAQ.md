@@ -309,9 +309,9 @@ Every control Aviary offers, by Control Center page. 105 controls across 14 page
 
 | Control | What it does |
 | --- | --- |
-| Theme | Choose one: Off (X's own theme), Dim, Lights out, Graphite, Plum, Midnight, Noir. |
+| Theme | Choose one: Off (X's own theme), Dim, Lights out, Graphite, Plum, Midnight, Noir (default). |
 | Dense mode | Tighten timeline spacing for scanning. |
-| Timeline width | Choose one: Default, Comfortable, Wide. |
+| Timeline width | Choose one: Default, Comfortable, Wide (default). |
 | Restore the Chirp font | Force X's own Chirp typeface where the site has fallen back to a system font. |
 | Hide engagement counts | Master switch for the four numbers below. The controls still work and screen readers still announce the totals. |
 | Hide reply counts | Applies while Hide engagement counts is on. |

@@ -12,7 +12,7 @@ export const SETTINGS_KEY = "aviary.settings.v1";
  * changed unit, a value whose meaning inverted) and add the matching step to `SETTINGS_MIGRATIONS`.
  * Adding a new key with a default needs no bump; the normalizer already handles it.
  */
-export const SETTINGS_SCHEMA_VERSION = 2;
+export const SETTINGS_SCHEMA_VERSION = 3;
 
 type SettingsRecord = Record<string, unknown>;
 
@@ -62,6 +62,25 @@ export const SETTINGS_MIGRATIONS: Record<number, (record: SettingsRecord) => Set
       migrated[group] = updated;
     }
     next.integrations = migrated;
+    return next;
+  },
+  /**
+   * v3 makes Aviary's authored desktop experience the install default.
+   *
+   * Older builds stored the previous defaults (`off` and `default`) in every profile, so changing
+   * DEFAULT_SETTINGS alone would affect only brand-new storage. Carry those two legacy defaults to
+   * Noir and Wide once. Any other chosen theme or width is preserved, and both controls remain
+   * available after the migration.
+   */
+  2: (record) => {
+    const next = { ...record };
+    const appearance = asRecord(next.appearance);
+    const migrated: SettingsRecord = { ...appearance };
+    if (migrated.theme === undefined || migrated.theme === "off") migrated.theme = "noir";
+    if (migrated.timelineWidth === undefined || migrated.timelineWidth === "default") {
+      migrated.timelineWidth = "wide";
+    }
+    next.appearance = migrated;
     return next;
   }
 };
@@ -466,9 +485,9 @@ export interface AviarySettings {
 export const DEFAULT_SETTINGS: AviarySettings = {
   schemaVersion: SETTINGS_SCHEMA_VERSION,
   appearance: {
-    theme: "off",
+    theme: "noir",
     denseMode: false,
-    timelineWidth: "default",
+    timelineWidth: "wide",
     hideBorders: false,
     hideCounts: false,
     countMetrics: { replies: true, reposts: true, likes: true, views: true },

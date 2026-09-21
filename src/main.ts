@@ -211,14 +211,16 @@ export function boot(options: BootOptions): Promise<AviaryApp | undefined> {
 }
 
 async function bootInternal(options: BootOptions): Promise<AviaryApp | undefined> {
-  // Default-on ad protection is the sole visible startup change. Install its structural CSS
-  // before the first await so sponsored cells cannot win the first paint.
+  // Install default-on ad protection before the first await so sponsored cells cannot win the
+  // first paint.
   installEarlyAdShield();
-  // Anti-FOUC only applies when a theme is actually going to be painted. The default is "off",
-  // which means Aviary leaves X's appearance alone, so there is nothing to pre-empt.
+  // Stamp the authored default before storage opens. The theme stylesheet reads the same hook once
+  // features start, which prevents X's canvas from flashing through on a fresh install. Persisted
+  // settings replace this value after the awaited storage prelude.
   if (DEFAULT_SETTINGS.appearance.theme !== "off") {
     document.documentElement.dataset.avTheme = DEFAULT_SETTINGS.appearance.theme;
   }
+  document.documentElement.dataset.avWidth = DEFAULT_SETTINGS.appearance.timelineWidth;
   document.documentElement.dataset.avReady = "booting";
 
   const diagnostics = new Diagnostics();

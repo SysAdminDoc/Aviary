@@ -110,7 +110,7 @@ test("the v1 budget migration carries an unlimited budget instead of inverting i
   };
 
   const envelope = readSettingsEnvelope(stored);
-  assert.deepEqual(envelope.applied, [1]);
+  assert.deepEqual(envelope.applied, [1, 2]);
   assert.equal(envelope.fromVersion, 1);
   assert.equal(envelope.fromFuture, false);
 
@@ -133,11 +133,29 @@ test("an unversioned payload still runs the ladder rather than being assumed cur
     integrations: { ai: { maxRequestBytes: 0, dailyRequestBytes: 0 } }
   });
 
-  assert.deepEqual(envelope.applied, [1]);
+  assert.deepEqual(envelope.applied, [1, 2]);
   assert.equal(
     envelope.settings.integrations.ai.dailyRequestBytes,
     INTEGRATION_BUDGET_CEILINGS.ai.dailyRequestBytes
   );
+});
+
+test("the v2 appearance migration applies Noir and true-wide once without replacing choices", () => {
+  const legacyDefaults = mod.readSettingsEnvelope({
+    schemaVersion: 2,
+    appearance: { theme: "off", timelineWidth: "default" }
+  });
+  assert.deepEqual(legacyDefaults.applied, [2]);
+  assert.equal(legacyDefaults.settings.appearance.theme, "noir");
+  assert.equal(legacyDefaults.settings.appearance.timelineWidth, "wide");
+
+  const chosen = mod.readSettingsEnvelope({
+    schemaVersion: 2,
+    appearance: { theme: "plum", timelineWidth: "comfortable" }
+  });
+  assert.deepEqual(chosen.applied, [2]);
+  assert.equal(chosen.settings.appearance.theme, "plum");
+  assert.equal(chosen.settings.appearance.timelineWidth, "comfortable");
 });
 
 /**

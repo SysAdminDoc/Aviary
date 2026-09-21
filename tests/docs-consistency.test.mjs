@@ -161,7 +161,7 @@ ${faq}`;
     ["default", "comfortable", "wide"],
     "the width tiers this asserts against have to be the ones the setting normalizes to"
   );
-  assert.equal(DEFAULT_SETTINGS.appearance.timelineWidth, "default");
+  assert.equal(DEFAULT_SETTINGS.appearance.timelineWidth, "wide");
   for (const tier of ["Comfortable", "Wide"]) {
     assert.match(docs, new RegExp(tier, "i"), `the docs never mention the ${tier} width`);
   }

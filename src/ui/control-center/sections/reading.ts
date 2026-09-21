@@ -22,7 +22,7 @@ export function buildAppearanceRows(ctx: PanelContext): HTMLElement[] {
         ["graphite", "Graphite"],
         ["plum", "Plum"],
         ["midnight", "Midnight"],
-        ["noir", "Noir"]
+        ["noir", "Noir (default)"]
       ], async (value) => {
         if (!ctx.isThemeId(value)) {
           ctx.setStatus("Theme value is not supported.");
@@ -30,7 +30,7 @@ export function buildAppearanceRows(ctx: PanelContext): HTMLElement[] {
         }
         ctx.options.settings.appearance.theme = value;
         await ctx.save("Theme updated.");
-      }, "Noir applies Aviary's flat dark theme; Off leaves X's own styling untouched."),
+      }, "Noir is applied automatically. Choose Off to use X's own styling."),
       ctx.toggleRow("Dense mode", "Tighten timeline spacing for scanning.", ctx.options.settings.appearance.denseMode, async (checked) => {
         ctx.options.settings.appearance.denseMode = checked;
         await ctx.save("Density updated.");
@@ -41,13 +41,13 @@ export function buildAppearanceRows(ctx: PanelContext): HTMLElement[] {
         [
           ["default", "Default"],
           ["comfortable", "Comfortable"],
-          ["wide", "Wide"]
+          ["wide", "Wide (default)"]
         ],
         async (value) => {
           ctx.options.settings.appearance.timelineWidth = value as "default" | "comfortable" | "wide";
           await ctx.save("Timeline width updated.");
         },
-        "Comfortable keeps the discovery rail. Wide fills the remaining space and hides the rail."
+        "Wide uses the full space beside navigation and hides the discovery rail. Comfortable keeps that rail."
       ),
       ctx.toggleRow(
         "Restore the Chirp font",

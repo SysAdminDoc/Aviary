@@ -18,7 +18,7 @@ test("Noir gives the desktop shell a premium dark treatment and turns fully off"
     appearance: { ...DEFAULT_SETTINGS.appearance, theme: "noir" }
   });
   assert.equal(settings.appearance.theme, "noir", "Noir must survive settings normalization");
-  assert.equal(DEFAULT_SETTINGS.appearance.theme, "off", "the authored skin stays opt-in");
+  assert.equal(DEFAULT_SETTINGS.appearance.theme, "noir", "Noir must be the authored default");
 
   const browser = await chromium.launch({ headless: true });
   try {
@@ -158,7 +158,17 @@ test("Noir gives the desktop shell a premium dark treatment and turns fully off"
     assert.equal(scrolledCanvas.bodyBackground, "none");
     assert.equal(scrolledCanvas.bodyBackgroundColor, "rgba(0, 0, 0, 0)");
 
-    await page.evaluate((offSettings) => globalThis.__mod.applyTheme(offSettings), DEFAULT_SETTINGS);
+    await page.evaluate(
+      (offSettings) => globalThis.__mod.applyTheme(offSettings),
+      {
+        ...DEFAULT_SETTINGS,
+        appearance: {
+          ...DEFAULT_SETTINGS.appearance,
+          theme: "off",
+          timelineWidth: "default"
+        }
+      }
+    );
     const off = await page.evaluate(() => {
       const read = (selector) => {
         const style = getComputedStyle(document.querySelector(selector));
