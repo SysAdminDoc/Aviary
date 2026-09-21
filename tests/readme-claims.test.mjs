@@ -29,12 +29,13 @@ async function bundleSettings() {
 // README calls default-on must actually be enabled in the schema.
 const DEFAULT_ON = [
   ["privacy.blockAds", (settings) => settings.privacy.blockAds],
-  ["media.buttons", (settings) => settings.media.buttons]
+  ["media.buttons", (settings) => settings.media.buttons],
+  ["appearance.theme", (settings) => settings.appearance.theme === "noir"],
+  ["appearance.timelineWidth", (settings) => settings.appearance.timelineWidth === "wide"]
 ];
 
 const DEFAULT_OFF = [
   ["ai.commandMenu", (settings) => settings.ai.commandMenu],
-  ["appearance.theme", (settings) => settings.appearance.theme !== "off"],
   ["export.preserveRawPayloads", (settings) => settings.export.preserveRawPayloads],
   ["performance.pauseOffscreenVideo", (settings) => settings.performance.pauseOffscreenVideo]
 ];

@@ -685,8 +685,9 @@ html[data-av-theme] [${MEDIA_FRAME_ATTRIBUTE}] {
   max-block-size: ${MEDIA_MAX_VIEWPORT_HEIGHT_PERCENT}vh !important;
 }
 
-html[data-av-theme] [${MEDIA_FRAME_ATTRIBUTE}]
-  :is([data-testid="tweetPhoto"], [data-testid="videoPlayer"], [data-testid="videoComponent"]) {
+html[data-av-theme] [${MEDIA_FRAME_ATTRIBUTE}] [data-testid="tweetPhoto"],
+html[data-av-theme] [${MEDIA_FRAME_ATTRIBUTE}] [data-testid="videoPlayer"],
+html[data-av-theme] [${MEDIA_FRAME_ATTRIBUTE}] [data-testid="videoComponent"] {
   inline-size: 100% !important;
   max-inline-size: 100% !important;
 }

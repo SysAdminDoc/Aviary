@@ -89,10 +89,10 @@ after 30 minutes and disappear when the tab closes.
 
 ## Why is there no light theme?
 
-The shipped palettes are Dim, Lights out, Graphite, Plum, Midnight, and Noir. Noir is Aviary's
-premium cyan-violet desktop skin; choose **Off (X's own theme)** whenever you want the site left
-untouched. The Control Center keeps its dark surface even if the host page or operating system is
-light so contrast stays predictable.
+The shipped palettes are Dim, Lights out, Graphite, Plum, Midnight, and Noir. Noir is applied by
+default. Choose **Off (X's own theme)** whenever you want the site left untouched. The Control
+Center keeps its dark surface even if the host page or operating system is light so contrast stays
+predictable.
 
 ## How do I hide and restore a post?
 

@@ -2,6 +2,30 @@
 
 ## Unreleased
 
+## 1.52.0 (2026-09-21)
+
+### Changed
+
+- **Noir and Wide are now the visual defaults.** Fresh installs start on Aviary's dark canvas and
+  use the full space beside navigation. Existing profiles that still held the former Off and
+  Default values move once; any explicit Dim, Lights out, Graphite, Plum, Midnight, Comfortable,
+  or Wide choice stays intact.
+- Look & feel now labels both defaults and explains that Off restores X's styling.
+
+### Fixed
+
+- **Wide now widens posts, not empty canvas.** X added a separate 600px stream lane inside its
+  primary column. Aviary detects that lane and releases its cap, so post rows, text, media, and
+  actions use the available timeline.
+- Profile banners no longer turn into wall-sized blocks on a wide screen. Identity content stops
+  at 960px, with a 160px desktop avatar and a 112px compact avatar.
+- Media limits now apply to X's real bordered frame. Photos and video stop at 960px and 72% of the
+  viewport height, while replies and quoted cards stay at 720px or X's tighter value.
+- Multi-image galleries are measured as one component. Their tiles no longer expand separately or
+  create horizontal overflow.
+- Signed-in checks covered Home, Search, Profile, post detail, replies, video, portrait media,
+  galleries, quoted media, and the Control Center at 1920, 1440, 768, and 390 pixels.
+
 ## 1.51.2 (2026-09-20)
 
 ### Fixed

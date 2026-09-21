@@ -1,8 +1,8 @@
 ![Aviary, a quieter way to read X and keep a local media library](docs/marketing/social-preview.png)
 
-# Aviary v1.51.2
+# Aviary v1.52.0
 
-![Version](https://img.shields.io/badge/version-1.51.2-2f81f7) [![License](https://img.shields.io/badge/license-MIT-3fb950)](LICENSE) ![Platform](https://img.shields.io/badge/platform-Chrome%20%7C%20Firefox%20%7C%20userscript-8b5cf6) ![Runtime dependencies](https://img.shields.io/badge/runtime%20dependencies-0-0ea5e9)
+![Version](https://img.shields.io/badge/version-1.52.0-2f81f7) [![License](https://img.shields.io/badge/license-MIT-3fb950)](LICENSE) ![Platform](https://img.shields.io/badge/platform-Chrome%20%7C%20Firefox%20%7C%20userscript-8b5cf6) ![Runtime dependencies](https://img.shields.io/badge/runtime%20dependencies-0-0ea5e9)
 
 <p align="center">
   <a href="https://ko-fi.com/X8K126YVER">
@@ -25,12 +25,12 @@ The Control Center opens on **Quick setup**, with direct paths for quieting X, f
 downloading media and deleting account activity. Eight commonly used pages stay visible. Seven
 specialist pages sit under **More tools** until you need them.
 
-[Download v1.51.2](https://github.com/SysAdminDoc/Aviary/releases/tag/v1.51.2) · [Installation guide](docs/INSTALL.md) · [Feature reference](docs/FEATURES.md) · [Privacy](docs/PRIVACY.md)
+[Download v1.52.0](https://github.com/SysAdminDoc/Aviary/releases/tag/v1.52.0) · [Installation guide](docs/INSTALL.md) · [Feature reference](docs/FEATURES.md) · [Privacy](docs/PRIVACY.md)
 
 ![Aviary's Quick setup page with four common tasks and six ready-made setups](docs/marketing/presets.png)
 
-*Captured from the built v1.51.2 extension in an isolated browser. X pages and posts in these
-screenshots are synthetic test content, not a signed-in account or evidence of current live-X compatibility.*
+*Captured from the built v1.52.0 extension in an isolated browser. The screenshot content is
+synthetic. The layout was also checked separately against a signed-in X account.*
 
 ## Install
 
@@ -39,8 +39,8 @@ Use the Chromium extension for the most complete installation path.
 
 | Your browser | Download | Installation |
 | --- | --- | --- |
-| Chrome, Edge or Brave | [Chromium ZIP](https://github.com/SysAdminDoc/Aviary/releases/download/v1.51.2/extension-chrome-v1.51.2.zip) | Extract it to a folder you'll keep. Open your browser's extensions page, enable **Developer mode**, then choose **Load unpacked** and select the folder containing `manifest.json`. |
-| Firefox | [Firefox ZIP](https://github.com/SysAdminDoc/Aviary/releases/download/v1.51.2/extension-firefox-v1.51.2.zip) | Extract it. Open `about:debugging#/runtime/this-firefox`, choose **Load Temporary Add-on**, then select `manifest.json`. This unsigned add-on disappears when Firefox restarts. |
+| Chrome, Edge or Brave | [Chromium ZIP](https://github.com/SysAdminDoc/Aviary/releases/download/v1.52.0/extension-chrome-v1.52.0.zip) | Extract it to a folder you'll keep. Open your browser's extensions page, enable **Developer mode**, then choose **Load unpacked** and select the folder containing `manifest.json`. |
+| Firefox | [Firefox ZIP](https://github.com/SysAdminDoc/Aviary/releases/download/v1.52.0/extension-firefox-v1.52.0.zip) | Extract it. Open `about:debugging#/runtime/this-firefox`, choose **Load Temporary Add-on**, then select `manifest.json`. This unsigned add-on disappears when Firefox restarts. |
 | A userscript manager | [Install userscript](https://raw.githubusercontent.com/SysAdminDoc/Aviary/main/dist/aviary.user.js) | Open the link in Tampermonkey or Violentmonkey and review the manager's install prompt. Read the limitation below before choosing this route. |
 
 The Firefox manifest still has a **placeholder add-on id**. It isn't an AMO-signed permanent
@@ -56,10 +56,12 @@ After installation, refresh X and click the Aviary launcher in its left navigati
 **Options** page, **Grant download access** enables browser-managed saves. Media buttons can open
 a file instead of saving it when that optional permission is absent.
 
-## Start with two useful defaults
+## Start in Noir and use the full timeline
 
-Ad removal and media buttons are on. Themes, layout cleanup, filters, offscreen video pausing and
-broader analytics refusal start off, so a fresh install doesn't repaint your feed.
+Fresh installs apply Noir and Wide. Posts use the space beside navigation while media stays within
+a readable 960px frame and 72% of the viewport height. Wide hides X's discovery rail. Ad removal
+and media buttons are also on; filters, offscreen video pausing, and broader analytics refusal wait
+for you to enable them.
 
 - **Save media from a post.** Download photos, or the best direct video URL Aviary has observed.
   Media history helps prevent duplicate downloads. Adaptive video can use an optional local
@@ -73,11 +75,13 @@ Every preset shows the changes it will apply.
 
 ## Make X easier to read
 
-![The current Look and feel controls, with theme and layout changes off by default](docs/marketing/appearance.png)
+![The current Look and feel controls, with Noir and Wide selected by default](docs/marketing/appearance.png)
 
-**Look & feel** offers Noir and other themes. Keep X's own styling, use a denser timeline or hide
-engagement counts. **Content filters** adds keyword and media rules with hide or dim actions. Saved
-hidden posts can be restored, including from the Undo action after hiding one.
+**Look & feel** starts with Noir. Choose Off when you want X's styling, switch to a denser timeline,
+or hide engagement counts. Wide expands X's real post lane while keeping profile headers, photos,
+video, galleries, and quoted cards at practical sizes. **Content filters** adds keyword and media
+rules with hide or dim actions. Saved hidden posts can be restored, including from the Undo action
+after hiding one.
 
 Reading also has **Hide replies with images, GIFs or video**, for comment sections that are mostly
 reaction GIFs and screenshots. Any reply carrying media drops out of the thread you're reading,
@@ -145,7 +149,9 @@ userscript-manager retention follows the manager. Aviary doesn't encrypt browser
 ## Compatibility and help
 
 The extension targets Chromium 102+ and Firefox 140+. Use a maintained browser release.
-X changes frequently. Account cleanup was authenticated live-tested on September 20, 2026 with
+X changes frequently. The v1.52.0 layout was checked on September 21, 2026 against signed-in Home,
+Search, Profile, and post-detail routes at desktop, tablet, and phone widths. Account cleanup was
+authenticated live-tested on September 20, 2026 with
 2,868 Like removals plus controlled Repost and Post actions. Its fresh final route checks were
 empty. The broader DOM reference was captured on May 19, 2026; its existing freshness waiver
 expires September 30, 2026.
@@ -168,7 +174,7 @@ npm run verify:fast
 
 This builds `dist/aviary.user.js`, reloadable Chrome and Firefox directories, and the ZIP packages.
 Before releasing, run `npm run verify:release` for the serial visual and browser smoke lanes too.
-The compact `aviary-source-v1.51.2.zip` includes code and runtime icons for a clean build;
+The compact `aviary-source-v1.52.0.zip` includes code and runtime icons for a clean build;
 use the full Git checkout for screenshot baselines and repository-level verification.
 [Build and release details](docs/INSTALL.md#reproduce-the-source-archive-on-linux-arm64).
 
@@ -177,7 +183,7 @@ use the full Git checkout for screenshot baselines and repository-level verifica
 <!-- Generated by tools/docs-facts.mjs from the manifests and the panel's own metadata.
      Edit those, then run `npm run docs:facts`. -->
 
-Aviary 1.51.2 registers 34 feature modules, draws 15 Control Center destinations, and watches 21 selector surfaces on X.
+Aviary 1.52.0 registers 34 feature modules, draws 15 Control Center destinations, and watches 21 selector surfaces on X.
 
 <!-- docs-facts:end -->
 

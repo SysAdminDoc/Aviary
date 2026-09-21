@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Aviary for X
 // @namespace    https://github.com/SysAdminDoc
-// @version      1.51.2
+// @version      1.52.0
 // @description  Local-first X/Twitter enhancer with reversible controls and privacy-first defaults.
 // @author       SysAdminDoc
 // @homepage     https://github.com/SysAdminDoc/Aviary
@@ -26,7 +26,7 @@
 var Aviary = (() => {
   // src/platform/settings.ts
   var SETTINGS_KEY = "aviary.settings.v1";
-  var SETTINGS_SCHEMA_VERSION = 2;
+  var SETTINGS_SCHEMA_VERSION = 3;
   var INTEGRATION_BUDGET_CEILINGS = {
     ai: { maxRequestBytes: 5e6, dailyRequestBytes: 1e8 },
     semanticSearch: { maxRecordBytes: 5e6, dailyRecordBytes: 1e8 }
@@ -63,6 +63,25 @@ var Aviary = (() => {
         migrated[group] = updated;
       }
       next.integrations = migrated;
+      return next;
+    },
+    /**
+     * v3 makes Aviary's authored desktop experience the install default.
+     *
+     * Older builds stored the previous defaults (`off` and `default`) in every profile, so changing
+     * DEFAULT_SETTINGS alone would affect only brand-new storage. Carry those two legacy defaults to
+     * Noir and Wide once. Any other chosen theme or width is preserved, and both controls remain
+     * available after the migration.
+     */
+    2: (record) => {
+      const next = { ...record };
+      const appearance = asRecord(next.appearance);
+      const migrated = { ...appearance };
+      if (migrated.theme === void 0 || migrated.theme === "off") migrated.theme = "noir";
+      if (migrated.timelineWidth === void 0 || migrated.timelineWidth === "default") {
+        migrated.timelineWidth = "wide";
+      }
+      next.appearance = migrated;
       return next;
     }
   };
@@ -131,9 +150,9 @@ var Aviary = (() => {
   var DEFAULT_SETTINGS = {
     schemaVersion: SETTINGS_SCHEMA_VERSION,
     appearance: {
-      theme: "off",
+      theme: "noir",
       denseMode: false,
-      timelineWidth: "default",
+      timelineWidth: "wide",
       hideBorders: false,
       hideCounts: false,
       countMetrics: { replies: true, reposts: true, likes: true, views: true },
@@ -1090,11 +1109,20 @@ var Aviary = (() => {
   var ACTIVE_NAV_ATTRIBUTE = "data-av-active-route";
   var CONVERSATION_ROLE_ATTRIBUTE = "data-av-conversation-role";
   var CONVERSATION_LINE_ATTRIBUTE = "data-av-conversation-line";
+  var WIDE_STREAM_ATTRIBUTE = "data-av-wide-stream";
+  var PROFILE_HEADER_ATTRIBUTE = "data-av-profile-header";
+  var MEDIA_FRAME_ATTRIBUTE = "data-av-media-frame";
+  var MEDIA_CONTEXT_ATTRIBUTE = "data-av-media-context";
+  var MEDIA_ASPECT_PROPERTY = "--av-media-aspect";
+  var MEDIA_HOST_MAX_PROPERTY = "--av-media-host-max";
+  var MEDIA_SELECTOR = '[data-testid="tweetPhoto"], [data-testid="videoPlayer"], [data-testid="videoComponent"]';
+  var CARD_BOUNDARY_SELECTOR = '[data-testid="card.wrapper"]';
   var CONVERSATION_LINE_MAX_WIDTH = 3;
   var CONVERSATION_LINE_MIN_HEIGHT = 12;
   var CONVERSATION_LINE_CENTER_TOLERANCE = 4;
-  var MEDIA_EXCLUSIONS = ':not([data-testid="quoteTweet"] *):not([aria-labelledby="quoted"] *):not(div[role="link"][tabindex="0"] *):not([data-av-conversation-role="reply"] *)';
-  var MEDIA_CEILING_PX = 720;
+  var PRIMARY_MEDIA_MAX_WIDTH_PX = 960;
+  var CONTEXT_MEDIA_MAX_WIDTH_PX = 720;
+  var MEDIA_MAX_VIEWPORT_HEIGHT_PERCENT = 72;
   var themeFeature = {
     id: "appearance.theme",
     title: "Theme foundation",
@@ -1129,6 +1157,8 @@ var Aviary = (() => {
       delete document.documentElement.dataset.avSurface;
       syncActiveNavigation(false);
       syncConversationStructure(false);
+      syncWideStructure(false);
+      syncMediaStructure(false);
       setColorScheme(document.documentElement, void 0);
       ctx.diagnostics.info("Theme foundation destroyed");
     }
@@ -1149,6 +1179,8 @@ var Aviary = (() => {
     syncActiveNavigation(theme === "noir");
     syncConversationStructure(theme !== "off" && root.dataset.avSurface === "conversation");
     root.dataset.avWidth = settings.appearance.timelineWidth;
+    syncWideStructure(settings.appearance.timelineWidth === "wide");
+    syncMediaStructure(theme !== "off");
     root.classList.toggle("av-chirp", settings.appearance.restoreChirp);
     root.classList.toggle("av-dense", settings.appearance.denseMode);
     root.classList.toggle("av-hide-counts", settings.appearance.hideCounts);
@@ -1225,6 +1257,134 @@ var Aviary = (() => {
       article.setAttribute(CONVERSATION_ROLE_ATTRIBUTE, role);
       if (role === "reply") stampConversationLines(article);
     });
+  }
+  function syncWideStructure(enabled3) {
+    for (const node of Array.from(
+      document.querySelectorAll(`[${WIDE_STREAM_ATTRIBUTE}], [${PROFILE_HEADER_ATTRIBUTE}]`)
+    )) {
+      node.removeAttribute(WIDE_STREAM_ATTRIBUTE);
+      node.removeAttribute(PROFILE_HEADER_ATTRIBUTE);
+    }
+    if (!enabled3) return;
+    for (const primary of Array.from(
+      document.querySelectorAll('[data-testid="primaryColumn"]')
+    )) {
+      for (const region of Array.from(primary.querySelectorAll('section[role="region"]'))) {
+        if (!region.querySelector('[data-testid="cellInnerDiv"]')) continue;
+        const lane = region.parentElement;
+        if (lane && lane !== primary && lane.closest('[data-testid="primaryColumn"]') === primary) {
+          lane.setAttribute(WIDE_STREAM_ATTRIBUTE, "1");
+          for (const child of Array.from(lane.children)) {
+            if (child.querySelector('[data-testid="UserProfileHeader_Items"]')) {
+              child.setAttribute(PROFILE_HEADER_ATTRIBUTE, "1");
+            }
+          }
+        }
+      }
+    }
+  }
+  function syncMediaStructure(enabled3) {
+    clearMediaStructure();
+    if (!enabled3) return;
+    for (const article of Array.from(
+      document.querySelectorAll('article[data-testid="tweet"]')
+    )) {
+      const roots = Array.from(article.querySelectorAll(MEDIA_SELECTOR)).filter(
+        (node) => node.closest('article[data-testid="tweet"]') === article && node.parentElement?.closest(MEDIA_SELECTOR) === null
+      );
+      if (roots.length === 0) continue;
+      const own = [];
+      const embedded = /* @__PURE__ */ new Set();
+      for (const media of roots) {
+        const boundary = mediaBoundary(article, media);
+        if (boundary) embedded.add(boundary);
+        else own.push(media);
+      }
+      for (const boundary of embedded) {
+        boundary.setAttribute(MEDIA_CONTEXT_ATTRIBUTE, "embedded");
+      }
+      if (own.length === 0) continue;
+      const kind = article.dataset.avConversationRole === "reply" ? "reply" : "primary";
+      const first = own[0];
+      if (!first) continue;
+      const shared2 = own.length > 1 ? commonAncestor(own, article) : null;
+      if (shared2) {
+        stampMediaFrame(shared2, own, kind);
+      } else {
+        for (const media of own) {
+          stampMediaFrame(findMediaFrame(media, article), [media], kind);
+        }
+      }
+    }
+  }
+  function stampMediaFrame(frame, media, kind) {
+    const hostMax = kind === "reply" ? finiteComputedMax(frame) : null;
+    frame.setAttribute(MEDIA_FRAME_ATTRIBUTE, kind);
+    frame.style.setProperty(MEDIA_ASPECT_PROPERTY, String(mediaAspect(media, frame)));
+    if (hostMax) {
+      frame.style.setProperty(MEDIA_HOST_MAX_PROPERTY, hostMax);
+    }
+  }
+  function clearMediaStructure() {
+    for (const node of Array.from(
+      document.querySelectorAll(`[${MEDIA_FRAME_ATTRIBUTE}], [${MEDIA_CONTEXT_ATTRIBUTE}]`)
+    )) {
+      node.removeAttribute(MEDIA_FRAME_ATTRIBUTE);
+      node.removeAttribute(MEDIA_CONTEXT_ATTRIBUTE);
+      node.style.removeProperty(MEDIA_ASPECT_PROPERTY);
+      node.style.removeProperty(MEDIA_HOST_MAX_PROPERTY);
+    }
+  }
+  function mediaBoundary(article, media) {
+    let card = null;
+    for (let node = media.parentElement; node && node !== article; node = node.parentElement) {
+      if (isQuoteBoundary(node)) return node;
+      if (!card && node.matches(CARD_BOUNDARY_SELECTOR)) card = node;
+    }
+    return card;
+  }
+  function isQuoteBoundary(node) {
+    if (node.matches('[data-testid="quoteTweet"], [aria-labelledby="quoted"]')) return true;
+    return node.matches('div[role="link"][tabindex="0"]') && node.querySelector('[data-testid="User-Name"]') !== null;
+  }
+  function commonAncestor(nodes, limit) {
+    const first = nodes[0];
+    if (!first) return null;
+    for (let candidate = first; candidate && candidate !== limit; candidate = candidate.parentElement) {
+      if (nodes.every((node) => candidate?.contains(node))) return candidate;
+    }
+    return null;
+  }
+  function findMediaFrame(media, article) {
+    for (let node = media.parentElement; node && node !== article; node = node.parentElement) {
+      const style = getComputedStyle(node);
+      if (style.overflow === "hidden" && Number.parseFloat(style.borderTopWidth) > 0 && Number.parseFloat(style.borderRadius) > 0) {
+        return node;
+      }
+    }
+    return media;
+  }
+  function mediaAspect(media, frame) {
+    let ratio = 0;
+    const first = media[0];
+    if (media.length === 1 && first) {
+      const video = first.querySelector("video");
+      const image = first.querySelector("img");
+      if (video && video.videoWidth > 0 && video.videoHeight > 0) {
+        ratio = video.videoWidth / video.videoHeight;
+      } else if (image && image.naturalWidth > 0 && image.naturalHeight > 0) {
+        ratio = image.naturalWidth / image.naturalHeight;
+      }
+    }
+    if (!ratio) {
+      const box = frame.getBoundingClientRect();
+      ratio = box.width > 0 && box.height > 0 ? box.width / box.height : 16 / 9;
+    }
+    return Math.max(0.35, Math.min(3, ratio));
+  }
+  function finiteComputedMax(element2) {
+    const value = getComputedStyle(element2).maxWidth;
+    return /^\d+(?:\.\d+)?px$/.test(value) ? value : "100%";
   }
   function stampConversationLines(article) {
     const avatar = article.querySelector('[data-testid="Tweet-User-Avatar"]');
@@ -1475,27 +1635,41 @@ html[data-av-width="wide"][data-av-surface="timeline"]
 html[data-av-width="wide"][data-av-surface="conversation"]
   article[data-av-conversation-role="focal"] [role="group"] {
   justify-content: space-between;
-  width: 100%;
+  width: min(100%, ${PRIMARY_MEDIA_MAX_WIDTH_PX}px) !important;
+  max-width: ${PRIMARY_MEDIA_MAX_WIDTH_PX}px !important;
 }
 
-/* Media fills the column on the post being read, and only there.
-   Dropping X's own cap is right for the post in front of the reader
-   and wrong for media that belongs to someone else's post: under a conversation it turned every
-   reply's photo, video and GIF into a full-width banner, and a handful of replies was enough to
-   push the thread off the screen. A quoted post is the same case one level in. Both are excluded
-   here rather than reset by a later rule, so X's own sizing is never overridden to begin with.
+/* Bound the frame that owns media geometry, not the absolutely positioned media child. Width is
+   capped both in pixels and by intrinsic aspect ratio, so portrait images and videos never grow
+   taller than 72% of the viewport. Context media stays smaller and a reply also honors any tighter
+   cap X already supplied. */
+html[data-av-theme] [${MEDIA_FRAME_ATTRIBUTE}="primary"] {
+  --av-media-max-inline: ${PRIMARY_MEDIA_MAX_WIDTH_PX}px;
+}
 
-   "Fills the column" needs a ceiling of its own, because the column is not always a reading column.
-   Without a ceiling the photo was however wide the browser window was: measured on the
-   themed fixture, a photo rendered 978px at comfortable and 2,538px on a 2560px screen at wide.
-   That is not a bigger picture, it is a wall, and it puts the caption a screen away from the image
-   it belongs to. MEDIA_CEILING_PX is above what the default column can give media, so the default
-   layout is unchanged and the ceiling only bites where Aviary itself widened the column. */
-html[data-av-theme] [data-testid="tweetPhoto"]${MEDIA_EXCLUSIONS},
-html[data-av-theme] [data-testid="videoPlayer"]${MEDIA_EXCLUSIONS},
-html[data-av-theme] [data-testid="videoComponent"]${MEDIA_EXCLUSIONS} {
+html[data-av-theme] [${MEDIA_FRAME_ATTRIBUTE}="reply"] {
+  --av-media-max-inline: ${CONTEXT_MEDIA_MAX_WIDTH_PX}px;
+}
+
+html[data-av-theme] [${MEDIA_FRAME_ATTRIBUTE}] {
+  max-inline-size: min(
+    100%,
+    var(${MEDIA_HOST_MAX_PROPERTY}, 100%),
+    var(--av-media-max-inline),
+    calc(${MEDIA_MAX_VIEWPORT_HEIGHT_PERCENT}vh * var(${MEDIA_ASPECT_PROPERTY}))
+  ) !important;
+  max-block-size: ${MEDIA_MAX_VIEWPORT_HEIGHT_PERCENT}vh !important;
+}
+
+html[data-av-theme] [${MEDIA_FRAME_ATTRIBUTE}] [data-testid="tweetPhoto"],
+html[data-av-theme] [${MEDIA_FRAME_ATTRIBUTE}] [data-testid="videoPlayer"],
+html[data-av-theme] [${MEDIA_FRAME_ATTRIBUTE}] [data-testid="videoComponent"] {
   inline-size: 100% !important;
-  max-inline-size: min(100%, ${MEDIA_CEILING_PX}px) !important;
+  max-inline-size: 100% !important;
+}
+
+html[data-av-theme] [${MEDIA_CONTEXT_ATTRIBUTE}="embedded"] {
+  max-inline-size: min(100%, ${CONTEXT_MEDIA_MAX_WIDTH_PX}px) !important;
 }
 
 html[data-av-theme] [data-testid="tweetPhoto"],
@@ -1804,6 +1978,56 @@ html[data-av-width="wide"] main[role="main"] div:has([data-testid="primaryColumn
 html[data-av-width="wide"] [data-testid="timeline-shell"],
 html[data-av-width="wide"] main[role="main"] div:has(> [data-testid="primaryColumn"]) {
   justify-content: center !important;
+}
+
+/* X now nests the actual stream in its own 600px lane. The outer primary column can be wide while
+   every post remains narrow unless this independently capped inner lane is released too. */
+html[data-av-width="wide"] [${WIDE_STREAM_ATTRIBUTE}] {
+  flex: 1 1 auto !important;
+  align-self: stretch !important;
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+}
+
+/* A profile banner scales from its container width, so making the stream truly wide used to turn
+   a 150px avatar into a 384px portrait and a modest banner into half a screen. Keep the profile
+   identity block on the same reading lane as post content while the timeline below stays wide. */
+html[data-av-width="wide"] [${PROFILE_HEADER_ATTRIBUTE}] {
+  --av-profile-gutter: clamp(16px, 4.1vw, 64px);
+  width: min(
+    ${PRIMARY_MEDIA_MAX_WIDTH_PX}px,
+    calc(100% - var(--av-profile-gutter) - var(--av-profile-gutter))
+  ) !important;
+  max-width: ${PRIMARY_MEDIA_MAX_WIDTH_PX}px !important;
+  margin-inline-start: var(--av-profile-gutter) !important;
+}
+
+html[data-av-width="wide"] [${PROFILE_HEADER_ATTRIBUTE}]
+  a[href$="/photo"]:has([data-testid^="UserAvatar-Container-"]),
+html[data-av-width="wide"] [${PROFILE_HEADER_ATTRIBUTE}]
+  [data-testid^="UserAvatar-Container-"] {
+  width: 160px !important;
+  height: 160px !important;
+  max-width: 160px !important;
+  max-height: 160px !important;
+}
+
+@media (max-width: 760px) {
+  html[data-av-width="wide"] [${PROFILE_HEADER_ATTRIBUTE}] {
+    --av-profile-gutter: 0px;
+    width: 100% !important;
+  }
+
+  html[data-av-width="wide"] [${PROFILE_HEADER_ATTRIBUTE}]
+    a[href$="/photo"]:has([data-testid^="UserAvatar-Container-"]),
+  html[data-av-width="wide"] [${PROFILE_HEADER_ATTRIBUTE}]
+    [data-testid^="UserAvatar-Container-"] {
+    width: 112px !important;
+    height: 112px !important;
+    max-width: 112px !important;
+    max-height: 112px !important;
+  }
 }
 
 /* TwitterChirp is the family X registers the font under -- confirmed in the captured
@@ -3918,7 +4142,7 @@ ${body}
   }
 
   // src/platform/build-version.ts
-  var AVIARY_VERSION = false ? "dev" : "1.51.2";
+  var AVIARY_VERSION = false ? "dev" : "1.52.0";
 
   // src/platform/diagnostics.ts
   var UNKNOWN_DIAGNOSTIC_MESSAGE_ID = "diagnostic.unknown";
@@ -7440,7 +7664,7 @@ ${body}
         ["graphite", "Graphite"],
         ["plum", "Plum"],
         ["midnight", "Midnight"],
-        ["noir", "Noir"]
+        ["noir", "Noir (default)"]
       ], async (value) => {
         if (!ctx.isThemeId(value)) {
           ctx.setStatus("Theme value is not supported.");
@@ -7448,7 +7672,7 @@ ${body}
         }
         ctx.options.settings.appearance.theme = value;
         await ctx.save("Theme updated.");
-      }, "Noir applies Aviary's flat dark theme; Off leaves X's own styling untouched."),
+      }, "Noir is applied automatically. Choose Off to use X's own styling."),
       ctx.toggleRow("Dense mode", "Tighten timeline spacing for scanning.", ctx.options.settings.appearance.denseMode, async (checked) => {
         ctx.options.settings.appearance.denseMode = checked;
         await ctx.save("Density updated.");
@@ -7459,13 +7683,13 @@ ${body}
         [
           ["default", "Default"],
           ["comfortable", "Comfortable"],
-          ["wide", "Wide"]
+          ["wide", "Wide (default)"]
         ],
         async (value) => {
           ctx.options.settings.appearance.timelineWidth = value;
           await ctx.save("Timeline width updated.");
         },
-        "Comfortable keeps the discovery rail. Wide fills the remaining space and hides the rail."
+        "Wide uses the full space beside navigation and hides the discovery rail. Comfortable keeps that rail."
       ),
       ctx.toggleRow(
         "Restore the Chirp font",
@@ -9136,7 +9360,7 @@ ${body}
   ];
 
   // src/ui/control-center.ts
-  var AVIARY_VERSION2 = false ? "dev" : "1.51.2";
+  var AVIARY_VERSION2 = false ? "dev" : "1.52.0";
   var MORE_TOOLS_GROUP = "More tools";
   var SECTION_GROUP_BREAKS = {
     presets: [
@@ -17229,10 +17453,10 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
 
   // src/features/media/extract.ts
   var QUOTE_BOUNDARY_SELECTOR = '[data-testid="quoteTweet"], [aria-labelledby="quoted"], div[role="link"][tabindex="0"]';
-  var CARD_BOUNDARY_SELECTOR = '[data-testid="card.wrapper"]';
+  var CARD_BOUNDARY_SELECTOR2 = '[data-testid="card.wrapper"]';
   function quotedPost(article) {
     for (const candidate of Array.from(article.querySelectorAll(QUOTE_BOUNDARY_SELECTOR))) {
-      if (isQuoteBoundary(candidate)) {
+      if (isQuoteBoundary2(candidate)) {
         return candidate;
       }
     }
@@ -17358,7 +17582,7 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
       text: owner.text
     };
   }
-  function isQuoteBoundary(element2) {
+  function isQuoteBoundary2(element2) {
     if (element2.matches('[data-testid="quoteTweet"], [aria-labelledby="quoted"]')) {
       return true;
     }
@@ -17368,9 +17592,9 @@ html.av-block-ads aside[role="complementary"]:has(a[href*="grok.com"]) {
     let found = null;
     let current = node;
     while (current && current !== article) {
-      if (isQuoteBoundary(current)) {
+      if (isQuoteBoundary2(current)) {
         found = { element: current, scope: "quote" };
-      } else if (!found && current.matches(CARD_BOUNDARY_SELECTOR)) {
+      } else if (!found && current.matches(CARD_BOUNDARY_SELECTOR2)) {
         found = { element: current, scope: "card" };
       }
       current = current.parentElement;
@@ -46624,6 +46848,7 @@ html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"]${NOT
     if (DEFAULT_SETTINGS.appearance.theme !== "off") {
       document.documentElement.dataset.avTheme = DEFAULT_SETTINGS.appearance.theme;
     }
+    document.documentElement.dataset.avWidth = DEFAULT_SETTINGS.appearance.timelineWidth;
     document.documentElement.dataset.avReady = "booting";
     const diagnostics = new Diagnostics();
     const pageBridge = createPageBridge({ source: options.source, diagnostics });

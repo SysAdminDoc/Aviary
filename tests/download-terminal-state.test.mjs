@@ -122,6 +122,15 @@ before(async () => {
     };
     window.queueStatuses = () =>
       (AviaryDownloads.getMediaQueue()?.snapshot().recent ?? []).map((job) => job.status);
+    window.waitForState = async (predicate, label, timeoutMs = 5000) => {
+      const startedAt = performance.now();
+      while (!predicate()) {
+        if (performance.now() - startedAt >= timeoutMs) {
+          throw new Error(`Timed out waiting for ${label}.`);
+        }
+        await new Promise((resolve) => setTimeout(resolve, 20));
+      }
+    };
   }, FIXTURE);
 });
 
@@ -137,7 +146,10 @@ test("Started and Saved are distinct, and Saved waits for the browser to finish"
     const button = await window.mount(ctx);
 
     button.click();
-    await new Promise((resolve) => setTimeout(resolve, 80));
+    await window.waitForState(
+      () => window.__handed.length === 1 && window.queueStatuses()[0] === "running",
+      "the browser download handoff"
+    );
     const whileRunning = {
       label: button.textContent,
       busy: button.getAttribute("aria-busy"),
@@ -146,7 +158,10 @@ test("Started and Saved are distinct, and Saved waits for the browser to finish"
     };
 
     window.__report(501, "complete");
-    await new Promise((resolve) => setTimeout(resolve, 80));
+    await window.waitForState(
+      () => /Saved/.test(button.textContent) && window.queueStatuses()[0] === "completed",
+      "the completed browser download"
+    );
     const afterComplete = { label: button.textContent, queue: window.queueStatuses() };
 
     await AviaryDownloads.mediaButtonsFeature.destroy(ctx);
@@ -178,9 +193,15 @@ test("an interrupted transfer offers Retry and never enters the duplicate histor
     const button = await window.mount(ctx);
 
     button.click();
-    await new Promise((resolve) => setTimeout(resolve, 60));
+    await window.waitForState(
+      () => window.__handed.length === 1 && window.queueStatuses()[0] === "running",
+      "the initial browser download handoff"
+    );
     window.__report(501, "interrupted");
-    await new Promise((resolve) => setTimeout(resolve, 120));
+    await window.waitForState(
+      () => /Retry/.test(button.textContent) && window.queueStatuses()[0] === "failed",
+      "the interrupted browser download"
+    );
     const afterInterrupt = {
       label: button.textContent,
       disabled: button.disabled,
@@ -191,7 +212,10 @@ test("an interrupted transfer offers Retry and never enters the duplicate histor
 
     // Retrying is the whole point of not recording it: the asset must be downloadable again.
     button.click();
-    await new Promise((resolve) => setTimeout(resolve, 80));
+    await window.waitForState(
+      () => window.__handed.length === 2 && /Started/.test(button.textContent),
+      "the retry handoff"
+    );
     const retried = { handed: window.__handed.length, label: button.textContent };
 
     await AviaryDownloads.mediaButtonsFeature.destroy(ctx);
@@ -219,7 +243,10 @@ test("a transfer that never reports back stays Started rather than becoming Save
     const button = await window.mount(ctx);
 
     button.click();
-    await new Promise((resolve) => setTimeout(resolve, 60));
+    await window.waitForState(
+      () => window.__handed.length === 1 && window.queueStatuses()[0] === "running",
+      "the browser download before stopping its watcher"
+    );
     // Give up on the wait the way the five-minute timeout does, without waiting five minutes.
     AviaryDownloads.sharedDownloadWatcher().stop();
     await new Promise((resolve) => setTimeout(resolve, 100));
@@ -249,7 +276,10 @@ test("a userscript download, which has no handoff to wait on, still reports Save
     const button = await window.mount(ctx);
 
     button.click();
-    await new Promise((resolve) => setTimeout(resolve, 120));
+    await window.waitForState(
+      () => /Saved/.test(button.textContent) && window.queueStatuses()[0] === "completed",
+      "the userscript download"
+    );
     const result = { label: button.textContent, queue: window.queueStatuses() };
     await AviaryDownloads.mediaButtonsFeature.destroy(ctx);
     delete globalThis.GM_download;
@@ -281,7 +311,10 @@ test("a cross-origin anchor open never creates save history, metadata, or a down
     try {
       const button = await window.mount(ctx);
       button.click();
-      await new Promise((resolve) => setTimeout(resolve, 160));
+      await window.waitForState(
+        () => /Opened/.test(button.textContent) && window.queueStatuses()[0] === "opened",
+        "the cross-origin open"
+      );
       const historyState = stored.get("aviary.media.history.v1");
       const result = {
         label: button.textContent,

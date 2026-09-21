@@ -41,6 +41,17 @@ map, [FAQ.md](FAQ.md) for the selector-regression workflow and export tips.
 - Core utilities: `src/features/core/` (`control-center.ts`, `selector-health.ts`, `audit-log.ts`, `settings-migration.ts`, `library-backup.ts`)
 - Fixture tests: `tests/*.test.mjs`
 
+## Look and layout
+
+Noir and Wide are the install defaults. Wide releases X's inner 600px stream lane and hides the
+discovery rail, so posts use the space beside navigation instead of widening an empty outer column.
+Off restores X's own colors, while Default or Comfortable returns to a narrower timeline.
+
+Primary photo and video frames stop at 960px and 72% of the viewport height. Reply and quoted-post
+media stays within 720px or any tighter size X supplied. A profile's identity block uses the same
+960px reading lane, with a 160px avatar on desktop and 112px on compact screens. Multi-image
+galleries are treated as one frame so their tiles do not widen independently.
+
 ## Focused Home
 
 Layout now offers independent controls to hide Home's quick composer and Who to follow cards.
@@ -349,10 +360,10 @@ The Media section also exposes:
 
 - **Media layout**, Default, Stacked (full-width images, one per row), or Strict grid (`auto-fit` columns).
 
-Reshaping applies to the post being read. Media inside a quoted post, and inside a reply under a
-conversation, keeps whatever size X gave it: those belong to a post the reader is not on, and
-stretching them to the full column buried the thread under banners. The same exclusion covers the
-themed full-width media rule, which used to drop X's own cap everywhere on the page.
+Reshaping applies to the post being read, with the 960px and viewport-height limits described
+above. Media inside a quoted post, and inside a reply under a conversation, keeps X's tighter size
+or Aviary's 720px context cap. Those belong to a post the reader is not on, and stretching them to
+the full column would bury the thread under banners.
 
 ## Export core
 
