@@ -208,6 +208,34 @@ test("reasoning providers budget the longer completion key and cap successful pa
   }
 });
 
+test("the Anthropic request opts in to browser-origin calls", async () => {
+  // Anthropic answers a request carrying a browser Origin with a CORS failure unless this header is
+  // present, and Aviary's provider call runs from the x.com page.
+  const { runAiPrompt } = await importSourceModule("src/features/integrations/ai-provider.ts");
+  const originalFetch = globalThis.fetch;
+  let seen;
+  globalThis.fetch = async (url, init) => {
+    seen = { url: String(url), headers: init.headers };
+    return new Response(JSON.stringify({ content: [{ type: "text", text: "ok" }] }), { status: 200 });
+  };
+  try {
+    const result = await runAiPrompt(
+      { enabled: true, provider: "anthropic", endpoint: "", apiKey: "sk-test", model: "claude-test" },
+      { prompt: "short" }
+    );
+    assert.equal(result.ok, true);
+    assert.equal(seen.url, "https://api.anthropic.com/v1/messages");
+    assert.deepEqual(seen.headers, {
+      "content-type": "application/json",
+      "x-api-key": "sk-test",
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true"
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("an unsupported completion-limit pair reports the provider reason", async () => {
   const { runAiPrompt } = await importSourceModule("src/features/integrations/ai-provider.ts");
   const originalFetch = globalThis.fetch;

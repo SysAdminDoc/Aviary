@@ -19,13 +19,6 @@ scheme from F336.
 
 ### P2
 
-- [ ] P2, F352: Make the Anthropic provider work from x.com, or say where it can't
-  Why: Anthropic rejects browser-origin requests unless they carry `anthropic-dangerous-direct-browser-access: true`. The userscript's page-context fetch also meets x.com's `connect-src`.
-  Evidence: `src/features/integrations/ai-provider.ts:103-117`, simonwillison.net 2024-08-23, ThunderClaude issue #1, x.com CSP headers (Wayback 2026-08-22).
-  Touches: `ai-provider.ts`, the provider tests, the integrations section copy, `docs/PRIVACY.md`.
-  Acceptance: The Anthropic request sends the header, asserted in a test. The userscript build either routes providers through the manager's request API or the Connections page states that providers are extension-only there. A dated live check per provider is recorded in CHANGELOG.
-  Complexity: S/M
-
 - [ ] P2, F353: Reach the yt-dlp helper from the extension background and harden it
   Why: Chrome 142 prompts before a public origin reaches loopback, and 145 made loopback its own permission. The helper `fetch` runs from the x.com content context, and the helper reflects any Origin, checks no Host, and compares its token with a plain string check. Status: Needs live validation.
   Evidence: developer.chrome.com/blog/local-network-access, `src/features/media/yt-dlp-helper.ts:154,188`, `tools/yt-dlp-helper.mjs:196-199,210-215`.

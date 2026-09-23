@@ -35,6 +35,8 @@
   can't be read mid-pass, nothing is deleted until it reappears, and after 12 seconds the run stops
   as signed out. The account and challenge checks also run again right before each action, after
   the randomized wait.
+- The Anthropic AI provider now sends the header Anthropic requires before it accepts a request
+  from a browser page. Without it the call from X was refused before it reached the model.
 - The grid media layout (used by the Creator preset) now works when X is set to a language other
   than English. It found photos by X's English label for them and did nothing otherwise.
 - Media and verified-badge filters no longer hide a post because of what it quotes. A text-only post

@@ -109,7 +109,11 @@ async function callAnthropic(
       headers: {
         "content-type": "application/json",
         "x-api-key": config.apiKey,
-        "anthropic-version": "2023-06-01"
+        "anthropic-version": "2023-06-01",
+        // Anthropic refuses a request that arrives with a browser Origin unless the caller opts
+        // in, and this call is made from the x.com page. The key is the reader's own and already
+        // visible to them in this browser, which is the case the opt-in exists for.
+        "anthropic-dangerous-direct-browser-access": "true"
       },
       body: JSON.stringify({
         model: config.model,

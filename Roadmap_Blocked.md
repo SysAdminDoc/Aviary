@@ -10,6 +10,26 @@ Passive GraphQL capture can produce better evidence than a full private-page scr
 bounded post description. Any contributed fixture must be minimized and scrubbed before it enters
 the repository.
 
+## F352 (remainder): Userscript provider transport and a live check per AI provider
+
+The Anthropic half shipped on 2026-09-23: the request now sends
+`anthropic-dangerous-direct-browser-access: true`, which Anthropic requires for a browser-origin
+call, and `tests/integration-usage.test.mjs` pins the headers. Two parts of the acceptance need
+things this environment does not have:
+
+- **A dated live check per provider**, recorded in CHANGELOG. It needs real API keys for Anthropic,
+  OpenAI and an OpenAI-compatible endpoint, and a signed-in x.com page to run the call from.
+- **The userscript transport decision.** Whether a provider `fetch` from a userscript reaches the
+  network depends on where the manager runs it. Tampermonkey's MV3 USER_SCRIPT world and
+  Violentmonkey's content mode may be exempt from x.com's `connect-src` list, while a page-context
+  run is not; the extension's content script needs only CORS. Saying "providers are extension-only
+  in the userscript" without that observation would be a claim this repository cannot back.
+
+Re-entry: with keys and a signed-in session, run one prompt per provider from the extension and
+from Tampermonkey 5.5 and Violentmonkey 2.49, record the outcome with its date, and then either
+route userscript providers through `GM_xmlhttpRequest` with a narrow `@connect` list or state the
+limit in the Connections page.
+
 ## F358 (remainder): Report the grid media layout as unavailable on X's carousel
 
 The locale half of F358 shipped on 2026-09-23: the grid layout now keys on the `tweetPhoto` test id
