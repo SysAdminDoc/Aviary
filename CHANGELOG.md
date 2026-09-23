@@ -16,6 +16,9 @@
   all five categories ticked, so a single Run deleted every post and reply. Run now stays off, with
   a one-line reason, until you pick at least one category. Deletion still starts immediately once
   you press it.
+- Delete X activity now says, whether idle or running, that deleted posts and replies can't be
+  restored. X's automation rules require bulk-delete tools to state it. It's one line of page
+  text, not a prompt.
 - The Noir and Wide default labels added in 1.52.0 are now translated in all eight non-English
   languages. They had shipped in English.
 - **Captured posts and bookmarks keep their authors again.** X stopped sending the user's legacy

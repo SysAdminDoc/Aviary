@@ -240,6 +240,66 @@ test("Run stays off until the reader selects what to delete", async () => {
   assert.deepEqual(result.afterClear, result.initial);
 });
 
+test("the page states that deletion cannot be undone while idle and while running", async () => {
+  const result = await page.evaluate(() => {
+    document.body.replaceChildren();
+    const profile = document.createElement("a");
+    profile.dataset.testid = "AppTabBar_Profile_Link";
+    profile.href = "/alice";
+    document.body.append(profile);
+    let run = null;
+    const handle = AviaryAccountCleanupDom.mountControlCenter({
+      settings: AviaryAccountCleanupDom.cloneSettings(AviaryAccountCleanupDom.DEFAULT_SETTINGS),
+      diagnostics: () => [],
+      onChange: async () => {},
+      onError() {},
+      getAccountCleanupStatus: () => ({
+        activeHandle: "alice",
+        run,
+        runningInThisTab: run !== null,
+        message: run ? "Deletion is running." : "No account cleanup has run."
+      }),
+      startAccountCleanup: async () => ({ ok: true })
+    });
+    const shadow = document.querySelector("#av-control-center").shadowRoot;
+    shadow.querySelector(".av-launcher").click();
+    shadow.querySelector('[data-av-section="account"]').click();
+    const statement = () => [...shadow.querySelectorAll(".av-cleanup-workspace .av-cleanup-irreversible")]
+      .map((node) => node.textContent);
+    const idle = statement();
+    run = {
+      schema: 1,
+      id: "cleanup-2",
+      ownerId: "tab-1",
+      account: "alice",
+      status: "running",
+      phase: "acting",
+      reason: null,
+      plan: ["posts"],
+      stepIndex: 0,
+      settings: { mode: "cleanup", categories: { posts: true }, pacing: "balanced", maxActions: 0 },
+      stats: { posts: { completed: 3, previewed: 0, failed: 0, skipped: 0 } },
+      processed: { posts: [] },
+      failures: {},
+      actionsThisSession: 3,
+      startedAt: 1,
+      updatedAt: 2,
+      finishedAt: null,
+      leaseUntil: 3
+    };
+    handle.refresh();
+    const running = statement();
+    handle.destroy();
+    return { idle, running };
+  });
+
+  const expected = [
+    "Deleted posts and replies can't be restored. Aviary can't bring back removed likes, reposts or bookmarks."
+  ];
+  assert.deepEqual(result.idle, expected);
+  assert.deepEqual(result.running, expected);
+});
+
 test("the Control Center starts deletion immediately from one Run button", async () => {
   const result = await page.evaluate(async () => {
     document.body.replaceChildren();

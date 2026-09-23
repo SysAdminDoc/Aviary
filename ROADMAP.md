@@ -17,13 +17,6 @@ scheme from F336.
 
 ### P1
 
-- [ ] P1, F339: State on the Delete X activity page that deleted posts can't be restored
-  Why: X's automation rules say bulk-delete apps "must also clearly state that posts are not recoverable once deleted". The page says only "Deletion starts immediately."
-  Evidence: help.x.com X automation rules (Wayback 2026-08-03). `src/ui/control-center/sections/account.ts` contains no restore or recovery copy. `README.md:114` has it.
-  Touches: `src/ui/control-center/sections/account.ts`, `src/platform/i18n-catalog.ts` plus locale sync through `tools/i18n-sync.mjs`, `docs/FEATURES.md`, account-page visual baselines.
-  Acceptance: Near Run, in idle and running states, the page permanently says that deleted posts and replies can't be restored and that Aviary can't undo removed likes, reposts or bookmarks. It's translated in all nine locales. It's plain page text, not a dialog. A DOM test asserts it in both states.
-  Complexity: S
-
 - [ ] P1, F344: Fix stale install links and gate release links as version markers
   Why: The install guide sends users to v1.49.5 under a 1.52.2 heading. Chrome 138+ also gates userscript managers behind a per-extension "Allow User Scripts" toggle that no doc mentions.
   Evidence: `docs/INSTALL.md:6,74,194`. `tools/version-markers.mjs` declares no release-link marker. Chrome's userscript-manager guidance (developer.chrome.com/blog/chrome-userscript). `docs/FAQ.md:213` still says XLSX arrived "in 1.16.0".

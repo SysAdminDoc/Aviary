@@ -163,6 +163,13 @@ function actionWorkspace(ctx: PanelContext, input: {
     hint.id = "av-cleanup-selection-hint";
     workspace.append(hint);
   }
+  // X's automation rules require bulk-delete tools to say this plainly, so it stays on the page in
+  // every state rather than appearing only in a prompt.
+  workspace.append(ctx.el(
+    "span",
+    "av-cleanup-guidance av-cleanup-irreversible",
+    ctx.t("Deleted posts and replies can't be restored. Aviary can't bring back removed likes, reposts or bookmarks.")
+  ));
 
   const controls = ctx.el("div", "av-cleanup-buttons");
   if (input.runStatus === "running") {
