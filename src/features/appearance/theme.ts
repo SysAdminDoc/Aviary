@@ -27,6 +27,9 @@ const CONVERSATION_LINE_CENTER_TOLERANCE = 4;
 export const CONTEXT_MEDIA_MAX_WIDTH_PX = 720;
 export const MEDIA_MAX_VIEWPORT_HEIGHT_PERCENT = 72;
 export const PROFILE_HEADER_MAX_WIDTH_PX = 960;
+export const WIDE_COLUMN_MAX_WIDTH_PX = 1180;
+export const PRIMARY_MEDIA_MAX_WIDTH_PX = 1040;
+export const POST_ACTION_MAX_WIDTH_PX = 760;
 
 let listeningForMediaResize = false;
 
@@ -90,12 +93,12 @@ export function applyTheme(settings: AviarySettings): void {
     delete root.dataset.avTheme;
     delete root.dataset.avSurface;
   } else {
-    root.dataset.avTheme = theme;
-    root.dataset.avSurface = currentSurface();
+    setDatasetValue(root, "avTheme", theme);
+    setDatasetValue(root, "avSurface", currentSurface());
   }
   syncActiveNavigation(theme === "noir");
   syncConversationStructure(theme !== "off" && root.dataset.avSurface === "conversation");
-  root.dataset.avWidth = settings.appearance.timelineWidth;
+  setDatasetValue(root, "avWidth", settings.appearance.timelineWidth);
   syncWideStructure(settings.appearance.timelineWidth === "wide");
   syncMediaStructure(theme !== "off");
   syncMediaResizeListener(theme !== "off");
@@ -134,8 +137,12 @@ function setColorScheme(root: HTMLElement, value: string | undefined): void {
     }
     return;
   }
-  root.style.colorScheme = value;
-  root.dataset.avColorScheme = "1";
+  if (root.style.colorScheme !== value) root.style.colorScheme = value;
+  setDatasetValue(root, "avColorScheme", "1");
+}
+
+function setDatasetValue(root: HTMLElement, key: string, value: string): void {
+  if (root.dataset[key] !== value) root.dataset[key] = value;
 }
 
 function shouldReduceMotion(settings: AviarySettings): boolean {
@@ -574,6 +581,7 @@ function stampConversationLines(article: HTMLElement): void {
   const avatar = article.querySelector<HTMLElement>('[data-testid="Tweet-User-Avatar"]');
   if (!avatar) return;
   const avatarBox = avatar.getBoundingClientRect();
+  const articleBox = article.getBoundingClientRect();
   if (avatarBox.width === 0) return;
   const avatarCenter = avatarBox.left + avatarBox.width / 2;
 
@@ -583,10 +591,13 @@ function stampConversationLines(article: HTMLElement): void {
     if (candidate.childElementCount > 0) continue;
     if ((candidate.textContent ?? "").trim().length > 0) continue;
     const style = getComputedStyle(candidate);
-    if (style.position !== "absolute") continue;
+    if (style.position !== "absolute" && style.position !== "relative") continue;
     const box = candidate.getBoundingClientRect();
     if (box.width === 0 || box.width > CONVERSATION_LINE_MAX_WIDTH) continue;
     if (box.height < CONVERSATION_LINE_MIN_HEIGHT) continue;
+    if (box.top < avatarBox.bottom - CONVERSATION_LINE_CENTER_TOLERANCE) continue;
+    if (box.bottom > articleBox.bottom + CONVERSATION_LINE_CENTER_TOLERANCE) continue;
+    if (style.backgroundColor === "rgba(0, 0, 0, 0)") continue;
     const center = box.left + box.width / 2;
     if (Math.abs(center - avatarCenter) > CONVERSATION_LINE_CENTER_TOLERANCE) continue;
     candidate.setAttribute(CONVERSATION_LINE_ATTRIBUTE, "1");
@@ -836,8 +847,9 @@ html[data-av-theme] article[data-testid="tweet"] [role="group"] > :not([data-av-
 
 html[data-av-width="wide"] article[data-testid="tweet"] [role="group"] {
   justify-content: space-between;
-  width: 100% !important;
-  max-width: none !important;
+  width: min(100%, ${POST_ACTION_MAX_WIDTH_PX}px) !important;
+  max-width: ${POST_ACTION_MAX_WIDTH_PX}px !important;
+  margin-inline: auto;
 }
 
 /* Bound the frame that owns media geometry, not the absolutely positioned media child. Primary
@@ -845,7 +857,7 @@ html[data-av-width="wide"] article[data-testid="tweet"] [role="group"] {
    than 72% of the viewport. Context media stays smaller and a reply also honors any tighter cap X
    already supplied. */
 html[data-av-theme] [${MEDIA_FRAME_ATTRIBUTE}="primary"] {
-  --av-media-max-inline: 100%;
+  --av-media-max-inline: ${PRIMARY_MEDIA_MAX_WIDTH_PX}px;
 }
 
 html[data-av-theme] [${MEDIA_FRAME_ATTRIBUTE}="reply"] {
@@ -860,6 +872,7 @@ html[data-av-theme] [${MEDIA_FRAME_ATTRIBUTE}] {
     var(${MEDIA_VIEWPORT_MAX_PROPERTY})
   ) !important;
   max-block-size: ${MEDIA_MAX_VIEWPORT_HEIGHT_PERCENT}vh !important;
+  margin-inline: auto !important;
 }
 
 html[data-av-theme] [${MEDIA_FRAME_ATTRIBUTE}] [data-testid="tweetPhoto"],
@@ -1048,6 +1061,20 @@ html.av-theme-noir [data-testid="primaryColumn"] [role="tablist"] {
 
 html.av-theme-noir [data-testid="primaryColumn"] [role="tab"] {
   color: var(--av-muted);
+  transition: color 100ms ease-out, background-color 100ms ease-out;
+}
+
+html.av-theme-noir [data-testid="primaryColumn"] [role="tab"] * {
+  color: inherit !important;
+}
+
+html.av-theme-noir [data-testid="primaryColumn"] [role="tab"]:hover {
+  background-color: color-mix(in srgb, var(--av-surface-raised) 38%, transparent);
+}
+
+html.av-theme-noir [data-testid="primaryColumn"] [role="tab"]:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--av-accent) 82%, white);
+  outline-offset: -2px;
 }
 
 html.av-theme-noir [data-testid="primaryColumn"] [role="tab"][aria-selected="true"] {
@@ -1076,13 +1103,49 @@ html.av-theme-noir article[data-testid="tweet"] [data-testid="tweetText"] {
   color: var(--av-text);
 }
 
-html.av-theme-noir article[data-testid="tweet"] [role="group"] button:not([data-av-media-action]) {
+html.av-theme-noir article[data-testid="tweet"] [role="group"]
+  :is(button, a):not([data-av-media-action]) {
   color: var(--av-muted);
-  transition: color 140ms ease, background-color 140ms ease;
+  min-inline-size: 36px;
+  min-block-size: 36px;
+  border-radius: 6px;
+  transition: color 100ms ease-out, background-color 100ms ease-out;
 }
 
-html.av-theme-noir article[data-testid="tweet"] [role="group"] button:not([data-av-media-action]):hover {
+html.av-theme-noir article[data-testid="tweet"] [role="group"]
+  :is(button, a):not([data-av-media-action]) * {
+  color: inherit !important;
+}
+
+html.av-theme-noir article[data-testid="tweet"] [role="group"]
+  :is(button, a):not([data-av-media-action]) svg,
+html.av-theme-noir article[data-testid="tweet"] [role="group"]
+  :is(button, a):not([data-av-media-action]) svg path {
+  fill: currentColor !important;
+}
+
+html.av-theme-noir article[data-testid="tweet"] [role="group"]
+  :is(button, a):not([data-av-media-action]):hover {
   background-color: color-mix(in srgb, var(--av-accent) 10%, transparent);
+  color: var(--av-accent);
+}
+
+html.av-theme-noir article[data-testid="tweet"] [role="group"]
+  :is(button, a):not([data-av-media-action]):focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--av-accent) 82%, white);
+  outline-offset: 1px;
+}
+
+html.av-theme-noir article[data-testid="tweet"] [role="group"] button[data-testid="unlike"] {
+  color: var(--av-danger);
+}
+
+html.av-theme-noir article[data-testid="tweet"] [role="group"] button[data-testid="unretweet"] {
+  color: var(--av-ok);
+}
+
+html.av-theme-noir article[data-testid="tweet"] [role="group"]
+  button[data-testid="removeBookmark"] {
   color: var(--av-accent);
 }
 
@@ -1098,6 +1161,29 @@ html.av-theme-noir [data-testid="videoComponent"] {
 html.av-theme-noir [data-testid="toolBar"] {
   border-color: color-mix(in srgb, var(--av-border) 74%, transparent);
   background: var(--av-surface);
+}
+
+html.av-theme-noir [data-testid="toolBar"] button:not([data-testid="tweetButtonInline"]) {
+  color: var(--av-accent);
+}
+
+html.av-theme-noir [data-testid="toolBar"] button:not([data-testid="tweetButtonInline"]) * {
+  color: inherit !important;
+}
+
+html.av-theme-noir [data-testid="toolBar"] button:not([data-testid="tweetButtonInline"]) svg,
+html.av-theme-noir [data-testid="toolBar"] button:not([data-testid="tweetButtonInline"]) svg path {
+  fill: currentColor !important;
+}
+
+html.av-theme-noir [data-testid="toolBar"] button:disabled:not([data-testid="tweetButtonInline"]) {
+  color: var(--av-muted);
+  opacity: 0.52;
+}
+
+html.av-theme-noir [data-testid="toolBar"] button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--av-accent) 82%, white);
+  outline-offset: 1px;
 }
 
 html.av-theme-noir [data-testid="tweetTextarea_0RichTextInputContainer"],
@@ -1150,6 +1236,64 @@ html.av-theme-noir [data-testid="SearchBox_Search_Input"] {
   box-shadow: none;
 }
 
+html.av-theme-noir [data-testid="editProfileButton"],
+html.av-theme-noir button[data-testid$="-unfollow"] {
+  min-height: 36px;
+  padding-inline: 14px;
+  border: 1px solid color-mix(in srgb, var(--av-border) 92%, transparent) !important;
+  border-radius: 8px !important;
+  background: var(--av-surface-raised) !important;
+  color: var(--av-text) !important;
+  box-shadow: none !important;
+}
+
+html.av-theme-noir [data-av-profile-header]
+  div:has(> button[role="button"] + div a[href="/i/premium_sign_up"]) {
+  border: 1px solid color-mix(in srgb, var(--av-border) 88%, transparent) !important;
+  border-radius: 10px !important;
+  background: color-mix(in srgb, var(--av-surface-raised) 92%, black) !important;
+  box-shadow: none !important;
+}
+
+html.av-theme-noir button[data-testid$="-follow"],
+html.av-theme-noir [data-av-profile-header] a[href="/i/premium_sign_up"] {
+  min-height: 36px;
+  padding-inline: 14px;
+  border: 1px solid transparent !important;
+  border-radius: 8px !important;
+  background: var(--av-accent) !important;
+  color: var(--av-on-accent) !important;
+  box-shadow: none !important;
+}
+
+html.av-theme-noir [data-testid="editProfileButton"] *,
+html.av-theme-noir button[data-testid$="-follow"] *,
+html.av-theme-noir button[data-testid$="-unfollow"] *,
+html.av-theme-noir [data-av-profile-header] a[href="/i/premium_sign_up"] * {
+  color: inherit !important;
+}
+
+html.av-theme-noir [data-testid="editProfileButton"]:focus-visible,
+html.av-theme-noir button[data-testid$="-follow"]:focus-visible,
+html.av-theme-noir button[data-testid$="-unfollow"]:focus-visible,
+html.av-theme-noir [data-av-profile-header] a[href="/i/premium_sign_up"]:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--av-accent) 82%, white);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  html.av-theme-noir [data-testid="editProfileButton"]:hover,
+  html.av-theme-noir button[data-testid$="-unfollow"]:hover {
+    border-color: color-mix(in srgb, var(--av-accent) 58%, var(--av-border)) !important;
+    background: color-mix(in srgb, var(--av-accent) 8%, var(--av-surface-raised)) !important;
+  }
+
+  html.av-theme-noir button[data-testid$="-follow"]:hover,
+  html.av-theme-noir [data-av-profile-header] a[href="/i/premium_sign_up"]:hover {
+    background: color-mix(in srgb, var(--av-accent) 88%, white) !important;
+  }
+}
+
 html.av-theme-noir form[role="search"]:has([data-testid="SearchBox_Search_Input"]):focus-within {
   border-color: color-mix(in srgb, var(--av-accent) 72%, transparent);
   box-shadow: 0 0 0 3px rgba(92, 211, 255, 0.12);
@@ -1163,34 +1307,18 @@ html.av-theme-noir [data-testid="grokImgGen"] {
   box-shadow: none;
 }
 
-/* Wide removes X's discovery rail, but its collapsed Grok and Chat drawers keep a 350px box and
-   cover the post actions. Keep the one-button state compact; an opened drawer gains content and
-   immediately falls back to X's full width. */
+/* Wide already exposes Grok and Chat in primary navigation. Their redundant one-button drawers
+   float over the rightmost post controls, so remove only that collapsed state. An opened drawer
+   gains content and stops matching this rule. */
 html.av-theme-noir[data-av-width="wide"] [data-testid="GrokDrawer"]:has(> button:only-child),
 html.av-theme-noir[data-av-width="wide"] [data-testid="chat-drawer-root"]:has(> button:only-child) {
-  width: 56px !important;
-  min-width: 56px !important;
-  max-width: 56px !important;
-  inline-size: 56px !important;
-  overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--av-border) 72%, transparent);
-  border-radius: 10px;
-  background: var(--av-surface-raised);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
-  transition: none !important;
-}
-
-html.av-theme-noir[data-av-width="wide"] [data-testid="GrokDrawer"]:has(> button:only-child) > button,
-html.av-theme-noir[data-av-width="wide"] [data-testid="chat-drawer-root"]:has(> button:only-child) > button {
-  width: 54px !important;
-  min-width: 54px !important;
-  max-width: 54px !important;
+  display: none !important;
 }
 
 /* The primary column takes its width from its own box, not from a max-width. Current X also keeps
    several flex wrappers around it at the old two-column width after the discovery rail is hidden.
-   Comfortable stays capped. Wide expands that wrapper chain, then lets the primary column shrink
-   from one viewport to exactly the space left beside navigation. */
+   Comfortable stays capped. Wide expands that wrapper chain, fills ordinary desktop space, and
+   stops at a centered reading width on ultrawide displays. */
 html[data-av-width="comfortable"] [data-testid="primaryColumn"] {
   flex: 0 1 min(1000px, calc(100vw - 16px)) !important;
   flex-basis: min(1000px, calc(100vw - 16px)) !important;
@@ -1200,11 +1328,12 @@ html[data-av-width="comfortable"] [data-testid="primaryColumn"] {
 }
 
 html[data-av-width="wide"] [data-testid="primaryColumn"] {
-  flex: 1 1 100vw !important;
-  flex-basis: 100vw !important;
-  width: 100vw !important;
-  max-width: 100vw !important;
+  flex: 1 1 min(100vw, ${WIDE_COLUMN_MAX_WIDTH_PX}px) !important;
+  flex-basis: min(100vw, ${WIDE_COLUMN_MAX_WIDTH_PX}px) !important;
+  width: min(100vw, ${WIDE_COLUMN_MAX_WIDTH_PX}px) !important;
+  max-width: ${WIDE_COLUMN_MAX_WIDTH_PX}px !important;
   min-width: 0 !important;
+  margin-inline: auto !important;
 }
 
 /* Wide is the media-first desktop canvas. It removes the discovery rail, releases every retained
@@ -1247,7 +1376,7 @@ html[data-av-width="wide"] [${PROFILE_HEADER_ATTRIBUTE}] {
     calc(100% - var(--av-profile-gutter) - var(--av-profile-gutter))
   ) !important;
   max-width: ${PROFILE_HEADER_MAX_WIDTH_PX}px !important;
-  margin-inline-start: var(--av-profile-gutter) !important;
+  margin-inline: auto !important;
 }
 
 html[data-av-width="wide"] [${PROFILE_HEADER_ATTRIBUTE}]

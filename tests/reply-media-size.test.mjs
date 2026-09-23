@@ -178,6 +178,9 @@ async function measure(url, body, selectors, viewportWidth = 1280) {
       out.roles.reply = document.querySelectorAll('article[data-av-conversation-role="reply"]').length;
       out.mediaHeightPercent = AviaryTheme.MEDIA_MAX_VIEWPORT_HEIGHT_PERCENT;
       out.contextCeiling = AviaryTheme.CONTEXT_MEDIA_MAX_WIDTH_PX;
+      out.primaryMediaCeiling = AviaryTheme.PRIMARY_MEDIA_MAX_WIDTH_PX;
+      out.columnCeiling = AviaryTheme.WIDE_COLUMN_MAX_WIDTH_PX;
+      out.actionCeiling = AviaryTheme.POST_ACTION_MAX_WIDTH_PX;
       out.mediaFrames = document.querySelectorAll('[data-av-media-frame]').length;
       out.contexts = document.querySelectorAll('[data-av-media-context="embedded"]').length;
       out.scrollWidth = document.documentElement.scrollWidth;
@@ -286,18 +289,17 @@ test("media on the post being read fills useful width without growing taller tha
     const aspectRatio = 16 / 9;
     const ceilingWithBorder = Math.round((900 * seen.mediaHeightPercent * aspectRatio) / 100) + 2;
 
-    // The control: wide really does hand the column the whole window, so the media limit comes from
-    // its shape and viewport height rather than from a narrow parent.
-    assert.ok(
-      seen.column >= viewportWidth - 2,
-      `wide must hand the column the window, saw ${seen.column}px of ${viewportWidth}px`
+    assert.equal(
+      seen.column,
+      Math.min(viewportWidth, seen.columnCeiling),
+      `wide must fill ordinary screens and stop at its reading ceiling, saw ${seen.column}px`
     );
     assert.ok(
-      seen.photo <= ceilingWithBorder,
-      `a photo must respect the viewport-height ceiling, saw ${seen.photo}px at ${viewportWidth}px`
+      seen.photo <= Math.min(ceilingWithBorder, seen.primaryMediaCeiling) + 2,
+      `a photo must respect the media and viewport ceilings, saw ${seen.photo}px at ${viewportWidth}px`
     );
     assert.ok(
-      seen.video <= ceilingWithBorder,
+      seen.video <= Math.min(ceilingWithBorder, seen.primaryMediaCeiling) + 2,
       `and so must a video, saw ${seen.video}px at ${viewportWidth}px`
     );
     // It must still be larger than the ceiling X itself would have given it, or the rule has been
@@ -309,7 +311,7 @@ test("media on the post being read fills useful width without growing taller tha
   }
 });
 
-test("true-wide posts bound the real media frame and keep quote galleries together", async () => {
+test("wide posts balance the reading lane, media, controls and quote galleries", async () => {
   const seen = await measure(
     "https://x.com/home",
     WIDE_MEDIA,
@@ -325,13 +327,17 @@ test("true-wide posts bound the real media frame and keep quote galleries togeth
     1920
   );
 
-  assert.ok(seen.column >= 1918, `wide column stayed narrow at ${seen.column}px`);
-  assert.equal(seen.article, seen.column, "the post must use the true-wide column");
+  assert.equal(seen.column, seen.columnCeiling, `wide column missed its ${seen.columnCeiling}px ceiling`);
+  assert.equal(seen.article, seen.column, "the post must use the bounded wide column");
   const mediaCeiling = Math.round((900 * seen.mediaHeightPercent * (16 / 9)) / 100) + 2;
-  assert.ok(seen.frame <= mediaCeiling, `the media frame exceeded ${mediaCeiling}px: ${seen.frame}px`);
-  assert.ok(seen.frame > 1100, `wide media was needlessly shrunk to ${seen.frame}px`);
-  assert.ok(seen.actions > 1700, `the action row left most of the post empty at ${seen.actions}px`);
-  assert.equal(seen.text, seen.actions, "text and actions must use the same true-wide content lane");
+  assert.ok(
+    seen.frame <= Math.min(mediaCeiling, seen.primaryMediaCeiling) + 2,
+    `the media frame exceeded its balanced ceiling: ${seen.frame}px`
+  );
+  assert.ok(seen.frame > 900, `wide media was needlessly shrunk to ${seen.frame}px`);
+  assert.ok(seen.actions <= seen.actionCeiling + 2, `the action row sprawled to ${seen.actions}px`);
+  assert.ok(seen.actions >= 700, `the action row was cramped to ${seen.actions}px`);
+  assert.ok(seen.text > seen.actions, "post text should use more of the reading lane than its controls");
   assert.equal(seen.maxInlineSizes.text, "none", "wide text kept a character-count ceiling");
   assert.ok(
     seen.quote <= seen.contextCeiling + 2,

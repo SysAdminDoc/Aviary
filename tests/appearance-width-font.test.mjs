@@ -149,14 +149,20 @@ async function measureCurrent(appearance) {
       const article = stream?.querySelector('article[data-testid="tweet"]');
       const profileHeader = document.querySelector("#current-x-profile-header");
       const profileAvatar = profileHeader?.querySelector('[data-testid^="UserAvatar-Container-"]');
+      const columnRect = column.getBoundingClientRect();
+      const availableRect = available.getBoundingClientRect();
+      const profileHeaderRect = profileHeader.getBoundingClientRect();
       return {
-        width: Math.round(column.getBoundingClientRect().width),
+        width: Math.round(columnRect.width),
+        columnLeft: Math.round(columnRect.left),
         parentWidth: Math.round(column.parentElement.getBoundingClientRect().width),
-        availableWidth: Math.round(available.getBoundingClientRect().width),
+        availableWidth: Math.round(availableRect.width),
+        availableLeft: Math.round(availableRect.left),
         streamWidth: Math.round(stream.getBoundingClientRect().width),
         streamMaxWidth: getComputedStyle(stream).maxWidth,
         articleWidth: Math.round(article.getBoundingClientRect().width),
-        profileHeaderWidth: Math.round(profileHeader.getBoundingClientRect().width),
+        profileHeaderWidth: Math.round(profileHeaderRect.width),
+        profileHeaderLeft: Math.round(profileHeaderRect.left),
         profileAvatarWidth: Math.round(profileAvatar.getBoundingClientRect().width),
         flexBasis: getComputedStyle(column).flexBasis,
         viewportWidth: window.innerWidth,
@@ -183,7 +189,7 @@ test("timelineWidth actually widens the captured primary column", async () => {
     wide.width > comfortable.width,
     `wide (${wide.width}px) must exceed comfortable (${comfortable.width}px)`
   );
-  assert.equal(wide.width, 1400, "wide fills the captured desktop viewport");
+  assert.equal(wide.width, 1180, "wide fills ordinary desktop space without becoming an ultrawide wall");
 });
 
 test("timelineWidth controls the recorded X flex item when the sidebar is hidden", async () => {
@@ -206,12 +212,12 @@ test("timelineWidth controls the recorded X flex item when the sidebar is hidden
   assert.ok(wide.width >= 1040, `current X wide should use at least 1040px, saw ${wide.width}px`);
   assert.equal(
     wide.flexBasis,
-    "1400px",
-    `current X flex basis should resolve to the viewport width, saw ${wide.flexBasis}`
+    "1180px",
+    `current X flex basis should preserve the ultrawide ceiling, saw ${wide.flexBasis}`
   );
 });
 
-test("wide fills all space beside navigation", async () => {
+test("wide centers a bounded reading surface in spare ultrawide canvas", async () => {
   await currentPage.setViewportSize({ width: 1920, height: 1080 });
   const wide = await measureCurrent({ timelineWidth: "wide" });
   await currentPage.setViewportSize({ width: 1400, height: 900 });
@@ -221,8 +227,12 @@ test("wide fills all space beside navigation", async () => {
     `the fixture must expose spare desktop canvas, saw ${wide.availableWidth}px`
   );
   assert.ok(
-    Math.abs(wide.width - wide.availableWidth) <= 1,
-    `wide left unused canvas beside the feed: ${wide.width}px of ${wide.availableWidth}px`
+    wide.width === 1180,
+    `wide should stop at the reading ceiling, saw ${wide.width}px`
+  );
+  assert.ok(
+    Math.abs(wide.columnLeft - wide.availableLeft - (wide.availableWidth - wide.width) / 2) <= 1,
+    `wide was not centered in the available canvas: x=${wide.columnLeft}, available x=${wide.availableLeft}`
   );
   assert.equal(wide.scrollWidth, wide.viewportWidth, "full width introduced horizontal scrolling");
 });
@@ -234,7 +244,7 @@ test("wide releases X's nested 600px stream lane instead of widening empty canva
   await currentPage.setViewportSize({ width: 1400, height: 900 });
 
   assert.equal(base.streamWidth, 600, "the regression fixture must reproduce X's inner cap");
-  assert.ok(wide.streamWidth > 1200, `wide left the post stream at ${wide.streamWidth}px`);
+  assert.equal(wide.streamWidth, 1180, `wide left the post stream at ${wide.streamWidth}px`);
   assert.equal(wide.streamMaxWidth, "none", "wide did not release the inner max-width");
   assert.ok(
     Math.abs(wide.streamWidth - wide.width) <= 1,
@@ -250,6 +260,10 @@ test("wide keeps the profile identity block and avatar at a readable size", asyn
 
   assert.equal(wide.profileHeaderWidth, 960, "the profile banner grew past the media lane");
   assert.equal(wide.profileAvatarWidth, 160, "the profile avatar became a screen-sized portrait");
+  assert.ok(
+    Math.abs(wide.profileHeaderLeft - wide.columnLeft - (wide.width - wide.profileHeaderWidth) / 2) <= 1,
+    "the profile identity block is not centered in the reading column"
+  );
 });
 
 test("timelineWidth never overflows a viewport narrower than the tier", async () => {

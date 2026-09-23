@@ -101,7 +101,7 @@ test("conversation routes distinguish the focal post without drawing reply conne
     });
 
     assert.equal(themed.surface, "conversation");
-    assert.ok(themed.width >= 1200, `wide conversation should use the available canvas, saw ${themed.width}px`);
+    assert.equal(themed.width, 1180, `wide conversation should use the bounded reading canvas, saw ${themed.width}px`);
     assert.equal(themed.focalCount, 1);
     assert.equal(themed.replyCount, 2);
     assert.ok(themed.focalFont > themed.replyFont);

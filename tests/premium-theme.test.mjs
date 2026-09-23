@@ -44,6 +44,16 @@ test("Noir gives the desktop shell a premium dark treatment and turns fully off"
       collapsedChat.style.cssText = "position:fixed;right:24px;bottom:24px;width:350px;height:55px";
       collapsedChat.append(document.createElement("button"));
       document.body.append(collapsedChat);
+      const profileControls = document.createElement("div");
+      profileControls.id = "fixture-profile-controls";
+      profileControls.innerHTML = `
+        <button data-testid="fixture-follow"><span>Follow</span></button>
+        <button data-testid="editProfileButton"><span>Edit profile</span></button>`;
+      document.querySelector('[data-testid="primaryColumn"]')?.prepend(profileControls);
+      const action = document.querySelector('article[data-testid="tweet"] [role="group"] button');
+      if (action) {
+        action.innerHTML = '<div style="color:rgb(113, 118, 123)"><svg viewBox="0 0 24 24"><g style="color:rgb(113, 118, 123)"><path style="color:rgb(113, 118, 123)" fill="rgb(113, 118, 123)" d="M3 3h18v18H3z"></path></g></svg></div>';
+      }
       document.querySelector('[data-testid="SideNav_NewTweet_Button"]').style.backgroundColor =
         "rgb(239, 243, 244)";
       sidebar?.prepend(search, news);
@@ -56,6 +66,15 @@ test("Noir gives the desktop shell a premium dark treatment and turns fully off"
       style.textContent = globalThis.__mod.THEME_CSS;
       document.head.append(style);
       globalThis.__mod.applyTheme(nextSettings);
+      const profileFixture = document.createElement("section");
+      profileFixture.id = "fixture-profile-promo-wrapper";
+      profileFixture.setAttribute("data-av-profile-header", "fixture");
+      profileFixture.innerHTML = `
+        <div id="fixture-profile-promo" style="background-color:rgb(0, 67, 41)">
+          <button role="button">Close</button>
+          <div><a href="/i/premium_sign_up">Get verified</a></div>
+        </div>`;
+      document.querySelector('[data-testid="primaryColumn"]')?.prepend(profileFixture);
     }, settings);
 
     const noir = await page.evaluate(() => {
@@ -73,6 +92,11 @@ test("Noir gives the desktop shell a premium dark treatment and turns fully off"
       const searchShell = styleOf("#current-search-shell");
       const searchInput = styleOf('[data-testid="SearchBox_Search_Input"]');
       const postButton = styleOf('[data-testid="SideNav_NewTweet_Button"]');
+      const followButton = styleOf('[data-testid="fixture-follow"]');
+      const editButton = styleOf('[data-testid="editProfileButton"]');
+      const actionButton = styleOf('article[data-testid="tweet"] [role="group"] button');
+      const actionIcon = styleOf('article[data-testid="tweet"] [role="group"] button path');
+      const profilePromo = styleOf("#fixture-profile-promo");
       return {
         theme: document.documentElement.dataset.avTheme,
         className: document.documentElement.classList.contains("av-theme-noir"),
@@ -103,7 +127,19 @@ test("Noir gives the desktop shell a premium dark treatment and turns fully off"
         buttonBackground: postButton.backgroundImage,
         buttonFill: postButton.backgroundColor,
         buttonColor: postButton.color,
-        collapsedDrawerWidth: styleOf('[data-testid="chat-drawer-root"]').width,
+        collapsedDrawerDisplay: styleOf('[data-testid="chat-drawer-root"]').display,
+        followRadius: followButton.borderRadius,
+        followFill: followButton.backgroundColor,
+        followColor: followButton.color,
+        editRadius: editButton.borderRadius,
+        editFill: editButton.backgroundColor,
+        actionHeight: actionButton.minHeight,
+        actionRadius: actionButton.borderRadius,
+        actionColor: actionButton.color,
+        actionIconFill: actionIcon.fill,
+        profilePromoBackground: profilePromo.backgroundColor,
+        profilePromoBorder: profilePromo.borderTopWidth,
+        profilePromoRadius: profilePromo.borderRadius,
         scrollWidth: document.documentElement.scrollWidth
       };
     });
@@ -136,8 +172,21 @@ test("Noir gives the desktop shell a premium dark treatment and turns fully off"
     assert.equal(noir.buttonBackground, "none");
     assert.equal(noir.buttonFill, noir.accent, "Noir must override X's inline Post button fill");
     assert.ok(contrast(parseRgb(noir.buttonColor), parseRgb(noir.accent)) >= 4.5);
-    assert.equal(noir.collapsedDrawerWidth, "56px", "collapsed drawers must not cover wide posts");
+    assert.equal(noir.collapsedDrawerDisplay, "none", "collapsed drawers must not cover wide posts");
+    assert.equal(noir.followRadius, "8px", "native Follow should match Noir controls");
+    assert.equal(noir.followFill, noir.accent);
+    assert.ok(contrast(parseRgb(noir.followColor), parseRgb(noir.followFill)) >= 4.5);
+    assert.equal(noir.editRadius, "8px", "native Edit profile should match Noir controls");
+    assert.notEqual(noir.editFill, "rgba(0, 0, 0, 0)");
+    assert.equal(noir.actionHeight, "36px", "post controls need a stable click target");
+    assert.equal(noir.actionRadius, "6px");
+    assert.equal(noir.actionIconFill, noir.actionColor, "post icons must inherit the themed control color");
+    assert.notEqual(noir.profilePromoBackground, "rgb(0, 67, 41)");
+    assert.equal(noir.profilePromoBorder, "1px");
+    assert.equal(noir.profilePromoRadius, "10px");
     assert.ok(noir.scrollWidth <= beforeScrollWidth + 1, "the theme must not introduce horizontal overflow");
+
+    await page.locator("#fixture-profile-promo-wrapper").evaluate((node) => node.remove());
 
     const stableMarkers = await page.evaluate(async (nextSettings) => {
       const records = [];
@@ -151,7 +200,7 @@ test("Noir gives the desktop shell a premium dark treatment and turns fully off"
         };
       }
       const observer = new MutationObserver((mutations) => records.push(...mutations));
-      observer.observe(document.body, {
+      observer.observe(document.documentElement, {
         attributes: true,
         subtree: true,
         attributeFilter: [
@@ -161,6 +210,11 @@ test("Noir gives the desktop shell a premium dark treatment and turns fully off"
           "data-av-profile-header",
           "data-av-media-frame",
           "data-av-media-context",
+          "data-av-theme",
+          "data-av-width",
+          "data-av-surface",
+          "data-av-color-scheme",
+          "class",
           "style"
         ]
       });
