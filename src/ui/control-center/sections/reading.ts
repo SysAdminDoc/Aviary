@@ -47,7 +47,7 @@ export function buildAppearanceRows(ctx: PanelContext): HTMLElement[] {
           ctx.options.settings.appearance.timelineWidth = value as "default" | "comfortable" | "wide";
           await ctx.save("Timeline width updated.");
         },
-        "Wide uses the full space beside navigation and hides the discovery rail. Comfortable keeps that rail."
+        "Wide uses a centered reading lane and hides the discovery rail. Comfortable keeps that rail."
       ),
       ctx.toggleRow(
         "Restore the Chirp font",

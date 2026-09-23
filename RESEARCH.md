@@ -3,14 +3,13 @@ Date: 2026-09-22. Replaces all prior research.
 
 ## Executive Summary
 
-Aviary v1.53.0 is a local-first X enhancer shipped from one TypeScript tree as a readable
+Aviary v1.54.0 is a local-first X enhancer shipped from one TypeScript tree as a readable
 userscript and Chromium and Firefox MV3 packages. Reading controls, ad removal and media downloads
 all live in one Control Center, alongside a searchable local library, preservation exports and
 account cleanup. It's in its strongest shape yet. The storage, download and backup defects the
-2026-09-06 pass found are closed (F276 to F336 in `CHANGELOG.md`). The 2026-09-21 wide-layout pass
-was checked against a signed-in account. `npm test` ran 1,209 tests on 2026-09-22, and all 12
-failures reproduced as machine contention: the three affected files passed 20 of 20 when run
-serially.
+2026-09-06 pass found are closed (F276 to F336 in `CHANGELOG.md`). The wide-layout work was checked
+again against a signed-in account on 2026-09-23, including Home, Profile, post detail, and a long
+comment thread. The release tree ran 1,244 tests for v1.54.0 with no failures.
 
 The weak spot has moved. It's no longer storage. It's the newest destructive feature, Delete X
 activity, and the build's own evidence clock. One click on a fresh install deletes everything, and

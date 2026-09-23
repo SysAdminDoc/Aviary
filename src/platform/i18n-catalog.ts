@@ -110,7 +110,7 @@ export const PANEL_STRINGS: string[] = [
   "Noir (default)",
   "Tighten timeline spacing for scanning.",
   "Timeline width",
-  "Wide uses the full space beside navigation and hides the discovery rail. Comfortable keeps that rail.",
+  "Wide uses a centered reading lane and hides the discovery rail. Comfortable keeps that rail.",
   "Default",
   "Comfortable",
   "Wide (default)",

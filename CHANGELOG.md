@@ -2,6 +2,28 @@
 
 ## Unreleased
 
+## 1.54.0 (2026-09-23)
+
+### Changed
+
+- **Noir now centers a practical wide reading lane.** Ordinary desktop windows still use the room
+  beside navigation. Ultrawide displays stop at 1,180px, so posts no longer turn into long walls of
+  text or sit against one side of the screen.
+- Primary post media now stops at 1,040px and post actions stay in a centered 760px group. Profile
+  identity content remains capped at 960px and is centered inside the wider timeline.
+- Follow, Edit profile, composer, tab, and post-action controls now share Noir's shape, focus,
+  color, and hover treatment. The bright profile verification card now uses the quieter raised
+  surface instead of X's green fill.
+
+### Fixed
+
+- Collapsed Grok and Chat drawers no longer cover post controls in Wide mode. Their duplicate
+  one-button state is hidden while an opened drawer remains available.
+- Reply connector detection now follows X's current relative-positioned line as well as its older
+  absolute layout. The stray line no longer appears between comments.
+- Repeated theme passes no longer rewrite unchanged root attributes or remeasure settled media.
+  Post icon paths now inherit the same state color as their button.
+
 ## 1.53.0 (2026-09-23)
 
 ### Added
