@@ -24,14 +24,6 @@ scheme from F336.
   Acceptance: A new profile shows zero categories checked and a disabled Run with a one-line reason. Checking any category enables Run. A stored run keeps its explicit plan across reload, and a stored run missing a category key doesn't gain that category. No preview, phrase or confirmation step is added. A test pins the all-false default.
   Complexity: S
 
-- [ ] P0, F338: Refresh the DOM observation before the 2026-09-30 waiver lapses
-  Why: From 2026-10-01 local time preflight fails, which takes `verify:fast`, `verify:release` and `release:local` down with it. The schema also predates the separate 600px stream lane the 2026-09-21 signed-in pass found. This promotes Roadmap_Blocked F237 and folds in the F134 and F201 measurements, because signed-in sessions demonstrably ran on 2026-09-20 and 2026-09-21.
-  Evidence: `_decoded/dom-schema.json` (`capturedOn` 2026-05-19, `acknowledgedStaleUntil` 2026-09-30), `tools/capture-manifest.mjs:121-129`, `tools/preflight.mjs:373-381`, `CHANGELOG.md` 1.52.0 "Signed-in checks covered Home, Search, Profile…".
-  Touches: `_decoded/dom-schema.json` (`derivedFrom`, `layout`, `routes`), `tools/fixture-generator.mjs` if the stream-lane nesting needs a generated equivalent, the dated measurements in `Roadmap_Blocked.md`, `tests/fixtures.test.mjs`. The 2026-09-20 cleanup test ran in a hidden tab sharing the signed-in session, so this doesn't need the owner's visible browser. The MHTML save is the only step that does, and F343 removes it.
-  Also settle in the same session: which user shape X serves (F366), whether the Following tab carries a sort control (F367), and the Media page's "Playlists rewritten" counter on an open video post (the video-quality item in `Roadmap_Blocked.md`).
-  Acceptance: `npm run preflight` passes without a staleness warning on and after 2026-10-01. `capturedOn` is 2026-09-22 or later. `layout` records the inner stream lane. Every "measured: N hits" claim in `Roadmap_Blocked.md` carries the new date, including those that stay blocked. No decoded page remains in `_decoded/`. If no capture happens by 2026-09-30, the fallback is a new dated `acknowledgedStaleUntil` whose reason names the miss.
-  Complexity: M (S once F343 lands)
-
 ### P1
 
 - [ ] P1, F366: Read author handles and names from X's current `core` user shape
@@ -83,13 +75,6 @@ scheme from F336.
   Acceptance: On the generated Home and status documents the action emits JSON that `tools/capture-manifest.mjs` accepts and that reproduces the committed schema's counts. A hostile fixture seeded with a handle, display name, post text, URL and status id proves none of them reach the output. Nothing is written to disk, and the labels are translated.
   Complexity: M
 
-- [ ] P1, F342: Verify and ship flag-based reversion of the carousel and profile media tab
-  Why: The carousel and the profile media-tab change are the most requested fixes in this category. Control Panel for Twitter has reverted both in production since 2026-08-17 by wrapping `featureSwitches.isTrue`. Aviary's F115 and F139 are blocked only on first-hand verification, which the F338 session supplies.
-  Evidence: CPFT v4.24.0 release notes and `script.js`; the UTDDavid uBO list; Swakshan/X-Flags daily flag diffs; CPFT issues #906, #907, #922 to #928 and #942; `Roadmap_Blocked.md` F115 and F139.
-  Touches: `src/page/page-agent.ts` (install the hook before X's first read), a flag data file as Roadmap_Blocked requires, `src/platform/settings.ts` plus the normalizer, selector health for drift, the Look & feel section, tests.
-  Acceptance: In a signed-in session, forcing `rweb_media_carousel_enabled` and `responsive_web_profile_redesign_enabled` off before first read restores the multi-image grid and the profile media grid. Each flag has its own toggle, off by default. Flag names live in a data file. A flag that vanishes reports through selector health. `rweb_age_assurance_flow_enabled` is refused, and a test pins its absence from the data file. Depends on F338's session.
-  Complexity: M
-
 ### P2
 
 - [ ] P2, F347: Match cleanup targets by exact status id
@@ -133,13 +118,6 @@ scheme from F336.
   Touches: `src/features/export/` (two formatters that reuse `text-safety.ts`), the Import & export section, `docs/FEATURES.md`, export tests.
   Acceptance: The Netscape file carries each bookmark's permalink, title from post text, `ADD_DATE` and tags, and imports cleanly into a browser in a smoke test. The Raindrop CSV uses the documented columns with notes and tags mapped. Both go through `safeExternalHref` and the shared escaping rules, and a hostile-text fixture proves it.
   Complexity: S
-
-- [ ] P2, F367: Pin the Following tab to Recent when Following is forced
-  Why: Since February 2026 the web Following tab defaults to a ranked "Popular" view with a Recent toggle. Aviary's force-Following selects the tab but can't choose the sort, so readers who asked for chronological order still get ranking. Control Panel for Twitter ships a Following sort, and a userscript to force Recent appeared on 2026-08-14.
-  Evidence: piunikaweb.com 2026-02-15 (Following not chronological), reddit.com/r/userscripts (2026-08-14 "Sort By Recent"), CPFT feature list. `src/` has no "Recent" or "Popular" handling. The toggle's markup isn't in `_decoded/dom-schema.json`, so this depends on F338.
-  Touches: the force-Following feature under `src/features/layout/`, `src/platform/selectors.ts`, the Reading section, catalog strings, tests on the refreshed schema.
-  Acceptance: With force-Following on, Aviary selects Recent through X's own control, never by editing X's request, and doesn't override a reader who then picks Popular themselves. A missing control reports through selector health. It's verified in the F338 session.
-  Complexity: M
 
 - [ ] P2, F352: Make the Anthropic provider work from x.com, or say where it can't
   Why: Anthropic rejects browser-origin requests unless they carry `anthropic-dangerous-direct-browser-access: true`. The userscript's page-context fetch also meets x.com's `connect-src`.
@@ -245,13 +223,6 @@ scheme from F336.
   Touches: `src/ui/control-center.ts` row builders, `tests/a11y-behaviour.test.mjs`, the error-state baseline.
   Acceptance: An invalid field gets `aria-invalid="true"` and a visible message naming the accepted range, linked through `aria-describedby`. Both clear when the value becomes valid. An axe run of the error state stays clean.
   Complexity: S
-
-- [ ] P3, F365: Show whether a post's images carry alt text, and let filters use it
-  Why: Blind and low-vision readers are moving from X's apps to the web. No maintained X alt-text tool exists: Alt or Not stopped in 2022, and Greasy Fork's only script has 43 installs. Aviary already keeps alt text in its exports.
-  Evidence: applevis.com forum thread (2026-07-29), abitofaccess.com/alt-or-not, the Greasy Fork alt-text search, bluesky-social/social-app issue #4155. X's alt marker isn't in `_decoded/dom-schema.json`, so this depends on F338.
-  Touches: `src/features/media/`, a new `alt` field in `src/features/filtering/rules.ts`, the Reading section, catalog strings, tests on the refreshed schema.
-  Acceptance: An opt-in badge states "No description" on images X serves without alt text, as a labelled element screen readers announce. `media is photo and alt is missing` works as a rule. The marker comes from the refreshed capture, not from X's localized default alt string alone.
-  Complexity: M
 
 - [ ] P3, F369: Add Simplified Chinese
   Why: Chinese-language reviews dominate the feedback on the most-installed X media userscript, and Control Panel for Twitter ships `zh_CN`. Aviary's nine locales don't include Chinese, although cleanup's delete-label list already does.
