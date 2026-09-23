@@ -31,6 +31,8 @@
   retries it counts as a failed action and the normal reload recovery takes over. If the signed-in
   account can't be read mid-pass, nothing is deleted until it reappears, and after 12 seconds the
   run stops as signed out.
+- The grid media layout (used by the Creator preset) now works when X is set to a language other
+  than English. It found photos by X's English label for them and did nothing otherwise.
 - Media and verified-badge filters no longer hide a post because of what it quotes. A text-only post
   that quoted a video, or quoted a verified account, was hidden as if the video or badge were its
   own. Filter rules such as `media is video` follow the same boundary.

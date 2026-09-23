@@ -73,6 +73,9 @@ function ensurePresentationStyle(): void {
 
 // `av-media-layout-default` deliberately has no rules: the default is X's own layout, untouched.
 //
+// Both layouts select photos by X's test id. The grid rule used to key on the English
+// `aria-label="Image"` that X puts on the same element, so it did nothing in any other UI language.
+//
 // Both layouts below reshape the media of the post being read. They exclude a quoted post, and a
 // reply under a conversation, because that media belongs to a post the reader is not on: stretched
 // to the full column it buried the thread under banners. The exclusions are written as `:not()`
@@ -99,7 +102,7 @@ html.av-media-layout-stacked article[data-testid="tweet"] [data-testid="tweetPho
   border-radius: 12px;
 }
 
-html.av-media-layout-grid article[data-testid="tweet"] [aria-label="Image"]${NOT_BORROWED} {
+html.av-media-layout-grid article[data-testid="tweet"] [data-testid="tweetPhoto"]${NOT_BORROWED} {
   display: grid !important;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)) !important;
   gap: 6px !important;

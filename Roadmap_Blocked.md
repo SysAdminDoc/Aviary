@@ -10,6 +10,19 @@ Passive GraphQL capture can produce better evidence than a full private-page scr
 bounded post description. Any contributed fixture must be minimized and scrubbed before it enters
 the repository.
 
+## F358 (remainder): Report the grid media layout as unavailable on X's carousel
+
+The locale half of F358 shipped on 2026-09-23: the grid layout now keys on the `tweetPhoto` test id
+instead of the English `aria-label="Image"`, proven on the generated Home document with
+`lang="ja"` (`tests/media-layout-locale.test.mjs`). What remains is the carousel half of its
+acceptance: "If the post-F338 carousel has no grid container, selector health reports the setting
+as unavailable instead of claiming an effect." X's August 2026 carousel postdates every capture in
+`_decoded/`, so whether multi-image posts still expose a grid container is unknown here.
+
+Re-entry: the F338 session records the carousel's markup. If there is no grid container, register
+the layout's surface in selector health and make the Media row say the grid layout has no effect on
+the current X layout; `tests/settings-claims.test.mjs` should cover the claim.
+
 ## F338: Refresh the DOM observation before the 2026-09-30 waiver lapses
 
 Blocked on the operator: the capture needs a signed-in X session, and the 2026-09-20 and 2026-09-21 authenticated work ran through a browser surface this development session doesn't have. The isolated Playwright profiles here are unauthenticated. Deadline: preflight fails from 2026-10-01 local time. Re-entry: the owner opens a signed-in session and either saves Home plus a conversation as MHTML (see "Refreshing the DOM observation" in the repo notes) or, once F343 ships, runs Privacy & diagnostics > Copy structural observation on those routes. If neither happens by 2026-09-30, the owner decides whether to record a new dated `acknowledgedStaleUntil` with a reason that names the miss.

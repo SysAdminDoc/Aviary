@@ -19,13 +19,6 @@ scheme from F336.
 
 ### P2
 
-- [ ] P2, F358: Replace the English-only media layout hook
-  Why: Grid and stacked layouts engage only when X's aria-label reads the English "Image", and X moved multi-image posts to a carousel. Media Archivist and Creator presets set this layout.
-  Evidence: `src/features/media/media-presentation.ts:102`, `Roadmap_Blocked.md` F139, `src/ui/control-center/sections/presets.ts`.
-  Touches: `media-presentation.ts`, media-presentation tests, `tests/settings-claims.test.mjs`.
-  Acceptance: The rule matches through test ids from `STRUCTURAL_SELECTORS`, proven on the generated Home document with `lang="ja"`. If the post-F338 carousel has no grid container, selector health reports the setting as unavailable instead of claiming an effect.
-  Complexity: S/M
-
 - [ ] P2, F368: Export bookmarks as Netscape bookmark HTML and Raindrop CSV
   Why: Karakeep, Linkwarden, linkding, Shaarli and every browser import Netscape bookmark HTML, and Raindrop imports a fixed CSV. None of them import X directly. Aviary's bookmark exports don't produce either format, so leaving X for a self-hosted tool takes a conversion script. Omnivore's shutdown showed users value a one-click full export more than an open-source label.
   Evidence: docs.karakeep.app import page, docs.linkwarden.app, help.raindrop.io/import (`url,folder,title,note,tags,created`), github.com/omnivore-app/omnivore. No `NETSCAPE-Bookmark` string anywhere in `src/`.
