@@ -277,11 +277,17 @@ test("without showModal the digest still declares itself, takes focus, and conta
         dialogInert: dialog.hasAttribute("inert"),
         siblingsInert: siblingsInert()
       };
-      close.click();
       // `close()` removes the open attribute synchronously but queues the close event, and the
       // inert sweep is undone by that event's handler. Reading before the task runs measures the
-      // moment in between, not the outcome.
-      await new Promise((resolve) => setTimeout(resolve, 0));
+      // moment in between, not the outcome. A zero timer is not that wait: a timer task and the
+      // queued close event have no guaranteed order, and under a loaded parallel run the timer
+      // won. This listener is added after Aviary's, so it runs once that handler has.
+      const closed = new Promise((resolve) => {
+        dialog.addEventListener("close", resolve, { once: true });
+        setTimeout(resolve, 2_000);
+      });
+      close.click();
+      await closed;
       return { opened, closedSiblingsInert: siblingsInert() };
     } finally {
       HTMLDialogElement.prototype.showModal = realShowModal;
