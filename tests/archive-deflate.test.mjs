@@ -234,6 +234,61 @@ test("archive repair expands only known links and labels known or unresolved par
   }
 });
 
+test("archive repair resolves a mentioned id from X's July 2026 user shape", async () => {
+  const { ArchiveRepairIndex } = await importSourceModule(
+    "src/features/library/archive-repair.ts"
+  );
+  const collections = {
+    profile: null,
+    account: null,
+    directMessages: [],
+    media: [],
+    followers: [],
+    following: [],
+    lists: []
+  };
+  const resolve = (user) => {
+    const index = new ArchiveRepairIndex([{
+      tweetId: null,
+      handle: null,
+      displayName: null,
+      text: JSON.stringify({ data: { user: { result: user } } }),
+      capturedAt: "2026-09-01T00:00:00.000Z",
+      surface: "graphql:UserByScreenName",
+      media: [],
+      permalink: null
+    }]);
+    const records = [{
+      tweetId: "7",
+      handle: "owner",
+      displayName: null,
+      text: "hello",
+      capturedAt: "2026-09-01T00:00:00.000Z",
+      surface: "archive.tweets",
+      media: [],
+      permalink: null,
+      participants: [{ id: "43", handle: null, role: "mention" }]
+    }];
+    const summary = index.repair(records, collections);
+    return { handle: records[0].participants[0].handle, resolved: summary.participantIdsResolved };
+  };
+
+  // X dropped the user legacy object; the handle is in core now.
+  assert.deepEqual(
+    resolve({ __typename: "User", rest_id: "43", core: { name: "Known", screen_name: "known_handle" } }),
+    { handle: "known_handle", resolved: 1 }
+  );
+  assert.deepEqual(resolve({ rest_id: "43", legacy: { screen_name: "known_handle" } }), {
+    handle: "known_handle",
+    resolved: 1
+  });
+  // A tweet's own core carries user_results, never a handle for the tweet's id.
+  assert.deepEqual(
+    resolve({ rest_id: "43", core: { user_results: { result: {} } }, legacy: { full_text: "post" } }),
+    { handle: null, resolved: 0 }
+  );
+});
+
 test("archive repair ignores malformed and non-GraphQL checkpoint evidence", async () => {
   const { ArchiveRepairIndex } = await importSourceModule(
     "src/features/library/archive-repair.ts"

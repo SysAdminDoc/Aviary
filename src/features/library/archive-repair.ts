@@ -216,8 +216,12 @@ function collectKnownAccountIdentities(root: unknown): Array<{ id: string; handl
       "account_id"
     );
     const legacy = isRecord(record.legacy) ? record.legacy : null;
+    // X moved a user's screen_name out of legacy into core in July 2026; older captures keep it
+    // in legacy. A tweet's own core holds user_results, not a screen_name, so it adds nothing.
+    const core = isRecord(record.core) ? record.core : null;
     const handle = normalizeHandle(
       firstString(record, "screen_name", "screenName", "username", "handle", "userLink") ??
+      (core ? firstString(core, "screen_name") : null) ??
       (legacy ? firstString(legacy, "screen_name", "screenName", "username", "handle") : null)
     );
     if (id && /^\d+$/.test(id) && handle) found.set(id, handle);

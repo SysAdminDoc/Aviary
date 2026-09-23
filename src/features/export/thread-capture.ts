@@ -121,7 +121,8 @@ function readAudience(
   legacy: Record<string, unknown> | null,
   privacy: Record<string, unknown> | null
 ): "public" | "protected" | "unknown" {
-  const protectedValue = user?.protected ?? legacy?.protected ?? privacy?.protected;
+  // The current shape first, as for the handle and name.
+  const protectedValue = user?.protected ?? privacy?.protected ?? legacy?.protected;
   return typeof protectedValue === "boolean" ? (protectedValue ? "protected" : "public") : "unknown";
 }
 
