@@ -10,6 +10,11 @@
   you press it.
 - The Noir and Wide default labels added in 1.52.0 are now translated in all eight non-English
   languages. They had shipped in English.
+- **Captured posts and bookmarks keep their authors again.** X stopped sending the user's legacy
+  object in late July 2026 and moved the handle and name into a new place. Since then Aviary had
+  saved captured posts and mirrored bookmarks without a handle or display name, marked their
+  audience unknown, and turned each account in a response into an empty bookmark or post under
+  that account's id. Both parsers now read the current shape and still accept the old one.
 
 ## 1.52.2 (2026-09-21)
 

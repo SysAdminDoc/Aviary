@@ -68,14 +68,20 @@ function readTweet(
 
   const user = findUser(value, legacy);
   const userLegacy = asRecord(user?.legacy);
-  const audience = readAudience(user, userLegacy);
+  // X dropped the user's legacy object in July 2026: the handle and name moved to `core` and the
+  // protected flag to `privacy`. Captures written before that still carry legacy, so both shapes
+  // are read.
+  const userCore = asRecord(user?.core);
+  const audience = readAudience(user, userLegacy, asRecord(user?.privacy));
   const language = normalizePostLanguage(
     legacy?.lang ?? legacy?.language ?? value.lang ?? value.language ?? value.content_language
   );
   const handle = cleanHandle(
-    user?.screen_name ?? user?.screenName ?? user?.username ?? userLegacy?.screen_name ?? userLegacy?.screenName ?? value.screen_name ?? value.username
+    userCore?.screen_name ?? user?.screen_name ?? user?.screenName ?? user?.username ?? userLegacy?.screen_name ?? userLegacy?.screenName ?? value.screen_name ?? value.username
   );
-  const displayName = cleanText(user?.name ?? user?.displayName ?? userLegacy?.name ?? userLegacy?.displayName);
+  const displayName = cleanText(
+    userCore?.name ?? user?.name ?? user?.displayName ?? userLegacy?.name ?? userLegacy?.displayName
+  );
   const authorId = cleanId(
     user?.rest_id ?? user?.id_str ?? user?.id ?? legacy?.user_id_str ?? value.author_id ?? value.authorId
   );
@@ -112,13 +118,17 @@ function readTweet(
 
 function readAudience(
   user: Record<string, unknown> | null,
-  legacy: Record<string, unknown> | null
+  legacy: Record<string, unknown> | null,
+  privacy: Record<string, unknown> | null
 ): "public" | "protected" | "unknown" {
-  const protectedValue = user?.protected ?? legacy?.protected;
+  const protectedValue = user?.protected ?? legacy?.protected ?? privacy?.protected;
   return typeof protectedValue === "boolean" ? (protectedValue ? "protected" : "public") : "unknown";
 }
 
 function looksLikeTweet(value: Record<string, unknown>, legacy: Record<string, unknown> | null): boolean {
+  // Since X dropped the user legacy object, a user result is `core` plus `rest_id` with no legacy,
+  // which the `core` rule below would otherwise read as an empty post under the user's id.
+  if (value.__typename === "User") return false;
   if (legacy && (
     typeof legacy.full_text === "string" ||
     typeof legacy.text === "string" ||
@@ -127,7 +137,7 @@ function looksLikeTweet(value: Record<string, unknown>, legacy: Record<string, u
   )) return true;
   if (typeof value.full_text === "string" || typeof value.conversation_id_str === "string") return true;
   if (value.note_tweet || value.tweet_results) return true;
-  if (value.core && !legacy) return true;
+  if (asRecord(value.core)?.user_results && !legacy) return true;
   return typeof value.in_reply_to_status_id_str === "string";
 }
 

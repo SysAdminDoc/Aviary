@@ -76,7 +76,12 @@ function readTweet(
   if (!tweetId) return null;
   // User objects also have id_str. A tweet-like object has the legacy text field, or the
   // GraphQL core/tweet result shape that carries a tweet's user relationship.
-  if (!legacy && !value.core && !value.tweet_results && !value.conversation_id_str) return null;
+  // A user result has `core` and `rest_id` but, since X dropped the user legacy object in July
+  // 2026, no legacy either; without this it would become a bookmark under the user's id.
+  if (value.__typename === "User") return null;
+  if (!legacy && !asRecord(value.core)?.user_results && !value.tweet_results && !value.conversation_id_str) {
+    return null;
+  }
   const user = findUser(value, legacy);
   const handle = cleanHandle(user?.screen_name ?? user?.screenName);
   const capturedAt = findBookmarkTimestamp(value) ?? findBookmarkTimestamp(legacy) ?? fallbackTimestamp;
@@ -94,6 +99,9 @@ function findUser(value: Record<string, unknown>, legacy: Record<string, unknown
   const core = asRecord(value.core);
   const userResults = asRecord(core?.user_results);
   const result = asRecord(userResults?.result);
+  // X moved the handle into the user's `core` in July 2026; earlier captures keep it in legacy.
+  const resultCore = asRecord(result?.core);
+  if (typeof resultCore?.screen_name === "string") return resultCore;
   const coreLegacy = asRecord(result?.legacy);
   return coreLegacy ?? asRecord(legacy?.user) ?? asRecord(value.user) ?? result;
 }

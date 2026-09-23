@@ -34,6 +34,47 @@ async function loadBundle() {
   return { module, cleanup: () => rm(temp, { recursive: true, force: true }) };
 }
 
+test("bookmark parsing reads the July 2026 user shape and never stores a user as a bookmark", async () => {
+  const { module, cleanup } = await loadBundle();
+  try {
+    // X dropped the user's legacy object; the handle is in `core`. A user result is `core` plus
+    // `rest_id`, which must not become a bookmark under the user's id.
+    const author = {
+      __typename: "User",
+      rest_id: "5005",
+      core: { name: "Frank", screen_name: "Frank_X" },
+      privacy: { protected: false }
+    };
+    const response = {
+      data: { bookmark_timeline_v2: { timeline: { instructions: [{ entries: [{
+        bookmark_created_at: "2026-09-01T08:00:00Z",
+        content: { itemContent: { tweet_results: { result: {
+          __typename: "Tweet",
+          rest_id: "3001",
+          core: { user_results: { result: author } },
+          legacy: { id_str: "3001", full_text: "saved after the change", created_at: "Mon Sep 01 07:00:00 +0000 2026" }
+        } } } }
+      }] }] } } }
+    };
+    const records = module.parseCapturedBookmarks(
+      JSON.stringify(response),
+      "Bookmarks",
+      "2026-09-01T08:05:00Z",
+      "https://x.com/i/api/graphql/Bookmarks"
+    );
+    assert.deepEqual(records, [{
+      tweetId: "3001",
+      handle: "frank_x",
+      text: "saved after the change",
+      url: "https://x.com/frank_x/status/3001",
+      capturedAt: "2026-09-01T08:00:00.000Z",
+      sourceOperation: "Bookmarks"
+    }]);
+  } finally {
+    await cleanup();
+  }
+});
+
 test("bookmark GraphQL parsing keeps only tweet records and never fetches media", async () => {
   const { module, cleanup } = await loadBundle();
   try {

@@ -17,13 +17,6 @@ scheme from F336.
 
 ### P1
 
-- [ ] P1, F366: Read author handles and names from X's current `core` user shape
-  Why: X moved post author fields out of the user's `legacy` object into `core`. Both passive parsers still read `result.legacy`, or fields `result` itself doesn't carry, so bookmarks and captured posts can silently lose handles and display names. Status: Likely. The parser gap is verified. X's shape change is Cyd's capture-backed report and should be confirmed in the F338 session.
-  Evidence: lockdown-systems/cyd issue #707 (2026-09-14, "Post author fields moved out of the legacy sub-object into the core sub-object"). `src/features/library/bookmark-capture.ts:93-98` returns `result.legacy` first. `src/features/export/thread-capture.ts:75-77,134-139` never reads `result.core`. Every fixture uses the old shape (`tests/bookmark-capture.test.mjs:75,118`, `tests/thread-capture.test.mjs:32`, `tests/export-language.test.mjs:50`).
-  Touches: `bookmark-capture.ts`, `thread-capture.ts`, any other reader of GraphQL user objects, those four test files plus a new fixture in the current shape.
-  Acceptance: Both parsers take `screen_name` and `name` from `result.core` when present and fall back to `legacy`. A fixture with only `core` fields yields the right handle, display name and permalink. Old-shape fixtures still pass. The F338 session records which shape X serves on 2026-09-22 or later.
-  Complexity: S
-
 - [ ] P1, F340: Escape every PowerShell quote character in the copied yt-dlp command
   Why: PowerShell ends a single-quoted string at U+2018 to U+201B as well as ASCII `'`. A filename template that uses `{text}` puts post text inside that argument, and the user pastes the result into a terminal.
   Evidence: `src/features/media/yt-dlp-helper.ts:233-235` doubles only ASCII `'`. `src/features/media/media-buttons.ts:866-886` renders the template into `--output`. `src/features/media/template.ts:12` doesn't strip typographic quotes. `tests/yt-dlp-helper.test.mjs:39-46` covers ASCII only.
@@ -228,6 +221,13 @@ scheme from F336.
   Touches: `src/platform/i18n-runtime.ts`, `src/platform/i18n.ts` (its duplicated locale table), the catalog, native `_locales` generation in `tools/build.mjs`, `tests/i18n.test.mjs`.
   Acceptance: `zh-CN` covers every catalog string and every native message, and the locale gate passes. The duplicated tables in `i18n-runtime.ts` and `i18n.ts` become one. Bundle budgets hold, so this depends on F357.
   Complexity: M
+
+- [ ] P3, F371: Let the reader review bookmarks and captured posts saved while X's user shape was misread
+  Why: From X's 2026-07-28 user-object change until F366, mirrored bookmarks and captured posts were stored with no handle, and every account in a bookmark response became an empty bookmark under the account's id. Those rows stay in existing libraries after the fix.
+  Evidence: F366's mutation run reproduced the phantom `{tweetId: "5005", handle: null, text: "", url: "https://x.com/i/status/5005"}` from a July 2026 bookmark response. twitter-web-exporter commit of 2026-07-28 dates the change. `src/features/library/bookmarks.ts` `BookmarkStore.mirror`.
+  Touches: `src/features/library/bookmarks.ts`, the Saved posts section, catalog strings, tests.
+  Acceptance: Saved posts can filter to mirrored rows with no handle captured on or after 2026-07-28, and lists them for review with a single "Remove selected" action. Nothing is deleted automatically, because a media-only post captured under the bug looks the same as a phantom. A fixture with both kinds proves neither is removed without selection.
+  Complexity: S/M
 
 - [ ] P3, F360: Refresh pinned development dependencies
   Why: eslint 10.11.0, typescript-eslint 8.70.1, Playwright 1.63.0 (Chromium 153, Firefox 155), globals 17.12.0 and Node 24.21.0 are out. Violentmonkey's stable is 2.49.0 (2026-09-06), with an MV3 execution-order fix, while the manager lane still installs 2.47.0. Tampermonkey 5.5.0 is still the current stable. The typescript-eslint peer range still stops below TypeScript 6.1, so the TypeScript 6 API alias stays.
