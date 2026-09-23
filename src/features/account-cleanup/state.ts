@@ -98,6 +98,11 @@ export const ACCOUNT_CLEANUP_TIMING = {
   scrollPauseMs: 1_600,
   idleScrollLimit: 14,
   maxScrollsWithoutAction: 60,
+  /** Consecutive stale outcomes for one item before it counts as a failed action. */
+  staleRetryLimit: 3,
+  /** How long the signed-in handle may stay unreadable mid-pass before the run blocks. */
+  missingHandleLimitMs: 12_000,
+  missingHandlePollMs: 500,
   requiredEmptyVerificationPasses: 1,
   likeRateWindowActionLimit: 500,
   likeRateWindowMs: 15 * 60_000,

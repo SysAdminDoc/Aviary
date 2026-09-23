@@ -4,7 +4,8 @@ import { importSourceEntry } from "./helpers/source-import.mjs";
 
 const source = await importSourceEntry([
   "src/features/account-cleanup/state.ts",
-  "src/features/account-cleanup/runner.ts"
+  "src/features/account-cleanup/runner.ts",
+  "src/features/account-cleanup/account-cleanup-feature.ts"
 ]);
 
 function memoryStorage(seed = {}) {
@@ -744,6 +745,250 @@ test("cleanup reloads an unresponsive X page and retries the same action", async
   assert.equal(completed.stats.likes.failed, 2);
   assert.equal(completed.pageRecoveryAttempts, 0);
   assert.deepEqual(completed.failures, {});
+});
+
+/** A runner on the Likes route with harmless defaults; each test overrides what it exercises. */
+function likesRunner({ storage = memoryStorage(), dependencies = {}, clock, events = [], assigned = [] } = {}) {
+  return new source.AccountCleanupRunner({
+    storage,
+    documentObject: {},
+    windowObject: {},
+    locationObject: {
+      pathname: "/i/history/likes",
+      assign(url) {
+        assigned.push(url);
+      }
+    },
+    sessionStorageObject: sessionStorageStub(),
+    ...(clock ? { clock } : {}),
+    dependencies: {
+      getActiveHandle: () => "alice",
+      waitForValue: async (read) => read(),
+      isChallengePresent: () => false,
+      findTargets: () => [],
+      performTarget: async () => ({ status: "success" }),
+      scrollForMore: async () => ({ changed: false, visible: 0 }),
+      sleep: async () => {},
+      ...dependencies
+    },
+    onEvent: (event) => events.push(event)
+  });
+}
+
+function likeTarget(id) {
+  return { category: "likes", kind: "unlike", article: {}, control: {}, author: "someone", id };
+}
+
+async function waitForRun(runner, predicate) {
+  const deadline = Date.now() + 1_000;
+  let run = await runner.load();
+  while (!predicate(run) && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    run = await runner.load();
+  }
+  return run;
+}
+
+const likesOnly = () => ({ categories: selected("likes"), pacing: "brisk", maxActions: 0 });
+
+test("an item that keeps going stale counts as a failed action and enters page recovery", async () => {
+  const assigned = [];
+  const events = [];
+  let attempts = 0;
+  const runner = likesRunner({
+    assigned,
+    events,
+    dependencies: {
+      findTargets: () => [likeTarget("909")],
+      performTarget: async () => {
+        attempts += 1;
+        // An unbounded stale loop never yields to timers, which also starves --test-timeout. Throwing
+        // turns that regression into a failed assertion below instead of a hung suite.
+        if (attempts > 50) throw new Error("stale retries are unbounded");
+        return { status: "stale", reason: "control_missing" };
+      }
+    }
+  });
+  assert.deepEqual(await runner.start("cleanup", "alice", likesOnly()), { ok: true });
+  const run = await waitForRun(runner, () => assigned.length > 0);
+  runner.teardown();
+
+  // Two stale retries then a failure, twice over, and the second failure starts the reload.
+  assert.equal(attempts, 2 * source.ACCOUNT_CLEANUP_TIMING.staleRetryLimit);
+  assert.deepEqual(assigned, ["https://x.com/i/history/likes"]);
+  assert.equal(run.phase, "recovering");
+  assert.equal(run.failures["likes:909"], 2);
+  assert.equal(run.stats.likes.failed, 2);
+  assert.ok(events.some((event) => event.message === "An account action failed: control_missing."));
+});
+
+test("a signed-in handle that stays unreadable blocks the run before any action", async () => {
+  let now = 1_000_000;
+  let reads = 0;
+  let attempts = 0;
+  const runner = likesRunner({
+    clock: () => now,
+    dependencies: {
+      // The pass starts with a readable handle, then the profile link disappears for good.
+      getActiveHandle: () => (reads++ === 0 ? "alice" : null),
+      findTargets: () => [likeTarget("1")],
+      performTarget: async () => {
+        attempts += 1;
+        return { status: "success" };
+      },
+      sleep: async (milliseconds) => {
+        now += milliseconds;
+      }
+    }
+  });
+  assert.deepEqual(await runner.start("cleanup", "alice", likesOnly()), { ok: true });
+  const run = await waitForRun(runner, (current) => current?.status === "blocked");
+  runner.teardown();
+
+  assert.equal(run.status, "blocked");
+  assert.equal(run.reason, "login_required");
+  assert.equal(attempts, 0, "nothing may be deleted while the account cannot be read");
+});
+
+test("a handle that disappears briefly resumes the pass on the same account", async () => {
+  let now = 1_000_000;
+  const handles = ["alice", null, null, "alice"];
+  let attempts = 0;
+  const runner = likesRunner({
+    clock: () => now,
+    dependencies: {
+      getActiveHandle: () => (handles.length > 1 ? handles.shift() : handles[0]),
+      findTargets: () => (attempts === 0 ? [likeTarget("1")] : []),
+      performTarget: async () => {
+        attempts += 1;
+        return { status: "success" };
+      },
+      sleep: async (milliseconds) => {
+        now += milliseconds;
+      }
+    }
+  });
+  assert.deepEqual(await runner.start("cleanup", "alice", likesOnly()), { ok: true });
+  const run = await waitForRun(runner, (current) => current?.stats.likes.completed === 1);
+  runner.teardown();
+  assert.equal(run.stats.likes.completed, 1);
+  assert.notEqual(run.status, "blocked");
+});
+
+test("a handle change or a challenge mid-scan stops the pass before the next action", async () => {
+  for (const [scenario, reason] of [["handle", "account_changed"], ["challenge", "challenge_detected"]]) {
+    let checks = 0;
+    let attempts = 0;
+    let next = 0;
+    const runner = likesRunner({
+      dependencies: {
+        // The run-start read and the first scan see alice; the second scan sees the change.
+        getActiveHandle: () => (scenario === "handle" && ++checks > 2 ? "bob" : "alice"),
+        isChallengePresent: () => scenario === "challenge" && attempts > 0,
+        findTargets: () => [likeTarget(String(++next))],
+        performTarget: async () => {
+          attempts += 1;
+          return { status: "success" };
+        }
+      }
+    });
+    assert.deepEqual(await runner.start("cleanup", "alice", likesOnly()), { ok: true });
+    const run = await waitForRun(runner, (current) => current?.status === "blocked");
+    runner.teardown();
+    assert.equal(run.reason, reason, scenario);
+    assert.equal(attempts, 1, `${scenario}: exactly the action taken before the change`);
+  }
+});
+
+test("a skipped item is recorded once and never retried", async () => {
+  const assigned = [];
+  const performed = [];
+  const runner = likesRunner({
+    assigned,
+    dependencies: {
+      findTargets: () => [likeTarget("77")],
+      performTarget: async (target) => {
+        performed.push(target.id);
+        return { status: "skipped", reason: "control_missing" };
+      }
+    }
+  });
+  assert.deepEqual(await runner.start("cleanup", "alice", likesOnly()), { ok: true });
+  // With the only item skipped, the scan runs dry and asks for the fresh verification reload.
+  const run = await waitForRun(runner, () => assigned.length > 0);
+  runner.teardown();
+  assert.deepEqual(performed, ["77"]);
+  assert.equal(run.stats.likes.skipped, 1);
+  assert.equal(run.phase, "verification_reload");
+});
+
+test("a pass whose lease another tab took stops without overwriting that tab's run", async () => {
+  const storage = memoryStorage();
+  const events = [];
+  let attempts = 0;
+  const runner = likesRunner({
+    storage,
+    events,
+    dependencies: {
+      findTargets: () => [likeTarget(String(attempts + 1))],
+      performTarget: async () => {
+        attempts += 1;
+        // Another tab claims the run while this one is mid-action.
+        const stored = storage.raw.get(source.ACCOUNT_CLEANUP_KEY);
+        stored.ownerId = "another-tab";
+        return { status: "success" };
+      }
+    }
+  });
+  assert.deepEqual(await runner.start("cleanup", "alice", likesOnly()), { ok: true });
+  const deadline = Date.now() + 1_000;
+  while (!events.some((event) => event.type === "error") && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 5));
+  }
+  runner.teardown();
+  assert.ok(events.some((event) => event.message === "This cleanup moved to another X tab."));
+  assert.equal(attempts, 1);
+  assert.equal(storage.raw.get(source.ACCOUNT_CLEANUP_KEY).ownerId, "another-tab");
+});
+
+test("the controller resumes only the pass this tab owns when the page loads", async () => {
+  const saved = {
+    document: globalThis.document,
+    window: globalThis.window,
+    location: globalThis.location,
+    sessionStorage: globalThis.sessionStorage
+  };
+  const run = source.createAccountCleanupRun({
+    account: "alice",
+    ownerId: "tab-1",
+    mode: "cleanup",
+    options: likesOnly()
+  });
+  const context = (storage) => ({
+    storage,
+    diagnostics: { info() {}, warn() {} },
+    auditLog: { record: async () => {} },
+    refreshControlCenter() {}
+  });
+  try {
+    // No profile link renders, so a resumed pass waits for the account instead of acting.
+    globalThis.document = { querySelector: () => null, querySelectorAll: () => [] };
+    globalThis.window = globalThis;
+    globalThis.location = { pathname: "/i/history/likes", assign() {} };
+    globalThis.sessionStorage = sessionStorageStub();
+
+    source.writeAccountCleanupTabToken("tab-1");
+    await source.accountCleanupFeature.init(context(memoryStorage({ [source.ACCOUNT_CLEANUP_KEY]: run })));
+    assert.equal(source.getAccountCleanupStatus().runningInThisTab, true, "the owning tab resumes");
+    source.accountCleanupFeature.destroy(context(memoryStorage()));
+
+    source.writeAccountCleanupTabToken("tab-2");
+    await source.accountCleanupFeature.init(context(memoryStorage({ [source.ACCOUNT_CLEANUP_KEY]: run })));
+    assert.equal(source.getAccountCleanupStatus().runningInThisTab, false, "another tab leaves it alone");
+    source.accountCleanupFeature.destroy(context(memoryStorage()));
+  } finally {
+    Object.assign(globalThis, saved);
+  }
 });
 
 test("cleanup waits for X's 500-action Like window before action 501", async () => {

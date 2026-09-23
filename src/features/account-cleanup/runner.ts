@@ -443,6 +443,8 @@ export class AccountCleanupRunner {
     let idleScrolls = 0;
     let scrollsSinceAction = 0;
     let consecutiveFailures = 0;
+    let handleMissingSince: number | null = null;
+    const staleStreaks = new Map<string, number>();
     let actionsInBatch = run.stats[category].completed % pacing.batchSize;
     const categoryLabel = ACCOUNT_CLEANUP_CATEGORY_DEFINITIONS[category].label;
     const categoryLabelLower = categoryLabel.toLocaleLowerCase();
@@ -457,7 +459,19 @@ export class AccountCleanupRunner {
         return "blocked";
       }
       const activeHandle = this.#dependencies.getActiveHandle(this.#document);
-      if (activeHandle && !sameAccountCleanupHandle(activeHandle, run.account)) {
+      if (!activeHandle) {
+        // Nothing is deleted while the account can't be read. A brief re-render recovers; a
+        // handle that stays gone means the session or X's navigation changed under the run.
+        handleMissingSince ??= this.#clock();
+        if (this.#clock() - handleMissingSince >= ACCOUNT_CLEANUP_TIMING.missingHandleLimitMs) {
+          await this.#blockRun("login_required");
+          return "blocked";
+        }
+        await this.#dependencies.sleep(ACCOUNT_CLEANUP_TIMING.missingHandlePollMs, signal);
+        continue;
+      }
+      handleMissingSince = null;
+      if (!sameAccountCleanupHandle(activeHandle, run.account)) {
         await this.#blockRun("account_changed");
         return "blocked";
       }
@@ -579,7 +593,16 @@ export class AccountCleanupRunner {
         continue;
       }
 
-      if (outcome.status === "stale") continue;
+      if (outcome.status === "stale") {
+        // A control that detaches once is X re-rendering; the same one every time never resolves,
+        // and retrying it forever at pacing speed looks like progress while nothing happens.
+        const streak = (staleStreaks.get(target.id) ?? 0) + 1;
+        if (streak < ACCOUNT_CLEANUP_TIMING.staleRetryLimit) {
+          staleStreaks.set(target.id, streak);
+          continue;
+        }
+      }
+      staleStreaks.delete(target.id);
       if (outcome.status === "skipped") {
         processed.add(target.id);
         run.processed[category] = boundedIds(processed);

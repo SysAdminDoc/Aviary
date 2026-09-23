@@ -483,7 +483,11 @@ It can remove bookmarks and likes, undo reposts, then delete replies and posts.
   can't be restored and that Aviary can't bring back removed likes, reposts or bookmarks, which X's
   automation rules require of bulk-delete tools.
 - The signed-in handle comes from X's profile navigation or account switcher. It is checked before
-  the pass and while each category is scanned. A changed account blocks the run.
+  the pass and while each category is scanned. A changed account blocks the run. If X stops showing
+  the signed-in account mid-pass, nothing is deleted while it's missing, and the run blocks as
+  signed out after 12 seconds.
+- An item whose control keeps disappearing before Aviary can press it is retried twice, then counted
+  as a failed action, which feeds the usual reload-and-retry recovery.
 - **Advanced options** contains Careful, Balanced and Brisk pacing plus the optional action limit.
   Balanced is the default. Every speed uses short randomized waits, and the status line names each
   automatic rest before work continues. A limited run pauses at the boundary, and Resume begins a

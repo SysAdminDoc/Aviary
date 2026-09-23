@@ -19,13 +19,6 @@ scheme from F336.
 
 ### P2
 
-- [ ] P2, F346: Bound stale cleanup retries and cover the untested runner paths
-  Why: A target that keeps returning `stale` loops forever at pacing speed. Several runner paths have no test. `docs/FEATURES.md` says an account change blocks the run, but a missing handle mid-run doesn't.
-  Evidence: `src/features/account-cleanup/runner.ts:476,533,582` and `:459-460`, `docs/FEATURES.md:478-479`, `tests/account-cleanup.test.mjs:322` (pre-scan account change only). `account-cleanup-feature.ts` has no test.
-  Touches: `src/features/account-cleanup/runner.ts`, `account-cleanup-feature.ts`, `tests/account-cleanup.test.mjs`, `docs/FEATURES.md`.
-  Acceptance: Three consecutive `stale` outcomes for one id count as a failure and enter the existing recovery path. A handle that stays absent for a bounded wait blocks as `login_required`. Tests cover challenge detection mid-scan, a handle change mid-scan, `skipped`, `stale`, lease loss and controller auto-resume. FEATURES matches the code.
-  Complexity: M
-
 - [ ] P2, F351: Translate Delete X activity progress and catch runtime messages in the i18n gate
   Why: Eight locales see English progress for the one destructive feature. The extractor harvests `ctx.t` literals and `label:` lines, so runtime status prose passes the 100% coverage gate.
   Evidence: `src/features/account-cleanup/account-cleanup-feature.ts:205-214`, `runner.ts:393-724`, `src/ui/control-center/sections/account.ts:148,242-247`, `tools/i18n-extract.mjs`.

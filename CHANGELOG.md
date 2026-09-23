@@ -23,6 +23,10 @@
   all five categories ticked, so a single Run deleted every post and reply. Run now stays off, with
   a one-line reason, until you pick at least one category. Deletion still starts immediately once
   you press it.
+- Delete X activity no longer retries an item forever when its control keeps vanishing. After two
+  retries it counts as a failed action and the normal reload recovery takes over. If the signed-in
+  account can't be read mid-pass, nothing is deleted until it reappears, and after 12 seconds the
+  run stops as signed out.
 - Delete X activity now finds each item by its own post id. It used to match any link containing
   the id, so a post that quoted the target, or one whose id began with the same digits, could be
   acted on in its place.
