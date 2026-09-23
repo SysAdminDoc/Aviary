@@ -474,7 +474,8 @@ local records and never acts on X. Delete X activity uses the controls X renders
 It can remove bookmarks and likes, undo reposts, then delete replies and posts.
 
 - Choose the categories and press **Run**. Deletion starts immediately, with no preview, arming
-  phrase or confirmation step.
+  phrase or confirmation step. Nothing is selected when the page opens, so **Run** stays off until
+  you pick at least one category.
 - The signed-in handle comes from X's profile navigation or account switcher. It is checked before
   the pass and while each category is scanned. A changed account blocks the run.
 - **Advanced options** contains Careful, Balanced and Brisk pacing plus the optional action limit.

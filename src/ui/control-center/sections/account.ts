@@ -149,7 +149,20 @@ function actionWorkspace(ctx: PanelContext, input: {
     : input.activeHandle
       ? ctx.localizedCopy("Ready to run on @{handle}.", { handle: input.activeHandle })
       : ctx.t("Sign in to X before running.");
-  workspace.append(ctx.el("span", "av-cleanup-guidance", status));
+  const needsSelection = !input.activeJob && !input.hasSelection;
+  // "Ready to run" beside a disabled Run contradicts the hint below it, so it waits for a choice.
+  if (!(needsSelection && !input.run && input.activeHandle)) {
+    workspace.append(ctx.el("span", "av-cleanup-guidance", status));
+  }
+  if (needsSelection) {
+    const hint = ctx.el(
+      "span",
+      "av-cleanup-guidance av-cleanup-selection-hint",
+      ctx.t("Select at least one kind of activity to enable Run.")
+    );
+    hint.id = "av-cleanup-selection-hint";
+    workspace.append(hint);
+  }
 
   const controls = ctx.el("div", "av-cleanup-buttons");
   if (input.runStatus === "running") {
@@ -189,6 +202,7 @@ function actionWorkspace(ctx: PanelContext, input: {
   run.type = "button";
   run.dataset.avCleanupPrimary = "1";
   run.disabled = !input.activeHandle || !input.hasSelection || !ctx.options.startAccountCleanup;
+  if (needsSelection) run.setAttribute("aria-describedby", "av-cleanup-selection-hint");
   run.addEventListener("click", () => {
     setPendingButton(run, ctx.t("Starting deletion…"));
     void runCommand(ctx, "Starting deletion…", async () => {

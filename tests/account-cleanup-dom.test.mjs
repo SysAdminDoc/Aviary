@@ -179,6 +179,67 @@ test("engagement routes expose only their active removal controls", async () => 
   });
 });
 
+test("Run stays off until the reader selects what to delete", async () => {
+  const result = await page.evaluate(() => {
+    document.body.replaceChildren();
+    const profile = document.createElement("a");
+    profile.dataset.testid = "AppTabBar_Profile_Link";
+    profile.href = "/alice";
+    document.body.append(profile);
+    const handle = AviaryAccountCleanupDom.mountControlCenter({
+      settings: AviaryAccountCleanupDom.cloneSettings(AviaryAccountCleanupDom.DEFAULT_SETTINGS),
+      diagnostics: () => [],
+      onChange: async () => {},
+      onError() {},
+      getAccountCleanupStatus: () => ({
+        activeHandle: "alice",
+        run: null,
+        runningInThisTab: false,
+        message: "No account cleanup has run."
+      }),
+      startAccountCleanup: async () => ({ ok: true })
+    });
+    const shadow = document.querySelector("#av-control-center").shadowRoot;
+    shadow.querySelector(".av-launcher").click();
+    shadow.querySelector('[data-av-section="account"]').click();
+    const read = () => {
+      const run = shadow.querySelector("[data-av-cleanup-primary]");
+      const hint = shadow.querySelector("#av-cleanup-selection-hint");
+      return {
+        checked: [...shadow.querySelectorAll(".av-cleanup-category input")].filter((input) => input.checked).length,
+        runEnabled: !run.disabled,
+        describedBy: run.getAttribute("aria-describedby"),
+        hint: hint?.textContent ?? null,
+        ready: [...shadow.querySelectorAll(".av-cleanup-guidance")]
+          .some((node) => node.textContent === "Ready to run on @alice.")
+      };
+    };
+    const initial = read();
+    shadow.querySelector(".av-cleanup-category input").click();
+    const afterOne = read();
+    shadow.querySelector(".av-cleanup-category input").click();
+    const afterClear = read();
+    handle.destroy();
+    return { initial, afterOne, afterClear };
+  });
+
+  assert.deepEqual(result.initial, {
+    checked: 0,
+    runEnabled: false,
+    describedBy: "av-cleanup-selection-hint",
+    hint: "Select at least one kind of activity to enable Run.",
+    ready: false
+  });
+  assert.deepEqual(result.afterOne, {
+    checked: 1,
+    runEnabled: true,
+    describedBy: null,
+    hint: null,
+    ready: true
+  });
+  assert.deepEqual(result.afterClear, result.initial);
+});
+
 test("the Control Center starts deletion immediately from one Run button", async () => {
   const result = await page.evaluate(async () => {
     document.body.replaceChildren();
@@ -206,6 +267,12 @@ test("the Control Center starts deletion immediately from one Run button", async
     const shadow = document.querySelector("#av-control-center").shadowRoot;
     shadow.querySelector(".av-launcher").click();
     shadow.querySelector('[data-av-section="account"]').click();
+    // Nothing is selected on a fresh page, so choose every category the way a reader would.
+    // Each change re-renders the section, which is why the inputs are queried again each time.
+    const categoryCount = shadow.querySelectorAll(".av-cleanup-category input").length;
+    for (let index = 0; index < categoryCount; index += 1) {
+      shadow.querySelectorAll(".av-cleanup-category input")[index].click();
+    }
     const primaryActions = [...shadow.querySelectorAll("[data-av-cleanup-primary]")];
     const button = primaryActions[0];
     const advanced = shadow.querySelector(".av-cleanup-advanced");
@@ -362,6 +429,7 @@ test("a failed deletion start restores an enabled Run button", async () => {
     const shadow = document.querySelector("#av-control-center").shadowRoot;
     shadow.querySelector(".av-launcher").click();
     shadow.querySelector('[data-av-section="account"]').click();
+    shadow.querySelector(".av-cleanup-category input").click();
     shadow.querySelector("[data-av-cleanup-primary]").click();
     await new Promise((resolve) => setTimeout(resolve, 20));
     const button = shadow.querySelector("[data-av-cleanup-primary]");

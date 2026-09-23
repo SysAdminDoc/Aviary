@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### Fixed
+
+- **Delete X activity now starts with nothing selected.** A new profile used to open the page with
+  all five categories ticked, so a single Run deleted every post and reply. Run now stays off, with
+  a one-line reason, until you pick at least one category. Deletion still starts immediately once
+  you press it.
+- The Noir and Wide default labels added in 1.52.0 are now translated in all eight non-English
+  languages. They had shipped in English.
+
 ## 1.52.2 (2026-09-21)
 
 ### Fixed

@@ -15,15 +15,6 @@ surface captures remain tracked in [Roadmap_Blocked.md](Roadmap_Blocked.md).
 Evidence for every item is in [RESEARCH.md](RESEARCH.md) (2026-09-22). Items continue the F-number
 scheme from F336.
 
-### P0
-
-- [ ] P0, F337: Start Delete X activity with no category selected
-  Why: A fresh profile opens the page with all five categories on, so one Run click permanently deletes posts and replies. The page's own copy says "Select activity and press Run."
-  Evidence: `src/features/account-cleanup/state.ts:235-239` and `:248` (a missing value normalizes to true), `src/ui/control-center.ts:740-742`, baseline `tests/visual/baselines/settings/control-center-account-dark-1440x900.png`. Every cleanup tool reviewed makes the user choose scope (Cyd, CleanMyX, Redact).
-  Touches: `src/features/account-cleanup/state.ts`, `src/ui/control-center.ts`, `src/ui/control-center/sections/account.ts`, `tests/account-cleanup.test.mjs`, `tests/account-cleanup-dom.test.mjs`, account-page visual baselines, catalog strings for the disabled-Run hint.
-  Acceptance: A new profile shows zero categories checked and a disabled Run with a one-line reason. Checking any category enables Run. A stored run keeps its explicit plan across reload, and a stored run missing a category key doesn't gain that category. No preview, phrase or confirmation step is added. A test pins the all-false default.
-  Complexity: S
-
 ### P1
 
 - [ ] P1, F366: Read author handles and names from X's current `core` user shape
@@ -97,6 +88,13 @@ scheme from F336.
   Touches: the runner and controller (message ids with values instead of prose), `src/platform/i18n-catalog.ts` and locales, `sections/account.ts`, `tools/i18n-extract.mjs`, `tests/i18n.test.mjs`.
   Acceptance: Every cleanup phase renders translated in all nine locales, driven under `he` and `ja` in a test. A source contract fails when a new status string bypasses the catalog.
   Complexity: M
+
+- [ ] P2, F370: Fail the suite when rendered panel copy is missing from `PANEL_STRINGS`
+  Why: 1.52.0 shipped four Look & feel strings in English in every locale while `tests/i18n.test.mjs` passed. Coverage is measured against the committed `PANEL_STRINGS` list, and only the hand-run extractor compares that list with what the panel renders.
+  Evidence: `node tools/i18n-extract.mjs --write` on 2026-09-22 reported "Noir (default)", "Wide (default)" and their two descriptions missing from all eight locales (fixed with F337). `tests/i18n.test.mjs:15-28` checks the catalog against `PANEL_STRINGS` only.
+  Touches: `tests/i18n.test.mjs`, `renderedPanelStrings` in `src/ui/control-center.ts`, `src/ui/control-center/section-manifest.ts`.
+  Acceptance: A test mounts the panel in English, visits every destination in `section-manifest.ts`, and fails when a string the translator saw is absent from `PANEL_STRINGS`. Reintroducing an unlisted label makes it fail.
+  Complexity: S/M
 
 - [ ] P2, F354: Keep structural filter predicates out of quoted posts
   Why: Hide rules wrap selectors in one `:has()` over the whole article, so a badge or media inside a quoted post likely hides the outer post. The reply-media filter explicitly excludes quotes, so the two disagree. Status: Likely, test first.

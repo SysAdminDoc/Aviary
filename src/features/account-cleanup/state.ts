@@ -232,9 +232,10 @@ export function accountCleanupRouteMatches(
   );
 }
 
+/** Nothing is selected until the reader chooses: Run starts deleting with no confirmation step. */
 export function defaultAccountCleanupCategories(): Record<AccountCleanupCategory, boolean> {
   return Object.fromEntries(
-    ACCOUNT_CLEANUP_CATEGORIES.map((category) => [category, true])
+    ACCOUNT_CLEANUP_CATEGORIES.map((category) => [category, false])
   ) as Record<AccountCleanupCategory, boolean>;
 }
 
@@ -245,7 +246,7 @@ export function normalizeAccountCleanupSettings(value: unknown): AccountCleanupS
   const categories = Object.fromEntries(
     ACCOUNT_CLEANUP_CATEGORIES.map((category) => [
       category,
-      source.categories?.[category] !== false
+      source.categories?.[category] === true
     ])
   ) as Record<AccountCleanupCategory, boolean>;
   const pacing = source.pacing && source.pacing in ACCOUNT_CLEANUP_PACING

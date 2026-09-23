@@ -95,6 +95,28 @@ test("account cleanup runs references before authored content", () => {
   assert.equal(source.accountCleanupRouteMatches("posts", "Alice", "/bob"), false);
 });
 
+test("deletion starts with nothing selected and a stored plan never gains a category", () => {
+  const none = Object.fromEntries(source.ACCOUNT_CLEANUP_CATEGORIES.map((category) => [category, false]));
+  assert.deepEqual(source.defaultAccountCleanupCategories(), none);
+  assert.deepEqual(source.normalizeAccountCleanupSettings({}).categories, none);
+  assert.deepEqual(source.normalizeAccountCleanupSettings(undefined).categories, none);
+
+  // A stored run written without some keys keeps exactly what it named, and a truthy
+  // non-boolean is not a selection either.
+  const partial = source.normalizeAccountCleanupSettings({ categories: { posts: true, likes: 1 } });
+  assert.deepEqual(partial.categories, { ...none, posts: true });
+
+  const run = source.createAccountCleanupRun({
+    account: "alice",
+    ownerId: "tab-a",
+    mode: "cleanup",
+    options: { categories: { bookmarks: true }, pacing: "balanced", maxActions: 0 }
+  });
+  const reloaded = source.normalizeAccountCleanupRun(structuredClone(run));
+  assert.deepEqual(reloaded.plan, ["bookmarks"]);
+  assert.deepEqual(reloaded.settings.categories, { ...none, bookmarks: true });
+});
+
 test("stored cleanup state is bounded and rejects malformed identity", () => {
   assert.equal(source.normalizeAccountCleanupHandle("@valid_name"), "valid_name");
   assert.equal(source.normalizeAccountCleanupHandle("@home"), null);
