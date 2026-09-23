@@ -555,6 +555,15 @@ export class AccountCleanupRunner {
       run.phase = "waiting";
       await this.#save(run);
       await this.#dependencies.sleep(delay, signal);
+      // The pacing wait is seconds long, so the account and challenge checks at the top of the
+      // loop are stale by now. Look again right before acting; a change sends the loop back to
+      // those checks, which block or wait as appropriate.
+      if (this.#dependencies.isChallengePresent(this.#document, this.#location)) {
+        await this.#blockRun("challenge_detected");
+        return "blocked";
+      }
+      const handleBeforeAction = this.#dependencies.getActiveHandle(this.#document);
+      if (!handleBeforeAction || !sameAccountCleanupHandle(handleBeforeAction, run.account)) continue;
       run.phase = "acting";
       await this.#save(run);
 

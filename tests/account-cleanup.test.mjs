@@ -875,6 +875,33 @@ test("a signed-in handle that stays unreadable blocks the run before any action"
   assert.equal(attempts, 0, "nothing may be deleted while the account cannot be read");
 });
 
+test("an account that vanishes during the pacing wait gets no action", async () => {
+  let now = 1_000_000;
+  let paced = false;
+  let attempts = 0;
+  const runner = likesRunner({
+    clock: () => now,
+    dependencies: {
+      // Readable at the scan, gone by the time the randomized wait before the action ends.
+      getActiveHandle: () => (paced ? null : "alice"),
+      findTargets: () => [likeTarget("1")],
+      performTarget: async () => {
+        attempts += 1;
+        return { status: "success" };
+      },
+      sleep: async (milliseconds) => {
+        paced = true;
+        now += milliseconds;
+      }
+    }
+  });
+  assert.deepEqual(await runner.start("cleanup", "alice", likesOnly()), { ok: true });
+  const run = await waitForRun(runner, (current) => current?.status === "blocked");
+  runner.teardown();
+  assert.equal(attempts, 0, "the handle is checked again after the wait, before acting");
+  assert.equal(run.reason, "login_required");
+});
+
 test("a handle that disappears briefly resumes the pass on the same account", async () => {
   let now = 1_000_000;
   const handles = ["alice", null, null, "alice"];
@@ -902,13 +929,12 @@ test("a handle that disappears briefly resumes the pass on the same account", as
 
 test("a handle change or a challenge mid-scan stops the pass before the next action", async () => {
   for (const [scenario, reason] of [["handle", "account_changed"], ["challenge", "challenge_detected"]]) {
-    let checks = 0;
     let attempts = 0;
     let next = 0;
     const runner = likesRunner({
       dependencies: {
-        // The run-start read and the first scan see alice; the second scan sees the change.
-        getActiveHandle: () => (scenario === "handle" && ++checks > 2 ? "bob" : "alice"),
+        // The account changes once the first action has gone through.
+        getActiveHandle: () => (scenario === "handle" && attempts > 0 ? "bob" : "alice"),
         isChallengePresent: () => scenario === "challenge" && attempts > 0,
         findTargets: () => [likeTarget(String(++next))],
         performTarget: async () => {

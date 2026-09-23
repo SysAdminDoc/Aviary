@@ -31,9 +31,10 @@
   They're translated in all nine languages now, and a test fails if a new one is added without
   going through the translation catalog.
 - Delete X activity no longer retries an item forever when its control keeps vanishing. After two
-  retries it counts as a failed action and the normal reload recovery takes over. If the signed-in
-  account can't be read mid-pass, nothing is deleted until it reappears, and after 12 seconds the
-  run stops as signed out.
+  retries it counts as a failed action toward the normal reload recovery. If the signed-in account
+  can't be read mid-pass, nothing is deleted until it reappears, and after 12 seconds the run stops
+  as signed out. The account and challenge checks also run again right before each action, after
+  the randomized wait.
 - The grid media layout (used by the Creator preset) now works when X is set to a language other
   than English. It found photos by X's English label for them and did nothing otherwise.
 - Media and verified-badge filters no longer hide a post because of what it quotes. A text-only post
