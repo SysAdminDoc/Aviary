@@ -415,6 +415,56 @@ test("no control is left focused entirely behind the save row or the rail", asyn
 });
 
 /**
+ * Reports help text the panel draws but cuts off. A two-line clamp once hid most of the filter-rule
+ * grammar with no way to expand it; a reader cannot use syntax they cannot see.
+ */
+const CLIPPED_TEXT_SWEEP = (selector) => {
+  const shadow = document.getElementById("av-control-center").shadowRoot;
+  const clipped = [];
+  for (const entry of window.__manifest) {
+    const item = shadow.querySelector(`[data-av-section="${entry.id}"]`);
+    if (!item) {
+      clipped.push(`${entry.id}: destination is missing from the rail`);
+      continue;
+    }
+    item.click();
+    for (const node of shadow.querySelectorAll(selector)) {
+      // Text inside a collapsed disclosure is not drawn, so it cannot be clipped either.
+      if (node.getClientRects().length === 0) continue;
+      if (node.scrollHeight > node.clientHeight + 1 || node.scrollWidth > node.clientWidth + 1) {
+        clipped.push(`${entry.id}: ${(node.textContent || "").trim().slice(0, 60)}`);
+      }
+    }
+  }
+  return clipped;
+};
+
+test("no row description or page summary is cut off at desktop or tablet width", async () => {
+  const selector = ".av-row-description, .av-page-summary";
+  for (const viewport of [{ width: 1440, height: 900 }, { width: 768, height: 900 }]) {
+    await openPanelAt(viewport);
+    const clipped = await page.evaluate(CLIPPED_TEXT_SWEEP, selector);
+    assert.deepEqual(clipped, [], `at ${viewport.width}px some help text is clipped`);
+  }
+
+  // Positive control: the clamp this replaced has to be reported, including the filter grammar.
+  await openPanelAt({ width: 1440, height: 900 });
+  await page.evaluate(() => {
+    const shadow = document.getElementById("av-control-center").shadowRoot;
+    const style = document.createElement("style");
+    style.textContent =
+      ".av-row-description { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }";
+    shadow.append(style);
+  });
+  const broken = await page.evaluate(CLIPPED_TEXT_SWEEP, selector);
+  assert.ok(
+    broken.some((line) => line.includes("One rule per line")),
+    `a two-line clamp must be reported on the filter grammar; the sweep saw: ${broken.slice(0, 5).join(" | ")}`
+  );
+  await page.setViewportSize({ width: 1440, height: 900 });
+});
+
+/**
  * A key that tells two controls apart.
  *
  * `tagName.className` collapsed thirteen rail buttons and eleven toggle rows into a handful of

@@ -30,6 +30,10 @@
   again, and a release check now fails on any download link that falls behind. The userscript
   steps also cover Chromium 138's **Allow User Scripts** switch, without which a userscript
   manager installs scripts that never run.
+- Control Center help text is no longer cut off after two lines. The filter-rule syntax, its
+  operators, the `dim:` prefix, rule titles, time limits and the worked example were hidden with
+  no way to expand them. An accessibility check now fails if any description is clipped at desktop
+  or tablet width.
 - The copied yt-dlp command now keeps post text inside its quoted filename. PowerShell also ends a
   quoted string at typographic quotes such as ’, so a filename template that used `{text}` could
   let a post's text run as part of the pasted command.

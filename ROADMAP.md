@@ -17,13 +17,6 @@ scheme from F336.
 
 ### P1
 
-- [ ] P1, F345: Stop clipping Control Center help text
-  Why: Every row description is clamped to two lines with no way to expand it. Most of the filter-rule grammar (operators, `dim:`, titles, expiry and the example) is invisible.
-  Evidence: `src/ui/control-center.ts:3837-3845`, `src/ui/control-center/sections/reading.ts:551`, baseline `tests/visual/baselines/settings/control-center-filtering-dark-1440x900.png` (cut at "operators..." and "replacin...").
-  Touches: `src/ui/control-center.ts` stylesheet, `src/ui/control-center/sections/reading.ts` (a visible rule-syntax reference), a clipping sweep in `tests/a11y-behaviour.test.mjs`, affected baselines.
-  Acceptance: A sweep over every `section-manifest.ts` destination at 1440 and 768 px finds no `.av-row-description` whose `scrollHeight` exceeds `clientHeight` unless the row has an expand control. The full grammar and example are readable in place. A positive control that restores the clamp makes the sweep fail.
-  Complexity: S/M
-
 - [ ] P1, F343: Add a text-free "Copy structural observation" diagnostics action
   Why: As of v1.52.2, refreshing the schema needs a signed-in MHTML save, a decode, measurement and deletion of a private page, which is why it lapses. Selector health already knows every surface Aviary depends on.
   Evidence: the "Refreshing the DOM observation" procedure in the repo notes, `tools/capture-decode.mjs`, selector-health copy limited to build, route, anchors and feature ids (F299), and the `dom-schema.json` fields (`testIds`, `roles`, `aria`, `nesting`, `observedCounts`, `layout`).

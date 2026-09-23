@@ -3281,10 +3281,6 @@ textarea:focus-visible {
   font-size: 13.5px;
   line-height: 1.4;
   max-width: 760px;
-  display: -webkit-box;
-  overflow: hidden;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
   overflow-wrap: anywhere;
 }
 
@@ -3356,12 +3352,6 @@ textarea:focus-visible {
   min-width: 118px;
 }
 
-.av-section[data-av-section="media"] .av-row[data-av-label="Duplicate history"] .av-row-description,
-.av-section[data-av-section="media"] .av-row[data-av-label="Concurrent downloads"] .av-row-description,
-.av-section[data-av-section="media"] .av-row[data-av-label="Download pacing"] .av-row-description {
-  -webkit-line-clamp: 2;
-}
-
 .av-group-title {
   grid-column: 1 / -1;
   margin: 13px 0 3px;
@@ -3375,13 +3365,6 @@ textarea:focus-visible {
 
 .av-group-title:first-child {
   margin-top: 0;
-}
-
-.av-section[data-av-section="presets"] .av-page-grid > .av-row:not(.av-preset-card) .av-row-description {
-  display: -webkit-box;
-  overflow: hidden;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 1;
 }
 
 .av-start-guide {
@@ -3834,14 +3817,12 @@ textarea:focus-visible {
   line-height: 1.25;
 }
 
+/* Descriptions are never clamped: some carry syntax a reader needs in full, such as the filter
+   rule grammar, and a clamp gave no way to expand them. The a11y sweep fails on any clipping. */
 .av-row-description {
   color: var(--av-muted, rgb(132, 139, 145));
   font-size: 13.5px;
   line-height: 1.4;
-  display: -webkit-box;
-  overflow: hidden;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
 }
 
 input[type="checkbox"] {
