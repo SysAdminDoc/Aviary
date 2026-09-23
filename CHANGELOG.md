@@ -15,6 +15,9 @@
   saved captured posts and mirrored bookmarks without a handle or display name, marked their
   audience unknown, and turned each account in a response into an empty bookmark or post under
   that account's id. Both parsers now read the current shape and still accept the old one.
+- The copied yt-dlp command now keeps post text inside its quoted filename. PowerShell also ends a
+  quoted string at typographic quotes such as ’, so a filename template that used `{text}` could
+  let a post's text run as part of the pasted command.
 
 ## 1.52.2 (2026-09-21)
 

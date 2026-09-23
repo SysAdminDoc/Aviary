@@ -230,6 +230,10 @@ function textError(value: unknown, fallback: string): string {
   return fallback;
 }
 
+/**
+ * PowerShell ends a single-quoted string at U+2018 to U+201B as well as ASCII `'`, and a filename
+ * template can carry post text, so every one of them is doubled into a literal.
+ */
 function quotePowerShell(value: string): string {
-  return `'${value.replace(/'/g, "''")}'`;
+  return `'${value.replace(/['‘’‚‛]/g, "$&$&")}'`;
 }

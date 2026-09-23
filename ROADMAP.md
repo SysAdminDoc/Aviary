@@ -17,13 +17,6 @@ scheme from F336.
 
 ### P1
 
-- [ ] P1, F340: Escape every PowerShell quote character in the copied yt-dlp command
-  Why: PowerShell ends a single-quoted string at U+2018 to U+201B as well as ASCII `'`. A filename template that uses `{text}` puts post text inside that argument, and the user pastes the result into a terminal.
-  Evidence: `src/features/media/yt-dlp-helper.ts:233-235` doubles only ASCII `'`. `src/features/media/media-buttons.ts:866-886` renders the template into `--output`. `src/features/media/template.ts:12` doesn't strip typographic quotes. `tests/yt-dlp-helper.test.mjs:39-46` covers ASCII only.
-  Touches: `src/features/media/yt-dlp-helper.ts`, `tests/yt-dlp-helper.test.mjs`.
-  Acceptance: A test builds the command from text containing `‘ ’ ‚ ‛ ' $ & ; ^` and a backtick. It asserts every quote variant is doubled, and when `pwsh` is available it parses the string with `[System.Management.Automation.Language.Parser]::ParseInput` into one command with the expected literal arguments. Output for the default template is byte-identical to the v1.52.2 output.
-  Complexity: S
-
 - [ ] P1, F341: Raise the Chromium floor to 111
   Why: The manifest `content_scripts[].world` key arrived in Chrome 111. On 102 to 110 `page.js` runs in the isolated world, so promoted-logging refusal and video-variant discovery silently stop while the docs claim support. That range isn't empty: Chrome 109 was the last release for Windows 7 and 8.1. Archive import's `DecompressionStream("deflate-raw")` also needs 103. An honest floor beats a silent downgrade.
   Evidence: MDN browser-compat-data `webextensions/manifest/content_scripts.json` (`world`: Chrome 111, Firefox 128). `src/extension/browser-floors.ts` header ("available at 102"). `src/extension/manifest.chrome.json` `minimum_chrome_version: "102"`. `src/features/export/zip-reader.ts:212`.

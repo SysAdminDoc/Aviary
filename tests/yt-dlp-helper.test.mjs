@@ -46,6 +46,61 @@ test("adaptive observations beat a lower direct MP4 without changing the default
   );
 });
 
+test("the copied command keeps hostile post text inside one PowerShell argument", async () => {
+  const mod = await importSourceModule("src/features/media/yt-dlp-helper.ts");
+  // U+2018..U+201B close a PowerShell single-quoted string just like ASCII ', and {text} in a
+  // filename template puts post text there.
+  const filename = "x’; Start-Process calc; echo ‘ ‚ ‛ ' $HOME & ; ^ `n.%(ext)s";
+  const command = mod.buildYtDlpCommand({
+    manifestUrl: adaptive.url,
+    filename,
+    formatPolicy: mod.YTDLP_FORMAT_POLICY
+  });
+  for (const quote of ["'", "‘", "’", "‚", "‛"]) {
+    assert.ok(command.includes(quote + quote), `${JSON.stringify(quote)} is not doubled`);
+  }
+  assert.equal(
+    mod.buildYtDlpCommand({ manifestUrl: adaptive.url, filename: "alice_123.%(ext)s", formatPolicy: mod.YTDLP_FORMAT_POLICY }),
+    `yt-dlp --no-playlist --format 'bv*+ba/b' --merge-output-format 'mp4/mkv' --output 'alice_123.%(ext)s' '${adaptive.url}'`
+  );
+
+  const { spawnSync } = await import("node:child_process");
+  const probe = spawnSync("pwsh", ["-NoLogo", "-NoProfile", "-Command", "$PSVersionTable.PSVersion.Major"], {
+    encoding: "utf8",
+    windowsHide: true
+  });
+  if (probe.status !== 0) return; // The literal check above still runs without PowerShell.
+  const parse = spawnSync("pwsh", [
+    "-NoLogo",
+    "-NoProfile",
+    "-NonInteractive",
+    "-Command",
+    [
+      "$errors = $null",
+      "$ast = [System.Management.Automation.Language.Parser]::ParseInput($env:AVIARY_COMMAND, [ref]$null, [ref]$errors)",
+      "$commands = @($ast.FindAll({ $args[0] -is [System.Management.Automation.Language.CommandAst] }, $true))",
+      "$elements = @($commands[0].CommandElements | ForEach-Object { if ($_ -is [System.Management.Automation.Language.StringConstantExpressionAst]) { $_.Value } else { $_.Extent.Text } })",
+      "[Console]::OutputEncoding = [Text.Encoding]::UTF8",
+      "@{ errors = @($errors).Count; commands = $commands.Count; elements = $elements } | ConvertTo-Json -Compress"
+    ].join("; ")
+  ], { encoding: "utf8", windowsHide: true, env: { ...process.env, AVIARY_COMMAND: command } });
+  assert.equal(parse.status, 0, parse.stderr);
+  const parsed = JSON.parse(parse.stdout);
+  assert.equal(parsed.errors, 0);
+  assert.equal(parsed.commands, 1);
+  assert.deepEqual(parsed.elements, [
+    "yt-dlp",
+    "--no-playlist",
+    "--format",
+    "bv*+ba/b",
+    "--merge-output-format",
+    "mp4/mkv",
+    "--output",
+    filename,
+    adaptive.url
+  ]);
+});
+
 test("the client sends only an observed manifest, filename, and fixed format policy", async () => {
   const mod = await importSourceModule("src/features/media/yt-dlp-helper.ts");
   const originalFetch = globalThis.fetch;
