@@ -98,8 +98,12 @@ const DELIVERY_BUDGETS = [
   // headroom as the userscript above.
   // The same cleanup controls, task guidance and translations live in this lazy chunk. Measured
   // 2,397,788 bytes, so the ceiling keeps the same narrow headroom as the readable userscript.
-  { file: "extension-chrome/chunks/extension-panel.js", maxBytes: 2_430_000 },
-  { file: "extension-firefox/chunks/extension-panel.js", maxBytes: 2_430_000 },
+  // F343's structural observation (the measurement module, its Privacy & diagnostics row and four
+  // translated strings) lands here. Measured 2,436,195 bytes against the 2,430,000 that stood
+  // before; about 30 kB of headroom again. F357 is the structural fix: split this chunk by
+  // destination instead of raising it once per feature.
+  { file: "extension-chrome/chunks/extension-panel.js", maxBytes: 2_466_000 },
+  { file: "extension-firefox/chunks/extension-panel.js", maxBytes: 2_466_000 },
   { file: `aviary-source-v${pkg.version}.zip`, maxBytes: 10_000_000 }
 ];
 

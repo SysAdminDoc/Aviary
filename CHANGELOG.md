@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Added
+
+- **Copy structural observation** in Privacy & diagnostics copies how X built the open page:
+  element counts, nesting and layout, in the shape Aviary's test fixtures are generated from. It
+  holds no text, names, handles, links or ids. It replaces saving a signed-in page to disk when the
+  fixture observation needs refreshing.
+
 ### Changed
 
 - **The Chromium extension now requires Chrome 111 or later.** Its manifest had declared 102, but

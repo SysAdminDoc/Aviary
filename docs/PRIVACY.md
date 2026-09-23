@@ -170,7 +170,11 @@ never copies URLs, filenames, provider text, exception strings, or credentials. 
 report is narrower still: it contains only build, route surface, missing selector names and feature
 ids. The transient Mutation performance ring is never persisted. If you copy diagnostics, it carries
 only bounded feature ids, pass types, invocation counts, and durations. It never carries selectors,
-route URLs, post text, handles, or DOM values. Imported media
+route URLs, post text, handles, or DOM values. **Copy structural observation** in Privacy &
+diagnostics copies how X built the open page: counts of the elements Aviary depends on, a few
+nesting depths, computed column widths and layout keywords, the page's language tag, and the route
+kind as a template. It never copies text, names, handles, links, ids, titles or labels, and nothing
+leaves the clipboard unless you paste it somewhere. Imported media
 bytes are not retained after a completed archive import; resumable import state may retain the
 local source while the job is unfinished.
 

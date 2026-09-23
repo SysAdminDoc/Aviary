@@ -29,7 +29,14 @@ function parseDay(value, label) {
 }
 
 export async function readCaptureManifest() {
-  const schema = JSON.parse(await readFile(MANIFEST_PATH, "utf8"));
+  return parseCaptureManifest(JSON.parse(await readFile(MANIFEST_PATH, "utf8")));
+}
+
+/**
+ * The same checks against a schema object, so an observation copied from the extension can be
+ * validated before anyone merges it into the committed file.
+ */
+export function parseCaptureManifest(schema) {
   if (!Number.isInteger(schema.ceilingDays) || schema.ceilingDays <= 0) {
     throw new Error("dom-schema.json must declare a positive integer ceilingDays");
   }

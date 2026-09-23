@@ -32,6 +32,7 @@ import {
 import { getSelectorFeatureIds } from "../../platform/selectors.ts";
 import { applyPreset, describePresetDelta, getPreset, listPresets } from "./presets.ts";
 import { describeBisectResult, FeatureBisect, type BisectVerdict } from "./feature-bisect.ts";
+import { observeStructure } from "./structural-observation.ts";
 import {
   getCheckpointStore,
   getDiscoveredQueries,
@@ -457,6 +458,15 @@ export const controlCenterFeature: FeatureModule = {
         }
         await writeClipboard(buildSelectorBreakReport(ctx, health));
         void ctx.auditLog.record("diagnostics.selectorBreak.copy");
+      },
+      async copyStructuralObservation() {
+        const observation = observeStructure(document, window, {
+          now: new Date(),
+          build: AVIARY_VERSION,
+          pathname: ctx.route.path
+        });
+        await writeClipboard(`${JSON.stringify(observation, null, 2)}\n`);
+        void ctx.auditLog.record("diagnostics.structure.copy");
       },
       async resetSettings() {
         // Replace in place: every feature holds a reference to this same object, and swapping it

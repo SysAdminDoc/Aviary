@@ -17,13 +17,6 @@ scheme from F336.
 
 ### P1
 
-- [ ] P1, F343: Add a text-free "Copy structural observation" diagnostics action
-  Why: As of v1.52.2, refreshing the schema needs a signed-in MHTML save, a decode, measurement and deletion of a private page, which is why it lapses. Selector health already knows every surface Aviary depends on.
-  Evidence: the "Refreshing the DOM observation" procedure in the repo notes, `tools/capture-decode.mjs`, selector-health copy limited to build, route, anchors and feature ids (F299), and the `dom-schema.json` fields (`testIds`, `roles`, `aria`, `nesting`, `observedCounts`, `layout`).
-  Touches: selector-health and diagnostics modules under `src/features/core/`, `src/ui/control-center/sections/advanced.ts` (Privacy & diagnostics), a schema-shape module shared with `tools/fixture-generator.mjs`, new tests.
-  Acceptance: On the generated Home and status documents the action emits JSON that `tools/capture-manifest.mjs` accepts and that reproduces the committed schema's counts. A hostile fixture seeded with a handle, display name, post text, URL and status id proves none of them reach the output. Nothing is written to disk, and the labels are translated.
-  Complexity: M
-
 ### P2
 
 - [ ] P2, F347: Match cleanup targets by exact status id

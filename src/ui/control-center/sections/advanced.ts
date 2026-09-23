@@ -40,6 +40,23 @@ export function buildTrustRows(ctx: PanelContext): HTMLElement[] {
       ctx.coverageRow(),
         ...ctx.selectorHealthRows()
   ];
+  if (ctx.options.copyStructuralObservation) {
+    rows.push(
+      ctx.actionRow(
+        "Copy structural observation",
+        "Copies how X builds this page (element counts, nesting and layout) for refreshing Aviary's test fixtures. No post text, names, handles, links or ids.",
+        async () => {
+          try {
+            await ctx.options.copyStructuralObservation!();
+            ctx.setStatus("Structural observation copied to clipboard.");
+          } catch (error) {
+            ctx.options.onError("Could not copy structural observation", error);
+            ctx.setStatus("Could not copy the structural observation.");
+          }
+        }
+      )
+    );
+  }
   const performance = ctx.options.getPerformanceMetrics?.();
   if (performance) {
     const ranked = [...performance.features].sort(

@@ -387,6 +387,10 @@ The Control Center "Export" section exposes:
   a ZIP with the reconstructed JSON and viewer. It never asks X for a missing reply.
 - "Copy diagnostics", copies a merged redacted report from the page and background worker. It
   contains stable event ids, severity, timestamps, operation codes, and detail-key names only.
+- **Copy structural observation** (Privacy & diagnostics) copies a JSON measurement of the open X
+  page in the shape of `_decoded/dom-schema.json`: element counts, nesting depths and layout, with
+  no text, names, handles, links or ids. It's how the repository's DOM observation gets refreshed
+  from a signed-in session without saving a private page.
 - **Preservation archive** keeps WARC and WACZ together. WARC is the raw record stream. WACZ 1.1.1
   adds a byte-sorted CDXJ index, a page list, and checksummed package metadata for direct use in
   [replayweb.page](https://replayweb.page/). Every CDXJ entry points at an exact WARC byte range and

@@ -220,6 +220,7 @@ export interface ControlCenterOptions {
   rebuildThreads?: () => Promise<CapturedThreadResultSummary>;
   copyDiagnostics?: () => Promise<void>;
   copySelectorBreakReport?: () => Promise<void>;
+  copyStructuralObservation?: () => Promise<void>;
   exportSettings?: () => Promise<void>;
   exportLibraryBackup?: (
     options?: { includeCredentials?: boolean }
