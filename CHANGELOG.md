@@ -26,6 +26,10 @@
   saved captured posts and mirrored bookmarks without a handle or display name, marked their
   audience unknown, and turned each account in a response into an empty bookmark or post under
   that account's id. Both parsers now read the current shape and still accept the old one.
+- The install guide's download links pointed at 1.49.5 under a 1.52.2 heading. They're current
+  again, and a release check now fails on any download link that falls behind. The userscript
+  steps also cover Chromium 138's **Allow User Scripts** switch, without which a userscript
+  manager installs scripts that never run.
 - The copied yt-dlp command now keeps post text inside its quoted filename. PowerShell also ends a
   quoted string at typographic quotes such as ’, so a filename template that used `{text}` could
   let a post's text run as part of the pasted command.

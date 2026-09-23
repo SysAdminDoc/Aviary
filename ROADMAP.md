@@ -17,13 +17,6 @@ scheme from F336.
 
 ### P1
 
-- [ ] P1, F344: Fix stale install links and gate release links as version markers
-  Why: The install guide sends users to v1.49.5 under a 1.52.2 heading. Chrome 138+ also gates userscript managers behind a per-extension "Allow User Scripts" toggle that no doc mentions.
-  Evidence: `docs/INSTALL.md:6,74,194`. `tools/version-markers.mjs` declares no release-link marker. Chrome's userscript-manager guidance (developer.chrome.com/blog/chrome-userscript). `docs/FAQ.md:213` still says XLSX arrived "in 1.16.0".
-  Touches: `docs/INSTALL.md`, `README.md` install table, `docs/FAQ.md`, `tools/version-markers.mjs`, `tests/version-markers.test.mjs`.
-  Acceptance: Every `releases/tag/v…` and `releases/download/v…` link in README and INSTALL names the package version, and a new marker fails when one doesn't. The userscript install row and INSTALL explain the Allow User Scripts toggle for Chrome 138+. The FAQ answer no longer names an old version.
-  Complexity: S
-
 - [ ] P1, F345: Stop clipping Control Center help text
   Why: Every row description is clamped to two lines with no way to expand it. Most of the filter-rule grammar (operators, `dim:`, titles, expiry and the example) is invisible.
   Evidence: `src/ui/control-center.ts:3837-3845`, `src/ui/control-center/sections/reading.ts:551`, baseline `tests/visual/baselines/settings/control-center-filtering-dark-1440x900.png` (cut at "operators..." and "replacin...").

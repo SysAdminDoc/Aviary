@@ -41,7 +41,7 @@ Use the Chromium extension for the most complete installation path.
 | --- | --- | --- |
 | Chrome, Edge or Brave | [Chromium ZIP](https://github.com/SysAdminDoc/Aviary/releases/download/v1.52.2/extension-chrome-v1.52.2.zip) | Extract it to a folder you'll keep. Open your browser's extensions page, enable **Developer mode**, then choose **Load unpacked** and select the folder containing `manifest.json`. |
 | Firefox | [Firefox ZIP](https://github.com/SysAdminDoc/Aviary/releases/download/v1.52.2/extension-firefox-v1.52.2.zip) | Extract it. Open `about:debugging#/runtime/this-firefox`, choose **Load Temporary Add-on**, then select `manifest.json`. This unsigned add-on disappears when Firefox restarts. |
-| A userscript manager | [Install userscript](https://raw.githubusercontent.com/SysAdminDoc/Aviary/main/dist/aviary.user.js) | Open the link in Tampermonkey or Violentmonkey and review the manager's install prompt. Read the limitation below before choosing this route. |
+| A userscript manager | [Install userscript](https://raw.githubusercontent.com/SysAdminDoc/Aviary/main/dist/aviary.user.js) | Open the link in Tampermonkey or Violentmonkey and review the manager's install prompt. On Chromium 138 and later, first turn on **Allow User Scripts** on the manager's extension details page. Read the limitation below before choosing this route. |
 
 The Firefox manifest still has a **placeholder add-on id**. It isn't an AMO-signed permanent
 installation. The secondary Chromium CRX3 is self-signed, not store approval; use the ZIP above

@@ -16,11 +16,16 @@ async function buildTree(version, overrides = {}) {
     "README.md": [
       `![Version](https://img.shields.io/badge/version-${version}-2f81f7)`,
       `Aviary ${version} registers 30 feature modules.`,
-      `sha256sum dist/aviary-source-v${version}.zip`
+      `sha256sum dist/aviary-source-v${version}.zip`,
+      `[Download](https://github.com/SysAdminDoc/Aviary/releases/tag/v${version})`
     ].join("\n"),
     "ROADMAP.md": `# ROADMAP\n\nVersion: \`${version}\`\n`,
     "CHANGELOG.md": `# Changelog\n\n## ${version} (2026-09-07)\n\n## 1.0.0 (2020-01-01)\n`,
-    "docs/INSTALL.md": `# Install Aviary ${version}\n\nsha256sum dist/aviary-source-v${version}.zip\n`,
+    "docs/INSTALL.md": [
+      `# Install Aviary ${version}`,
+      `sha256sum dist/aviary-source-v${version}.zip`,
+      `[Chromium ZIP](https://github.com/SysAdminDoc/Aviary/releases/download/v${version}/extension-chrome-v${version}.zip)`
+    ].join("\n\n"),
     "docs/PRIVACY.md": `Updated: 2026-09-07 · release ${version}\n`,
     "design-qa.md": `Aviary ${version}: 14 destinations.\n`,
     "RESEARCH.md": `Aviary v${version} is a local-first X enhancement.\n`,
@@ -53,11 +58,14 @@ test("a marker left at the previous version fails and names the file, the marker
   // positive check passed because each file still mentioned the new version somewhere.
   const root = await buildTree("1.48.0", {
     "docs/PRIVACY.md": "Updated: 2026-09-07 · release 1.47.2\n",
-    "docs/INSTALL.md": "# Install Aviary 1.48.0\n\nsha256sum dist/aviary-source-v1.47.2.zip\n"
+    // A download link left behind is the 1.52.2 install guide's actual defect.
+    "docs/INSTALL.md": "# Install Aviary 1.48.0\n\nsha256sum dist/aviary-source-v1.47.2.zip\n\n" +
+      "[Chromium ZIP](https://github.com/SysAdminDoc/Aviary/releases/download/v1.46.0/extension-chrome-v1.46.0.zip)\n"
   });
   try {
     const failures = await versionMarkerFailures(root, "1.48.0");
     assert.deepEqual(failures.sort(), [
+      "docs/INSTALL.md: the release link still says 1.46.0, but package.json is 1.48.0",
       "docs/INSTALL.md: the source archive name still says 1.47.2, but package.json is 1.48.0",
       "docs/PRIVACY.md: the release marker still says 1.47.2, but package.json is 1.48.0"
     ]);

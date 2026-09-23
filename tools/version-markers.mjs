@@ -21,10 +21,14 @@ export const VERSION_MARKERS = [
   { file: "README.md", label: "shields.io badge", pattern: /shields\.io\/badge\/version-(\d+\.\d+\.\d+)-/g },
   { file: "README.md", label: "generated facts sentence", pattern: /^Aviary (\d+\.\d+\.\d+) registers/gm },
   { file: "README.md", label: "source archive name", pattern: /aviary-source-v(\d+\.\d+\.\d+)\.zip/g },
+  // Download links are markers too: the 1.52.2 install guide still sent readers to v1.49.5 while
+  // every other marker in it was current.
+  { file: "README.md", label: "release link", pattern: /releases\/(?:tag|download)\/v(\d+\.\d+\.\d+)/g },
   { file: "ROADMAP.md", label: "version line", pattern: /^Version: `(\d+\.\d+\.\d+)`/gm },
   { file: "CHANGELOG.md", label: "release headings", pattern: /^## (\d+\.\d+\.\d+) \(/gm, history: true },
   { file: "docs/INSTALL.md", label: "title", pattern: /^# Install Aviary (\d+\.\d+\.\d+)/gm },
   { file: "docs/INSTALL.md", label: "source archive name", pattern: /aviary-source-v(\d+\.\d+\.\d+)\.zip/g },
+  { file: "docs/INSTALL.md", label: "release link", pattern: /releases\/(?:tag|download)\/v(\d+\.\d+\.\d+)/g },
   { file: "docs/PRIVACY.md", label: "release marker", pattern: /release (\d+\.\d+\.\d+)/g },
   { file: "design-qa.md", label: "summary line", pattern: /^Aviary (\d+\.\d+\.\d+):/gm, optional: true },
   { file: "RESEARCH.md", label: "summary line", pattern: /^Aviary v(\d+\.\d+\.\d+) is/gm, optional: true },

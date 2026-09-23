@@ -210,7 +210,7 @@ inside the text. The same rule list is also included in settings exports and ful
 
 ## What is XLSX, and is it still future work?
 
-No. XLSX is a supported Export format in 1.16.0. It is generated locally with the same bundled
+No. XLSX is a supported Export format. It is generated locally with the same bundled
 STORE-only ZIP machinery and has no runtime dependency on a remote spreadsheet service.
 
 ## What does archive import do?

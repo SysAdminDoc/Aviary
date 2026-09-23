@@ -3,7 +3,7 @@
 Aviary ships as a readable userscript and as Manifest V3 extensions. Both builds run on X pages;
 the extensions also provide a dedicated options page for optional browser permissions.
 
-Start with the [v1.49.5 release downloads](https://github.com/SysAdminDoc/Aviary/releases/tag/v1.49.5).
+Start with the [v1.52.2 release downloads](https://github.com/SysAdminDoc/Aviary/releases/tag/v1.52.2).
 You don't need Node or a source checkout to load the ZIP packages. The Chromium extension is the
 most complete path; Firefox requires temporary loading, and userscript managers have the limits
 below. Aviary isn't listed in a browser extension store.
@@ -22,9 +22,12 @@ below. Aviary isn't listed in a browser extension store.
    claiming otherwise: Trust reports "This userscript manager does not give Aviary access to the
    page itself." The extension build is unaffected, because it declares a `"world": "MAIN"` content
    script instead.
-2. Open the [raw userscript](https://raw.githubusercontent.com/SysAdminDoc/Aviary/main/dist/aviary.user.js)
+2. On Chrome, Edge or Brave 138 and later, open the manager's details page in the browser's
+   extensions list and turn on **Allow User Scripts**. Chromium ships that switch off for each
+   userscript manager, and until it's on the manager installs scripts that never run.
+3. Open the [raw userscript](https://raw.githubusercontent.com/SysAdminDoc/Aviary/main/dist/aviary.user.js)
    in the manager. Its repository path is `dist/aviary.user.js`.
-3. Review and confirm the install prompt.
+4. Review and confirm the install prompt.
 
 The userscript declares only the grants it uses:
 
@@ -71,7 +74,7 @@ state and reports a refusal or failure instead of claiming the file was saved.
 
 ## Chrome, Edge, or Brave (developer load)
 
-1. Download [the Chromium ZIP](https://github.com/SysAdminDoc/Aviary/releases/download/v1.49.5/extension-chrome-v1.49.5.zip)
+1. Download [the Chromium ZIP](https://github.com/SysAdminDoc/Aviary/releases/download/v1.52.2/extension-chrome-v1.52.2.zip)
    and extract it into a folder you'll keep. Source checkout users can instead run
    `npm ci --ignore-scripts`, then `npm run verify:release` to create `dist/extension-chrome/`.
 2. Open `chrome://extensions/` (or the equivalent extensions page), enable **Developer mode**, and
@@ -191,7 +194,7 @@ the exact X-matched panel chunk is web-accessible only where the manifest declar
 
 ## Firefox (temporary load)
 
-Download and extract [the Firefox ZIP](https://github.com/SysAdminDoc/Aviary/releases/download/v1.49.5/extension-firefox-v1.49.5.zip), then:
+Download and extract [the Firefox ZIP](https://github.com/SysAdminDoc/Aviary/releases/download/v1.52.2/extension-firefox-v1.52.2.zip), then:
 
 1. Keep the extracted directory. If building from source, use `npm ci --ignore-scripts` and
    `npm run verify:release` first; `dist/extension-firefox/` isn't carried in Git.
