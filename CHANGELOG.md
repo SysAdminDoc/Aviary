@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Changed
+
+- **The Chromium extension now requires Chrome 111 or later.** Its manifest had declared 102, but
+  the manifest key that runs Aviary's page script in X's own world only exists from Chrome 111.
+  On 102 to 110 the extension installed and then quietly lost ad-request refusal and video
+  discovery. Chrome 109 was the last release for Windows 7 and 8.1, so those systems should use
+  the userscript.
+
 ### Fixed
 
 - **Delete X activity now starts with nothing selected.** A new profile used to open the page with

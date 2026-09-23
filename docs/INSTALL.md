@@ -146,7 +146,7 @@ if either manifest disagrees with it.
 
 | Build | Floor | Why |
 | --- | --- | --- |
-| Chromium | **102** | The `"world": "MAIN"` content script and `optional_host_permissions` used by Aviary. Declarative Net Request session rules and tab IDs are available earlier. |
+| Chromium | **111** | The manifest's `"world": "MAIN"` content-script key. Chrome 102 to 110 would load Aviary's page script in the wrong world and quietly lose request-level features. `optional_host_permissions`, `deflate-raw` decompression, Declarative Net Request session rules and tab IDs are all available by then. |
 | Firefox | **140** | The oldest maintained ESR line selected for this release. Firefox 140.15 received security fixes on 2026-09-01; Firefox 153 is the current ESR and Firefox 155 is the current stable smoke target. |
 
 The floor is what decides whether a platform feature can be used directly. A feature is used
@@ -156,7 +156,7 @@ true for each feature, so the answer is looked up rather than re-derived:
 
 | Feature | Chrome | Firefox | At both floors |
 | --- | --- | --- | --- |
-| `:has()` | 105 | 121 | no, needs a branch |
+| `:has()` | 105 | 121 | yes |
 | Popover API | 116 | 125 | no, needs a branch |
 | Web Locks | 69 | 96 | yes |
 | `content-visibility` | 85 | 130 | yes |

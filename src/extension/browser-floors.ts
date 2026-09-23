@@ -6,12 +6,15 @@
  * the floor is what decides whether a platform feature can be used directly or needs a detection
  * branch, and a floor nobody can point at is one that gets rediscovered per feature.
  *
- * ## Chrome 102
+ * ## Chrome 111
  *
- * The manifest's `"world": "MAIN"` content script, `optional_host_permissions`, and the
- * file-targeted `scripting.executeScript` path are available at 102. Aviary does not use
- * document targeting or another newer scripting feature to justify a higher floor. Declarative
- * Net Request session rules and tab IDs are older.
+ * The manifest's `"world": "MAIN"` content-script key arrived in Chrome 111 (MDN
+ * browser-compat-data, `webextensions/manifest/content_scripts.json`, checked 2026-09-22). The
+ * floor used to say 102, which is when `scripting.registerContentScripts` gained a MAIN world;
+ * a static manifest entry on 102 to 110 loads `page.js` in the isolated world instead, so the page
+ * agent silently stops seeing X's requests. Archive import's `DecompressionStream("deflate-raw")`
+ * needs 103. `optional_host_permissions`, the file-targeted `scripting.executeScript` path,
+ * Declarative Net Request session rules and tab IDs are all older.
  *
  * ## Firefox 140
  *
@@ -29,7 +32,7 @@
  * verified against webstatus.dev / MDN on 2026-08-17.
  */
 
-export const CHROME_FLOOR = "102";
+export const CHROME_FLOOR = "111";
 export const FIREFOX_FLOOR = "140.0";
 
 export interface PlatformFeatureFloor {
@@ -41,7 +44,7 @@ export interface PlatformFeatureFloor {
 }
 
 export const PLATFORM_FEATURE_FLOORS: readonly PlatformFeatureFloor[] = [
-  { feature: ":has()", chrome: 105, firefox: 121, underFloor: false },
+  { feature: ":has()", chrome: 105, firefox: 121, underFloor: true },
   { feature: "Popover API", chrome: 116, firefox: 125, underFloor: false },
   { feature: "Web Locks", chrome: 69, firefox: 96, underFloor: true },
   { feature: "content-visibility", chrome: 85, firefox: 130, underFloor: true },

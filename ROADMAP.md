@@ -17,13 +17,6 @@ scheme from F336.
 
 ### P1
 
-- [ ] P1, F341: Raise the Chromium floor to 111
-  Why: The manifest `content_scripts[].world` key arrived in Chrome 111. On 102 to 110 `page.js` runs in the isolated world, so promoted-logging refusal and video-variant discovery silently stop while the docs claim support. That range isn't empty: Chrome 109 was the last release for Windows 7 and 8.1. Archive import's `DecompressionStream("deflate-raw")` also needs 103. An honest floor beats a silent downgrade.
-  Evidence: MDN browser-compat-data `webextensions/manifest/content_scripts.json` (`world`: Chrome 111, Firefox 128). `src/extension/browser-floors.ts` header ("available at 102"). `src/extension/manifest.chrome.json` `minimum_chrome_version: "102"`. `src/features/export/zip-reader.ts:212`.
-  Touches: `src/extension/browser-floors.ts`, `src/extension/manifest.chrome.json`, `tests/browser-floors.test.mjs`, `README.md` compatibility line, `docs/INSTALL.md`, the `docs-facts` blocks.
-  Acceptance: `CHROME_FLOOR` and `minimum_chrome_version` are 111. The floor comment cites the compat-data value. README and INSTALL say Chromium 111+. `PLATFORM_FEATURE_FLOORS.underFloor` is recomputed. Preflight's manifest/floor agreement check passes.
-  Complexity: S
-
 - [ ] P1, F339: State on the Delete X activity page that deleted posts can't be restored
   Why: X's automation rules say bulk-delete apps "must also clearly state that posts are not recoverable once deleted". The page says only "Deletion starts immediately."
   Evidence: help.x.com X automation rules (Wayback 2026-08-03). `src/ui/control-center/sections/account.ts` contains no restore or recovery copy. `README.md:114` has it.

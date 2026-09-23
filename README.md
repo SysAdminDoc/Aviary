@@ -149,7 +149,7 @@ userscript-manager retention follows the manager. Aviary doesn't encrypt browser
 
 ## Compatibility and help
 
-The extension targets Chromium 102+ and Firefox 140+. Use a maintained browser release.
+The extension targets Chromium 111+ and Firefox 140+. Use a maintained browser release.
 X changes frequently. The v1.52.2 layout was checked on September 21, 2026 against signed-in Home,
 Search, Profile, and post-detail routes at desktop, tablet, and phone widths. Account cleanup was
 authenticated live-tested on September 20, 2026 with
