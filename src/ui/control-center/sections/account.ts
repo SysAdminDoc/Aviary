@@ -3,7 +3,6 @@ import {
   ACCOUNT_CLEANUP_CATEGORY_DEFINITIONS,
   formatAccountCleanupCopy,
   localizeAccountCleanupValues,
-  type AccountCleanupCopy,
   type AccountCleanupCommandResult,
   type AccountCleanupRun,
   type AccountCleanupStartOptions
@@ -27,7 +26,9 @@ export function buildAccountCleanupRows(ctx: PanelContext): HTMLElement[] {
       hasSelection,
       run,
       runStatus: run?.status ?? null,
-      statusCopy: status?.copy ?? { text: status?.message ?? "Delete X activity is still loading." }
+      statusText: status?.copy
+        ? formatAccountCleanupCopy(status.copy, ctx.t)
+        : ctx.t(status?.message ?? "Delete X activity is still loading.")
     }),
     advancedOptions(ctx, activeJob)
   ];
@@ -142,13 +143,13 @@ function actionWorkspace(ctx: PanelContext, input: {
   hasSelection: boolean;
   run: AccountCleanupRun | null;
   runStatus: "running" | "paused" | "blocked" | "complete" | "stopped" | null;
-  statusCopy: AccountCleanupCopy;
+  statusText: string;
 }): HTMLElement {
   const workspace = ctx.el("div", "av-cleanup-workspace");
   workspace.dataset.avLabel = "Run";
 
   const status = input.run
-    ? `${formatAccountCleanupCopy(input.statusCopy, ctx.t)} ${describeTotals(ctx, input.run)}`
+    ? `${input.statusText} ${describeTotals(ctx, input.run)}`
     : input.activeHandle
       ? ctx.localizedCopy("Ready to run on @{handle}.", { handle: input.activeHandle })
       : ctx.t("Sign in to X before running.");
@@ -248,9 +249,8 @@ async function runCommand(
   try {
     const result = await command();
     const status = ctx.options.getAccountCleanupStatus?.();
-    const copy = status?.copy ?? (status ? { text: status.message } : null);
-    if (copy) ctx.setStatusCopy(copy.text, localizeAccountCleanupValues(copy, ctx.t));
-    else ctx.setStatus(result.ok ? "Deletion updated." : "Deletion command failed.");
+    if (status?.copy) ctx.setStatusCopy(status.copy.text, localizeAccountCleanupValues(status.copy, ctx.t));
+    else ctx.setStatus(status?.message ?? (result.ok ? "Deletion updated." : "Deletion command failed."));
     ctx.render();
   } catch (error) {
     ctx.options.onError("Deletion command failed", error);

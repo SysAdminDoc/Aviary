@@ -639,7 +639,7 @@ export class AccountCleanupRunner {
       run.stats[category].failed += 1;
       consecutiveFailures += 1;
       await this.#save(run);
-      this.#emit("action", run, cleanupCopy("An account action failed: {reason}.", { reason: outcome.reason ?? "unknown_error" }));
+      this.#emit("action", run, cleanupCopy("An account action didn't take effect. Aviary will try it again."));
       if (consecutiveFailures >= ACCOUNT_CLEANUP_TIMING.recoveryFailureThreshold) {
         if (await this.#recoverPage(run, category, signal)) return "navigating";
         await this.#blockRun("repeated_action_failures");

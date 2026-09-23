@@ -171,13 +171,20 @@ export interface AccountCleanupStatus {
  * the string literal at every cleanupCopy call site, which is why the first argument is always a
  * plain string.
  */
+declare const CLEANUP_COPY: unique symbol;
+
 export interface AccountCleanupCopy {
-  text: string;
-  values?: Record<string, string | number>;
+  readonly text: string;
+  readonly values?: Readonly<Record<string, string | number>>;
+  /**
+   * Only `cleanupCopy` can make one. A hand-built `{ text }` would pass every runtime check and
+   * reach the panel without the extractor ever seeing its sentence.
+   */
+  readonly [CLEANUP_COPY]: true;
 }
 
 export function cleanupCopy(text: string, values?: Record<string, string | number>): AccountCleanupCopy {
-  return values ? { text, values } : { text };
+  return (values ? { text, values } : { text }) as AccountCleanupCopy;
 }
 
 /**

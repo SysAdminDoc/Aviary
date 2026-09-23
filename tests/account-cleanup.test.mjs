@@ -138,6 +138,9 @@ test("every cleanup status sentence is a literal the i18n extractor can require"
     }
     // A status must travel as copy; a raw string argument to #emit would bypass translation.
     for (const match of text.matchAll(/#emit\([^,]+,[^,]+,\s*[`"']/g)) offenders.push(`${file}: ${match[0]}`);
+    // A hand-built copy object carries a sentence the extractor never sees. The type is nominal so
+    // the compiler refuses one too; this names the file when someone casts around it.
+    for (const match of text.matchAll(/\{\s*text\s*:/g)) offenders.push(`${file}: ${match[0]}`);
   }
   assert.ok(calls > 40, `only ${calls} cleanupCopy calls found; the scan is not reading the sources`);
   assert.deepEqual(offenders, []);
@@ -844,7 +847,8 @@ test("an item that keeps going stale counts as a failed action and enters page r
   assert.equal(run.phase, "recovering");
   assert.equal(run.failures["likes:909"], 2);
   assert.equal(run.stats.likes.failed, 2);
-  assert.ok(events.some((event) => event.message === "An account action failed: control_missing."));
+  // The reader sees a translated sentence; the internal reason code is not user copy.
+  assert.ok(events.some((event) => event.message === "An account action didn't take effect. Aviary will try it again."));
 });
 
 test("a signed-in handle that stays unreadable blocks the run before any action", async () => {
