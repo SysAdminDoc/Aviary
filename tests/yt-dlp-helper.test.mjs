@@ -1,4 +1,4 @@
-import { allowOutbound } from "./helpers/network-policy.mjs";
+import { allowOutbound, blockOutbound } from "./helpers/network-policy.mjs";
 import assert from "node:assert/strict";
 import { EventEmitter } from "node:events";
 import { test } from "node:test";
@@ -133,6 +133,163 @@ test("the client sends only an observed manifest, filename, and fixed format pol
   } finally {
     globalThis.fetch = originalFetch;
   }
+});
+
+test("extension builds carry helper calls through the background worker", async () => {
+  const mod = await importSourceModule("src/features/media/yt-dlp-helper.ts");
+  const originalFetch = globalThis.fetch;
+  const originalChrome = globalThis.chrome;
+  const direct = [];
+  const messages = [];
+  let answer = { ok: true, status: 202, payload: { jobId: "job_12345678", state: "running" } };
+  globalThis.fetch = async (url, init) => {
+    direct.push({ url, init });
+    return new Response(JSON.stringify({ jobId: "job_direct_1234", state: "running" }), { status: 202 });
+  };
+  globalThis.chrome = {
+    runtime: {
+      id: "aviary-test",
+      async sendMessage(message) {
+        messages.push(message);
+        return answer;
+      }
+    }
+  };
+  const settings = { enabled: true, endpoint: "http://127.0.0.1:8787", secret: "secret-secret-secret" };
+  const job = { manifestUrl: adaptive.url, filename: "alice_123.%(ext)s", formatPolicy: mod.YTDLP_FORMAT_POLICY };
+  try {
+    assert.deepEqual(await mod.handoffToYtDlp(settings, job), { jobId: "job_12345678", state: "running" });
+    assert.equal(direct.length, 0, "the x.com page must not fetch loopback itself when a background answers");
+    assert.equal(messages[0].type, "AVIARY_YTDLP_PROXY");
+    assert.equal(messages[0].call.method, "POST");
+    assert.equal(messages[0].call.url, "http://127.0.0.1:8787/v1/jobs");
+
+    answer = { ok: false, error: "Aviary only carries a job request to a helper on this machine." };
+    assert.deepEqual(await mod.handoffToYtDlp(settings, job), {
+      state: "failed",
+      error: "Aviary only carries a job request to a helper on this machine."
+    });
+    assert.equal(direct.length, 0, "a refusal from the background is final, not a cue to fetch directly");
+
+    // No Aviary background answered: the userscript path, which has always fetched directly.
+    answer = undefined;
+    assert.equal((await mod.handoffToYtDlp(settings, job)).state, "running");
+    assert.equal(direct.length, 1);
+
+    // Local-only mode stops the call at the transport on either route, before any message.
+    const transport = await importSourceModule("src/features/media/yt-dlp-transport.ts");
+    const sent = messages.length;
+    await blockOutbound();
+    try {
+      await assert.rejects(
+        transport.sendYtDlpCall({ method: "GET", url: "http://127.0.0.1:8787/v1/jobs/job_12345678", secret: "s" }),
+        /local-only|Local-only/
+      );
+    } finally {
+      await allowOutbound();
+    }
+    assert.equal(messages.length, sent, "a blocked call must not reach the background");
+    assert.equal(direct.length, 1, "a blocked call must not fetch");
+  } finally {
+    globalThis.fetch = originalFetch;
+    globalThis.chrome = originalChrome;
+  }
+
+  const background = await (await import("node:fs/promises")).readFile(
+    new URL("../src/entrypoints/extension-background.ts", import.meta.url),
+    "utf8"
+  );
+  assert.match(
+    background,
+    /isYtDlpProxyMessage\(message\)[\s\S]{0,400}validateYtDlpCall\(message\.call\)[\s\S]{0,400}performYtDlpCall\(call\)/,
+    "the background must validate a helper call before it makes it"
+  );
+});
+
+test("the background carries only a job create or read to a loopback helper", async () => {
+  const { validateYtDlpCall } = await importSourceModule("src/features/media/yt-dlp-transport.ts");
+  const body = JSON.stringify({ manifestUrl: adaptive.url, filename: "alice_123.%(ext)s", formatPolicy: "bv*+ba/b" });
+  const create = { method: "POST", url: "http://127.0.0.1:8787/v1/jobs", secret: "secret-secret-secret", body };
+  const read = { method: "GET", url: "http://localhost:8787/v1/jobs/job_12345678", secret: "secret-secret-secret" };
+  assert.deepEqual(validateYtDlpCall(create), create);
+  assert.deepEqual(validateYtDlpCall(read), read);
+
+  const refused = {
+    "a public host": { ...create, url: "https://helper.example/v1/jobs" },
+    "a LAN address": { ...create, url: "http://192.168.1.20:8787/v1/jobs" },
+    "another loopback path": { ...create, url: "http://127.0.0.1:8787/admin" },
+    "a query string": { ...read, url: `${read.url}?next=1` },
+    "embedded credentials": { ...create, url: "http://user:pass@127.0.0.1:8787/v1/jobs" },
+    "an extra job field": { ...create, body: JSON.stringify({ ...JSON.parse(body), statusUrl: "https://x.com/a/status/1" }) },
+    "a manifest off X's video host": { ...create, body: JSON.stringify({ ...JSON.parse(body), manifestUrl: "https://evil.example/a.m3u8" }) },
+    "a body on a read": { ...read, body },
+    "a create on the read path": { ...create, url: read.url },
+    "another method": { ...create, method: "DELETE" },
+    "no secret": { ...create, secret: "" },
+    "a header break in the secret": { ...create, secret: "secret\r\nx-evil: 1" },
+    "an oversized body": { ...create, body: body + " ".repeat(17_000) }
+  };
+  for (const [name, call] of Object.entries(refused)) {
+    assert.equal(validateYtDlpCall(call), null, `${name} must be refused`);
+  }
+  assert.equal(validateYtDlpCall(null), null);
+  assert.equal(validateYtDlpCall("http://127.0.0.1:8787/v1/jobs"), null);
+});
+
+test("loopback host access stays optional in both manifests", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const options = await readFile(new URL("../src/entrypoints/extension-options.ts", import.meta.url), "utf8");
+  // The options card asks for exactly what the manifests offer, or a grant would silently miss.
+  const offered = JSON.parse(/export const HELPER_ORIGINS = (\[[^\]]*\]);/.exec(options)?.[1] ?? "[]");
+  assert.deepEqual(offered, ["http://127.0.0.1/*", "http://localhost/*"]);
+  for (const target of ["chrome", "firefox"]) {
+    const manifest = JSON.parse(await readFile(new URL(`../src/extension/manifest.${target}.json`, import.meta.url), "utf8"));
+    for (const origin of offered) {
+      assert.ok(manifest.optional_host_permissions.includes(origin), `${target} must offer ${origin}`);
+      assert.ok(!manifest.host_permissions.includes(origin), `${target} must not hold ${origin} at install`);
+    }
+  }
+});
+
+test("the local helper refuses a rebound Host, a foreign Origin and a near-miss token", async () => {
+  const { request } = await import("node:http");
+  const helper = helperTool.createYtDlpHelper({
+    token: "secret-secret-secret",
+    port: 0,
+    spawnProcess() {
+      throw new Error("no job may start in this test");
+    }
+  });
+  const address = await helper.listen();
+  // node:http, because fetch will not let a test forge Host or Origin the way a hostile page can.
+  const call = (headers) => new Promise((resolve, reject) => {
+    const outgoing = request(
+      { host: "127.0.0.1", port: address.port, path: "/v1/jobs/unknown_job_12345678", method: "GET", headers },
+      (incoming) => {
+        incoming.resume();
+        incoming.on("end", () => resolve({ status: incoming.statusCode, cors: incoming.headers["access-control-allow-origin"] ?? null }));
+      }
+    );
+    outgoing.on("error", reject);
+    outgoing.end();
+  });
+  const auth = { authorization: "Bearer secret-secret-secret" };
+  try {
+    // DNS rebinding: the page's own hostname now resolves to loopback, and still says so in Host.
+    assert.equal((await call({ ...auth, host: `evil.example:${address.port}` })).status, 421);
+    assert.equal((await call({ ...auth, host: `127.0.0.1:${address.port}`, origin: "https://evil.example" })).status, 403);
+    assert.equal((await call({ ...auth, host: `localhost:${address.port}`, origin: "https://x.com" })).status, 404);
+    assert.equal((await call({ ...auth, host: `127.0.0.1:${address.port}`, origin: "chrome-extension://abcdefghijklmnop" })).status, 404);
+    // Same length, one character off: refused like any other wrong token.
+    assert.equal((await call({ authorization: "Bearer secret-secret-secreT", host: `127.0.0.1:${address.port}` })).status, 401);
+    // An allowed origin is echoed back; a refused one never gets a CORS grant.
+    assert.equal((await call({ ...auth, host: `127.0.0.1:${address.port}`, origin: "https://twitter.com" })).cors, "https://twitter.com");
+    assert.equal((await call({ ...auth, host: `127.0.0.1:${address.port}`, origin: "https://evil.example" })).cors, null);
+  } finally {
+    await helper.close();
+  }
+  const source = await (await import("node:fs/promises")).readFile(new URL("../tools/yt-dlp-helper.mjs", import.meta.url), "utf8");
+  assert.match(source, /timingSafeEqual\(received, expected\)/, "the token must be compared in constant time");
 });
 
 test("the local helper requires auth, never creates jobs through GET, and reports terminal states", async () => {

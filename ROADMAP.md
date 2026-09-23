@@ -19,13 +19,6 @@ scheme from F336.
 
 ### P2
 
-- [ ] P2, F353: Reach the yt-dlp helper from the extension background and harden it
-  Why: Chrome 142 prompts before a public origin reaches loopback, and 145 made loopback its own permission. The helper `fetch` runs from the x.com content context, and the helper reflects any Origin, checks no Host, and compares its token with a plain string check. Status: Needs live validation.
-  Evidence: developer.chrome.com/blog/local-network-access, `src/features/media/yt-dlp-helper.ts:154,188`, `tools/yt-dlp-helper.mjs:196-199,210-215`.
-  Touches: `src/entrypoints/extension-background.ts` (a proxied helper message), both manifests (optional `http://127.0.0.1/*`), `src/features/media/yt-dlp-helper.ts`, `tools/yt-dlp-helper.mjs`, helper tests, the helper section of `docs/INSTALL.md`.
-  Acceptance: Extension builds reach the helper from the background worker, and a Chromium smoke lane with the helper on a random port shows no x.com loopback prompt. The helper refuses a foreign Host, refuses Origins outside x.com, twitter.com and the extension origin, and uses `crypto.timingSafeEqual`. Each refusal has a test.
-  Complexity: M
-
 - [ ] P2, F356: Declare Firefox `data_collection_permissions`
   Why: AMO has required the key for every new submission, listed or unlisted, since 2025-11-03. It's supported from Firefox 140, Aviary's floor. This is the part of F125 that needs no distribution decision.
   Evidence: blog.mozilla.org/addons 2025-10-23, extensionworkshop.com signing and distribution overview, `src/extension/manifest.firefox.json` `browser_specific_settings`.

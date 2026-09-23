@@ -72,6 +72,17 @@ only the observed manifest URL, a filename, and the fixed best-video-plus-audio 
 send the X post URL, browser cookies, or bearer token. **Send to yt-dlp** waits for the local job
 state and reports a refusal or failure instead of claiming the file was saved.
 
+Chrome 142 and later refuse or prompt when a public page like x.com reaches an address on your own
+machine. The extension builds make the helper call from Aviary's background worker instead, so
+x.com never asks. The **Reach the local yt-dlp helper** card on the extension's Options page grants
+host access to `127.0.0.1` and `localhost`, which is the access Chrome's rules exempt. The handoff
+works in current Chrome without it. The userscript has no background worker, so in Chrome it calls
+the helper from x.com and the browser asks whether x.com may reach your local network.
+
+The helper answers only on the loopback address and only to requests from X or a browser
+extension, and it compares the secret in constant time. A web page that points its own hostname at
+`127.0.0.1` is refused on its Host header.
+
 ## Chrome, Edge, or Brave (developer load)
 
 1. Download [the Chromium ZIP](https://github.com/SysAdminDoc/Aviary/releases/download/v1.52.2/extension-chrome-v1.52.2.zip)
@@ -95,7 +106,7 @@ What the extension asks for, read from the manifests themselves:
 
 Required permissions: `contextMenus`, `declarativeNetRequestWithHostAccess`, `scripting`, `storage`, `unlimitedStorage`.
 
-Optional permissions: `downloads`, plus optional host access to `https://pbs.twimg.com/*`, `https://video.twimg.com/*`.
+Optional permissions: `downloads`, plus optional host access to `http://127.0.0.1/*`, `http://localhost/*`, `https://pbs.twimg.com/*`, `https://video.twimg.com/*`.
 
 Host access: `https://pro.x.com/*`, `https://twitter.com/*`, `https://x.com/*`.
 

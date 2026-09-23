@@ -41,6 +41,11 @@ import {
   isStorageLockRegisterRequest,
   StorageLockRegisterAuthority
 } from "../platform/storage-lock-register.ts";
+import {
+  isYtDlpProxyMessage,
+  performYtDlpCall,
+  validateYtDlpCall
+} from "../features/media/yt-dlp-transport.ts";
 
 const runtime = globalThis.chrome?.runtime;
 const extensionApi = globalThis.chrome as unknown as ExtensionAdRuleApi | undefined;
@@ -265,6 +270,20 @@ runtime?.onMessage?.addListener((message, sender, sendResponse) => {
       () => sendResponse({ ok: true, enabled: message.enabled }),
       (error: unknown) =>
         sendResponse({ ok: false, enabled: message.enabled, error: errorMessage(error) })
+    );
+    return true;
+  }
+  if (isYtDlpProxyMessage(message)) {
+    // The x.com page would meet Chrome's loopback prompt; this worker, holding optional host
+    // access to the loopback origin, does not. It still carries only a validated job call.
+    const call = validateYtDlpCall(message.call);
+    if (!call) {
+      sendResponse({ ok: false, error: "Aviary only carries a job request to a helper on this machine." });
+      return false;
+    }
+    performYtDlpCall(call).then(
+      (result) => sendResponse({ ok: true, status: result.status, payload: result.payload }),
+      (error: unknown) => sendResponse({ ok: false, error: errorMessage(error) })
     );
     return true;
   }

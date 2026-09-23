@@ -59,7 +59,7 @@ The permissions the extension declares, read from the manifests themselves:
 
 Required permissions: `contextMenus`, `declarativeNetRequestWithHostAccess`, `scripting`, `storage`, `unlimitedStorage`.
 
-Optional permissions: `downloads`, plus optional host access to `https://pbs.twimg.com/*`, `https://video.twimg.com/*`.
+Optional permissions: `downloads`, plus optional host access to `http://127.0.0.1/*`, `http://localhost/*`, `https://pbs.twimg.com/*`, `https://video.twimg.com/*`.
 
 Host access: `https://pro.x.com/*`, `https://twitter.com/*`, `https://x.com/*`.
 
@@ -75,7 +75,10 @@ to evict the local library, and is the permission half of that request; whether 
 it is reported in Trust.
 
 The optional grants are requested only from the options page and can be revoked there; the
-userscript declares the equivalent `GM_download`/`@connect` surfaces in its metadata.
+userscript declares the equivalent `GM_download`/`@connect` surfaces in its metadata. The
+`127.0.0.1` and `localhost` grant is for the optional yt-dlp helper only. It lets Aviary's
+background worker reach a helper you run on this machine, and nothing is sent there until you
+enable the handoff and press **Send to yt-dlp**.
 
 Aviary handles what it clips locally: the post text, media bytes and observed responses you ask it
 to keep. That is different from transmitting anything, which happens only through an integration you

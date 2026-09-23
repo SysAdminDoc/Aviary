@@ -50,8 +50,9 @@ limitation even though the unit is not rendered.
 The required extension permissions are `storage` and `declarativeNetRequestWithHostAccess`. The
 second permission can act only on Aviary's declared X/Twitter hosts and powers the exact
 promoted-logger rule; Aviary does not request `<all_urls>`, `webRequest`, or the diagnostic feedback
-permission in a shipped package. `downloads` and direct access to
-`pbs.twimg.com`/`video.twimg.com` are optional. Open the dedicated extension **Options** page to
+permission in a shipped package. `downloads`, direct access to
+`pbs.twimg.com`/`video.twimg.com` and access to the local yt-dlp helper on `127.0.0.1`/`localhost`
+are optional. Open the dedicated extension **Options** page to
 grant or revoke each one. A grant is requested only after its button is clicked there; declining
 does not disable the rest of Aviary.
 

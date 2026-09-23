@@ -376,13 +376,15 @@ button.ghost {
 }
 
 button.ghost:hover:not(:disabled),
-#media-grant:hover:not(:disabled) {
+#media-grant:hover:not(:disabled),
+#helper-grant:hover:not(:disabled) {
   border-color: var(--av-border);
   background: var(--av-surface-raised);
   color: var(--av-text);
 }
 
 #media-grant,
+#helper-grant,
 .open-x {
   border-color: var(--av-border);
   background: transparent;
@@ -513,6 +515,7 @@ button.ghost:hover:not(:disabled),
   button,
   button.ghost,
   #media-grant,
+  #helper-grant,
   .open-x {
     border-color: ButtonText;
     background: ButtonFace;

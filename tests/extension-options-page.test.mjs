@@ -222,6 +222,17 @@ test("revoking gives the permission back and re-enables the grant button", async
   assert.equal(buttons.revoke, true);
 });
 
+test("the helper card asks for loopback host access and nothing else", async () => {
+  await mountOptions();
+  await page.click("#helper-grant");
+  await page.waitForTimeout(40);
+  const calls = await page.evaluate(() => window.__calls);
+  assert.deepEqual(calls.request, [{ origins: ["http://127.0.0.1/*", "http://localhost/*"] }]);
+  const state = await cardState("helper-state");
+  assert.equal(state.granted, "true");
+  assert.equal(await cardState("downloads-state").then((entry) => entry.granted), "false", "one card never grants another");
+});
+
 test("the health summary counts what is actually held", async () => {
   await mountOptions();
   const empty = await page.evaluate(() => document.getElementById("granted-count").textContent);
@@ -354,6 +365,9 @@ test("the permissions page uses one flat hierarchy with a clear download action"
       stateBorder: state.borderTopWidth,
       descriptionSize: Number.parseFloat(description.fontSize),
       primaryBackground: primary.backgroundColor,
+      otherGrantBackgrounds: [...document.querySelectorAll(".permission-row .actions button:not(.ghost)")]
+        .filter((button) => button.id !== "downloads-grant")
+        .map((button) => [button.id, getComputedStyle(button).backgroundColor]),
       topbarHeight: topbar.height
     };
   });
@@ -365,12 +379,17 @@ test("the permissions page uses one flat hierarchy with a clear download action"
   assert.equal(styles.stateBorder, "0px");
   assert.ok(styles.descriptionSize >= 14, `permission copy is only ${styles.descriptionSize}px`);
   assert.notEqual(styles.primaryBackground, "rgba(0, 0, 0, 0)");
+  // Download access is the one recommended grant; every other card offers a secondary button.
+  assert.ok(styles.otherGrantBackgrounds.length >= 2, "the other grant buttons were not found");
+  for (const [id, background] of styles.otherGrantBackgrounds) {
+    assert.equal(background, "rgba(0, 0, 0, 0)", `#${id} competes with the download action`);
+  }
   assert.ok(styles.topbarHeight <= 64, `the options header is ${styles.topbarHeight}px tall`);
 });
 
 test("each card explains its own grant rather than borrowing the other's", async () => {
   const messages = {};
-  for (const card of ["downloads", "media"]) {
+  for (const card of ["downloads", "media", "helper"]) {
     await mountOptions();
     await page.click(`#${card}-grant`);
     await page.waitForFunction(
@@ -385,7 +404,8 @@ test("each card explains its own grant rather than borrowing the other's", async
   // report the same sentence, so granting the wrong one looked like it had worked.
   assert.match(messages.downloads, /Media saves through the browser/);
   assert.match(messages.media, /full-size media directly/);
-  assert.notEqual(messages.downloads, messages.media, "the two grants must not share one message");
+  assert.match(messages.helper, /local helper/);
+  assert.equal(new Set(Object.values(messages)).size, 3, "no two grants may share one message");
 });
 
 test("support diagnostics copy a merged redacted report after a worker restart", async () => {

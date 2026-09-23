@@ -14,6 +14,14 @@
 
 ### Changed
 
+- **Send to yt-dlp now works in Chrome 142 and later.** Chrome refuses or prompts when x.com
+  reaches an address on your own machine, and that's where the helper runs. The extension now
+  makes the helper call from its background worker instead, so x.com never asks. The Options page
+  has a new optional card that grants access to `127.0.0.1` and `localhost` for the helper. The
+  userscript still calls from x.com, so Chrome asks there.
+- The yt-dlp helper now refuses a request whose Host isn't the loopback address, which stops a web
+  page that rebinds its own hostname to your machine. It only answers browser requests from X and
+  from extensions, and it compares the secret in constant time.
 - **The Chromium extension now requires Chrome 111 or later.** Its manifest had declared 102, but
   the manifest key that runs Aviary's page script in X's own world only exists from Chrome 111.
   On 102 to 110 the extension installed and then quietly lost ad-request refusal and video

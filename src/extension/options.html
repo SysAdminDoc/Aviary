@@ -43,7 +43,7 @@
               <strong id="permission-health-title" data-i18n="Download readiness">Download readiness</strong>
             </div>
             <div class="health-metric"><strong id="granted-count">0</strong><span data-i18n="granted">granted</span></div>
-            <div class="health-metric"><strong>2</strong><span data-i18n="optional">optional</span></div>
+            <div class="health-metric"><strong>3</strong><span data-i18n="optional">optional</span></div>
             <p id="health-message" aria-live="polite" aria-atomic="true" data-i18n="All optional. You're in control.">All optional. You're in control.</p>
           </section>
 
@@ -89,6 +89,30 @@
               <div class="actions">
                 <button type="button" id="media-grant" aria-describedby="media-description" data-i18n="Grant media hosts">Grant media hosts</button>
                 <button type="button" class="ghost" id="media-revoke" aria-describedby="media-description" data-i18n="Revoke">Revoke</button>
+              </div>
+            </article>
+
+            <article class="card permission-row" id="helper-card" aria-labelledby="helper-title">
+              <div class="permission-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M7 9l3 3-3 3M13 15h4" /></svg>
+              </div>
+              <div class="card-copy">
+                <div class="card-head">
+                  <h3 id="helper-title" data-i18n="Reach the local yt-dlp helper">Reach the local yt-dlp helper</h3>
+                  <span class="state" id="helper-state" aria-live="polite" aria-atomic="true" data-i18n="checking…">checking…</span>
+                </div>
+                <p id="helper-description" data-i18n="Only for the optional yt-dlp helper. Aviary talks to it from the extension, so Chrome doesn't ask x.com for local network access.">
+                  Only for the optional yt-dlp helper. Aviary talks to it from the extension, so
+                  Chrome doesn't ask x.com for local network access.
+                </p>
+                <div class="host-chips" aria-label="Helper hosts">
+                  <code>127.0.0.1</code>
+                  <code>localhost</code>
+                </div>
+              </div>
+              <div class="actions">
+                <button type="button" id="helper-grant" aria-describedby="helper-description" data-i18n="Grant helper access">Grant helper access</button>
+                <button type="button" class="ghost" id="helper-revoke" aria-describedby="helper-description" data-i18n="Revoke">Revoke</button>
               </div>
             </article>
           </section>

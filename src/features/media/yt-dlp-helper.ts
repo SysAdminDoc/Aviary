@@ -1,6 +1,9 @@
 import type { IntegrationSettings } from "../../platform/settings.ts";
 import { assertOutboundAllowed } from "../integrations/network-policy.ts";
 import { compareVariantQuality, type VideoVariant } from "./video-extract.ts";
+import { normalizeYtDlpEndpoint, sendYtDlpCall } from "./yt-dlp-transport.ts";
+
+export { normalizeYtDlpEndpoint, YTDLP_DEFAULT_ENDPOINT } from "./yt-dlp-transport.ts";
 
 /** The format selector yt-dlp documents for best video plus best audio, with a single-file fallback. */
 export const YTDLP_FORMAT_POLICY = "bv*+ba/b";
@@ -31,7 +34,6 @@ export const ADAPTIVE_HANDOFF_OUTPUT = {
   transcoded: false,
   qualityCost: null
 } as const;
-export const YTDLP_DEFAULT_ENDPOINT = "http://127.0.0.1:8787";
 
 export interface ObservedAdaptiveCandidate {
   manifestUrl: string;
@@ -112,29 +114,6 @@ export function buildYtDlpCommand(request: YtDlpHandoffRequest): string {
   ].join(" ");
 }
 
-export function normalizeYtDlpEndpoint(endpoint: string): string | null {
-  try {
-    const parsed = new URL(endpoint || YTDLP_DEFAULT_ENDPOINT);
-    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return null;
-    const host = parsed.hostname.replace(/^\[|\]$/g, "").toLowerCase();
-    if (
-      host !== "localhost" &&
-      host !== "::1" &&
-      !host.endsWith(".localhost") &&
-      !/^127\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(host)
-    ) {
-      return null;
-    }
-    parsed.username = "";
-    parsed.password = "";
-    parsed.search = "";
-    parsed.hash = "";
-    return parsed.toString().replace(/\/$/, "");
-  } catch {
-    return null;
-  }
-}
-
 export async function handoffToYtDlp(
   settings: IntegrationSettings["ytDlp"],
   request: YtDlpHandoffRequest
@@ -151,24 +130,21 @@ export async function handoffToYtDlp(
   }
   assertOutboundAllowed("The local yt-dlp handoff");
   try {
-    const response = await fetch(`${endpoint}/v1/jobs`, {
+    const { status, payload } = await sendYtDlpCall({
       method: "POST",
-      headers: {
-        authorization: `Bearer ${settings.secret}`,
-        "content-type": "application/json"
-      },
+      url: `${endpoint}/v1/jobs`,
+      secret: settings.secret,
       body: JSON.stringify({
         manifestUrl: request.manifestUrl,
         filename: request.filename,
         formatPolicy: request.formatPolicy
       })
     });
-    const payload = await readJson(response);
-    if (response.status === 401 || response.status === 403) {
+    if (status === 401 || status === 403) {
       return { state: "refused", error: textError(payload, "The local yt-dlp helper refused authorization.") };
     }
-    if (!response.ok) {
-      return { state: "failed", error: textError(payload, `The local yt-dlp helper returned HTTP ${response.status}.`) };
+    if (status < 200 || status > 299) {
+      return { state: "failed", error: textError(payload, `The local yt-dlp helper returned HTTP ${status}.`) };
     }
     return normalizeJobStatus(payload, "The local yt-dlp helper returned an invalid job.");
   } catch (error) {
@@ -185,26 +161,19 @@ export async function readYtDlpJob(
   if (!endpoint || !/^[A-Za-z0-9_-]{8,80}$/.test(jobId)) return { state: "missing" };
   assertOutboundAllowed("The local yt-dlp status check");
   try {
-    const response = await fetch(`${endpoint}/v1/jobs/${encodeURIComponent(jobId)}`, {
-      headers: { authorization: `Bearer ${settings.secret}` }
+    const { status, payload } = await sendYtDlpCall({
+      method: "GET",
+      url: `${endpoint}/v1/jobs/${encodeURIComponent(jobId)}`,
+      secret: settings.secret
     });
-    const payload = await readJson(response);
-    if (response.status === 401 || response.status === 403) {
+    if (status === 401 || status === 403) {
       return { state: "refused", error: textError(payload, "The local yt-dlp helper refused authorization.") };
     }
-    if (response.status === 404) return { state: "missing" };
-    if (!response.ok) return { state: "failed", error: textError(payload, `The local yt-dlp helper returned HTTP ${response.status}.`) };
+    if (status === 404) return { state: "missing" };
+    if (status < 200 || status > 299) return { state: "failed", error: textError(payload, `The local yt-dlp helper returned HTTP ${status}.`) };
     return normalizeJobStatus(payload, "The local yt-dlp helper returned an invalid status.");
   } catch (error) {
     return { state: "failed", error: error instanceof Error ? error.message : String(error) };
-  }
-}
-
-async function readJson(response: Response): Promise<unknown> {
-  try {
-    return await response.json();
-  } catch {
-    return null;
   }
 }
 

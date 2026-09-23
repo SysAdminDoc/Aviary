@@ -1,5 +1,5 @@
 import { createServer } from "node:http";
-import { randomBytes } from "node:crypto";
+import { randomBytes, timingSafeEqual } from "node:crypto";
 import { mkdir } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import path from "node:path";
@@ -30,7 +30,18 @@ export function createYtDlpHelper({
   }
   const jobs = new Map();
   const server = createServer(async (request, response) => {
-    applyCors(response, request.headers.origin);
+    // A page that rebinds its own hostname to 127.0.0.1 still sends that hostname as Host, so only
+    // a loopback Host is served; and only X's own pages or an extension may call from a browser.
+    if (!loopbackHost(request.headers.host)) {
+      writeJson(response, 421, { state: "refused", error: "This helper only answers on the loopback address." });
+      return;
+    }
+    const origin = request.headers.origin;
+    if (!allowedOrigin(origin)) {
+      writeJson(response, 403, { state: "refused", error: "This helper only accepts requests from X or the Aviary extension." });
+      return;
+    }
+    applyCors(response, origin);
     if (request.method === "OPTIONS") {
       response.writeHead(204);
       response.end();
@@ -195,7 +206,31 @@ function trimJobs(jobs) {
 
 function authorized(request, token) {
   const header = request.headers.authorization;
-  return typeof header === "string" && header === `Bearer ${token}`;
+  if (typeof header !== "string") return false;
+  const received = Buffer.from(header);
+  const expected = Buffer.from(`Bearer ${token}`);
+  // A plain comparison stops at the first differing byte, which leaks how much of a guess was right.
+  return received.length === expected.length && timingSafeEqual(received, expected);
+}
+
+const LOOPBACK_HOSTNAMES = new Set(["127.0.0.1", "localhost", "[::1]"]);
+
+function loopbackHost(header) {
+  if (typeof header !== "string" || header.length === 0) return false;
+  try {
+    return LOOPBACK_HOSTNAMES.has(new URL(`http://${header}`).hostname.toLowerCase());
+  } catch {
+    return false;
+  }
+}
+
+const X_ORIGINS = new Set(["https://x.com", "https://twitter.com", "https://pro.x.com"]);
+
+/** No Origin is a local tool such as curl; a browser always sends one, and only these may call. */
+function allowedOrigin(origin) {
+  if (origin === undefined) return true;
+  if (typeof origin !== "string") return false;
+  return X_ORIGINS.has(origin) || /^(?:chrome|moz)-extension:\/\/[A-Za-z0-9-]+$/.test(origin);
 }
 
 async function readBody(request) {
@@ -208,7 +243,8 @@ async function readBody(request) {
 }
 
 function applyCors(response, origin) {
-  response.setHeader("access-control-allow-origin", typeof origin === "string" ? origin : "*");
+  if (typeof origin !== "string") return;
+  response.setHeader("access-control-allow-origin", origin);
   response.setHeader("access-control-allow-headers", "authorization, content-type");
   response.setHeader("access-control-allow-methods", "GET, POST, OPTIONS");
   response.setHeader("vary", "Origin");

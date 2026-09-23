@@ -324,8 +324,8 @@ In the MV3 build `downloads` remains an optional permission. Choosing the native
 requests it from that explicit browser gesture and immediately continues the save when granted.
 Until it is granted, an on-post button reads **Allow** instead of claiming a save and opens Aviary's
 options page. That page (toolbar icon, or Extensions → Aviary → Options) shows the live grant state
-for `downloads` and for the `pbs.twimg.com` / `video.twimg.com` media hosts, makes download access
-the recommended first step, and can revoke either. Permission checks and results are announced,
+for `downloads`, for the `pbs.twimg.com` / `video.twimg.com` media hosts and for the loopback
+yt-dlp helper, makes download access the recommended first step, and can revoke each one. Permission checks and results are announced,
 and the setup remains usable in compact extension windows.
 On the rare path where the anchor fallback still runs for a cross-origin URL, the button reads
 **Opened**, not Saved. The userscript build is unaffected.
@@ -349,7 +349,10 @@ helper. The optional loopback process starts with `npm run yt-dlp:helper` and an
 `AVIARY_YTDLP_TOKEN`; it accepts only an observed `video.twimg.com` manifest, a collision-safe
 filename, and `bv*+ba/b` with `mp4/mkv` merging. It rejects unauthenticated requests, never creates
 jobs from status reads, and keeps job state distinct for missing, refused, running, completed, and
-failed work. The browser does not send X cookies, bearer tokens, or status URLs to it.
+failed work. The browser does not send X cookies, bearer tokens, or status URLs to it. Extension
+builds call the helper from the background worker, so Chrome's local network prompt never fires
+on x.com. The helper refuses a Host other than loopback, refuses browser origins other than X and
+extensions, and checks its secret in constant time.
 
 The Media section also offers **Export download history**, with optional start and end dates. The
 JSON and CSV files contain hashes, quality receipts, timestamps, and match counters, never the

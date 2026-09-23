@@ -20,6 +20,8 @@ import { createExtensionDurableStorageBackend } from "../extension/durable-stora
 import { localeDirection, supportedLocales } from "../platform/i18n-runtime.ts";
 
 export const MEDIA_ORIGINS = ["https://pbs.twimg.com/*", "https://video.twimg.com/*"];
+/** Loopback access for the optional yt-dlp helper, which exempts the background worker's call. */
+export const HELPER_ORIGINS = ["http://127.0.0.1/*", "http://localhost/*"];
 
 /**
  * Only the strings this page uses, injected at build time from the one catalog.
@@ -158,6 +160,15 @@ const CARDS: CardWiring[] = [
     grantedLabel: "granted",
     missingLabel: "not granted",
     grantedMessage: "Granted. Aviary can read full-size media directly for exports now."
+  },
+  {
+    request: { origins: HELPER_ORIGINS },
+    stateId: "helper-state",
+    grantId: "helper-grant",
+    revokeId: "helper-revoke",
+    grantedLabel: "granted",
+    missingLabel: "not granted",
+    grantedMessage: "Granted. Aviary reaches the local helper without a browser prompt."
   }
 ];
 

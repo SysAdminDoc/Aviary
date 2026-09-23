@@ -204,10 +204,11 @@ test("the options page is localized without importing the whole catalog", async 
     // The byte ceiling is a proxy; the catalog check below is the exact one. The proxy moves for
     // measured feature growth, and only with the measurement written down: 114.7KB before F314,
     // 117.5KB after, from the storage measurement bridge and the capture-size settings the options
-    // page pulls in with the rest of the storage module. The panel catalog is 240KB, so a ceiling
-    // this side of 128KB still cannot hide one.
+    // page pulls in with the rest of the storage module. 121.8KB before F353, 128.8KB after, from
+    // the yt-dlp helper card's copy in nine languages. The panel catalog is 240KB, so a ceiling
+    // this side of 136KB still cannot hide one.
     assert.ok(
-      bytes < 128_000,
+      bytes < 136_000,
       `the options bundle is ${Math.round(bytes / 1024)}KB — too large for a page that ships a few KB`
     );
     // The subset is defined in, so the strings are there while the panel's own catalog is not.

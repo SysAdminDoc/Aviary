@@ -426,10 +426,19 @@ test("smoke spec scaffold ships with explicit setup instructions", async () => {
   assert.match(incognito, /Extensions\.loadUnpacked/);
   assert.match(incognito, /enableInIncognito/);
   assert.match(incognito, /indexedDB\.databases/);
+  const helperLane = await readFile(
+    path.join(root, "tests/smoke/ytdlp-helper-chromium.smoke.mjs"),
+    "utf8"
+  );
+  // The lane is only evidence while its positive control stands: the page itself must be refused.
+  assert.match(helperLane, /AVIARY_YTDLP_PROXY/);
+  assert.match(helperLane, /assert\.match\(direct, \/\^refused\//);
+  assert.match(helperLane, /runLane\(\{ granted: false \}\)/);
+  assert.match(helperLane, /runLane\(\{ granted: true \}\)/);
   const pkg = JSON.parse(await readFile(path.join(root, "package.json"), "utf8"));
   assert.equal(
     pkg.scripts.smoke,
-    "node tests/smoke/dnr-chromium.smoke.mjs && node tests/smoke/dnr-firefox.smoke.mjs && node tests/smoke/aviary.smoke.mjs && node tests/smoke/incognito-chromium.smoke.mjs && node tests/smoke/externally-gated.smoke.mjs && node tests/smoke/extension-lifecycle.smoke.mjs && node tests/smoke/userscript-manager-lifecycle.smoke.mjs"
+    "node tests/smoke/dnr-chromium.smoke.mjs && node tests/smoke/dnr-firefox.smoke.mjs && node tests/smoke/aviary.smoke.mjs && node tests/smoke/incognito-chromium.smoke.mjs && node tests/smoke/externally-gated.smoke.mjs && node tests/smoke/extension-lifecycle.smoke.mjs && node tests/smoke/ytdlp-helper-chromium.smoke.mjs && node tests/smoke/userscript-manager-lifecycle.smoke.mjs"
   );
 });
 
