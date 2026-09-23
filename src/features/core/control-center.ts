@@ -126,6 +126,7 @@ import {
   bookmarkStatus,
   clearBookmarks,
   exportBookmarkArtifacts,
+  exportBookmarkManagerArtifacts,
   getBookmarks,
   removeBookmark,
   searchBookmarks,
@@ -394,6 +395,23 @@ export const controlCenterFeature: FeatureModule = {
         const records = getBookmarks().length;
         void ctx.auditLog.record("export.complete", {
           format: "bookmarks",
+          records,
+          files: artifacts.length
+        });
+        return {
+          records,
+          files: artifacts.length,
+          filenames: artifacts.map((artifact) => artifact.filename)
+        };
+      },
+      async exportBookmarksForManagers() {
+        const artifacts = exportBookmarkManagerArtifacts();
+        for (const artifact of artifacts) {
+          downloadBlob(artifact.data, artifact.filename, artifact.contentType);
+        }
+        const records = getBookmarks().length;
+        void ctx.auditLog.record("export.complete", {
+          format: "bookmark-managers",
           records,
           files: artifacts.length
         });

@@ -2,6 +2,7 @@ import type { FeatureContext, FeatureModule } from "../registry.ts";
 import { ft } from "../core/feature-i18n.ts";
 import {
   buildBookmarkExportArtifacts,
+  buildBookmarkManagerArtifacts,
   BookmarkStore,
   type BookmarkInput,
   type BookmarkRecord,
@@ -114,6 +115,10 @@ export async function mirrorBookmarks(inputs: readonly CapturedBookmarkInput[]):
 
 export function exportBookmarkArtifacts(): ReturnType<typeof buildBookmarkExportArtifacts> {
   return buildBookmarkExportArtifacts(getBookmarks());
+}
+
+export function exportBookmarkManagerArtifacts(): ReturnType<typeof buildBookmarkManagerArtifacts> {
+  return buildBookmarkManagerArtifacts(getBookmarks());
 }
 
 export async function updateBookmark(id: string, input: BookmarkInput): Promise<BookmarkRecord | null> {

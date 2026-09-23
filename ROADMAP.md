@@ -19,13 +19,6 @@ scheme from F336.
 
 ### P2
 
-- [ ] P2, F368: Export bookmarks as Netscape bookmark HTML and Raindrop CSV
-  Why: Karakeep, Linkwarden, linkding, Shaarli and every browser import Netscape bookmark HTML, and Raindrop imports a fixed CSV. None of them import X directly. Aviary's bookmark exports don't produce either format, so leaving X for a self-hosted tool takes a conversion script. Omnivore's shutdown showed users value a one-click full export more than an open-source label.
-  Evidence: docs.karakeep.app import page, docs.linkwarden.app, help.raindrop.io/import (`url,folder,title,note,tags,created`), github.com/omnivore-app/omnivore. No `NETSCAPE-Bookmark` string anywhere in `src/`.
-  Touches: `src/features/export/` (two formatters that reuse `text-safety.ts`), the Import & export section, `docs/FEATURES.md`, export tests.
-  Acceptance: The Netscape file carries each bookmark's permalink, title from post text, `ADD_DATE` and tags, and imports cleanly into a browser in a smoke test. The Raindrop CSV uses the documented columns with notes and tags mapped. Both go through `safeExternalHref` and the shared escaping rules, and a hostile-text fixture proves it.
-  Complexity: S
-
 - [ ] P2, F352: Make the Anthropic provider work from x.com, or say where it can't
   Why: Anthropic rejects browser-origin requests unless they carry `anthropic-dangerous-direct-browser-access: true`. The userscript's page-context fetch also meets x.com's `connect-src`.
   Evidence: `src/features/integrations/ai-provider.ts:103-117`, simonwillison.net 2024-08-23, ThunderClaude issue #1, x.com CSP headers (Wayback 2026-08-22).

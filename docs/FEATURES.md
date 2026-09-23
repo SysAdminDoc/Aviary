@@ -466,7 +466,10 @@ The Control Center "Library" section exposes:
   and edit tags, folders, reminders, or notes. When **Preserve raw payloads** is enabled, bookmark
   timeline responses already sent to the page are mirrored into the same library, including a
   capture timestamp. The mirror only contains posts X has sent while you scrolled past them.
-  **Export local bookmarks** downloads JSON and CSV in bulk. Removing a bookmark affects only
+  **Export local bookmarks** downloads JSON and CSV in bulk. **Export for bookmark managers**
+  downloads a Netscape bookmark file (browsers, Karakeep, Linkwarden, linkding, Shaarli) with each
+  bookmark's permalink, date, tags, folder and notes, plus the `url,folder,title,note,tags,created`
+  CSV Raindrop.io imports. A bookmark with no link at all is left out of both. Removing a bookmark affects only
   Aviary's local library and leaves X's own bookmark action untouched.
 - **Composer snippets**, reusable replies / templates edited in Library and inserted into the focused
   composer from the Snippets toolbar button.

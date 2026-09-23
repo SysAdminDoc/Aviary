@@ -1075,6 +1075,27 @@ export function buildLibraryRows(ctx: PanelContext): HTMLElement[] {
       );
     }
 
+    if (ctx.options.exportBookmarksForManagers) {
+      rows.push(
+        ctx.actionRow(
+          "Export for bookmark managers",
+          "Download a browser bookmark file that Karakeep, Linkwarden, linkding and every browser import, plus the CSV Raindrop.io imports.",
+          async () => {
+            try {
+              const result = await ctx.options.exportBookmarksForManagers!();
+              ctx.setStatusCopy("Bookmarks exported: {records} records in {files} files.", {
+                records: result.records,
+                files: result.files
+              });
+            } catch (error) {
+              ctx.options.onError("Bookmark manager export failed", error);
+              ctx.setStatus("Could not export bookmarks.");
+            }
+          }
+        )
+      );
+    }
+
     if (ctx.options.clearBookmarks) {
       rows.push(
         ctx.actionRow("Clear local bookmarks", "Remove every saved local bookmark.", async () => {

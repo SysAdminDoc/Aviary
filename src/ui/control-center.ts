@@ -279,6 +279,7 @@ export interface ControlCenterOptions {
   clearUserNotes?: () => Promise<void>;
   getBookmarkStatus?: () => BookmarkStatus;
   exportBookmarks?: () => Promise<{ records: number; files: number; filenames: string[] }>;
+  exportBookmarksForManagers?: () => Promise<{ records: number; files: number; filenames: string[] }>;
   getUnderTheHoodStatus?: () => UnderTheHoodStatus;
   importUnderTheHood?: (payload: string) => Promise<UnderTheHoodParseResult>;
   exportUnderTheHood?: () => Promise<{ filename: string; reports: number; bytes: number }>;

@@ -8,6 +8,9 @@
   element counts, nesting and layout, in the shape Aviary's test fixtures are generated from. It
   holds no text, names, handles, links or ids. It replaces saving a signed-in page to disk when the
   fixture observation needs refreshing.
+- **Export for bookmark managers** in Import & export writes your local bookmarks as a browser
+  bookmark file that Karakeep, Linkwarden, linkding, Shaarli and every browser can import, plus
+  the CSV Raindrop.io expects. Tags, folders, notes and dates carry over.
 
 ### Changed
 

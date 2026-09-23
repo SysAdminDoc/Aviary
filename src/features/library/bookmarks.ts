@@ -1,5 +1,6 @@
 import type { StorageGateway } from "../../platform/storage.ts";
 import { mutateStored, replaceStored } from "../../platform/storage-lock.ts";
+import { escapeXmlText, safeExternalHref } from "../export/text-safety.ts";
 
 export const BOOKMARKS_KEY = "aviary.library.bookmarks.v1";
 export const BOOKMARKS_LIMIT = 5000;
@@ -497,6 +498,87 @@ export function buildBookmarkExportArtifacts(entries: readonly BookmarkRecord[])
       data: encoder.encode(`${lines.join("\n")}\n`)
     }
   ];
+}
+
+/**
+ * The two formats other bookmark tools actually import: a Netscape bookmark file (browsers,
+ * Karakeep, Linkwarden, linkding, Shaarli) and the CSV Raindrop.io documents as
+ * `url,folder,title,note,tags,created`. None of those tools reads an X export directly, so leaving
+ * X for one of them used to need a conversion script.
+ */
+export function buildBookmarkManagerArtifacts(
+  entries: readonly BookmarkRecord[],
+  exportedAt = new Date().toISOString()
+): BookmarkExportArtifact[] {
+  const usable = entries
+    .map((entry) => ({ entry, href: bookmarkHref(entry) }))
+    .filter((item) => item.href.length > 0);
+  const html = [
+    "<!DOCTYPE NETSCAPE-Bookmark-file-1>",
+    "<!-- Exported by Aviary: the bookmarks stored locally in this browser profile. -->",
+    '<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=UTF-8">',
+    "<TITLE>Bookmarks</TITLE>",
+    "<H1>Bookmarks</H1>",
+    "<DL><p>"
+  ];
+  const folders = new Map<string, typeof usable>();
+  for (const item of usable) {
+    const folder = item.entry.folder ?? "";
+    folders.set(folder, [...(folders.get(folder) ?? []), item]);
+  }
+  for (const [folder, items] of [...folders].sort(([left], [right]) => left.localeCompare(right))) {
+    const indent = folder ? "        " : "    ";
+    if (folder) html.push(`    <DT><H3>${escapeXmlText(folder)}</H3>`, "    <DL><p>");
+    for (const { entry, href } of items) {
+      const added = Math.floor((Date.parse(entry.capturedAt) || Date.parse(entry.updatedAt) || 0) / 1_000);
+      const tags = entry.tags.map((tag) => tag.replaceAll(",", " ").trim()).filter(Boolean);
+      html.push(
+        `${indent}<DT><A HREF="${escapeXmlText(href)}" ADD_DATE="${added}"` +
+          `${tags.length > 0 ? ` TAGS="${escapeXmlText(tags.join(","))}"` : ""}>${escapeXmlText(bookmarkTitle(entry))}</A>`
+      );
+      if (entry.notes.trim()) html.push(`${indent}<DD>${escapeXmlText(entry.notes.trim())}`);
+    }
+    if (folder) html.push("    </DL><p>");
+  }
+  html.push("</DL><p>");
+
+  const raindrop = ["url,folder,title,note,tags,created"];
+  for (const { entry, href } of usable) {
+    raindrop.push([
+      href,
+      entry.folder ?? "",
+      bookmarkTitle(entry),
+      entry.notes,
+      entry.tags.join(","),
+      new Date(Date.parse(entry.capturedAt) || Date.parse(entry.updatedAt) || 0).toISOString()
+    ].map(csvCell).join(","));
+  }
+
+  const encoder = new TextEncoder();
+  return [
+    {
+      filename: `aviary-bookmarks-${fileStamp(exportedAt)}.html`,
+      contentType: "text/html;charset=utf-8",
+      data: encoder.encode(`${html.join("\n")}\n`)
+    },
+    {
+      filename: `aviary-bookmarks-${fileStamp(exportedAt)}-raindrop.csv`,
+      contentType: "text/csv;charset=utf-8",
+      data: encoder.encode(`${raindrop.join("\n")}\n`)
+    }
+  ];
+}
+
+/** The stored URL, else the post's permalink; never a scheme a browser would run. */
+function bookmarkHref(entry: BookmarkRecord): string {
+  const permalink = entry.tweetId ? `https://x.com/${entry.handle ?? "i"}/status/${entry.tweetId}` : "";
+  return safeExternalHref(entry.url ?? permalink) || safeExternalHref(permalink);
+}
+
+function bookmarkTitle(entry: BookmarkRecord): string {
+  const text = entry.text.replace(/\s+/g, " ").trim();
+  if (text) return text.length > 200 ? `${text.slice(0, 199)}…` : text;
+  return entry.handle ? `@${entry.handle} on X` : "Post on X";
 }
 
 function csvCell(value: string): string {
