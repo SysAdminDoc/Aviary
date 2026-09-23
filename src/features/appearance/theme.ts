@@ -4,6 +4,7 @@ import { conversationPosts, focalPostIndex } from "../../platform/conversation.t
 
 const STYLE_ID = "av-theme-foundation";
 const ACTIVE_NAV_ATTRIBUTE = "data-av-active-route";
+const NAV_ITEM_ATTRIBUTE = "data-av-nav-item";
 const CONVERSATION_ROLE_ATTRIBUTE = "data-av-conversation-role";
 const CONVERSATION_LINE_ATTRIBUTE = "data-av-conversation-line";
 const WIDE_STREAM_ATTRIBUTE = "data-av-wide-stream";
@@ -145,30 +146,113 @@ function shouldReduceMotion(settings: AviarySettings): boolean {
 
 function syncActiveNavigation(enabled: boolean): void {
   const currentPath = normalizePath(globalThis.location?.pathname ?? "/");
-  for (const candidate of Array.from(document.querySelectorAll<HTMLElement>('[data-testid^="AppTabBar_"]'))) {
-    const anchor = candidate instanceof HTMLAnchorElement ? candidate : candidate.closest("a");
-    let active = false;
-    if (enabled && anchor) {
-      try {
-        const target = new URL(anchor.href, globalThis.location?.href);
-        const targetPath = normalizePath(target.pathname);
-        active = target.origin === globalThis.location?.origin &&
-          (currentPath === targetPath || (targetPath !== "/" && currentPath.startsWith(`${targetPath}/`)));
-      } catch {
-        active = false;
-      }
-    }
-
-    if (active && candidate.getAttribute(ACTIVE_NAV_ATTRIBUTE) !== "1") {
-      candidate.setAttribute(ACTIVE_NAV_ATTRIBUTE, "1");
-    } else if (!active && candidate.hasAttribute(ACTIVE_NAV_ATTRIBUTE)) {
+  const marked = Array.from(
+    document.querySelectorAll<HTMLElement>(`[${NAV_ITEM_ATTRIBUTE}], [${ACTIVE_NAV_ATTRIBUTE}]`)
+  );
+  if (!enabled) {
+    for (const candidate of marked) {
+      candidate.removeAttribute(NAV_ITEM_ATTRIBUTE);
       candidate.removeAttribute(ACTIVE_NAV_ATTRIBUTE);
     }
+    return;
   }
+
+  const nav = document.querySelector<HTMLElement>(
+    'nav:has([data-testid="AppTabBar_Home_Link"])'
+  );
+  const candidates = nav
+    ? Array.from(nav.querySelectorAll<HTMLAnchorElement>("a[href]"))
+    : Array.from(document.querySelectorAll<HTMLAnchorElement>('a[data-testid^="AppTabBar_"]'));
+  const desired = new Set<HTMLElement>();
+
+  for (const anchor of candidates) {
+    let active = false;
+    try {
+      const target = new URL(anchor.href, globalThis.location?.href);
+      if (target.origin !== globalThis.location?.origin) continue;
+      const targetPath = normalizePath(target.pathname);
+      if (targetPath === "/compose/post") continue;
+      active = navRouteMatches(currentPath, targetPath);
+    } catch {
+      continue;
+    }
+
+    desired.add(anchor);
+    if (anchor.getAttribute(NAV_ITEM_ATTRIBUTE) !== "1") {
+      anchor.setAttribute(NAV_ITEM_ATTRIBUTE, "1");
+    }
+    if (active) {
+      if (anchor.getAttribute(ACTIVE_NAV_ATTRIBUTE) !== "1") {
+        anchor.setAttribute(ACTIVE_NAV_ATTRIBUTE, "1");
+      }
+    } else if (anchor.hasAttribute(ACTIVE_NAV_ATTRIBUTE)) {
+      anchor.removeAttribute(ACTIVE_NAV_ATTRIBUTE);
+    }
+  }
+
+  for (const candidate of marked) {
+    if (desired.has(candidate)) continue;
+    candidate.removeAttribute(NAV_ITEM_ATTRIBUTE);
+    candidate.removeAttribute(ACTIVE_NAV_ATTRIBUTE);
+  }
+}
+
+function navRouteMatches(currentPath: string, targetPath: string): boolean {
+  if (
+    currentPath === targetPath ||
+    (targetPath !== "/" && currentPath.startsWith(`${targetPath}/`))
+  ) {
+    return true;
+  }
+  // X treats search as part of Explore even though the two routes do not share a prefix.
+  return targetPath === "/explore" && currentPath === "/search";
 }
 
 function normalizePath(pathname: string): string {
   return pathname.replace(/\/+$/, "") || "/";
+}
+
+function reconcileAttribute(
+  attribute: string,
+  desired: ReadonlySet<HTMLElement>,
+  value = "1"
+): void {
+  for (const node of Array.from(document.querySelectorAll<HTMLElement>(`[${attribute}]`))) {
+    if (!desired.has(node)) node.removeAttribute(attribute);
+  }
+  for (const node of desired) {
+    if (node.getAttribute(attribute) !== value) node.setAttribute(attribute, value);
+  }
+}
+
+function setStyleProperty(element: HTMLElement, property: string, value: string): void {
+  if (element.style.getPropertyValue(property) !== value) {
+    element.style.setProperty(property, value);
+  }
+}
+
+function clearStyleProperty(element: HTMLElement, property: string): void {
+  if (element.style.getPropertyValue(property)) element.style.removeProperty(property);
+}
+
+/*
+ * Repeated observer passes must not remove and immediately restore layout markers. Doing that made
+ * a busy timeline recalculate its wide lane and every media box during scrolling, even when X had
+ * not changed any of those nodes.
+ */
+function clearMediaFrame(frame: HTMLElement): void {
+  frame.removeAttribute(MEDIA_FRAME_ATTRIBUTE);
+  clearStyleProperty(frame, MEDIA_ASPECT_PROPERTY);
+  clearStyleProperty(frame, MEDIA_HOST_MAX_PROPERTY);
+  clearStyleProperty(frame, MEDIA_VIEWPORT_MAX_PROPERTY);
+}
+
+function normalizeMediaAspect(aspect: number): number {
+  return Number(aspect.toFixed(4));
+}
+
+function setMarkerValue(element: HTMLElement, attribute: string, value: string): void {
+  if (element.getAttribute(attribute) !== value) element.setAttribute(attribute, value);
 }
 
 function currentSurface(): "conversation" | "timeline" {
@@ -184,26 +268,55 @@ function currentSurface(): "conversation" | "timeline" {
  * same structure without a second observer.
  */
 function syncConversationStructure(enabled: boolean): void {
-  for (const node of Array.from(document.querySelectorAll<HTMLElement>(`[${CONVERSATION_ROLE_ATTRIBUTE}]`))) {
-    node.removeAttribute(CONVERSATION_ROLE_ATTRIBUTE);
+  if (!enabled) {
+    for (const node of Array.from(
+      document.querySelectorAll<HTMLElement>(`[${CONVERSATION_ROLE_ATTRIBUTE}]`)
+    )) {
+      node.removeAttribute(CONVERSATION_ROLE_ATTRIBUTE);
+    }
+    for (const node of Array.from(
+      document.querySelectorAll<HTMLElement>(`[${CONVERSATION_LINE_ATTRIBUTE}]`)
+    )) {
+      node.removeAttribute(CONVERSATION_LINE_ATTRIBUTE);
+    }
+    return;
   }
-  // Teardown has to reach the connector stamps too, or turning the theme off leaves X's own
-  // element hidden by a rule whose selector is still on the page.
-  for (const node of Array.from(document.querySelectorAll<HTMLElement>(`[${CONVERSATION_LINE_ATTRIBUTE}]`))) {
-    node.removeAttribute(CONVERSATION_LINE_ATTRIBUTE);
-  }
-  if (!enabled) return;
 
   const primary = document.querySelector<HTMLElement>('[data-testid="primaryColumn"]');
   if (!primary) return;
 
   const posts = conversationPosts();
   const focalIndex = focalPostIndex(posts);
+  const roles = new Map<HTMLElement, "focal" | "reply">();
   posts.forEach(({ cell, article }, index) => {
     const role = index === focalIndex ? "focal" : "reply";
-    cell.setAttribute(CONVERSATION_ROLE_ATTRIBUTE, role);
-    article.setAttribute(CONVERSATION_ROLE_ATTRIBUTE, role);
-    if (role === "reply") stampConversationLines(article);
+    roles.set(cell, role);
+    roles.set(article, role);
+  });
+
+  for (const node of Array.from(
+    document.querySelectorAll<HTMLElement>(`[${CONVERSATION_ROLE_ATTRIBUTE}]`)
+  )) {
+    const role = roles.get(node);
+    if (!role) node.removeAttribute(CONVERSATION_ROLE_ATTRIBUTE);
+    else setMarkerValue(node, CONVERSATION_ROLE_ATTRIBUTE, role);
+  }
+  for (const [node, role] of roles) {
+    setMarkerValue(node, CONVERSATION_ROLE_ATTRIBUTE, role);
+  }
+
+  posts.forEach(({ article }, index) => {
+    if (index === focalIndex) {
+      for (const line of Array.from(
+        article.querySelectorAll<HTMLElement>(`[${CONVERSATION_LINE_ATTRIBUTE}]`)
+      )) {
+        line.removeAttribute(CONVERSATION_LINE_ATTRIBUTE);
+      }
+      return;
+    }
+    // A connector that remains in the same reply needs no geometry pass. If X virtualizes it away,
+    // the replacement article has no marker and is measured once when it arrives.
+    if (!article.querySelector(`[${CONVERSATION_LINE_ATTRIBUTE}]`)) stampConversationLines(article);
   });
 }
 
@@ -216,30 +329,33 @@ function syncConversationStructure(enabled: boolean): void {
  * parent instead of depending on X's generated width class.
  */
 function syncWideStructure(enabled: boolean): void {
-  for (const node of Array.from(
-    document.querySelectorAll<HTMLElement>(`[${WIDE_STREAM_ATTRIBUTE}], [${PROFILE_HEADER_ATTRIBUTE}]`)
-  )) {
-    node.removeAttribute(WIDE_STREAM_ATTRIBUTE);
-    node.removeAttribute(PROFILE_HEADER_ATTRIBUTE);
-  }
-  if (!enabled) return;
+  const streams = new Set<HTMLElement>();
+  const profileHeaders = new Set<HTMLElement>();
 
-  for (const primary of Array.from(
-    document.querySelectorAll<HTMLElement>('[data-testid="primaryColumn"]')
-  )) {
-    for (const region of Array.from(primary.querySelectorAll<HTMLElement>('section[role="region"]'))) {
-      if (!region.querySelector('[data-testid="cellInnerDiv"]')) continue;
-      const lane = region.parentElement;
-      if (lane && lane !== primary && lane.closest('[data-testid="primaryColumn"]') === primary) {
-        lane.setAttribute(WIDE_STREAM_ATTRIBUTE, "1");
-        for (const child of Array.from(lane.children)) {
-          if (child.querySelector('[data-testid="UserProfileHeader_Items"]')) {
-            child.setAttribute(PROFILE_HEADER_ATTRIBUTE, "1");
+  if (enabled) {
+    for (const primary of Array.from(
+      document.querySelectorAll<HTMLElement>('[data-testid="primaryColumn"]')
+    )) {
+      for (const region of Array.from(primary.querySelectorAll<HTMLElement>('section[role="region"]'))) {
+        if (!region.querySelector('[data-testid="cellInnerDiv"]')) continue;
+        const lane = region.parentElement;
+        if (lane && lane !== primary && lane.closest('[data-testid="primaryColumn"]') === primary) {
+          streams.add(lane);
+          for (const child of Array.from(lane.children)) {
+            if (
+              child instanceof HTMLElement &&
+              child.querySelector('[data-testid="UserProfileHeader_Items"]')
+            ) {
+              profileHeaders.add(child);
+            }
           }
         }
       }
     }
   }
+
+  reconcileAttribute(WIDE_STREAM_ATTRIBUTE, streams);
+  reconcileAttribute(PROFILE_HEADER_ATTRIBUTE, profileHeaders);
 }
 
 /**
@@ -255,8 +371,13 @@ function syncWideStructure(enabled: boolean): void {
  * overflow. Replies keep a host max-width when X supplied one, then receive Aviary's ceiling.
  */
 function syncMediaStructure(enabled: boolean): void {
-  clearMediaStructure();
-  if (!enabled) return;
+  if (!enabled) {
+    clearMediaStructure();
+    return;
+  }
+
+  const frames = new Map<HTMLElement, { media: HTMLElement[]; kind: "primary" | "reply" }>();
+  const embeddedContexts = new Set<HTMLElement>();
 
   for (const article of Array.from(
     document.querySelectorAll<HTMLElement>('article[data-testid="tweet"]')
@@ -276,9 +397,7 @@ function syncMediaStructure(enabled: boolean): void {
       else own.push(media);
     }
 
-    for (const boundary of embedded) {
-      boundary.setAttribute(MEDIA_CONTEXT_ATTRIBUTE, "embedded");
-    }
+    for (const boundary of embedded) embeddedContexts.add(boundary);
     if (own.length === 0) continue;
 
     const kind = article.dataset.avConversationRole === "reply" ? "reply" : "primary";
@@ -286,13 +405,29 @@ function syncMediaStructure(enabled: boolean): void {
     if (!first) continue;
     const shared = own.length > 1 ? commonAncestor(own, article) : null;
     if (shared) {
-      stampMediaFrame(shared, own, kind);
+      frames.set(shared, { media: own, kind });
     } else {
       for (const media of own) {
-        stampMediaFrame(findMediaFrame(media, article), [media], kind);
+        frames.set(findMediaFrame(media, article), { media: [media], kind });
       }
     }
   }
+
+  for (const node of Array.from(
+    document.querySelectorAll<HTMLElement>(`[${MEDIA_CONTEXT_ATTRIBUTE}]`)
+  )) {
+    if (!embeddedContexts.has(node)) node.removeAttribute(MEDIA_CONTEXT_ATTRIBUTE);
+  }
+  for (const boundary of embeddedContexts) {
+    setMarkerValue(boundary, MEDIA_CONTEXT_ATTRIBUTE, "embedded");
+  }
+
+  for (const frame of Array.from(
+    document.querySelectorAll<HTMLElement>(`[${MEDIA_FRAME_ATTRIBUTE}]`)
+  )) {
+    if (!frames.has(frame)) clearMediaFrame(frame);
+  }
+  for (const [frame, entry] of frames) stampMediaFrame(frame, entry.media, entry.kind);
 }
 
 function stampMediaFrame(
@@ -300,19 +435,35 @@ function stampMediaFrame(
   media: HTMLElement[],
   kind: "primary" | "reply"
 ): void {
+  const storedAspect = Number.parseFloat(frame.style.getPropertyValue(MEDIA_ASPECT_PROPERTY));
+  const intrinsic = intrinsicMediaAspect(media);
+  const intrinsicAspect = intrinsic
+    ? normalizeMediaAspect(Math.max(0.35, Math.min(3, intrinsic)))
+    : 0;
+  if (
+    frame.getAttribute(MEDIA_FRAME_ATTRIBUTE) === kind &&
+    Number.isFinite(storedAspect) &&
+    storedAspect > 0 &&
+    (intrinsicAspect === 0 || Math.abs(storedAspect - intrinsicAspect) < 0.0001)
+  ) {
+    return;
+  }
+
   const hostMax = kind === "reply" ? finiteComputedMax(frame) : null;
-  const aspect = mediaAspect(media, frame);
-  frame.setAttribute(MEDIA_FRAME_ATTRIBUTE, kind);
-  frame.style.setProperty(MEDIA_ASPECT_PROPERTY, String(aspect));
+  const aspect = intrinsicAspect || normalizeMediaAspect(mediaAspect(frame));
+  setMarkerValue(frame, MEDIA_FRAME_ATTRIBUTE, kind);
+  setStyleProperty(frame, MEDIA_ASPECT_PROPERTY, String(aspect));
   setMediaViewportMax(frame, aspect);
   if (hostMax) {
-    frame.style.setProperty(MEDIA_HOST_MAX_PROPERTY, hostMax);
+    setStyleProperty(frame, MEDIA_HOST_MAX_PROPERTY, hostMax);
+  } else {
+    clearStyleProperty(frame, MEDIA_HOST_MAX_PROPERTY);
   }
 }
 
 function setMediaViewportMax(frame: HTMLElement, aspect: number): void {
   const max = Math.max(1, Math.round(window.innerHeight * (MEDIA_MAX_VIEWPORT_HEIGHT_PERCENT / 100) * aspect));
-  frame.style.setProperty(MEDIA_VIEWPORT_MAX_PROPERTY, `${max}px`);
+  setStyleProperty(frame, MEDIA_VIEWPORT_MAX_PROPERTY, `${max}px`);
 }
 
 function refreshMediaViewportMax(): void {
@@ -332,11 +483,8 @@ function clearMediaStructure(): void {
   for (const node of Array.from(
     document.querySelectorAll<HTMLElement>(`[${MEDIA_FRAME_ATTRIBUTE}], [${MEDIA_CONTEXT_ATTRIBUTE}]`)
   )) {
-    node.removeAttribute(MEDIA_FRAME_ATTRIBUTE);
     node.removeAttribute(MEDIA_CONTEXT_ATTRIBUTE);
-    node.style.removeProperty(MEDIA_ASPECT_PROPERTY);
-    node.style.removeProperty(MEDIA_HOST_MAX_PROPERTY);
-    node.style.removeProperty(MEDIA_VIEWPORT_MAX_PROPERTY);
+    clearMediaFrame(node);
   }
 }
 
@@ -384,22 +532,23 @@ function findMediaFrame(media: HTMLElement, article: HTMLElement): HTMLElement {
   return media;
 }
 
-function mediaAspect(media: HTMLElement[], frame: HTMLElement): number {
-  let ratio = 0;
+function intrinsicMediaAspect(media: HTMLElement[]): number {
   const first = media[0];
   if (media.length === 1 && first) {
     const video = first.querySelector<HTMLVideoElement>("video");
     const image = first.querySelector<HTMLImageElement>("img");
     if (video && video.videoWidth > 0 && video.videoHeight > 0) {
-      ratio = video.videoWidth / video.videoHeight;
+      return video.videoWidth / video.videoHeight;
     } else if (image && image.naturalWidth > 0 && image.naturalHeight > 0) {
-      ratio = image.naturalWidth / image.naturalHeight;
+      return image.naturalWidth / image.naturalHeight;
     }
   }
-  if (!ratio) {
-    const box = frame.getBoundingClientRect();
-    ratio = box.width > 0 && box.height > 0 ? box.width / box.height : 16 / 9;
-  }
+  return 0;
+}
+
+function mediaAspect(frame: HTMLElement): number {
+  const box = frame.getBoundingClientRect();
+  const ratio = box.width > 0 && box.height > 0 ? box.width / box.height : 16 / 9;
   return Math.max(0.35, Math.min(3, ratio));
 }
 
@@ -562,18 +711,18 @@ const themeVars: Record<Exclude<ThemeId, "off">, string> = {
     --av-accent-secondary: rgb(68, 171, 255);
   `,
   noir: `
-    --av-bg: rgb(4, 7, 11);
-    --av-surface: rgb(9, 14, 21);
-    --av-surface-raised: rgb(14, 22, 32);
-    --av-border: rgb(39, 53, 68);
-    --av-text: rgb(245, 248, 250);
-    --av-muted: rgb(155, 169, 184);
-    --av-accent: rgb(92, 211, 255);
-    --av-accent-secondary: rgb(151, 128, 255);
+    --av-bg: rgb(5, 8, 12);
+    --av-surface: rgb(11, 16, 22);
+    --av-surface-raised: rgb(18, 25, 33);
+    --av-border: rgb(46, 58, 69);
+    --av-text: rgb(238, 242, 245);
+    --av-muted: rgb(151, 164, 175);
+    --av-accent: rgb(110, 194, 226);
+    --av-accent-secondary: rgb(164, 148, 224);
     --av-danger: rgb(255, 130, 140);
     --av-warn: rgb(248, 190, 100);
     --av-ok: rgb(92, 219, 168);
-    --av-on-accent: rgb(3, 20, 24);
+    --av-on-accent: rgb(4, 16, 22);
     --av-on-danger: rgb(26, 8, 10);
     --av-media-success: rgb(128, 208, 152);
     --av-media-error: rgb(224, 120, 126);
@@ -653,11 +802,16 @@ html[data-av-theme] [aria-label="Timeline: Trending now"] {
    the hierarchy, while posts stay flat and media gets the available width. */
 html[data-av-theme] [data-testid="cellInnerDiv"] > div {
   border-bottom-color: color-mix(in srgb, var(--av-border) 64%, transparent);
-  transition: background-color 140ms ease;
 }
 
-html[data-av-theme] [data-testid="cellInnerDiv"] > div:hover {
-  background-color: color-mix(in srgb, var(--av-surface-raised) 28%, transparent);
+@media (hover: hover) and (pointer: fine) {
+  html[data-av-theme]:not(.av-reduce-motion) [data-testid="cellInnerDiv"] > div {
+    transition: background-color 110ms ease-out;
+  }
+
+  html[data-av-theme] [data-testid="cellInnerDiv"] > div:hover {
+    background-color: color-mix(in srgb, var(--av-surface-raised) 24%, transparent);
+  }
 }
 
 html[data-av-theme] article[data-testid="tweet"] {
@@ -801,6 +955,7 @@ html[data-av-theme][data-av-surface="conversation"] [data-testid^="tweetTextarea
    route and scroll depth without exposing a second base colour. */
 html.av-theme-noir {
   background-color: var(--av-bg);
+  scrollbar-color: color-mix(in srgb, var(--av-muted) 46%, transparent) var(--av-bg);
 }
 
 html.av-theme-noir body {
@@ -813,41 +968,56 @@ html.av-theme-noir [data-testid="app-shell"] {
   color: var(--av-text);
 }
 
-html.av-theme-noir header[role="banner"] > div > div:has(nav[aria-label="Primary"]) {
-  border-right: 1px solid color-mix(in srgb, var(--av-border) 72%, transparent);
-  background: rgb(7, 12, 18);
+html.av-theme-noir header[role="banner"] > div > div:has([data-testid="AppTabBar_Home_Link"]) {
+  border-right: 1px solid color-mix(in srgb, var(--av-border) 66%, transparent);
+  background: rgb(8, 11, 16);
 }
 
 html.av-theme-noir nav:has([data-testid="AppTabBar_Home_Link"]) {
-  border-color: color-mix(in srgb, var(--av-border) 82%, transparent);
-  background: rgb(7, 12, 18);
+  border-color: color-mix(in srgb, var(--av-border) 72%, transparent);
+  background: rgb(8, 11, 16);
   box-shadow: none;
 }
 
-html.av-theme-noir [data-testid^="AppTabBar_"] {
-  border-radius: 10px;
-  color: color-mix(in srgb, var(--av-text) 88%, var(--av-muted));
-  transition: color 150ms ease, background-color 150ms ease, transform 150ms ease;
+html.av-theme-noir nav:has([data-testid="AppTabBar_Home_Link"]) [data-av-nav-item] {
+  box-sizing: border-box;
+  border-radius: 8px;
+  color: var(--av-text);
 }
 
-html.av-theme-noir [data-testid^="AppTabBar_"]:hover {
-  background-color: color-mix(in srgb, var(--av-accent) 9%, var(--av-surface));
-  color: var(--av-text);
-  transform: translateX(2px);
+@media (hover: hover) and (pointer: fine) {
+  html.av-theme-noir:not(.av-reduce-motion)
+    nav:has([data-testid="AppTabBar_Home_Link"]) [data-av-nav-item] {
+    transition: color 110ms ease-out, background-color 110ms ease-out;
+  }
+
+  html.av-theme-noir nav:has([data-testid="AppTabBar_Home_Link"]) [data-av-nav-item]:hover {
+    background-color: color-mix(in srgb, var(--av-accent) 6%, var(--av-surface));
+    color: var(--av-text);
+  }
 }
 
-html.av-theme-noir [data-testid^="AppTabBar_"][aria-current="page"],
-html.av-theme-noir [data-testid^="AppTabBar_"][data-av-active-route="1"] {
-  background: color-mix(in srgb, var(--av-accent) 13%, var(--av-surface));
-  box-shadow: inset 2px 0 0 var(--av-accent);
+html.av-theme-noir nav:has([data-testid="AppTabBar_Home_Link"])
+  [data-av-nav-item][aria-current="page"],
+html.av-theme-noir nav:has([data-testid="AppTabBar_Home_Link"])
+  [data-av-nav-item][data-av-active-route="1"] {
+  background: color-mix(in srgb, var(--av-accent) 9%, var(--av-surface-raised));
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--av-accent) 82%, white);
   color: var(--av-text);
+}
+
+html.av-theme-noir nav:has([data-testid="AppTabBar_Home_Link"])
+  [data-av-nav-item]:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--av-accent) 80%, white);
+  outline-offset: -2px;
 }
 
 html.av-theme-noir [data-testid="SideNav_NewTweet_Button"],
 html.av-theme-noir [data-testid="tweetButtonInline"] {
   border-color: transparent;
   border-radius: 8px;
-  background: var(--av-accent);
+  background-color: var(--av-accent) !important;
+  background-image: none !important;
   color: var(--av-on-accent);
   box-shadow: none;
   font-weight: 750;
@@ -855,7 +1025,7 @@ html.av-theme-noir [data-testid="tweetButtonInline"] {
 
 html.av-theme-noir [data-testid="SideNav_NewTweet_Button"]:hover,
 html.av-theme-noir [data-testid="tweetButtonInline"]:hover {
-  background: color-mix(in srgb, var(--av-accent) 86%, white);
+  background-color: color-mix(in srgb, var(--av-accent) 88%, white) !important;
   box-shadow: none;
 }
 
@@ -866,14 +1036,14 @@ html.av-theme-noir [data-testid="SideNav_AccountSwitcher_Button"] {
 }
 
 html.av-theme-noir [data-testid="primaryColumn"] {
-  border-color: color-mix(in srgb, var(--av-border) 86%, transparent);
-  background: rgba(6, 10, 16, 0.94);
-  box-shadow: 0 24px 72px rgba(0, 0, 0, 0.22);
+  border-color: color-mix(in srgb, var(--av-border) 74%, transparent);
+  background: rgb(8, 12, 17);
+  box-shadow: none;
 }
 
 html.av-theme-noir [data-testid="primaryColumn"] [role="tablist"] {
-  border-bottom: 1px solid color-mix(in srgb, var(--av-border) 74%, transparent);
-  background: rgba(7, 12, 18, 0.96);
+  border-bottom: 1px solid color-mix(in srgb, var(--av-border) 66%, transparent);
+  background: rgb(8, 12, 17);
 }
 
 html.av-theme-noir [data-testid="primaryColumn"] [role="tab"] {
@@ -882,22 +1052,21 @@ html.av-theme-noir [data-testid="primaryColumn"] [role="tab"] {
 
 html.av-theme-noir [data-testid="primaryColumn"] [role="tab"][aria-selected="true"] {
   color: var(--av-text);
-  text-shadow: 0 0 18px rgba(92, 211, 255, 0.22);
+  text-shadow: none;
+}
+
+html.av-theme-noir [data-testid="primaryColumn"] [role="tab"][aria-selected="true"]
+  > div > div > div:last-child:empty {
+  background-color: var(--av-accent) !important;
 }
 
 html.av-theme-noir [data-testid="cellInnerDiv"] > div {
-  border-bottom-color: color-mix(in srgb, var(--av-border) 64%, transparent);
+  border-bottom-color: color-mix(in srgb, var(--av-border) 48%, transparent);
 }
 
 html.av-theme-noir article[data-testid="tweet"] {
   border-radius: 0;
   background: transparent;
-  box-shadow: none;
-  transition: background-color 150ms ease, box-shadow 150ms ease;
-}
-
-html.av-theme-noir article[data-testid="tweet"]:hover {
-  background-color: color-mix(in srgb, var(--av-surface-raised) 36%, transparent);
   box-shadow: none;
 }
 
@@ -920,10 +1089,10 @@ html.av-theme-noir article[data-testid="tweet"] [role="group"] button:not([data-
 html.av-theme-noir [data-testid="tweetPhoto"],
 html.av-theme-noir [data-testid="videoPlayer"],
 html.av-theme-noir [data-testid="videoComponent"] {
-  border: 1px solid color-mix(in srgb, var(--av-border) 82%, transparent);
+  border: 1px solid color-mix(in srgb, var(--av-border) 68%, transparent);
   border-radius: 10px;
   background-color: var(--av-surface-raised);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.18);
 }
 
 html.av-theme-noir [data-testid="toolBar"] {
@@ -992,6 +1161,30 @@ html.av-theme-noir [data-testid="grokImgGen"] {
   border-color: color-mix(in srgb, var(--av-accent-secondary) 48%, var(--av-border));
   background: var(--av-surface);
   box-shadow: none;
+}
+
+/* Wide removes X's discovery rail, but its collapsed Grok and Chat drawers keep a 350px box and
+   cover the post actions. Keep the one-button state compact; an opened drawer gains content and
+   immediately falls back to X's full width. */
+html.av-theme-noir[data-av-width="wide"] [data-testid="GrokDrawer"]:has(> button:only-child),
+html.av-theme-noir[data-av-width="wide"] [data-testid="chat-drawer-root"]:has(> button:only-child) {
+  width: 56px !important;
+  min-width: 56px !important;
+  max-width: 56px !important;
+  inline-size: 56px !important;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--av-border) 72%, transparent);
+  border-radius: 10px;
+  background: var(--av-surface-raised);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+  transition: none !important;
+}
+
+html.av-theme-noir[data-av-width="wide"] [data-testid="GrokDrawer"]:has(> button:only-child) > button,
+html.av-theme-noir[data-av-width="wide"] [data-testid="chat-drawer-root"]:has(> button:only-child) > button {
+  width: 54px !important;
+  min-width: 54px !important;
+  max-width: 54px !important;
 }
 
 /* The primary column takes its width from its own box, not from a max-width. Current X also keeps
@@ -1166,6 +1359,8 @@ html.av-reduce-motion *::after {
     text-shadow: none;
   }
 
+  html[data-av-theme] [data-av-nav-item][aria-current="page"],
+  html[data-av-theme] [data-av-nav-item][data-av-active-route="1"],
   html[data-av-theme] [data-testid^="AppTabBar_"][aria-current="page"],
   html[data-av-theme] [data-testid^="AppTabBar_"][data-av-active-route="1"] {
     outline: 2px solid Highlight;

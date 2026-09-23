@@ -2826,7 +2826,7 @@ const CONTROL_CENTER_CSS = `
   font-family: inherit;
   letter-spacing: 0;
   pointer-events: auto;
-  transition: transform 140ms ease, border-color 140ms ease;
+  transition: border-color 110ms ease-out;
 }
 
 .av-launcher[hidden] {
@@ -2834,7 +2834,6 @@ const CONTROL_CENTER_CSS = `
 }
 
 .av-launcher:hover {
-  transform: translateY(-1px);
   border-color: var(--av-accent, rgb(29, 155, 240));
   background: rgb(24, 42, 54);
 }

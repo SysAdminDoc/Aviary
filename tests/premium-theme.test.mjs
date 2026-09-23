@@ -39,6 +39,13 @@ test("Noir gives the desktop shell a premium dark treatment and turns fully off"
       const news = document.createElement("div");
       news.id = "current-news-card";
       news.innerHTML = '<div id="current-news-marker" data-testid="news_sidebar"></div><span>Today’s News</span>';
+      const collapsedChat = document.createElement("div");
+      collapsedChat.dataset.testid = "chat-drawer-root";
+      collapsedChat.style.cssText = "position:fixed;right:24px;bottom:24px;width:350px;height:55px";
+      collapsedChat.append(document.createElement("button"));
+      document.body.append(collapsedChat);
+      document.querySelector('[data-testid="SideNav_NewTweet_Button"]').style.backgroundColor =
+        "rgb(239, 243, 244)";
       sidebar?.prepend(search, news);
     });
     const beforeScrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
@@ -69,6 +76,7 @@ test("Noir gives the desktop shell a premium dark treatment and turns fully off"
       return {
         theme: document.documentElement.dataset.avTheme,
         className: document.documentElement.classList.contains("av-theme-noir"),
+        accent: root.getPropertyValue("--av-accent").trim(),
         activeNav: document.querySelector('[data-testid="AppTabBar_Home_Link"]')?.getAttribute("data-av-active-route"),
         rootBackground: root.backgroundImage,
         rootBackgroundColor: root.backgroundColor,
@@ -95,6 +103,7 @@ test("Noir gives the desktop shell a premium dark treatment and turns fully off"
         buttonBackground: postButton.backgroundImage,
         buttonFill: postButton.backgroundColor,
         buttonColor: postButton.color,
+        collapsedDrawerWidth: styleOf('[data-testid="chat-drawer-root"]').width,
         scrollWidth: document.documentElement.scrollWidth
       };
     });
@@ -111,7 +120,7 @@ test("Noir gives the desktop shell a premium dark treatment and turns fully off"
     assert.equal(noir.activeNavBackground, "none");
     assert.notEqual(noir.activeNavBackgroundColor, "rgba(0, 0, 0, 0)");
     assert.match(noir.primaryBackground, /rgba?\(/);
-    assert.notEqual(noir.primaryShadow, "none");
+    assert.equal(noir.primaryShadow, "none", "the reading column must not float over the canvas");
     assert.equal(noir.articleBackground, "none", "posts belong to one continuous stream");
     assert.equal(noir.articleRadius, "0px");
     assert.equal(noir.mediaBorder, "1px");
@@ -125,9 +134,83 @@ test("Noir gives the desktop shell a premium dark treatment and turns fully off"
     assert.equal(noir.searchInputBackground, "rgba(0, 0, 0, 0)");
     assert.equal(noir.searchInputBorder, "0px");
     assert.equal(noir.buttonBackground, "none");
-    assert.notEqual(noir.buttonFill, "rgba(0, 0, 0, 0)");
-    assert.ok(contrast(parseRgb(noir.buttonColor), [92, 211, 255]) >= 4.5);
+    assert.equal(noir.buttonFill, noir.accent, "Noir must override X's inline Post button fill");
+    assert.ok(contrast(parseRgb(noir.buttonColor), parseRgb(noir.accent)) >= 4.5);
+    assert.equal(noir.collapsedDrawerWidth, "56px", "collapsed drawers must not cover wide posts");
     assert.ok(noir.scrollWidth <= beforeScrollWidth + 1, "the theme must not introduce horizontal overflow");
+
+    const stableMarkers = await page.evaluate(async (nextSettings) => {
+      const records = [];
+      const frame = document.querySelector("[data-av-media-frame]");
+      const nativeRect = frame?.getBoundingClientRect;
+      let mediaLayoutReads = 0;
+      if (frame && nativeRect) {
+        frame.getBoundingClientRect = () => {
+          mediaLayoutReads += 1;
+          return nativeRect.call(frame);
+        };
+      }
+      const observer = new MutationObserver((mutations) => records.push(...mutations));
+      observer.observe(document.body, {
+        attributes: true,
+        subtree: true,
+        attributeFilter: [
+          "data-av-active-route",
+          "data-av-nav-item",
+          "data-av-wide-stream",
+          "data-av-profile-header",
+          "data-av-media-frame",
+          "data-av-media-context",
+          "style"
+        ]
+      });
+      globalThis.__mod.applyTheme(nextSettings);
+      await Promise.resolve();
+      observer.disconnect();
+      if (frame && nativeRect) frame.getBoundingClientRect = nativeRect;
+      return {
+        mediaLayoutReads,
+        mutations: records.map((record) => record.attributeName)
+      };
+    }, settings);
+    assert.deepEqual(
+      stableMarkers.mutations,
+      [],
+      "an unchanged observer pass must not tear down and rebuild layout markers"
+    );
+    assert.equal(
+      stableMarkers.mediaLayoutReads,
+      0,
+      "an unchanged observer pass must not remeasure settled media geometry"
+    );
+
+    const historyNavigation = await page.evaluate((nextSettings) => {
+      history.pushState({}, "", "/i/history/likes");
+      globalThis.__mod.applyTheme(nextSettings);
+      const historyLink = document.querySelector('nav a[href="/i/history"]');
+      const homeLink = document.querySelector('[data-testid="AppTabBar_Home_Link"]');
+      return {
+        historyMarker: historyLink?.getAttribute("data-av-active-route") ?? null,
+        historyItem: historyLink?.getAttribute("data-av-nav-item") ?? null,
+        homeMarker: homeLink?.getAttribute("data-av-active-route") ?? null
+      };
+    }, settings);
+    assert.deepEqual(historyNavigation, {
+      historyMarker: "1",
+      historyItem: "1",
+      homeMarker: null
+    });
+
+    const historyBeforeHover = await page.locator('nav a[href="/i/history"]').boundingBox();
+    await page.hover('nav a[href="/i/history"]');
+    const historyAfterHover = await page.locator('nav a[href="/i/history"]').boundingBox();
+    const historyTransform = await page.$eval(
+      'nav a[href="/i/history"]',
+      (node) => getComputedStyle(node).transform
+    );
+    assert.equal(historyTransform, "none", "navigation hover must not slide the target sideways");
+    assert.equal(historyAfterHover?.x, historyBeforeHover?.x);
+    await page.mouse.move(0, 0);
 
     const scrolledCanvas = await page.evaluate(() => {
       const overflow = document.createElement("div");
