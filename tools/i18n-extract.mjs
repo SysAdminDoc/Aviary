@@ -702,7 +702,15 @@ function harvestPanelLiterals(source) {
   // Row helpers translate their label through a function parameter, so an unavailable callback
   // can hide the label from the browser render. Keep those labels in the manifest as source copy
   // too; otherwise a conditional data row can ship in English while coverage still reports full.
-  for (const match of source.matchAll(/\b(?:dataRow|readonlyRow|actionRow|toggleRow|selectRow|textInputRow)\(\s*"((?:[^"\\]|\\.)*)"/g)) {
+  for (const match of source.matchAll(
+    /\b(?:dataRow|readonlyRow|actionRow|toggleRow|selectRow|textInputRow|textareaRow|surfaceRow|integerInputRow|secretInputRow)\(\s*"((?:[^"\\]|\\.)*)"/g
+  )) {
+    found.push(JSON.parse(`"${match[1]}"`));
+  }
+  // `button()` translates its own label, so a button drawn only in a state the stub renders never
+  // reach -- Pause, Resume and Stop during a running cleanup -- was invisible to both the render and
+  // the literal scan, and a renamed one shipped in English with the check still passing.
+  for (const match of source.matchAll(/\bbutton\(\s*"((?:[^"\\]|\\.)*)"/g)) {
     found.push(JSON.parse(`"${match[1]}"`));
   }
   // And the sentence under the label, for every helper whose second argument *is* the
