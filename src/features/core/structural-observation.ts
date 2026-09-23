@@ -194,8 +194,10 @@ export function observeStructure(
   return {
     $comment:
       "Structural observation copied from Aviary. Counts, nesting depths and computed layout only: " +
-      "no text, names, handles, links or ids. Merge the measured fields into _decoded/dom-schema.json " +
-      "and set derivedFrom there to this capturedOn date.",
+      "no text, names, handles, links or ids. testIds, roles and aria here are COUNTS keyed by the " +
+      "schema's names; keep the schema's own maps and use these only to confirm each is present. " +
+      "Copy routes.<route>.observedCounts, nesting and the layout widths into _decoded/dom-schema.json, " +
+      "keep its titles, labels and cells, and set derivedFrom.capturedOn to this date.",
     ceilingDays: 90,
     warnDays: 30,
     derivedFrom: {
@@ -245,7 +247,10 @@ function pixels(value: string | undefined): number | null {
   return match ? Math.round(Number(match[1])) : null;
 }
 
-/** A BCP 47 tag or nothing; the attribute is X's, and anything else in it is not ours to copy. */
+/**
+ * A language, optional script and optional region, or nothing. Free-form private-use subtags are
+ * refused: the attribute is X's today, but nothing guarantees it can never carry anything else.
+ */
 function normalizeLang(value: string | null): string | null {
-  return value && /^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$/.test(value) ? value : null;
+  return value && /^[a-z]{2,3}(?:-[a-z]{4})?(?:-(?:[a-z]{2}|\d{3}))?$/i.test(value) ? value : null;
 }

@@ -428,8 +428,9 @@ const CLIPPED_TEXT_SWEEP = (selector) => {
       continue;
     }
     item.click();
+    // Open every disclosure so its help text is measured rather than passing as zero against zero.
+    for (const details of shadow.querySelectorAll("details")) details.open = true;
     for (const node of shadow.querySelectorAll(selector)) {
-      // Text inside a collapsed disclosure is not drawn, so it cannot be clipped either.
       if (node.getClientRects().length === 0) continue;
       if (node.scrollHeight > node.clientHeight + 1 || node.scrollWidth > node.clientWidth + 1) {
         clipped.push(`${entry.id}: ${(node.textContent || "").trim().slice(0, 60)}`);

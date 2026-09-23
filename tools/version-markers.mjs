@@ -17,18 +17,29 @@ import path from "node:path";
  * `history: true` names a file whose job is to hold old versions, so the changelog is declared
  * rather than exempt by accident. `optional: true` is for a file that is not in every checkout.
  */
+/** This repository's release pages only; a manager's or tool's own release link is not ours. */
+const RELEASE_LINK = /SysAdminDoc\/Aviary\/releases\/(?:tag|download)\/v?(\d+\.\d+\.\d+)/g;
+const RELEASE_ASSET = /extension-(?:chrome|firefox)-v(\d+\.\d+\.\d+)\.(?:zip|crx)/g;
+/** The words a reader sees, e.g. "[Download v1.52.2](…/releases/…)". */
+const RELEASE_LINK_TEXT = /\[[^\]\n]*?\bv(\d+\.\d+\.\d+)\b[^\]\n]*\]\(https:\/\/github\.com\/SysAdminDoc\/Aviary\/releases/g;
+
 export const VERSION_MARKERS = [
   { file: "README.md", label: "shields.io badge", pattern: /shields\.io\/badge\/version-(\d+\.\d+\.\d+)-/g },
   { file: "README.md", label: "generated facts sentence", pattern: /^Aviary (\d+\.\d+\.\d+) registers/gm },
   { file: "README.md", label: "source archive name", pattern: /aviary-source-v(\d+\.\d+\.\d+)\.zip/g },
   // Download links are markers too: the 1.52.2 install guide still sent readers to v1.49.5 while
-  // every other marker in it was current.
-  { file: "README.md", label: "release link", pattern: /releases\/(?:tag|download)\/v(\d+\.\d+\.\d+)/g },
+  // every other marker in it was current. The tag, the asset file name and the visible link text
+  // are separate markers, because any one of them can go stale while the others are right.
+  { file: "README.md", label: "release link", pattern: RELEASE_LINK },
+  { file: "README.md", label: "release asset name", pattern: RELEASE_ASSET },
+  { file: "README.md", label: "release link text", pattern: RELEASE_LINK_TEXT },
   { file: "ROADMAP.md", label: "version line", pattern: /^Version: `(\d+\.\d+\.\d+)`/gm },
   { file: "CHANGELOG.md", label: "release headings", pattern: /^## (\d+\.\d+\.\d+) \(/gm, history: true },
   { file: "docs/INSTALL.md", label: "title", pattern: /^# Install Aviary (\d+\.\d+\.\d+)/gm },
   { file: "docs/INSTALL.md", label: "source archive name", pattern: /aviary-source-v(\d+\.\d+\.\d+)\.zip/g },
-  { file: "docs/INSTALL.md", label: "release link", pattern: /releases\/(?:tag|download)\/v(\d+\.\d+\.\d+)/g },
+  { file: "docs/INSTALL.md", label: "release link", pattern: RELEASE_LINK },
+  { file: "docs/INSTALL.md", label: "release asset name", pattern: RELEASE_ASSET },
+  { file: "docs/INSTALL.md", label: "release link text", pattern: RELEASE_LINK_TEXT },
   { file: "docs/PRIVACY.md", label: "release marker", pattern: /release (\d+\.\d+\.\d+)/g },
   { file: "design-qa.md", label: "summary line", pattern: /^Aviary (\d+\.\d+\.\d+):/gm, optional: true },
   { file: "RESEARCH.md", label: "summary line", pattern: /^Aviary v(\d+\.\d+\.\d+) is/gm, optional: true },

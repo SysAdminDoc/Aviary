@@ -116,15 +116,20 @@ test("the observation carries no text, names, handles, links or ids", async () =
     "</article>"
   ].join("");
   const html = (await captureHtml("status"))
+    // A well-formed tag carrying a name-like subtag, which a looser pattern would copy verbatim.
+    .replace(/<html lang="[^"]*"/, '<html lang="en-jdoe1984"')
     .replace("<body", `<body data-owner="${handle}"`)
     .replace("</body>", `${hostile}</body>`)
     .replace(/<title>[^<]*<\/title>/, `<title>${name} on X: "${text}" / X</title>`);
+  assert.ok(html.includes('lang="en-jdoe1984"'), "the hostile lang attribute must reach the page");
   const observation = await observe(html, `/${handle}/status/${id}`);
   const serialized = JSON.stringify(observation);
 
   for (const secret of [handle, handle.toLowerCase(), "Hostile", "secret", id, "x.com/" + handle]) {
     assert.ok(!serialized.includes(secret), `the observation leaked ${JSON.stringify(secret)}`);
   }
+  assert.equal(observation.routes.status.lang, null, "only language, script and region subtags are kept");
+  assert.ok(!serialized.includes("jdoe1984"));
   // The hostile post still counts, which is the point: structure without identity.
   assert.ok(observation.routes.status.observedCounts.posts > 0);
 });

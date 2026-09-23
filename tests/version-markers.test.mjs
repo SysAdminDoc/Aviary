@@ -17,13 +17,15 @@ async function buildTree(version, overrides = {}) {
       `![Version](https://img.shields.io/badge/version-${version}-2f81f7)`,
       `Aviary ${version} registers 30 feature modules.`,
       `sha256sum dist/aviary-source-v${version}.zip`,
-      `[Download](https://github.com/SysAdminDoc/Aviary/releases/tag/v${version})`
+      `[Download v${version}](https://github.com/SysAdminDoc/Aviary/releases/tag/v${version})`,
+      `[Chromium ZIP](https://github.com/SysAdminDoc/Aviary/releases/download/v${version}/extension-chrome-v${version}.zip)`
     ].join("\n"),
     "ROADMAP.md": `# ROADMAP\n\nVersion: \`${version}\`\n`,
     "CHANGELOG.md": `# Changelog\n\n## ${version} (2026-09-07)\n\n## 1.0.0 (2020-01-01)\n`,
     "docs/INSTALL.md": [
       `# Install Aviary ${version}`,
       `sha256sum dist/aviary-source-v${version}.zip`,
+      `Start with the [v${version} release downloads](https://github.com/SysAdminDoc/Aviary/releases/tag/v${version}).`,
       `[Chromium ZIP](https://github.com/SysAdminDoc/Aviary/releases/download/v${version}/extension-chrome-v${version}.zip)`
     ].join("\n\n"),
     "docs/PRIVACY.md": `Updated: 2026-09-07 · release ${version}\n`,
@@ -60,14 +62,38 @@ test("a marker left at the previous version fails and names the file, the marker
     "docs/PRIVACY.md": "Updated: 2026-09-07 · release 1.47.2\n",
     // A download link left behind is the 1.52.2 install guide's actual defect.
     "docs/INSTALL.md": "# Install Aviary 1.48.0\n\nsha256sum dist/aviary-source-v1.47.2.zip\n\n" +
+      "Start with the [v1.48.0 release downloads](https://github.com/SysAdminDoc/Aviary/releases/tag/v1.48.0).\n\n" +
       "[Chromium ZIP](https://github.com/SysAdminDoc/Aviary/releases/download/v1.46.0/extension-chrome-v1.46.0.zip)\n"
   });
   try {
     const failures = await versionMarkerFailures(root, "1.48.0");
     assert.deepEqual(failures.sort(), [
+      "docs/INSTALL.md: the release asset name still says 1.46.0, but package.json is 1.48.0",
       "docs/INSTALL.md: the release link still says 1.46.0, but package.json is 1.48.0",
       "docs/INSTALL.md: the source archive name still says 1.47.2, but package.json is 1.48.0",
       "docs/PRIVACY.md: the release marker still says 1.47.2, but package.json is 1.48.0"
+    ]);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("a current tag cannot hide a stale asset name or label, and other projects' releases are ignored", async () => {
+  const root = await buildTree("1.48.0", {
+    "docs/INSTALL.md": [
+      "# Install Aviary 1.48.0",
+      "sha256sum dist/aviary-source-v1.48.0.zip",
+      // The tag is current; the words and the file name behind it are not.
+      "Start with the [v1.47.2 release downloads](https://github.com/SysAdminDoc/Aviary/releases/tag/v1.48.0).",
+      "[Chromium ZIP](https://github.com/SysAdminDoc/Aviary/releases/download/v1.48.0/extension-chrome-v1.47.2.zip)",
+      // A userscript manager's own release is someone else's version.
+      "[Violentmonkey](https://github.com/violentmonkey/violentmonkey/releases/download/v2.47.0/Violentmonkey-webext-v2.47.0.zip)"
+    ].join("\n\n")
+  });
+  try {
+    assert.deepEqual((await versionMarkerFailures(root, "1.48.0")).sort(), [
+      "docs/INSTALL.md: the release asset name still says 1.47.2, but package.json is 1.48.0",
+      "docs/INSTALL.md: the release link text still says 1.47.2, but package.json is 1.48.0"
     ]);
   } finally {
     await rm(root, { recursive: true, force: true });
