@@ -1,3 +1,4 @@
+import { quotedPost } from "../media/extract.ts";
 import { checkRegexBudget } from "./regex-budget.ts";
 import {
   ENGAGEMENT_METRICS,
@@ -113,19 +114,31 @@ export function structuralFilterPlan(filters: CompiledFilters): {
   return { hide, dim };
 }
 
+/**
+ * Media and badges inside a quoted post belong to the quoted author, so every structural key but
+ * `quote` itself is scoped out of the three quote shapes. CSS cannot ask the JS question "does
+ * this role=link carry an author", so the bare focusable card counts as a boundary here; media
+ * inside a link card never matches these selectors anyway.
+ */
+const OUTSIDE_QUOTE =
+  ':not([data-testid="quoteTweet"] *):not([aria-labelledby="quoted"] *):not(div[role="link"][tabindex="0"] *)';
+
 /** Every selector for a set of structural keys, deduplicated, in table order. */
 export function structuralSelectorsFor(keys: readonly StructuralKey[]): string[] {
   const seen = new Set<string>();
   for (const key of keys) {
     for (const selector of STRUCTURAL_SELECTORS[key]) {
-      seen.add(selector);
+      seen.add(key === "quote" ? selector : `${selector}${OUTSIDE_QUOTE}`);
     }
   }
   return [...seen];
 }
 
 function hasStructural(article: Element, key: StructuralKey): boolean {
-  return article.querySelector(STRUCTURAL_SELECTORS[key].join(", ")) !== null;
+  const matches = article.querySelectorAll(STRUCTURAL_SELECTORS[key].join(", "));
+  if (key === "quote") return matches.length > 0;
+  const quote = quotedPost(article);
+  return [...matches].some((node) => !quote?.contains(node));
 }
 
 /** A count X rendered, or null when the post does not carry that metric in a readable form. */

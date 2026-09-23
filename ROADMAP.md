@@ -19,13 +19,6 @@ scheme from F336.
 
 ### P2
 
-- [ ] P2, F354: Keep structural filter predicates out of quoted posts
-  Why: Hide rules wrap selectors in one `:has()` over the whole article, so a badge or media inside a quoted post likely hides the outer post. The reply-media filter explicitly excludes quotes, so the two disagree. Status: Likely, test first.
-  Evidence: `src/features/filtering/filter-engine.ts:522`, `STRUCTURAL_SELECTORS` in `src/features/filtering/predicates.ts`, `src/features/filtering/reply-media.ts`, the quote boundary declared in `src/features/media/extract.ts`.
-  Touches: `filter-engine.ts`, `predicates.ts`, filter-engine tests.
-  Acceptance: First, a fixture where an unverified, text-only post quotes a verified post carrying video, and `media is video` or the premium rule hides the outer post. Then selectors exclude the quote boundary and the fixture passes. Existing filter tests stay green.
-  Complexity: S/M
-
 - [ ] P2, F358: Replace the English-only media layout hook
   Why: Grid and stacked layouts engage only when X's aria-label reads the English "Image", and X moved multi-image posts to a carousel. Media Archivist and Creator presets set this layout.
   Evidence: `src/features/media/media-presentation.ts:102`, `Roadmap_Blocked.md` F139, `src/ui/control-center/sections/presets.ts`.

@@ -144,6 +144,51 @@ test("a media setting hides the posts that carry that media, and collapses their
   assert.equal(report.plain.cellHidden, false);
 });
 
+test("media and badges inside a quoted post belong to the quoted author, not to the quoter", async () => {
+  // X's current quote shape: a focusable role=link card carrying the quoted author's name.
+  const quoted = (inner) =>
+    `<div role="link" tabindex="0"><div data-testid="User-Name"><a href="/quoted"><span>@quoted</span></a>` +
+    `<svg data-testid="icon-verified"></svg></div>${inner}</div>`;
+  const html = `
+<main data-testid="primaryColumn">
+  <div data-testid="cellInnerDiv"><article id="post-quoter" data-testid="tweet">
+    <div data-testid="User-Name"><a href="/plainquoter"><span>@plainquoter</span></a></div>
+    <div data-testid="tweetText">look at what they posted</div>
+    ${quoted('<div data-testid="videoPlayer"></div>')}
+  </article></div>
+  <div data-testid="cellInnerDiv"><article id="post-own-video" data-testid="tweet">
+    <div data-testid="User-Name"><a href="/filmer"><span>@filmer</span></a></div>
+    <div data-testid="tweetText">my clip</div>
+    <div data-testid="videoPlayer"></div>
+    ${quoted("")}
+  </article></div>
+  <div data-testid="cellInnerDiv"><article id="post-own-badge" data-testid="tweet">
+    <div data-testid="User-Name"><a href="/paid"><span>@paid</span></a><svg data-testid="icon-verified"></svg></div>
+    <div data-testid="tweetText">paid and quoting</div>
+    ${quoted("")}
+  </article></div>
+</main>`;
+
+  const video = await run((s) => {
+    s.filter.mediaTypes = { photo: false, video: true, gif: false };
+  }, html);
+  assert.equal(video.report.quoter.hidden, false, "a quoted video must not hide the post quoting it");
+  assert.equal(video.report.quoter.cellHidden, false);
+  assert.equal(video.report["own-video"].hidden, true, "the post's own video still hides it");
+
+  const premium = await run((s) => {
+    s.filter.premiumRule = "hide";
+  }, html);
+  assert.equal(premium.report.quoter.hidden, false, "a quoted author's badge is not the quoter's");
+  assert.equal(premium.report["own-badge"].hidden, true, "the post's own badge still hides it");
+
+  const rule = await run((s) => {
+    s.filter.rules = ["media is video"];
+  }, html);
+  assert.equal(rule.report.quoter.hidden, false, "the rule language reads the same boundary");
+  assert.equal(rule.report["own-video"].hidden, true);
+});
+
 test("hiding video hides GIFs, because a GIF is a video player to X", async () => {
   const { report } = await run((s) => {
     s.filter.mediaTypes = { photo: false, video: true, gif: false };

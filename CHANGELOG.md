@@ -31,6 +31,9 @@
   retries it counts as a failed action and the normal reload recovery takes over. If the signed-in
   account can't be read mid-pass, nothing is deleted until it reappears, and after 12 seconds the
   run stops as signed out.
+- Media and verified-badge filters no longer hide a post because of what it quotes. A text-only post
+  that quoted a video, or quoted a verified account, was hidden as if the video or badge were its
+  own. Filter rules such as `media is video` follow the same boundary.
 - Delete X activity now finds each item by its own post id. It used to match any link containing
   the id, so a post that quoted the target, or one whose id began with the same digits, could be
   acted on in its place.
