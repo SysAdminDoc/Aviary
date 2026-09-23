@@ -3,7 +3,7 @@ Date: 2026-09-22. Replaces all prior research.
 
 ## Executive Summary
 
-Aviary v1.52.2 is a local-first X enhancer shipped from one TypeScript tree as a readable
+Aviary v1.53.0 is a local-first X enhancer shipped from one TypeScript tree as a readable
 userscript and Chromium and Firefox MV3 packages. Reading controls, ad removal and media downloads
 all live in one Control Center, alongside a searchable local library, preservation exports and
 account cleanup. It's in its strongest shape yet. The storage, download and backup defects the

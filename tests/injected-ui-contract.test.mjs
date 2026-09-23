@@ -711,6 +711,63 @@ test("the launcher stays legible on a light page", async () => {
   }
 });
 
+test("the navigation launcher owns a legible surface in both color modes", async () => {
+  const { chromium } = await import("playwright");
+  const browser = await chromium.launch({ headless: true });
+
+  try {
+    const css = await navigationLauncherCss();
+    for (const mode of ["dark", "light"]) {
+      const page = await browser.newPage();
+      await page.setContent('<body style="margin:0;background:#fff"></body>');
+      const measured = await page.evaluate(({ cssText, colorMode }) => {
+        const host = document.createElement("div");
+        host.dataset.avColorMode = colorMode;
+        const shadow = host.attachShadow({ mode: "open" });
+        const style = document.createElement("style");
+        style.textContent = cssText;
+        const button = document.createElement("button");
+        button.className = "av-nav-launcher";
+        const pill = document.createElement("span");
+        pill.className = "av-nav-launcher-pill";
+        pill.textContent = "Aviary";
+        button.append(pill);
+        shadow.append(style, button);
+        document.body.append(host);
+
+        const computed = getComputedStyle(pill);
+        const parse = (value) => (value.match(/[\d.]+/g) ?? []).slice(0, 3).map(Number);
+        const luminance = ([r, g, b]) => {
+          const channel = (value) => {
+            const normalized = value / 255;
+            return normalized <= 0.03928
+              ? normalized / 12.92
+              : ((normalized + 0.055) / 1.055) ** 2.4;
+          };
+          return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
+        };
+        const [high, low] = [
+          luminance(parse(computed.color)),
+          luminance(parse(computed.backgroundColor))
+        ].sort((left, right) => right - left);
+        return {
+          background: computed.backgroundColor,
+          color: computed.color,
+          contrast: (high + 0.05) / (low + 0.05)
+        };
+      }, { cssText: css, colorMode: mode });
+
+      assert.ok(
+        measured.contrast >= 4.5,
+        `${mode} navigation launcher measures ${measured.contrast.toFixed(2)}:1 (${measured.color} on ${measured.background})`
+      );
+      await page.close();
+    }
+  } finally {
+    await browser.close();
+  }
+});
+
 async function launcherCss() {
   const { readFile } = await import("node:fs/promises");
   const source = await readFile(path.join(root, "src/ui/control-center.ts"), "utf8");
@@ -718,6 +775,16 @@ async function launcherCss() {
   const end = source.indexOf("}", start) + 1;
   // `position: fixed` would take it out of flow and give it a zero box in this harness.
   return source.slice(start, end).replace("position: fixed;", "position: static;");
+}
+
+async function navigationLauncherCss() {
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(path.join(root, "src/ui/control-center.ts"), "utf8");
+  const marker = "const NAV_LAUNCHER_CSS = `";
+  const start = source.indexOf(marker);
+  const end = source.indexOf("`;", start + marker.length);
+  assert.ok(start >= 0 && end > start, "navigation launcher CSS template missing");
+  return source.slice(start + marker.length, end);
 }
 
 test("the declared injection mode matches what the install guide promises", async () => {

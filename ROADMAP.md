@@ -1,8 +1,8 @@
 # Aviary ROADMAP
 
-Version: `1.52.2`
+Version: `1.53.0`
 
-Date: 2026-09-22
+Date: 2026-09-23
 
 Actionable incomplete work only. `Roadmap_Blocked.md` remains the source for tasks that require a fresh authenticated X capture, distribution identity, or another external environment.
 

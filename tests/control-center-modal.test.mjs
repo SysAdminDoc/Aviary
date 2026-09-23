@@ -171,6 +171,7 @@ test("the launcher joins X's navigation, adapts to compact rails, and survives S
       ariaLabel: launcher.getAttribute("aria-label"),
       title: launcher.getAttribute("title"),
       compact: navHost.dataset.avCompact,
+      colorMode: navHost.dataset.avColorMode,
       labelDisplay: getComputedStyle(label).display,
       width: rect.width,
       height: rect.height
@@ -184,6 +185,7 @@ test("the launcher joins X's navigation, adapts to compact rails, and survives S
     ariaLabel: "Aviary settings",
     title: null,
     compact: "false",
+    colorMode: "dark",
     labelDisplay: "block",
     width: 259,
     height: 58

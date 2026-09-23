@@ -1217,6 +1217,7 @@ export function mountControlCenter(options: ControlCenterOptions): ControlCenter
     host.dataset.avMotion = prefersReducedMotion(draftSettings) ? "reduce" : "full";
     navLauncherHost.dataset.avMotion = host.dataset.avMotion;
     host.dataset.avColorMode = controlCenterColorMode(draftSettings);
+    navLauncherHost.dataset.avColorMode = host.dataset.avColorMode;
     syncSelectorHealthIndicator();
     reconcileLauncherMount();
     const registry = sectionRegistry();
@@ -2650,12 +2651,23 @@ const NAV_LAUNCHER_CSS = `
 :host {
   display: block;
   width: 100%;
-  color: inherit;
+  --av-nav-surface: rgb(12, 18, 24);
+  --av-nav-border: rgb(52, 67, 79);
+  --av-nav-text: rgb(238, 242, 245);
+  --av-nav-accent: rgb(110, 194, 226);
+  color: var(--av-nav-text);
   font-family: inherit;
   font-size: inherit;
   font-style: inherit;
   font-weight: inherit;
   line-height: inherit;
+}
+
+:host([data-av-color-mode="light"]) {
+  --av-nav-surface: rgb(241, 246, 248);
+  --av-nav-border: rgb(176, 192, 201);
+  --av-nav-text: rgb(15, 24, 31);
+  --av-nav-accent: rgb(0, 126, 132);
 }
 
 .av-nav-launcher {
@@ -2687,7 +2699,10 @@ const NAV_LAUNCHER_CSS = `
   min-height: 50px;
   padding: 12px;
   border-radius: 9px;
-  transition: background-color 150ms ease, color 150ms ease, box-shadow 150ms ease;
+  background-color: var(--av-nav-surface);
+  color: var(--av-nav-text);
+  box-shadow: inset 0 0 0 1px var(--av-nav-border);
+  transition: background-color 110ms ease-out, box-shadow 110ms ease-out;
 }
 
 .av-nav-launcher-icon {
@@ -2712,12 +2727,14 @@ const NAV_LAUNCHER_CSS = `
 }
 
 .av-nav-launcher:hover .av-nav-launcher-pill {
-  background-color: color-mix(in srgb, currentColor 10%, transparent);
+  background-color: color-mix(in srgb, var(--av-nav-accent) 7%, var(--av-nav-surface));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--av-nav-accent) 56%, var(--av-nav-border));
 }
 
 .av-nav-launcher[aria-expanded="true"] .av-nav-launcher-pill {
-  background: color-mix(in srgb, var(--av-accent, rgb(29, 155, 240)) 13%, transparent);
-  color: var(--av-text, currentColor);
+  background: color-mix(in srgb, var(--av-nav-accent) 11%, var(--av-nav-surface));
+  color: var(--av-nav-text);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--av-nav-accent) 68%, var(--av-nav-border));
 }
 
 .av-nav-launcher:focus-visible {
@@ -2725,7 +2742,7 @@ const NAV_LAUNCHER_CSS = `
 }
 
 .av-nav-launcher:focus-visible .av-nav-launcher-pill {
-  outline: 2px solid var(--av-accent, rgb(29, 155, 240));
+  outline: 2px solid var(--av-nav-accent);
   outline-offset: 2px;
 }
 

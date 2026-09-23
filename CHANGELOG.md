@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.53.0 (2026-09-23)
+
 ### Added
 
 - **Copy structural observation** in Privacy & diagnostics copies how X built the open page:
@@ -30,6 +32,11 @@
 
 ### Fixed
 
+- **Noir is calmer and stays still while you navigate.** Navigation no longer slides on hover,
+  History and Grok keep the correct active state, and repeated timeline updates don't restamp
+  stable layout or media markers. Wide mode also compacts collapsed Grok and Chat drawers so they
+  don't cover post actions. The palette, dividers, tabs, search field and Post button now share one
+  quieter visual system without shrinking replies, quoted posts or profile headers.
 - **Delete X activity now starts with nothing selected.** A new profile used to open the page with
   all five categories ticked, so a single Run deleted every post and reply. Run now stays off, with
   a one-line reason, until you pick at least one category. Deletion still starts immediately once
