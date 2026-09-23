@@ -1,6 +1,9 @@
 import {
   ACCOUNT_CLEANUP_CATEGORIES,
   ACCOUNT_CLEANUP_CATEGORY_DEFINITIONS,
+  formatAccountCleanupCopy,
+  localizeAccountCleanupValues,
+  type AccountCleanupCopy,
   type AccountCleanupCommandResult,
   type AccountCleanupRun,
   type AccountCleanupStartOptions
@@ -24,7 +27,7 @@ export function buildAccountCleanupRows(ctx: PanelContext): HTMLElement[] {
       hasSelection,
       run,
       runStatus: run?.status ?? null,
-      statusMessage: status?.message ?? "Delete X activity is still loading."
+      statusCopy: status?.copy ?? { text: status?.message ?? "Delete X activity is still loading." }
     }),
     advancedOptions(ctx, activeJob)
   ];
@@ -139,13 +142,13 @@ function actionWorkspace(ctx: PanelContext, input: {
   hasSelection: boolean;
   run: AccountCleanupRun | null;
   runStatus: "running" | "paused" | "blocked" | "complete" | "stopped" | null;
-  statusMessage: string;
+  statusCopy: AccountCleanupCopy;
 }): HTMLElement {
   const workspace = ctx.el("div", "av-cleanup-workspace");
   workspace.dataset.avLabel = "Run";
 
   const status = input.run
-    ? `${input.statusMessage} ${describeTotals(input.run)}`
+    ? `${formatAccountCleanupCopy(input.statusCopy, ctx.t)} ${describeTotals(ctx, input.run)}`
     : input.activeHandle
       ? ctx.localizedCopy("Ready to run on @{handle}.", { handle: input.activeHandle })
       : ctx.t("Sign in to X before running.");
@@ -245,7 +248,9 @@ async function runCommand(
   try {
     const result = await command();
     const status = ctx.options.getAccountCleanupStatus?.();
-    ctx.setStatus(status?.message ?? (result.ok ? "Deletion updated." : "Deletion command failed."));
+    const copy = status?.copy ?? (status ? { text: status.message } : null);
+    if (copy) ctx.setStatusCopy(copy.text, localizeAccountCleanupValues(copy, ctx.t));
+    else ctx.setStatus(result.ok ? "Deletion updated." : "Deletion command failed.");
     ctx.render();
   } catch (error) {
     ctx.options.onError("Deletion command failed", error);
@@ -260,10 +265,10 @@ function invoke(
   return command?.() ?? Promise.resolve({ ok: false, reason: "not_ready" });
 }
 
-function describeTotals(run: AccountCleanupRun): string {
+function describeTotals(ctx: PanelContext, run: AccountCleanupRun): string {
   return run.plan.map((category) => {
     const stats = run.stats[category];
     const count = run.settings.mode === "preview" ? stats.previewed : stats.completed;
-    return `${ACCOUNT_CLEANUP_CATEGORY_DEFINITIONS[category].label} ${count}`;
+    return `${ctx.t(ACCOUNT_CLEANUP_CATEGORY_DEFINITIONS[category].label)} ${count}`;
   }).join(" · ");
 }

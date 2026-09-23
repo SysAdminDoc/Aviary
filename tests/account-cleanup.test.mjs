@@ -118,6 +118,31 @@ test("deletion starts with nothing selected and a stored plan never gains a cate
   assert.deepEqual(reloaded.settings.categories, { ...none, bookmarks: true });
 });
 
+test("every cleanup status sentence is a literal the i18n extractor can require", async () => {
+  // The runner and controller build their sentences away from any render, so the extractor finds
+  // them only as cleanupCopy("…") literals. A template string, a variable or a bare string handed
+  // to the panel would ship English in every locale while the coverage gate stayed green.
+  const { readFile } = await import("node:fs/promises");
+  const files = [
+    "src/features/account-cleanup/runner.ts",
+    "src/features/account-cleanup/account-cleanup-feature.ts",
+    "src/ui/control-center/sections/account.ts"
+  ];
+  const offenders = [];
+  let calls = 0;
+  for (const file of files) {
+    const text = await readFile(new URL(`../${file}`, import.meta.url), "utf8");
+    for (const match of text.matchAll(/\bcleanupCopy\(\s*(.)/g)) {
+      calls += 1;
+      if (match[1] !== '"') offenders.push(`${file}: cleanupCopy(${match[1]}…`);
+    }
+    // A status must travel as copy; a raw string argument to #emit would bypass translation.
+    for (const match of text.matchAll(/#emit\([^,]+,[^,]+,\s*[`"']/g)) offenders.push(`${file}: ${match[0]}`);
+  }
+  assert.ok(calls > 40, `only ${calls} cleanupCopy calls found; the scan is not reading the sources`);
+  assert.deepEqual(offenders, []);
+});
+
 test("stored cleanup state is bounded and rejects malformed identity", () => {
   assert.equal(source.normalizeAccountCleanupHandle("@valid_name"), "valid_name");
   assert.equal(source.normalizeAccountCleanupHandle("@home"), null);

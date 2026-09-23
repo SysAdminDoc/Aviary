@@ -428,6 +428,11 @@ function harvestFeatureLiterals(source) {
   )) {
     found.push(JSON.parse(`"${match[1]}"`));
   }
+  // Delete X activity's progress and failure sentences: the runner and controller build them away
+  // from any render, so only their `cleanupCopy("…")` call sites say what they are.
+  for (const match of source.matchAll(/\bcleanupCopy\(\s*"((?:[^"\\]|\\.)*)"/g)) {
+    found.push(JSON.parse(`"${match[1]}"`));
+  }
   return found;
 }
 

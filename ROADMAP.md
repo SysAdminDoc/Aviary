@@ -19,13 +19,6 @@ scheme from F336.
 
 ### P2
 
-- [ ] P2, F351: Translate Delete X activity progress and catch runtime messages in the i18n gate
-  Why: Eight locales see English progress for the one destructive feature. The extractor harvests `ctx.t` literals and `label:` lines, so runtime status prose passes the 100% coverage gate.
-  Evidence: `src/features/account-cleanup/account-cleanup-feature.ts:205-214`, `runner.ts:393-724`, `src/ui/control-center/sections/account.ts:148,242-247`, `tools/i18n-extract.mjs`.
-  Touches: the runner and controller (message ids with values instead of prose), `src/platform/i18n-catalog.ts` and locales, `sections/account.ts`, `tools/i18n-extract.mjs`, `tests/i18n.test.mjs`.
-  Acceptance: Every cleanup phase renders translated in all nine locales, driven under `he` and `ja` in a test. A source contract fails when a new status string bypasses the catalog.
-  Complexity: M
-
 - [ ] P2, F354: Keep structural filter predicates out of quoted posts
   Why: Hide rules wrap selectors in one `:has()` over the whole article, so a badge or media inside a quoted post likely hides the outer post. The reply-media filter explicitly excludes quotes, so the two disagree. Status: Likely, test first.
   Evidence: `src/features/filtering/filter-engine.ts:522`, `STRUCTURAL_SELECTORS` in `src/features/filtering/predicates.ts`, `src/features/filtering/reply-media.ts`, the quote boundary declared in `src/features/media/extract.ts`.

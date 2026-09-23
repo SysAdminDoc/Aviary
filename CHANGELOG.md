@@ -23,6 +23,10 @@
   all five categories ticked, so a single Run deleted every post and reply. Run now stays off, with
   a one-line reason, until you pick at least one category. Deletion still starts immediately once
   you press it.
+- **Delete X activity now reports its progress in your language.** Its 52 status, rest, rate-limit
+  and failure sentences were English in every locale, including the category names inside them.
+  They're translated in all nine languages now, and a test fails if a new one is added without
+  going through the translation catalog.
 - Delete X activity no longer retries an item forever when its control keeps vanishing. After two
   retries it counts as a failed action and the normal reload recovery takes over. If the signed-in
   account can't be read mid-pass, nothing is deleted until it reappears, and after 12 seconds the

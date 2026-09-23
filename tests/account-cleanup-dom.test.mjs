@@ -21,6 +21,7 @@ before(async () => {
     entry,
     [
       `export * from ${JSON.stringify(abs("src/features/account-cleanup/dom.ts"))};`,
+      `export { cleanupCopy } from ${JSON.stringify(abs("src/features/account-cleanup/state.ts"))};`,
       `export { mountControlCenter } from ${JSON.stringify(abs("src/ui/control-center.ts"))};`,
       `export { DEFAULT_SETTINGS, cloneSettings } from ${JSON.stringify(abs("src/platform/settings.ts"))};`
     ].join("\n"),
@@ -258,6 +259,68 @@ test("Run stays off until the reader selects what to delete", async () => {
     ready: true
   });
   assert.deepEqual(result.afterClear, result.initial);
+});
+
+test("cleanup progress renders in the reader's language, category labels included", async () => {
+  const result = await page.evaluate(() => {
+    const phases = [
+      AviaryAccountCleanupDom.cleanupCopy("Deletion is running."),
+      AviaryAccountCleanupDom.cleanupCopy("{category}: {count} removed.", { category: "likes", count: 12 }),
+      AviaryAccountCleanupDom.cleanupCopy("Loading more {categoryLower}.", { categoryLower: "posts" }),
+      AviaryAccountCleanupDom.cleanupCopy(
+        "Resting for {seconds} seconds after {count} actions. Deletion continues automatically.",
+        { seconds: 12, count: 60 }
+      ),
+      AviaryAccountCleanupDom.cleanupCopy("X's 500-action Like limit was reached. Waiting {minutes} minutes for the next window. Deletion continues automatically.", { minutes: 14 }),
+      AviaryAccountCleanupDom.cleanupCopy("The signed-in account changed. No further actions were taken.")
+    ];
+    const rendered = {};
+    for (const locale of ["en", "ja", "he"]) {
+      rendered[locale] = phases.map((copy) => {
+        document.body.replaceChildren();
+        const profile = document.createElement("a");
+        profile.dataset.testid = "AppTabBar_Profile_Link";
+        profile.href = "/alice";
+        document.body.append(profile);
+        const settings = AviaryAccountCleanupDom.cloneSettings(AviaryAccountCleanupDom.DEFAULT_SETTINGS);
+        settings.i18n.locale = locale;
+        const run = {
+          schema: 1, id: "cleanup-3", ownerId: "tab-1", account: "alice", status: "running", phase: "acting",
+          reason: null, plan: ["likes"], stepIndex: 0,
+          settings: { mode: "cleanup", categories: { likes: true }, pacing: "balanced", maxActions: 0 },
+          stats: { likes: { completed: 12, previewed: 0, failed: 0, skipped: 0 } },
+          processed: { likes: [] }, failures: {}, actionsThisSession: 12,
+          startedAt: 1, updatedAt: 2, finishedAt: null, leaseUntil: 3
+        };
+        const handle = AviaryAccountCleanupDom.mountControlCenter({
+          settings,
+          diagnostics: () => [],
+          onChange: async () => {},
+          onError() {},
+          getAccountCleanupStatus: () => ({ activeHandle: "alice", run, runningInThisTab: true, message: "", copy })
+        });
+        const shadow = document.querySelector("#av-control-center").shadowRoot;
+        shadow.querySelector(".av-launcher").click();
+        shadow.querySelector('[data-av-section="account"]').click();
+        const text = shadow.querySelector(".av-cleanup-guidance").textContent;
+        handle.destroy();
+        return text;
+      });
+    }
+    return rendered;
+  });
+
+  assert.equal(result.en[1], "Likes: 12 removed. Likes 12");
+  assert.equal(result.en[2].startsWith("Loading more posts."), true);
+  for (const locale of ["ja", "he"]) {
+    result[locale].forEach((text, index) => {
+      assert.notEqual(text, result.en[index], `${locale} phase ${index} rendered in English`);
+      assert.doesNotMatch(text, /[{}]/, `${locale} phase ${index} left a placeholder: ${text}`);
+      assert.doesNotMatch(text, /\b(removed|Likes|posts|Deletion|seconds|minutes)\b/, `${locale} phase ${index}: ${text}`);
+    });
+  }
+  assert.match(result.ja[1], /いいね：12件削除しました/);
+  assert.match(result.he[1], /לייקים: הוסרו 12/);
 });
 
 test("the page states that deletion cannot be undone while idle and while running", async () => {

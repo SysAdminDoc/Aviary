@@ -160,7 +160,58 @@ export interface AccountCleanupStatus {
   activeHandle: string | null;
   run: AccountCleanupRun | null;
   runningInThisTab: boolean;
+  /** English rendering of `copy`, for diagnostics and anything that cannot translate. */
   message: string;
+  copy: AccountCleanupCopy;
+}
+
+/**
+ * A status sentence in its English catalog form plus the values it fills in. The panel translates
+ * `text` and labels any `category` value in the reader's language. tools/i18n-extract.mjs harvests
+ * the string literal at every cleanupCopy call site, which is why the first argument is always a
+ * plain string.
+ */
+export interface AccountCleanupCopy {
+  text: string;
+  values?: Record<string, string | number>;
+}
+
+export function cleanupCopy(text: string, values?: Record<string, string | number>): AccountCleanupCopy {
+  return values ? { text, values } : { text };
+}
+
+/**
+ * Fills a copy's placeholders. `category` and `categoryLower` carry a category id, rendered as that
+ * category's label so a translated sentence never embeds an English one.
+ */
+export function formatAccountCleanupCopy(
+  copy: AccountCleanupCopy,
+  translate: (text: string) => string = (text) => text
+): string {
+  const values = localizeAccountCleanupValues(copy, translate);
+  return translate(copy.text).replace(/\{(\w+)\}/g, (placeholder, key: string) =>
+    values[key] === undefined ? placeholder : String(values[key])
+  );
+}
+
+/** The copy's values with category ids replaced by their labels in the reader's language. */
+export function localizeAccountCleanupValues(
+  copy: AccountCleanupCopy,
+  translate: (text: string) => string = (text) => text
+): Record<string, string | number> {
+  const values: Record<string, string | number> = {};
+  for (const [key, value] of Object.entries(copy.values ?? {})) {
+    if ((key === "category" || key === "categoryLower") && isAccountCleanupCategory(value)) {
+      // Both forms are always supplied: a translation may capitalize where English does not,
+      // German nouns for one, so it can name either placeholder.
+      const label = translate(ACCOUNT_CLEANUP_CATEGORY_DEFINITIONS[value].label);
+      values.category ??= label;
+      values.categoryLower ??= label.toLocaleLowerCase();
+    } else {
+      values[key] = value;
+    }
+  }
+  return values;
 }
 
 export interface AccountCleanupStartOptions {

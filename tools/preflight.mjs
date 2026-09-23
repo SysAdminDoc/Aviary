@@ -82,7 +82,10 @@ const DELIVERY_BUDGETS = [
   // keeps about 34 kB of headroom without hiding another feature-sized increase.
   // v1.51 adds two reading-continuity modules, the owned-media link action, and their complete
   // nine-language copy. Measured 2,901,587 bytes; the new ceiling keeps about 33 kB of headroom.
-  { file: "aviary.user.js", maxBytes: 2_935_000 },
+  // F351 translates Delete X activity's 52 progress and failure sentences, which had shipped in
+  // English in every locale: 416 translations, almost all of the increase. Measured 2,976,246
+  // bytes; about 30 kB of headroom again.
+  { file: "aviary.user.js", maxBytes: 3_006_000 },
   { file: "aviary.meta.js", maxBytes: 4_000 },
   // F298 keeps the document-start bootstrap below half of the previous 2.42 MB ceiling. The
   // panel, archive, WACZ worker, viewer, and translated catalog live in the separately budgeted
@@ -102,8 +105,9 @@ const DELIVERY_BUDGETS = [
   // translated strings) lands here. Measured 2,436,195 bytes against the 2,430,000 that stood
   // before; about 30 kB of headroom again. F357 is the structural fix: split this chunk by
   // destination instead of raising it once per feature.
-  { file: "extension-chrome/chunks/extension-panel.js", maxBytes: 2_466_000 },
-  { file: "extension-firefox/chunks/extension-panel.js", maxBytes: 2_466_000 },
+  // F351's 416 cleanup translations land in the catalog this chunk carries. Measured 2,487,833.
+  { file: "extension-chrome/chunks/extension-panel.js", maxBytes: 2_518_000 },
+  { file: "extension-firefox/chunks/extension-panel.js", maxBytes: 2_518_000 },
   { file: `aviary-source-v${pkg.version}.zip`, maxBytes: 10_000_000 }
 ];
 

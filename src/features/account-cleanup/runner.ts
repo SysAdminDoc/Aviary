@@ -1,15 +1,16 @@
 import type { StorageGateway } from "../../platform/storage.ts";
 import { mutateStored, withStorageLock } from "../../platform/storage-lock.ts";
 import {
-  ACCOUNT_CLEANUP_CATEGORY_DEFINITIONS,
   ACCOUNT_CLEANUP_KEY,
   ACCOUNT_CLEANUP_PACING,
   ACCOUNT_CLEANUP_TIMING,
   accountCleanupRouteFor,
   accountCleanupRouteMatches,
+  cleanupCopy,
   clearAccountCleanupTransientState,
   createAccountCleanupRun,
   createAccountCleanupToken,
+  formatAccountCleanupCopy,
   normalizeAccountCleanupRun,
   readAccountCleanupTabToken,
   readActiveAccountHandle,
@@ -17,6 +18,7 @@ import {
   writeAccountCleanupTabToken,
   type AccountCleanupCategory,
   type AccountCleanupCommandResult,
+  type AccountCleanupCopy,
   type AccountCleanupMode,
   type AccountCleanupRun,
   type AccountCleanupStartOptions
@@ -35,7 +37,9 @@ import {
 export interface AccountCleanupRunnerEvent {
   type: "status" | "progress" | "action" | "navigation" | "complete" | "blocked" | "error";
   run: AccountCleanupRun | null;
+  /** English rendering of `copy`; the panel renders `copy` in the reader's language. */
   message: string;
+  copy: AccountCleanupCopy;
 }
 
 export interface AccountCleanupRunnerDependencies {
@@ -309,7 +313,7 @@ export class AccountCleanupRunner {
     const result = await this.#store.pause(ownerId);
     if (result.ok) {
       this.#stopRenewal();
-      this.#emit("status", result.run ?? null, "Account cleanup paused.");
+      this.#emit("status", result.run ?? null, cleanupCopy("Account cleanup paused."));
     }
     return commandResult(result.ok, result.reason);
   }
@@ -323,7 +327,7 @@ export class AccountCleanupRunner {
     if (result.ok) {
       this.#stopRenewal();
       writeAccountCleanupTabToken(null, this.#sessionStorage);
-      this.#emit("status", result.run ?? null, "Account cleanup stopped.");
+      this.#emit("status", result.run ?? null, cleanupCopy("Account cleanup stopped."));
     }
     return commandResult(result.ok, result.reason);
   }
@@ -332,7 +336,7 @@ export class AccountCleanupRunner {
     if (this.isRunning) return { ok: false, reason: "already_running" };
     await this.#store.clear();
     writeAccountCleanupTabToken(null, this.#sessionStorage);
-    this.#emit("status", null, "Account cleanup record cleared.");
+    this.#emit("status", null, cleanupCopy("Account cleanup record cleared."));
     return { ok: true };
   }
 
@@ -351,7 +355,7 @@ export class AccountCleanupRunner {
       .catch(async (error: unknown) => {
         if (isAbortError(error)) return;
         if (error instanceof AccountCleanupLockLostError) {
-          this.#emit("error", await this.#store.load(), "This cleanup moved to another X tab.");
+          this.#emit("error", await this.#store.load(), cleanupCopy("This cleanup moved to another X tab."));
           return;
         }
         await this.#blockRun("unexpected_error");
@@ -390,7 +394,7 @@ export class AccountCleanupRunner {
         this.#emit(
           "navigation",
           run,
-          `Opening ${ACCOUNT_CLEANUP_CATEGORY_DEFINITIONS[category].label}.`
+          cleanupCopy("Opening {category}.", { category })
         );
         this.#stopRenewal();
         this.#location.assign(nextUrl);
@@ -400,11 +404,12 @@ export class AccountCleanupRunner {
       run.phase = "scanning";
       run.reason = category;
       await this.#save(run);
-      const verb = run.settings.mode === "preview" ? "Previewing" : "Cleaning";
       this.#emit(
         "status",
         run,
-        `${verb} ${ACCOUNT_CLEANUP_CATEGORY_DEFINITIONS[category].label}.`
+        run.settings.mode === "preview"
+          ? cleanupCopy("Previewing {category}.", { category })
+          : cleanupCopy("Cleaning {category}.", { category })
       );
       const result = await this.#processCategory(run, category, signal);
       if (result !== "complete") return;
@@ -428,8 +433,8 @@ export class AccountCleanupRunner {
       "complete",
       run,
       run.settings.mode === "preview"
-        ? "Preview complete. No X account data was changed."
-        : "Selected account cleanup passes are complete."
+        ? cleanupCopy("Preview complete. No X account data was changed.")
+        : cleanupCopy("Selected account cleanup passes are complete.")
     );
   }
 
@@ -446,8 +451,6 @@ export class AccountCleanupRunner {
     let handleMissingSince: number | null = null;
     const staleStreaks = new Map<string, number>();
     let actionsInBatch = run.stats[category].completed % pacing.batchSize;
-    const categoryLabel = ACCOUNT_CLEANUP_CATEGORY_DEFINITIONS[category].label;
-    const categoryLabelLower = categoryLabel.toLocaleLowerCase();
 
     while (
       idleScrolls < ACCOUNT_CLEANUP_TIMING.idleScrollLimit &&
@@ -481,7 +484,7 @@ export class AccountCleanupRunner {
 
       if (targets.length === 0) {
         run.phase = "loading_more";
-        this.#emit("progress", run, `Loading more ${categoryLabelLower}.`);
+        this.#emit("progress", run, cleanupCopy("Loading more {categoryLower}.", { categoryLower: category }));
         const scrollResult = await this.#dependencies.scrollForMore({
           documentObject: this.#document,
           windowObject: this.#window,
@@ -492,16 +495,20 @@ export class AccountCleanupRunner {
           .filter((target) => !processed.has(target.id));
         if (after.length > 0) {
           idleScrolls = 0;
-          this.#emit("progress", run, `${after.length} more ${categoryLabelLower} loaded.`);
+          this.#emit("progress", run, cleanupCopy("{count} more {categoryLower} loaded.", { count: after.length, categoryLower: category }));
         } else if (scrollResult.changed) {
           idleScrolls = 0;
-          this.#emit("progress", run, `X is still loading older ${categoryLabelLower}.`);
+          this.#emit("progress", run, cleanupCopy("X is still loading older {categoryLower}.", { categoryLower: category }));
         } else {
           idleScrolls += 1;
           this.#emit(
             "progress",
             run,
-            `Checking for more ${categoryLabelLower} (${idleScrolls}/${ACCOUNT_CLEANUP_TIMING.idleScrollLimit}).`
+            cleanupCopy("Checking for more {categoryLower} ({checks}/{limit}).", {
+              categoryLower: category,
+              checks: idleScrolls,
+              limit: ACCOUNT_CLEANUP_TIMING.idleScrollLimit
+            })
           );
         }
         continue;
@@ -519,7 +526,7 @@ export class AccountCleanupRunner {
         run.reason = "action_limit_reached";
         run.leaseUntil = 0;
         await this.#save(run);
-        this.#emit("status", run, "The action limit was reached. Resume to run another batch.");
+        this.#emit("status", run, cleanupCopy("The action limit was reached. Resume to run another batch."));
         return "paused";
       }
 
@@ -534,7 +541,7 @@ export class AccountCleanupRunner {
         this.#emit(
           "action",
           run,
-          `${categoryLabel}: ${run.stats[category].previewed} found.`
+          cleanupCopy("{category}: {count} found.", { category, count: run.stats[category].previewed })
         );
         await this.#dependencies.sleep(35, signal);
         continue;
@@ -574,7 +581,7 @@ export class AccountCleanupRunner {
         this.#emit(
           "action",
           run,
-          `${categoryLabel}: ${run.stats[category].completed} removed.`
+          cleanupCopy("{category}: {count} removed.", { category, count: run.stats[category].completed })
         );
         if (actionsInBatch >= pacing.batchSize) {
           actionsInBatch = 0;
@@ -583,12 +590,15 @@ export class AccountCleanupRunner {
           this.#emit(
             "status",
             run,
-            `Resting for ${Math.ceil(pacing.batchPauseMs / 1_000)} seconds after ${pacing.batchSize} actions. Deletion continues automatically.`
+            cleanupCopy(
+              "Resting for {seconds} seconds after {count} actions. Deletion continues automatically.",
+              { seconds: Math.ceil(pacing.batchPauseMs / 1_000), count: pacing.batchSize }
+            )
           );
           await this.#dependencies.sleep(pacing.batchPauseMs, signal);
           run.phase = "scanning";
           await this.#save(run);
-          this.#emit("status", run, `Continuing ${categoryLabel}.`);
+          this.#emit("status", run, cleanupCopy("Continuing {category}.", { category }));
         }
         continue;
       }
@@ -610,7 +620,7 @@ export class AccountCleanupRunner {
         run.pageRecoveryAttempts = 0;
         scrollsSinceAction = 0;
         await this.#save(run);
-        this.#emit("action", run, "One item was skipped because its expected control was missing.");
+        this.#emit("action", run, cleanupCopy("One item was skipped because its expected control was missing."));
         continue;
       }
 
@@ -620,7 +630,7 @@ export class AccountCleanupRunner {
       run.stats[category].failed += 1;
       consecutiveFailures += 1;
       await this.#save(run);
-      this.#emit("action", run, `An account action failed: ${outcome.reason ?? "unknown_error"}.`);
+      this.#emit("action", run, cleanupCopy("An account action failed: {reason}.", { reason: outcome.reason ?? "unknown_error" }));
       if (consecutiveFailures >= ACCOUNT_CLEANUP_TIMING.recoveryFailureThreshold) {
         if (await this.#recoverPage(run, category, signal)) return "navigating";
         await this.#blockRun("repeated_action_failures");
@@ -645,7 +655,7 @@ export class AccountCleanupRunner {
       this.#emit(
         "navigation",
         run,
-        `Reloading ${categoryLabel} from the top to verify that nothing was missed.`
+        cleanupCopy("Reloading {category} from the top to verify that nothing was missed.", { category })
       );
       this.#stopRenewal();
       this.#location.assign(new URL(accountCleanupRouteFor(category, run.account), "https://x.com").href);
@@ -661,8 +671,8 @@ export class AccountCleanupRunner {
       "progress",
       run,
       run.settings.mode === "cleanup"
-        ? `Fresh verification found no more ${categoryLabelLower}.`
-        : `No more ${categoryLabelLower} found.`
+        ? cleanupCopy("Fresh verification found no more {categoryLower}.", { categoryLower: category })
+        : cleanupCopy("No more {categoryLower} found.", { categoryLower: category })
     );
     return "complete";
   }
@@ -704,14 +714,14 @@ export class AccountCleanupRunner {
     this.#emit(
       "status",
       run,
-      `X's 500-action Like limit was reached. Waiting ${formatWaitDuration(remainingMs)} for the next window. Deletion continues automatically.`
+      likeWindowCopy(remainingMs)
     );
     await this.#dependencies.sleep(waitMs, signal);
     run.likeRateWindowStartedAt = null;
     run.likeRateWindowActions = 0;
     run.phase = "recovering";
     await this.#save(run);
-    this.#emit("navigation", run, "Reloading Likes for the next X rate window.");
+    this.#emit("navigation", run, cleanupCopy("Reloading Likes for the next X rate window."));
     this.#stopRenewal();
     this.#location.assign(new URL(this.#location.pathname, "https://x.com").href);
     return true;
@@ -727,7 +737,6 @@ export class AccountCleanupRunner {
     run.phase = "recovery_wait";
     run.reason = category;
     await this.#save(run);
-    const label = ACCOUNT_CLEANUP_CATEGORY_DEFINITIONS[category].label;
     const waitMs = exponentialBackoff(
       run.pageRecoveryAttempts,
       ACCOUNT_CLEANUP_TIMING.recoveryPauseBaseMs,
@@ -736,7 +745,15 @@ export class AccountCleanupRunner {
     this.#emit(
       "status",
       run,
-      `X did not apply the action twice. Waiting ${Math.ceil(waitMs / 1_000)} seconds before reloading ${label} (${run.pageRecoveryAttempts}/${ACCOUNT_CLEANUP_TIMING.maxPageRecoveryAttempts}).`
+      cleanupCopy(
+        "X did not apply the action twice. Waiting {seconds} seconds before reloading {category} ({attempt}/{max}).",
+        {
+          seconds: Math.ceil(waitMs / 1_000),
+          category,
+          attempt: run.pageRecoveryAttempts,
+          max: ACCOUNT_CLEANUP_TIMING.maxPageRecoveryAttempts
+        }
+      )
     );
     await this.#dependencies.sleep(waitMs, signal);
     run.phase = "recovering";
@@ -744,7 +761,7 @@ export class AccountCleanupRunner {
     this.#emit(
       "navigation",
       run,
-      `Reloading ${label} now. Deletion continues automatically.`
+      cleanupCopy("Reloading {category} now. Deletion continues automatically.", { category })
     );
     this.#stopRenewal();
     this.#location.assign(new URL(this.#location.pathname, "https://x.com").href);
@@ -801,8 +818,8 @@ export class AccountCleanupRunner {
           "error",
           await this.#store.load(),
           error instanceof AccountCleanupLockLostError
-            ? "This cleanup moved to another X tab."
-            : "The account cleanup lock could not be renewed."
+            ? cleanupCopy("This cleanup moved to another X tab.")
+            : cleanupCopy("The account cleanup lock could not be renewed.")
         );
       });
     }, ACCOUNT_CLEANUP_TIMING.leaseRenewMs);
@@ -816,9 +833,9 @@ export class AccountCleanupRunner {
   #emit(
     type: AccountCleanupRunnerEvent["type"],
     run: AccountCleanupRun | null,
-    message: string
+    copy: AccountCleanupCopy
   ): void {
-    this.#onEvent({ type, run, message });
+    this.#onEvent({ type, run, message: formatAccountCleanupCopy(copy), copy });
   }
 }
 
@@ -842,22 +859,39 @@ function isAbortError(error: unknown): boolean {
   return error instanceof DOMException && error.name === "AbortError";
 }
 
-function blockMessage(reason: string): string {
-  const messages: Record<string, string> = {
-    account_changed: "The signed-in account changed. No further actions were taken.",
-    challenge_detected: "X displayed a login or anti-abuse challenge. Complete it, then resume.",
-    login_required: "Sign in to X, then resume.",
-    repeated_action_failures: "X did not apply the action after five automatic page reloads. Resume to try again.",
-    unexpected_error: "An unexpected error stopped the account cleanup."
-  };
-  return messages[reason] ?? "The account cleanup is blocked and needs attention.";
+function blockMessage(reason: string): AccountCleanupCopy {
+  switch (reason) {
+    case "account_changed":
+      return cleanupCopy("The signed-in account changed. No further actions were taken.");
+    case "challenge_detected":
+      return cleanupCopy("X displayed a login or anti-abuse challenge. Complete it, then resume.");
+    case "login_required":
+      return cleanupCopy("Sign in to X, then resume.");
+    case "repeated_action_failures":
+      return cleanupCopy("X did not apply the action after five automatic page reloads. Resume to try again.");
+    case "unexpected_error":
+      return cleanupCopy("An unexpected error stopped the account cleanup.");
+    default:
+      return cleanupCopy("The account cleanup is blocked and needs attention.");
+  }
 }
 
-function formatWaitDuration(milliseconds: number): string {
-  const totalSeconds = Math.max(1, Math.ceil(milliseconds / 1_000));
-  if (totalSeconds < 60) return `${totalSeconds} seconds`;
-  const minutes = Math.ceil(totalSeconds / 60);
-  return `${minutes} ${minutes === 1 ? "minute" : "minutes"}`;
+/** Whole sentences per unit, so a translation never has to assemble a plural from parts. */
+function likeWindowCopy(milliseconds: number): AccountCleanupCopy {
+  const seconds = Math.max(1, Math.ceil(milliseconds / 1_000));
+  if (seconds < 60) {
+    return cleanupCopy(
+      "X's 500-action Like limit was reached. Waiting {seconds} seconds for the next window. Deletion continues automatically.",
+      { seconds }
+    );
+  }
+  const minutes = Math.ceil(seconds / 60);
+  return minutes === 1
+    ? cleanupCopy("X's 500-action Like limit was reached. Waiting 1 minute for the next window. Deletion continues automatically.")
+    : cleanupCopy(
+      "X's 500-action Like limit was reached. Waiting {minutes} minutes for the next window. Deletion continues automatically.",
+      { minutes }
+    );
 }
 
 function commandResult(ok: boolean, reason: string | undefined): AccountCleanupCommandResult {
