@@ -234,10 +234,12 @@ export function findAccountCleanupArticleByStatusId(
   statusId: string,
   documentObject: Document = document
 ): HTMLElement | null {
-  const link = documentObject.querySelector(
-    `article[data-testid="tweet"] a[href*="/status/${statusId}"]`
-  );
-  return link?.closest<HTMLElement>('article[data-testid="tweet"]') ?? null;
+  // Match the article's own status, not any link inside it: a substring match also finds a post
+  // that quotes the target, or one whose id merely starts with the same digits.
+  for (const article of documentObject.querySelectorAll<HTMLElement>('article[data-testid="tweet"]')) {
+    if (getPrimaryAccountCleanupStatus(article)?.id === statusId) return article;
+  }
+  return null;
 }
 
 export function visibleAccountCleanupStatusIds(documentObject: Document = document): Set<string> {

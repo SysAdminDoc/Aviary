@@ -91,6 +91,26 @@ test("reply discovery excludes an authored parent post", async () => {
   assert.deepEqual(result, ["200"]);
 });
 
+test("a cleanup target is found by its own status id, never through a quote or a shared prefix", async () => {
+  const result = await page.evaluate(() => {
+    const post = (marker, ownPath, inner = "") =>
+      `<article data-testid="tweet" data-marker="${marker}">` +
+      `<a href="${ownPath}"><time datetime="2026-09-01T00:00:00.000Z">1h</time></a>${inner}</article>`;
+    document.body.innerHTML = [
+      // A post quoting the target, rendered above it, as a quote of your own post would be.
+      post("quote", "/alice/status/111", '<div role="link" tabindex="0"><a href="/alice/status/222">quoted</a></div>'),
+      // A post whose id starts with the target's digits.
+      post("prefix", "/alice/status/2229"),
+      post("target", "/alice/status/222"),
+      post("other", "/alice/status/333")
+    ].join("");
+    const find = (id) => AviaryAccountCleanupDom.findAccountCleanupArticleByStatusId(id, document)
+      ?.dataset.marker ?? null;
+    return { target: find("222"), prefix: find("2229"), quote: find("111"), missing: find("22") };
+  });
+  assert.deepEqual(result, { target: "target", prefix: "prefix", quote: "quote", missing: null });
+});
+
 test("delete menu selection fails closed and accepts X danger styling", async () => {
   const result = await page.evaluate(() => {
     const safeMenu = document.createElement("div");

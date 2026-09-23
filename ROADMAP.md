@@ -19,13 +19,6 @@ scheme from F336.
 
 ### P2
 
-- [ ] P2, F347: Match cleanup targets by exact status id
-  Why: The lookup uses a substring selector, so it can return an article that quotes the target or an id with the same prefix. That's harmless while every category deletes everything, and unsafe once F348 keeps some posts.
-  Evidence: `src/features/account-cleanup/dom.ts:237-240`, `getPrimaryAccountCleanupStatus` at `dom.ts:71-80`.
-  Touches: `src/features/account-cleanup/dom.ts`, `tests/account-cleanup-dom.test.mjs`.
-  Acceptance: The lookup returns only the article whose primary status equals the id. Fixtures with a quote of the target rendered above it, and with a prefix-sharing id, both select the right article.
-  Complexity: S
-
 - [ ] P2, F346: Bound stale cleanup retries and cover the untested runner paths
   Why: A target that keeps returning `stale` loops forever at pacing speed. Several runner paths have no test. `docs/FEATURES.md` says an account change blocks the run, but a missing handle mid-run doesn't.
   Evidence: `src/features/account-cleanup/runner.ts:476,533,582` and `:459-460`, `docs/FEATURES.md:478-479`, `tests/account-cleanup.test.mjs:322` (pre-scan account change only). `account-cleanup-feature.ts` has no test.

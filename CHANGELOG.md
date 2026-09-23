@@ -23,6 +23,9 @@
   all five categories ticked, so a single Run deleted every post and reply. Run now stays off, with
   a one-line reason, until you pick at least one category. Deletion still starts immediately once
   you press it.
+- Delete X activity now finds each item by its own post id. It used to match any link containing
+  the id, so a post that quoted the target, or one whose id began with the same digits, could be
+  acted on in its place.
 - Delete X activity now says, whether idle or running, that deleted posts and replies can't be
   restored. X's automation rules require bulk-delete tools to state it. It's one line of page
   text, not a prompt.
