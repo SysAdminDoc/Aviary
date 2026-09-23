@@ -27,6 +27,25 @@ test("every locale covers the whole panel manifest", async () => {
   }
 });
 
+test("a string the panel can render but no locale translates fails the suite", async () => {
+  // PANEL_STRINGS only knows what the last hand-run extraction listed, so coverage measured against
+  // it passed while 1.52.0 rendered four labels in English. The extractor's check mode compares the
+  // live render and source harvest with the catalog. One planted label proves the check can fail,
+  // and requiring it to be the only miss proves everything real is translated.
+  const { spawnSync } = await import("node:child_process");
+  const planted = "A label nobody listed";
+  const result = spawnSync(process.execPath, [path.join(root, "tools/i18n-extract.mjs"), "--check"], {
+    cwd: root,
+    encoding: "utf8",
+    windowsHide: true,
+    timeout: 240_000,
+    env: { ...process.env, AVIARY_I18N_CHECK_EXTRA: planted }
+  });
+  assert.equal(result.status, 1, `${result.stdout}\n${result.stderr}`);
+  const missing = [...result.stdout.matchAll(/^ {2}missing: (.+)$/gm)].map((match) => JSON.parse(match[1]));
+  assert.deepEqual(missing, [planted], "only the planted label may be untranslated");
+});
+
 test("panelCoverage reports 100% for every shipped locale", async () => {
   const { panelCoverage, supportedLocales } = await importSourceModule("src/platform/i18n.ts");
 

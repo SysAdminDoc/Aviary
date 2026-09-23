@@ -3,6 +3,12 @@
  * is built from, and reports what each locale is still missing.
  *
  *   node tools/i18n-extract.mjs [--write]
+ *   node tools/i18n-extract.mjs --check   # exit 1 when any locale lacks a string the panel uses
+ *
+ * `--check` is what the test suite runs. Without it, a row added in source passed the coverage
+ * gate until someone remembered to run this by hand: 1.52.0 shipped four labels in English that
+ * way. `AVIARY_I18N_CHECK_EXTRA` adds one literal to the manifest so a test can prove the check
+ * still fails on a string nobody listed.
  *
  * How the manifest is decided, so it cannot drift into claiming more than it covers:
  *
@@ -30,6 +36,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const write = process.argv.includes("--write");
+const check = process.argv.includes("--check");
 const LITERAL_RE = /^\s+\w+: "((?:[^"\\]|\\.)*)",?$/gm;
 const abs = (p) => path.resolve(root, p).replace(/\\/g, "/");
 
@@ -602,7 +609,8 @@ for (const s of [
   ...optionsLiterals,
   ...nativeLiterals,
   ...viewerLiterals,
-  ...carried
+  ...carried,
+  ...(check && process.env.AVIARY_I18N_CHECK_EXTRA ? [process.env.AVIARY_I18N_CHECK_EXTRA] : [])
 ]) {
   const v = s.trim();
   if (v.length > 0 && !seen.has(v)) {
@@ -647,6 +655,18 @@ if (write) {
 }
 
 await rm(temp, { recursive: true, force: true });
+
+if (check) {
+  const untranslated = [...new Set(Object.values(missing).flat())];
+  if (untranslated.length > 0) {
+    console.log(`i18n check failed: ${untranslated.length} string(s) lack a translation in at least one locale.`);
+    for (const value of untranslated) console.log(`  missing: ${JSON.stringify(value)}`);
+    console.log("Run node tools/i18n-extract.mjs --write, add the translations, then node tools/i18n-sync.mjs <file>.");
+    process.exitCode = 1;
+  } else {
+    console.log("i18n check passed: every locale translates every string the panel can render.");
+  }
+}
 
 /**
  * Every double-quoted literal passed directly to `t(...)` in the panel source.

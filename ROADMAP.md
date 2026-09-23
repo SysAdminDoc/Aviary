@@ -26,13 +26,6 @@ scheme from F336.
   Acceptance: Every cleanup phase renders translated in all nine locales, driven under `he` and `ja` in a test. A source contract fails when a new status string bypasses the catalog.
   Complexity: M
 
-- [ ] P2, F370: Fail the suite when rendered panel copy is missing from `PANEL_STRINGS`
-  Why: 1.52.0 shipped four Look & feel strings in English in every locale while `tests/i18n.test.mjs` passed. Coverage is measured against the committed `PANEL_STRINGS` list, and only the hand-run extractor compares that list with what the panel renders.
-  Evidence: `node tools/i18n-extract.mjs --write` on 2026-09-22 reported "Noir (default)", "Wide (default)" and their two descriptions missing from all eight locales (fixed with F337). `tests/i18n.test.mjs:15-28` checks the catalog against `PANEL_STRINGS` only.
-  Touches: `tests/i18n.test.mjs`, `renderedPanelStrings` in `src/ui/control-center.ts`, `src/ui/control-center/section-manifest.ts`.
-  Acceptance: A test mounts the panel in English, visits every destination in `section-manifest.ts`, and fails when a string the translator saw is absent from `PANEL_STRINGS`. Reintroducing an unlisted label makes it fail.
-  Complexity: S/M
-
 - [ ] P2, F354: Keep structural filter predicates out of quoted posts
   Why: Hide rules wrap selectors in one `:has()` over the whole article, so a badge or media inside a quoted post likely hides the outer post. The reply-media filter explicitly excludes quotes, so the two disagree. Status: Likely, test first.
   Evidence: `src/features/filtering/filter-engine.ts:522`, `STRUCTURAL_SELECTORS` in `src/features/filtering/predicates.ts`, `src/features/filtering/reply-media.ts`, the quote boundary declared in `src/features/media/extract.ts`.
