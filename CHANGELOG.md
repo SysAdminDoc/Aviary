@@ -10,6 +10,9 @@
   makes dozens of those reads before the layout applies, so a post could sit at X's narrow width
   for 8 to 10 seconds. Reads now fetch only the key they need. Saves clear the records nobody
   reads anymore, and the extension trims the old pile the first time it starts.
+- A post you open now gets the wide layout in its first frame. Aviary used to wait up to 120ms
+  after X drew new content before adjusting it, so each post you opened flashed at 600px and
+  then jumped wide.
 
 ## 1.54.0 (2026-09-23)
 

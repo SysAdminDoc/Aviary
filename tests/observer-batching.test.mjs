@@ -78,6 +78,73 @@ test("many inserts in one tick arrive as one batch, not one call each", async ()
   assert.equal(result.total, 30, "every inserted node must reach the handler exactly once");
 });
 
+test("the first batch after a quiet spell lands before the next paint", async () => {
+  const result = await page.evaluate(async () => {
+    const host = document.getElementById("host");
+    host.replaceChildren();
+    // Let any earlier test's window close so this insert starts from a quiet page.
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    let delivered = false;
+    const stop = AviaryObserver.observeAddedElements(host, () => {
+      delivered = true;
+    });
+
+    // X renders a post it just navigated to in one commit. Holding that batch for the coalescing
+    // window painted the post at 600px first and widened it a beat later, on every post opened.
+    host.append(document.createElement("article"));
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    const beforeSecondFrame = delivered;
+    stop();
+    return { beforeSecondFrame };
+  });
+
+  assert.equal(result.beforeSecondFrame, true, "new content waited out the coalescing window before its pass");
+});
+
+test("a busy page still gets at most one pass per window", async () => {
+  const batches = await page.evaluate(async () => {
+    const host = document.getElementById("host");
+    host.replaceChildren();
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    const delivered = [];
+    const stop = AviaryObserver.observeAddedElements(host, (nodes) => delivered.push(nodes.length));
+    // A virtualized timeline that never stops churning: an insert every 10ms for 300ms.
+    for (let i = 0; i < 30; i++) {
+      host.append(document.createElement("div"));
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    stop();
+    return delivered;
+  });
+
+  assert.equal(batches.reduce((sum, n) => sum + n, 0), 30, "every inserted node must arrive exactly once");
+  assert.ok(batches.length <= 4, `300ms of churn produced ${batches.length} passes`);
+});
+
+test("a page that never paints still gets its pass", async () => {
+  const calls = await page.evaluate(async () => {
+    const host = document.getElementById("host");
+    host.replaceChildren();
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    // A background tab runs no animation frames at all.
+    const native = window.requestAnimationFrame;
+    window.requestAnimationFrame = () => 0;
+    let count = 0;
+    try {
+      const stop = AviaryObserver.observeAddedElements(host, () => count++);
+      host.append(document.createElement("div"));
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      stop();
+    } finally {
+      window.requestAnimationFrame = native;
+    }
+    return count;
+  });
+
+  assert.equal(calls, 1, "a hidden tab's mutations were never delivered");
+});
+
 test("a node the page removed again before the flush is never handed to a feature", async () => {
   const seen = await page.evaluate(async () => {
     const host = document.getElementById("host");
