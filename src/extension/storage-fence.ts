@@ -9,12 +9,23 @@ import {
   type StorageFenceResponse,
   type StorageLockFence
 } from "../platform/storage-fence.ts";
+import {
+  fenceOperationKey,
+  fencedRemoveIsNoop,
+  fencedStorageKeys,
+  isFenceRecordKeyFor,
+  supersededFenceRecordKeys,
+  type FenceOperationRecord,
+  type FenceReceiptRecord,
+  type FenceRecords
+} from "../platform/storage-fence-records.ts";
 import { storageValueBytes } from "../platform/storage-value-hash.ts";
 
 interface ExtensionStorageLocal {
   get(keys?: string | string[] | Record<string, unknown> | null): Promise<Record<string, unknown>>;
   set(items: Record<string, unknown>): Promise<void>;
   remove(keys: string | string[]): Promise<void>;
+  getKeys?(): Promise<string[]>;
 }
 
 interface StoredStorageFence extends StorageLockFence {
@@ -22,22 +33,9 @@ interface StoredStorageFence extends StorageLockFence {
 }
 
 const FENCE_RECORD_PREFIX = "aviary.storage.fence.v1.";
+/** Keys per `remove` call while compacting, so one call never carries an unbounded list. */
+const COMPACTION_BATCH = 500;
 let operationSequence = 0;
-
-interface FenceOperation {
-  version: 1;
-  operationId: string;
-  storageKey: string;
-  kind: "set" | "remove";
-  value?: unknown;
-  fence: StorageLockFence;
-}
-
-interface FenceReceipt {
-  version: 1;
-  operationId: string;
-  committedAt: number;
-}
 
 /**
  * Background-owned lease authority.
@@ -186,13 +184,13 @@ async function writeFencedOperation(
   fence: StorageLockFence,
   kind: "set" | "remove" = "set"
 ): Promise<void> {
+  const records = await readFenceRecords(storage, storageKey);
+  if (kind === "remove" && fencedRemoveIsNoop(records, storageKey)) return;
   const operationId = `${Date.now().toString(36)}-${(++operationSequence).toString(36)}-${
     Math.random().toString(36).slice(2)
   }`;
-  const operationKey = `${STORAGE_FENCE_OPERATION_PREFIX}${encodeURIComponent(storageKey)}.${
-    encodeURIComponent(operationId)
-  }`;
-  const operation: FenceOperation = {
+  const operationKey = fenceOperationKey(storageKey, operationId);
+  const operation: FenceOperationRecord = {
     version: 1,
     operationId,
     storageKey,
@@ -207,7 +205,7 @@ async function writeFencedOperation(
     throw new StorageFenceLostError("The fenced extension operation exceeds the storage safety limit.");
   }
   await storage.set({ [operationKey]: operation });
-  const receipt: FenceReceipt = {
+  const receipt: FenceReceiptRecord = {
     version: 1,
     operationId,
     committedAt: Date.now()
@@ -215,6 +213,60 @@ async function writeFencedOperation(
   await storage.set({ [`${operationKey}${STORAGE_FENCE_RECEIPT_SUFFIX}`]: receipt });
   if (kind === "set") await storage.set({ [storageKey]: value });
   else await storage.remove(storageKey);
+
+  records[operationKey] = operation;
+  records[`${operationKey}${STORAGE_FENCE_RECEIPT_SUFFIX}`] = receipt;
+  if (kind === "set") records[storageKey] = value;
+  else delete records[storageKey];
+  const superseded = supersededFenceRecordKeys(records, storageKey);
+  if (superseded.length === 0) return;
+  try {
+    await storage.remove(superseded);
+  } catch (error) {
+    // The write itself committed. Leftover records only cost space, and the next write or the
+    // worker's startup compaction retries them, so failing the caller here would be a lie.
+    console.warn(`Aviary could not trim fenced records for ${storageKey}: ${errorMessage(error)}`);
+  }
+}
+
+/**
+ * Trims every fenced record a read no longer consults, in one pass over the area.
+ *
+ * Builds before this one never trimmed, so a profile that ran a long account cleanup carried tens
+ * of thousands of records into every read. Run once per worker start: on a compacted area this is
+ * one key listing and a handful of small reads. Returns how many keys it removed.
+ */
+export async function compactStorageFenceRecords(
+  storage: ExtensionStorageLocal | undefined = globalThis.chrome?.storage?.local
+): Promise<number> {
+  if (!storage) return 0;
+  const records = await readAllFenceRecords(storage);
+  const stale = [...fencedStorageKeys(records)].flatMap((storageKey) =>
+    supersededFenceRecordKeys(records, storageKey)
+  );
+  for (let index = 0; index < stale.length; index += COMPACTION_BATCH) {
+    await storage.remove(stale.slice(index, index + COMPACTION_BATCH));
+  }
+  return stale.length;
+}
+
+async function readFenceRecords(storage: ExtensionStorageLocal, storageKey: string): Promise<FenceRecords> {
+  if (typeof storage.getKeys !== "function") return storage.get(null);
+  const keys = (await storage.getKeys()).filter((key) => isFenceRecordKeyFor(key, storageKey));
+  return keys.length === 0 ? {} : storage.get(keys);
+}
+
+async function readAllFenceRecords(storage: ExtensionStorageLocal): Promise<FenceRecords> {
+  if (typeof storage.getKeys !== "function") return storage.get(null);
+  const fenceKeys = (await storage.getKeys()).filter((key) => key.startsWith(STORAGE_FENCE_OPERATION_PREFIX));
+  if (fenceKeys.length === 0) return {};
+  const records = await storage.get(fenceKeys);
+  const plainKeys = [...fencedStorageKeys(records)];
+  return plainKeys.length === 0 ? records : { ...records, ...(await storage.get(plainKeys)) };
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }
 
 export function isExtensionStorageFenceRequest(value: unknown): value is StorageFenceRequest {

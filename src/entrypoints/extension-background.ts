@@ -34,6 +34,7 @@ import {
 } from "../extension/durable-storage-api.ts";
 import { createIndexedDbStorageBackend } from "../platform/durable-storage.ts";
 import {
+  compactStorageFenceRecords,
   ExtensionStorageFenceAuthority,
   isExtensionStorageFenceRequest
 } from "../extension/storage-fence.ts";
@@ -74,6 +75,7 @@ const PANEL_CHUNK_RESOURCE = "chunks/extension-panel.js";
 /** One reconciliation per worker lifetime is enough; a failed pass may be retried by a lifecycle event. */
 let sessionReconciliation: Promise<void> | null = null;
 type BackgroundTaskCode =
+  | "fence-compaction"
   | "session-reconcile"
   | "context-menu-install"
   | "context-menu-startup"
@@ -128,6 +130,10 @@ let trackingStoreTail: Promise<void> = Promise.resolve();
 
 /** Returned to the content script when `downloads` has not been granted yet. */
 export const DOWNLOAD_PERMISSION_CODE = "downloads-permission-missing";
+
+// Every worker start trims the fenced records that reads no longer consult. Older builds never
+// did, and one long account cleanup left enough behind that each storage read on X scanned 6 MB.
+settleBackgroundTask(compactStorageFenceRecords(), "fence-compaction");
 
 runtime?.onInstalled?.addListener(() => {
   // The old build owned one extension-global dynamic rule. Remove it on both install and update;

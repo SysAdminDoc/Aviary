@@ -283,6 +283,8 @@ function dnrStub({ sessionRules = [], dynamicRules = [] } = {}) {
     },
     storage: {
       local: {
+        // The worker compacts fenced records on start; an empty area gives it nothing to remove.
+        async get() { return {}; },
         async remove(key) {
           state.removedStorageKeys.push(key);
         }

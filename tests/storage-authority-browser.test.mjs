@@ -336,6 +336,11 @@ async function createLaneSession(lane) {
           }
           return result;
         },
+        // Chrome 130+ and Firefox 143+ list names without reading values, and fenced reads use
+        // it to fetch one key's records instead of the whole area.
+        async getKeys() {
+          return call({ operation: "list" });
+        },
         async set(values) {
           await call({ operation: "set-many", values });
         },

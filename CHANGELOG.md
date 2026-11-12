@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### Fixed
+
+- **Posts open in Wide mode right away again.** Every save Aviary made left two small records
+  behind in the browser's extension storage, and nothing ever cleared them. A long account
+  cleanup piled up over 22,000 of them, and each storage read on X then loaded all of it. Startup
+  makes dozens of those reads before the layout applies, so a post could sit at X's narrow width
+  for 8 to 10 seconds. Reads now fetch only the key they need. Saves clear the records nobody
+  reads anymore, and the extension trims the old pile the first time it starts.
+
 ## 1.54.0 (2026-09-23)
 
 ### Changed
