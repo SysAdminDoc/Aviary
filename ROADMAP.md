@@ -125,7 +125,7 @@ scheme from F336.
   Complexity: S/M
 
 - [ ] P3, F360: Refresh pinned development dependencies
-  Why: eslint 10.11.0, typescript-eslint 8.70.1, Playwright 1.63.0 (Chromium 153, Firefox 155), globals 17.12.0 and Node 24.21.0 are out. Violentmonkey's stable is 2.49.0 (2026-09-06), with an MV3 execution-order fix, while the manager lane still installs 2.47.0. Tampermonkey 5.5.0 is still the current stable. The typescript-eslint peer range still stops below TypeScript 6.1, so the TypeScript 6 API alias stays.
+  Why: eslint 10.11.0, typescript-eslint 8.70.1, Playwright 1.63.0 (Chromium 153, Firefox 155), globals 17.12.0 and Node 24.21.0 are out. Violentmonkey's stable is 2.49.0 (2026-09-06), with an MV3 execution-order fix, while the manager lane still installs 2.47.0. Tampermonkey 5.5.0 is still the current stable. The typescript-eslint peer range still stops below TypeScript 6.1, so the TypeScript 6 API alias stays. GitHub alert 3 (open since 2026-10-13) flags the lockfile's dev-only brace-expansion below 5.0.12 for quadratic-time expansion.
   Evidence: the npm registry and GitHub releases listed in RESEARCH.md, github.com/violentmonkey/violentmonkey/releases, `package.json`, `.node-version`, `tests/smoke/userscript-manager-lifecycle.smoke.mjs:49-51`.
   Touches: `package.json`, `package-lock.json`, `.node-version`, `tests/smoke/userscript-manager-lifecycle.smoke.mjs` (URL, version and pinned hash), any new lint findings.
   Acceptance: Exact pins updated and `npm audit` clean. The manager lane installs a hash-pinned Violentmonkey 2.49.0. `npm run verify:release` passes on the new set. Lint findings from the stricter `new-cap` and `no-unsafe-finally` rules are fixed, not suppressed.
